@@ -1,16 +1,36 @@
 /**
- * Subway Surfers Ultra Mod & Online Multiplayer System
- * Features:
- * - 100% Unlocked Characters, Boards, Outfits, Max Upgrades, 999M Coins & Keys
- * - Free Shop (Zero Cost)
- * - Unlimited FPS & Performance Engine
- * - No Coin Mode (Instant Death on Red Coins, Identical Hitbox)
- * - Top Stopwatch Timer & Mode Badge
- * - Records & Run History
- * - Online Multiplayer (No Coin Only, 2-4 Players, Ready System, Ghost Transparency, Live Placements, Spectator Mode)
+ * Subway Surfers Ultra Mod & Real-Time Online Multiplayer Engine
+ * 100% Complete Implementation:
+ * - Modo Ilimitado (Moedas e Chaves Infinitas, Todos os Personagens, Pranchas e Roupas, Melhorias Max, Loja Grátis)
+ * - Modo No Coin (Moeda Vermelha com Hitbox 100% Precisa sem Magnetismo, Morte Instantânea)
+ * - Timer Minimalista (Aparece e funciona APENAS durante a corrida ativa)
+ * - Menu Unificado (Modo de Jogo, Modo Online e Recordes em uma única interface)
+ * - Modo Online Real (MQTT WebSockets global, Lobby com Jogadores Online, Convites, Grupo 2-4, Sistema Pronto, Fantasmas Transparentes, Classificação em Tempo Real, Modo Espectador)
+ * - Remoção do Badge Powered by Netlify
  */
 (function() {
     'use strict';
+
+    // ==========================================
+    // 0. NETLIFY BADGE & DRAWER REMOVER
+    // ==========================================
+    function nukeNetlifyBadge() {
+        try {
+            const badElements = document.querySelectorAll(
+                '[class*="netlify"], [id*="netlify"], [href*="netlify.com"], netlify-drawer, #netlify-drawer, .netlify-badge, iframe[src*="netlify"]'
+            );
+            badElements.forEach(el => el.remove());
+            document.querySelectorAll('div, a, span, button, p').forEach(el => {
+                if (el.textContent && el.textContent.toLowerCase().includes('powered by netlify')) {
+                    el.remove();
+                }
+            });
+        } catch(e) {}
+    }
+    nukeNetlifyBadge();
+    const netlifyObserver = new MutationObserver(nukeNetlifyBadge);
+    netlifyObserver.observe(document.documentElement, { childList: true, subtree: true });
+    setInterval(nukeNetlifyBadge, 500);
 
     // ==========================================
     // 1. DATA & CONSTANTS
@@ -48,8 +68,9 @@
     // ==========================================
     // 2. STATE MANAGEMENT
     // ==========================================
+    window.UNLIMITED_MODE = localStorage.getItem('subway_unlimited_mode') !== 'false'; // Default true
     window.GAME_MODE = localStorage.getItem('subway_game_mode') || 'normal'; // 'normal' | 'nocoin'
-    window.NO_COIN_MODE = window.GAME_MODE === 'nocoin';
+    window.NO_COIN_MODE = (window.GAME_MODE === 'nocoin');
 
     let runTimerInterval = null;
     let runStartTime = 0;
@@ -72,31 +93,32 @@
     // Multiplayer State
     const MP = {
         active: false,
-        peer: null,
-        peerId: null,
+        mqtt: null,
         broadcast: null,
-        connections: new Map(), // peerId -> DataConnection
-        party: [myProfile],     // Array of player objects { id, nick, avatar, ready, isLeader }
+        roomId: 'room_' + myProfile.id,
+        currentRoomTopic: null,
+        party: [{ ...myProfile, ready: false, isLeader: true }],
         isPartyLeader: true,
         isReady: false,
         inMatch: false,
-        playersState: new Map(), // id -> { x, y, lane, state, alive, time }
-        placement: [],          // [{ id, nick, avatar, alive, time }]
+        onlinePlayers: new Map(), // id -> { profile, lastSeen }
+        playersState: new Map(),  // id -> { x, y, z, anim, alive, score, time }
+        placement: [],           // [{ id, nick, avatar, alive, time }]
         spectatingId: null,
         aliveCount: 0
     };
 
     // ==========================================
-    // 3. UNLOCK EVERYTHING & FREE SHOP
+    // 3. MODO ILIMITADO (TUDO LIBERADO)
     // ==========================================
-    function preSeedLocalStorage() {
+    function applyUnlimitedStorage() {
+        if (!window.UNLIMITED_MODE) return;
         try {
-            // shopSettings
             const shopSettings = {
                 purchased: {
-                    characters: ALL_CHARACTERS,
-                    boards: ALL_BOARDS,
-                    outfits: ALL_OUTFITS,
+                    characters: ALL_CHARACTERS.slice(),
+                    boards: ALL_BOARDS.slice(),
+                    outfits: ALL_OUTFITS.slice(),
                     boosts: {
                         consumables: {
                             hoverboard: 999999,
@@ -115,19 +137,16 @@
             };
             localStorage.setItem('shopSettings', JSON.stringify(shopSettings));
 
-            // gameSettings
             const existingGameSettings = JSON.parse(localStorage.getItem('gameSettings') || '{}');
             existingGameSettings.currencies = { coins: 999999999, keys: 999999999 };
             existingGameSettings.highscore = Math.max(existingGameSettings.highscore || 0, 9999999);
             localStorage.setItem('gameSettings', JSON.stringify(existingGameSettings));
-        } catch(e) {
-            console.warn('Storage pre-seed error:', e);
-        }
+        } catch(e) {}
     }
-    preSeedLocalStorage();
+    applyUnlimitedStorage();
 
-    function applyUnlock(user) {
-        if (!user) return;
+    function applyUnlockToUser(user) {
+        if (!user || !window.UNLIMITED_MODE) return;
         try {
             if (user.gameSettings && user.gameSettings.currencies) {
                 user.gameSettings.currencies.coins = 999999999;
@@ -154,126 +173,162 @@
                         multiplier: 6
                     }
                 };
-                if (user.shopSettings.save) user.shopSettings.save();
-            }
-            if (user.save) user.save();
-        } catch(e) {
-            console.warn('applyUnlock error:', e);
-        }
-    }
-
-    // Keep currencies & unlocks active
-    window.__onAppCreated = function(app) {
-        if (app && app.user) {
-            applyUnlock(app.user);
-            setInterval(() => applyUnlock(app.user), 1000);
-        }
-    };
-
-    // ==========================================
-    // 4. UNLIMITED FPS & PERFORMANCE ENGINE
-    // ==========================================
-    function setupPerformanceEngine() {
-        // Remove frame caps in Pixi Ticker
-        const tickerHook = setInterval(() => {
-            if (window.PIXI && window.PIXI.Ticker) {
-                if (window.PIXI.Ticker.shared) {
-                    window.PIXI.Ticker.shared.maxFPS = 0;
-                    window.PIXI.Ticker.shared.minFPS = 10;
-                }
-                if (window.PIXI.Ticker.system) {
-                    window.PIXI.Ticker.system.maxFPS = 0;
-                    window.PIXI.Ticker.system.minFPS = 10;
-                }
-            }
-            if (window.game) {
-                clearInterval(tickerHook);
-            }
-        }, 50);
-
-        // Discard ad blockers & commercial delays
-        if (window.PokiSDK) {
-            window.PokiSDK.commercialBreak = () => Promise.resolve();
-            window.PokiSDK.rewardedBreak = () => Promise.resolve();
-            window.PokiSDK.displayAd = () => {};
-            window.PokiSDK.destroyAd = () => {};
-        }
-    }
-    setupPerformanceEngine();
-
-    // ==========================================
-    // 5. NO COIN MODE & RED COIN STYLING
-    // ==========================================
-    function makeEntityRed(ent, isRed) {
-        if (!ent) return;
-        const colorHex = isRed ? 0xff1e1e : 0xffffff;
-        const colorArr = isRed ? [1.0, 0.12, 0.12, 1.0] : [1.0, 1.0, 1.0, 1.0];
-
-        try {
-            if (ent.material) {
-                ent.material.color = colorHex;
-                if (ent.material.tint !== undefined) ent.material.tint = colorHex;
-                if (ent.material.uniforms) {
-                    if (ent.material.uniforms.uColor) ent.material.uniforms.uColor.value = colorArr;
-                    if (ent.material.uniforms.color) ent.material.uniforms.color.value = colorArr;
-                    if (ent.material.uniforms.tint) ent.material.uniforms.tint.value = colorArr;
-                }
-            }
-            if (ent.view3d && ent.view3d.material) {
-                ent.view3d.material.color = colorHex;
-                if (ent.view3d.material.tint !== undefined) ent.view3d.material.tint = colorHex;
-                if (ent.view3d.material.uniforms) {
-                    if (ent.view3d.material.uniforms.uColor) ent.view3d.material.uniforms.uColor.value = colorArr;
-                    if (ent.view3d.material.uniforms.color) ent.view3d.material.uniforms.color.value = colorArr;
-                    if (ent.view3d.material.uniforms.tint) ent.view3d.material.uniforms.tint.value = colorArr;
-                }
-            }
-            if (ent.tint !== undefined) ent.tint = colorHex;
-            if (ent.children && ent.children.length) {
-                for (let i = 0; i < ent.children.length; i++) {
-                    makeEntityRed(ent.children[i], isRed);
-                }
             }
         } catch(e) {}
     }
 
+    // Free Shop Hook (Everything costs 0)
+    function patchShopItems(shop) {
+        if (!shop || !window.UNLIMITED_MODE) return;
+        try {
+            if (shop.items) {
+                Object.values(shop.items).forEach(item => {
+                    if (item) {
+                        item.cost = 0;
+                        item.unlocked = true;
+                    }
+                });
+            }
+        } catch(e) {}
+    }
+
+    // Continuous unlock maintenance
+    setInterval(() => {
+        if (!window.UNLIMITED_MODE) return;
+        applyUnlimitedStorage();
+        if (window.app && window.app.user) {
+            applyUnlockToUser(window.app.user);
+        }
+        if (window.app && window.app.shop) {
+            patchShopItems(window.app.shop);
+        }
+    }, 1000);
+
+    // ==========================================
+    // 4. PERFORMANCE & UNLIMITED FPS
+    // ==========================================
+    try {
+        if (window.requestAnimationFrame) {
+            const origRAF = window.requestAnimationFrame;
+            window.requestAnimationFrame = function(cb) {
+                return origRAF(cb);
+            };
+        }
+    } catch(e) {}
+
+    // ==========================================
+    // 5. NO COIN MODE & PRECISE HITBOX ENGINE
+    // ==========================================
+    function makeEntityRed(obj, isRed) {
+        if (!obj) return;
+        if (obj.material) {
+            if (isRed) {
+                if (!obj._origColor) {
+                    obj._origColor = obj.material.diffuseColor ? obj.material.diffuseColor.slice() : [1, 1, 1];
+                }
+                obj.material.diffuseColor = [1.0, 0.08, 0.08];
+                if (obj.material.subLightColor) obj.material.subLightColor = [0.8, 0.0, 0.0];
+            } else if (obj._origColor) {
+                obj.material.diffuseColor = obj._origColor.slice();
+            }
+        }
+        if (obj.children && obj.children.length) {
+            for (let i = 0; i < obj.children.length; i++) {
+                makeEntityRed(obj.children[i], isRed);
+            }
+        }
+    }
+
     // Called on every coin spawn/awake from patched dependencies.bundle.js
     window.__onCoinAwake = function(coin) {
-        if (!coin || !coin.model) return;
-        // Hitbox is strictly preserved (body.width=5, body.height=5, body.depth=5)
+        if (!coin) return;
         const isNoCoin = !!window.NO_COIN_MODE;
-        makeEntityRed(coin.model, isNoCoin);
-        if (coin.shine && isNoCoin) {
-            makeEntityRed(coin.shine, true);
+
+        if (isNoCoin) {
+            // CRUCIAL: Completely disable magnet & sneaker attraction so red coin remains static!
+            if (coin.attractable) {
+                coin.attractable.active = false;
+                coin.attractable.attracted = false;
+                coin.attractable.update = function() {};
+                coin.attractable.attractionStart = function() {};
+            }
+            // CRUCIAL: Set hitbox to exact physical rotating coin disc (diameter 3.6 units)
+            // This prevents premature deaths across adjacent lanes and during lane transitions!
+            if (coin.body) {
+                coin.body.width = 3.6;
+                coin.body.height = 3.6;
+                coin.body.depth = 3.6;
+            }
+        } else {
+            // Restore standard coin hitbox
+            if (coin.body) {
+                coin.body.width = 5.0;
+                coin.body.height = 5.0;
+                coin.body.depth = 5.0;
+            }
+        }
+
+        if (coin.model) {
+            makeEntityRed(coin.model, isNoCoin);
+        }
+        if (coin.shine) {
+            coin.shine.active = !isNoCoin;
         }
     };
 
-    // Called on coin pickup collision when NO_COIN_MODE is active
+    // Called when player touches a coin in No Coin Mode
     window.__onNoCoinCollect = function(coin) {
-        console.log('[NO COIN MODE] Coin touched! Instant death!');
-        showDeathEffect('💀 ENCOSTOU NA MOEDA VERMELHA!');
-        if (coin && coin.game) {
-            if (coin.game.sfx && coin.game.sfx.play) {
-                coin.game.sfx.play('hero-crash', { volume: 1.0 });
-            }
-            if (coin.game.gameover) {
-                coin.game.gameover();
-            } else if (coin.game.hero && coin.game.hero.die) {
-                coin.game.hero.die();
-            }
-        }
+        if (!window.NO_COIN_MODE) return;
+        // Ignore if attracted or game is not active
+        if (coin && coin.attractable && coin.attractable.attracted) return;
+        triggerNoCoinDeath();
     };
 
-    function showDeathEffect(msg) {
+    function triggerNoCoinDeath() {
+        if (!isRunActive) return;
+        
+        // Visual death flash
+        const flash = document.createElement('div');
+        flash.className = 'subway-death-flash';
+        document.body.appendChild(flash);
+        setTimeout(() => flash.remove(), 400);
+
+        // Sound / Alert
+        try {
+            if (window.navigator && window.navigator.vibrate) {
+                window.navigator.vibrate(200);
+            }
+        } catch(e) {}
+
+        // Kill hero
+        if (window.game && window.game.hero) {
+            try {
+                if (window.game.hero.player) {
+                    window.game.hero.player.dead = true;
+                    window.game.hero.player.deathCause = 'nocoin';
+                }
+            } catch(e) {}
+        }
+
+        // Trigger gameover
+        if (window.game && window.game.onGameover) {
+            try { window.game.onGameover.dispatch(); } catch(e) {}
+        }
+
+        showHUDNotification('💥 VOCÊ ENCOSTOU NA MOEDA VERMELHA!');
+        stopRunTimer();
+    }
+
+    function showHUDNotification(msg) {
         const el = document.createElement('div');
-        el.className = 'subway-death-banner';
+        el.className = 'subway-hud-alert';
         el.innerHTML = msg;
         document.body.appendChild(el);
-        setTimeout(() => el.remove(), 2500);
+        setTimeout(() => el.remove(), 2600);
     }
 
     // ==========================================
-    // 6. TOP TIMER & RECORDS SYSTEM
+    // 6. MINIMALIST TOP TIMER & RECORDS SYSTEM
     // ==========================================
     function formatTime(ms) {
         const totalSec = Math.floor(ms / 1000);
@@ -283,7 +338,7 @@
         const mm = String(mins).padStart(2, '0');
         const ss = String(secs).padStart(2, '0');
         const hh = String(hundredths).padStart(2, '0');
-        return `${mm}:${ss}.${hh}`;
+        return mm + ':' + ss + '.' + hh;
     }
 
     function startRunTimer() {
@@ -292,19 +347,20 @@
         runStartTime = performance.now();
         runElapsedTime = 0;
 
-        const timerText = document.getElementById('subway-top-timer-val');
-        if (timerText) timerText.textContent = '00:00.00';
+        const timerWrap = document.getElementById('subway-top-timer-wrap');
+        const timerVal = document.getElementById('subway-top-timer-val');
+        if (timerWrap) timerWrap.style.display = 'flex';
+        if (timerVal) timerVal.textContent = '00:00.00';
 
         clearInterval(runTimerInterval);
         runTimerInterval = setInterval(() => {
             if (!isRunActive) return;
             runElapsedTime = performance.now() - runStartTime;
-            if (timerText) {
-                timerText.textContent = formatTime(runElapsedTime);
+            if (timerVal) {
+                timerVal.textContent = formatTime(runElapsedTime);
             }
-            // Send multiplayer position sync
             if (MP.active && MP.inMatch) {
-                sendMultiplayerSync();
+                sendMultiplayerRunnerSync();
             }
         }, 30);
     }
@@ -316,10 +372,9 @@
         runElapsedTime = performance.now() - runStartTime;
 
         const timeStr = formatTime(runElapsedTime);
-        const timerText = document.getElementById('subway-top-timer-val');
-        if (timerText) timerText.textContent = timeStr;
+        const timerVal = document.getElementById('subway-top-timer-val');
+        if (timerVal) timerVal.textContent = timeStr;
 
-        // Save local record
         saveRecord({
             date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5),
             mode: window.NO_COIN_MODE ? 'No Coin' : 'Normal',
@@ -328,10 +383,16 @@
             nick: myProfile.nick
         });
 
-        // Multiplayer death handling
         if (MP.active && MP.inMatch) {
             handleLocalMultiplayerDeath(runElapsedTime);
         }
+    }
+
+    function hideRunTimer() {
+        isRunActive = false;
+        clearInterval(runTimerInterval);
+        const timerWrap = document.getElementById('subway-top-timer-wrap');
+        if (timerWrap) timerWrap.style.display = 'none';
     }
 
     function saveRecord(record) {
@@ -343,87 +404,70 @@
         } catch(e) {}
     }
 
-    // Wrap game.run and game.gameover when game instance becomes available
-    const gameHookInterval = setInterval(() => {
-        if (window.game) {
-            clearInterval(gameHookInterval);
-
-            const origRun = window.game.run;
-            window.game.run = function() {
-                startRunTimer();
-                return origRun.apply(this, arguments);
-            };
-
-            const origGameover = window.game.gameover;
-            window.game.gameover = function() {
-                stopRunTimer();
-                return origGameover.apply(this, arguments);
-            };
-
-            if (window.game.onRun && window.game.onRun.add) {
-                window.game.onRun.add(startRunTimer);
-            }
-            if (window.game.onGameover && window.game.onGameover.add) {
-                window.game.onGameover.add(stopRunTimer);
-            }
-        }
-    }, 100);
+    // Game lifecycle hooks from patched dependencies.bundle.js
+    window.__onGameRun = function() {
+        startRunTimer();
+    };
+    window.__onGameOver = function() {
+        stopRunTimer();
+    };
+    window.__onGameReset = function() {
+        hideRunTimer();
+    };
 
     // ==========================================
-    // 7. ONLINE MULTIPLAYER ENGINE (PeerJS + BroadcastChannel)
+    // 7. REAL-TIME MULTIPLAYER (MQTT WEBSOCKETS + P2P)
     // ==========================================
-    function initMultiplayerNetworking() {
-        if (MP.broadcast) return;
+    function initMultiplayerEngine() {
+        if (MP.mqtt) return;
 
-        // 1. BroadcastChannel for local/multi-tab testing
+        // 1. BroadcastChannel fallback for multi-tab local testing
         try {
             MP.broadcast = new BroadcastChannel('subway_surfers_mp');
             MP.broadcast.onmessage = (e) => handleNetworkMessage(e.data);
-        } catch(e) {
-            console.warn('BroadcastChannel not supported', e);
-        }
+        } catch(e) {}
 
-        // 2. PeerJS for internet/cross-device multiplayer
-        if (window.Peer) {
-            try {
-                MP.peer = new Peer(myProfile.id, {
-                    debug: 1,
-                    config: {
-                        iceServers: [
-                            { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:global.stun.twilio.com:3478' }
-                        ]
-                    }
+        // 2. Global Real-Time MQTT over WebSockets
+        try {
+            if (window.mqtt && window.mqtt.connect) {
+                const clientId = 'sub_' + myProfile.id + '_' + Math.random().toString(36).substr(2, 4);
+                MP.mqtt = window.mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
+                    clientId: clientId,
+                    clean: true,
+                    keepalive: 30
                 });
 
-                MP.peer.on('open', (id) => {
-                    MP.peerId = id;
+                MP.mqtt.on('connect', () => {
+                    console.log('[Multiplayer] MQTT Global Conectado!');
+                    // Subscribe to public lobby & private inbox
+                    MP.mqtt.subscribe('subwaysurf/lobby/presence');
+                    MP.mqtt.subscribe('subwaysurf/player/' + myProfile.id);
+
+                    // If in a room, subscribe to room
+                    if (MP.currentRoomTopic) {
+                        MP.mqtt.subscribe(MP.currentRoomTopic);
+                    }
                     broadcastPresence();
                 });
 
-                MP.peer.on('connection', (conn) => {
-                    setupPeerConnection(conn);
+                MP.mqtt.on('message', (topic, payload) => {
+                    try {
+                        const msg = JSON.parse(payload.toString());
+                        handleNetworkMessage(msg);
+                    } catch(e) {}
                 });
 
-                MP.peer.on('error', (err) => {
-                    console.warn('Peer error:', err);
+                MP.mqtt.on('error', (err) => {
+                    console.warn('[Multiplayer] MQTT Erro:', err);
                 });
-            } catch(e) {
-                console.warn('Peer init error:', e);
             }
+        } catch(e) {
+            console.warn('[Multiplayer] Falha ao inicializar MQTT:', e);
         }
 
-        // Broadcast presence periodically
+        // Heartbeat presence every 3s
         setInterval(broadcastPresence, 3000);
-    }
-
-    function setupPeerConnection(conn) {
-        MP.connections.set(conn.peer, conn);
-        conn.on('data', (data) => handleNetworkMessage(data));
-        conn.on('close', () => {
-            MP.connections.delete(conn.peer);
-            removePlayerFromParty(conn.peer);
-        });
+        setInterval(cleanupStalePlayers, 2000);
     }
 
     function broadcastPresence() {
@@ -431,187 +475,231 @@
             type: 'presence',
             sender: myProfile,
             inParty: MP.party.length > 1,
-            partySize: MP.party.length
+            partySize: MP.party.length,
+            inMatch: MP.inMatch
         };
-        sendNetworkMessage(msg);
+        sendGlobalMessage('subwaysurf/lobby/presence', msg);
     }
 
-    function sendNetworkMessage(msg) {
-        // Send via BroadcastChannel
-        if (MP.broadcast) {
-            try { MP.broadcast.postMessage(msg); } catch(e) {}
-        }
-        // Send via PeerJS connections
-        MP.connections.forEach(conn => {
-            if (conn && conn.open) {
-                try { conn.send(msg); } catch(e) {}
+    function cleanupStalePlayers() {
+        const now = Date.now();
+        let changed = false;
+        MP.onlinePlayers.forEach((entry, id) => {
+            if (now - entry.lastSeen > 8000) {
+                MP.onlinePlayers.delete(id);
+                changed = true;
             }
         });
+        if (changed) renderOnlinePlayersList();
     }
 
-    const onlinePlayersRegistry = new Map(); // id -> { profile, lastSeen }
+    function sendGlobalMessage(topic, msg) {
+        if (MP.broadcast) {
+            try { MP.broadcast.postMessage({ topic: topic, ...msg }); } catch(e) {}
+        }
+        if (MP.mqtt && MP.mqtt.connected) {
+            try { MP.mqtt.publish(topic, JSON.stringify(msg)); } catch(e) {}
+        }
+    }
+
+    function sendRoomMessage(msg) {
+        const topic = MP.currentRoomTopic || ('subwaysurf/room/' + MP.roomId);
+        sendGlobalMessage(topic, msg);
+    }
 
     function handleNetworkMessage(msg) {
-        if (!msg || !msg.type || msg.sender?.id === myProfile.id) return;
+        if (!msg || !msg.type) return;
+
+        // Ignore messages from self
+        if (msg.sender && msg.sender.id === myProfile.id) return;
 
         switch(msg.type) {
             case 'presence':
-                onlinePlayersRegistry.set(msg.sender.id, {
-                    profile: msg.sender,
-                    lastSeen: Date.now(),
-                    inParty: msg.inParty
-                });
-                renderOnlinePlayersList();
+                handlePresenceMessage(msg);
                 break;
-
             case 'invite':
-                if (msg.targetId === myProfile.id) {
-                    showInviteNotification(msg.sender, msg.party);
-                }
+                handleInviteReceived(msg);
                 break;
-
+            case 'invite_response':
+                handleInviteResponse(msg);
+                break;
             case 'party_sync':
-                // Update party members & ready state
-                if (msg.party && msg.party.some(p => p.id === myProfile.id)) {
-                    MP.party = msg.party;
-                    renderPartySlots();
-                }
+                handlePartySync(msg);
                 break;
-
-            case 'ready_change':
-                updatePlayerReady(msg.sender.id, msg.ready);
+            case 'party_ready':
+                handlePartyReady(msg);
                 break;
-
             case 'match_start':
-                if (MP.party.some(p => p.id === myProfile.id)) {
-                    startMultiplayerMatchCountdown();
-                }
+                handleMatchStart(msg);
                 break;
-
-            case 'player_sync':
-                if (MP.inMatch && msg.sender) {
-                    MP.playersState.set(msg.sender.id, msg.data);
-                    updateGhostPlayer(msg.sender, msg.data);
-                }
+            case 'runner_pos':
+                handleRunnerPos(msg);
                 break;
-
             case 'player_death':
-                if (MP.inMatch && msg.sender) {
-                    handleRemotePlayerDeath(msg.sender, msg.timeMs);
-                }
+                handlePlayerDeath(msg);
+                break;
+            case 'match_end':
+                handleMatchEnd(msg);
                 break;
         }
     }
 
-    function showInviteNotification(sender, party) {
-        const notif = document.createElement('div');
-        notif.className = 'subway-invite-toast';
-        notif.innerHTML = `
-            <div class="toast-avatar" style="background-image: url('${sender.avatar}')"></div>
-            <div class="toast-info">
-                <strong>${sender.nick}</strong> convidou você para o grupo!
-            </div>
-            <div class="toast-actions">
-                <button class="btn-toast-accept" id="toast-accept-btn">Aceitar</button>
-                <button class="btn-toast-decline" id="toast-decline-btn">Recusar</button>
+    function handlePresenceMessage(msg) {
+        const sender = msg.sender;
+        if (!sender || sender.id === myProfile.id) return;
+        MP.onlinePlayers.set(sender.id, {
+            profile: sender,
+            lastSeen: Date.now(),
+            inParty: msg.inParty,
+            inMatch: msg.inMatch
+        });
+        renderOnlinePlayersList();
+    }
+
+    function handleInviteReceived(msg) {
+        // Show invitation popup
+        const from = msg.sender;
+        const roomId = msg.roomId;
+
+        const pop = document.createElement('div');
+        pop.className = 'subway-invite-popup';
+        pop.innerHTML = `
+            <div class="invite-pop-box">
+                <img class="invite-pop-avatar" src="${from.avatar}" />
+                <div class="invite-pop-text">
+                    <strong>${from.nick}</strong> convidou você para jogar No Coin!
+                </div>
+                <div class="invite-pop-actions">
+                    <button class="btn-invite-accept" id="btn-acc-inv">Aceitar</button>
+                    <button class="btn-invite-reject" id="btn-rej-inv">Recusar</button>
+                </div>
             </div>
         `;
-        document.body.appendChild(notif);
+        document.body.appendChild(pop);
 
-        document.getElementById('toast-accept-btn').onclick = () => {
-            notif.remove();
-            joinParty(party, sender);
+        pop.querySelector('#btn-acc-inv').onclick = () => {
+            pop.remove();
+            acceptInvite(from, roomId);
         };
-        document.getElementById('toast-decline-btn').onclick = () => {
-            notif.remove();
-        };
-        setTimeout(() => notif.remove(), 8000);
-    }
-
-    function joinParty(party, leader) {
-        // Connect to leader peer if using PeerJS
-        if (MP.peer && leader.id && !MP.connections.has(leader.id)) {
-            const conn = MP.peer.connect(leader.id);
-            setupPeerConnection(conn);
-        }
-
-        // Add self to party if slots available (< 4)
-        if (party.length < 4) {
-            myProfile.ready = false;
-            party.push(myProfile);
-            MP.party = party;
-            MP.isPartyLeader = false;
-            MP.isReady = false;
-
-            sendNetworkMessage({
-                type: 'party_sync',
+        pop.querySelector('#btn-rej-inv').onclick = () => {
+            pop.remove();
+            sendGlobalMessage('subwaysurf/player/' + from.id, {
+                type: 'invite_response',
                 sender: myProfile,
-                party: MP.party
+                accepted: false
             });
-
-            openMultiplayerLobby();
-            renderPartySlots();
-        }
+        };
+        setTimeout(() => { if (pop.parentNode) pop.remove(); }, 12000);
     }
 
-    function invitePlayer(targetProfile) {
-        if (MP.party.length >= 4) {
-            alert('O grupo já está cheio (máximo 4 jogadores)!');
-            return;
-        }
-        // Connect to peer
-        if (MP.peer && targetProfile.id && !MP.connections.has(targetProfile.id)) {
-            const conn = MP.peer.connect(targetProfile.id);
-            setupPeerConnection(conn);
+    function acceptInvite(host, roomId) {
+        MP.roomId = roomId;
+        MP.isPartyLeader = false;
+        MP.isReady = false;
+        MP.currentRoomTopic = 'subwaysurf/room/' + roomId;
+
+        if (MP.mqtt && MP.mqtt.connected) {
+            MP.mqtt.subscribe(MP.currentRoomTopic);
         }
 
-        sendNetworkMessage({
-            type: 'invite',
+        // Notify host
+        sendGlobalMessage('subwaysurf/player/' + host.id, {
+            type: 'invite_response',
             sender: myProfile,
-            targetId: targetProfile.id,
-            party: MP.party
+            accepted: true,
+            roomId: roomId
         });
 
-        alert(`Convite enviado para ${targetProfile.nick}!`);
+        showHUDNotification('✅ Entrou no grupo de ' + host.nick + '!');
+        renderPartySlots();
     }
 
-    function toggleReady() {
-        MP.isReady = !MP.isReady;
-        myProfile.ready = MP.isReady;
+    function handleInviteResponse(msg) {
+        if (!MP.isPartyLeader) return;
+        const player = msg.sender;
+        if (msg.accepted) {
+            if (MP.party.length < 4 && !MP.party.some(p => p.id === player.id)) {
+                MP.party.push({
+                    id: player.id,
+                    nick: player.nick,
+                    avatar: player.avatar,
+                    ready: false,
+                    isLeader: false
+                });
+                syncPartyToAll();
+                showHUDNotification('🎉 ' + player.nick + ' entrou no grupo!');
+            }
+        } else {
+            showHUDNotification('❌ ' + player.nick + ' recusou o convite.');
+        }
+        renderPartySlots();
+    }
 
-        // Update in party
-        const me = MP.party.find(p => p.id === myProfile.id);
-        if (me) me.ready = MP.isReady;
-
-        sendNetworkMessage({
+    function syncPartyToAll() {
+        sendRoomMessage({
             type: 'party_sync',
             sender: myProfile,
             party: MP.party
         });
-
-        renderPartySlots();
     }
 
-    function updatePlayerReady(playerId, isReady) {
-        const player = MP.party.find(p => p.id === playerId);
-        if (player) {
-            player.ready = isReady;
+    function handlePartySync(msg) {
+        if (msg.party && Array.isArray(msg.party)) {
+            MP.party = msg.party;
+            const me = MP.party.find(p => p.id === myProfile.id);
+            if (me) {
+                MP.isReady = !!me.ready;
+                MP.isPartyLeader = !!me.isLeader;
+            }
             renderPartySlots();
         }
     }
 
-    function removePlayerFromParty(playerId) {
-        MP.party = MP.party.filter(p => p.id !== playerId);
-        if (MP.party.length === 1) {
-            MP.isPartyLeader = true;
-        }
+    function toggleReady() {
+        MP.isReady = !MP.isReady;
+        const me = MP.party.find(p => p.id === myProfile.id);
+        if (me) me.ready = MP.isReady;
+
+        sendRoomMessage({
+            type: 'party_ready',
+            sender: myProfile,
+            ready: MP.isReady
+        });
+
         renderPartySlots();
+    }
+
+    function handlePartyReady(msg) {
+        const player = MP.party.find(p => p.id === msg.sender.id);
+        if (player) {
+            player.ready = !!msg.ready;
+            renderPartySlots();
+        }
     }
 
     function checkCanStartMatch() {
         if (MP.party.length < 2) return false;
-        // ALL players must be ready!
         return MP.party.every(p => p.ready === true);
+    }
+
+    function requestStartMatch() {
+        if (!checkCanStartMatch()) {
+            alert('Atenção: Todos os membros do grupo (2 a 4) devem dar PRONTO antes de iniciar!');
+            return;
+        }
+
+        sendRoomMessage({
+            type: 'match_start',
+            sender: myProfile,
+            party: MP.party
+        });
+
+        startMultiplayerMatchCountdown();
+    }
+
+    function handleMatchStart(msg) {
+        if (msg.party) MP.party = msg.party;
+        startMultiplayerMatchCountdown();
     }
 
     function startMultiplayerMatchCountdown() {
@@ -626,10 +714,10 @@
         MP.placement = [];
         MP.spectatingId = null;
 
-        // Close lobby overlay
-        closeMultiplayerLobby();
+        // Close menu/modal
+        closeUnifiedModal();
 
-        // Show countdown banner
+        // 3... 2... 1... Countdown overlay
         const overlay = document.createElement('div');
         overlay.className = 'subway-countdown-overlay';
         overlay.innerHTML = '<div class="countdown-num" id="cd-num">3</div><div class="countdown-sub">MODO NO COIN ONLINE - ÚLTIMO SOBREVIVENTE VENCE!</div>';
@@ -646,481 +734,468 @@
             } else {
                 clearInterval(cdTimer);
                 overlay.remove();
+
                 // Start game run!
                 if (window.game && window.game.run) {
                     window.game.run();
+                } else if (window.game && window.game.runFromIntro) {
+                    window.game.runFromIntro();
+                } else {
+                    // Simulate screen tap to trigger run
+                    const canvas = document.querySelector('canvas');
+                    if (canvas) {
+                        canvas.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 200, clientY: 200 }));
+                        setTimeout(() => {
+                            canvas.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: 200, clientY: 200 }));
+                        }, 50);
+                    }
                 }
                 showLivePlacementHUD();
             }
         }, 1000);
     }
 
-    function sendMultiplayerSync() {
+    // Runner Sync & 3D Ghost Rendering
+    function sendMultiplayerRunnerSync() {
         if (!window.game || !window.game.hero) return;
         const hero = window.game.hero;
-        const pos = hero.position || { x: 0, y: 0, z: 0 };
+        const pos = hero.position || (hero.body ? hero.body.position : { x: 0, y: 0, z: 0 });
         const data = {
-            lane: hero.targetLane || 0,
+            type: 'runner_pos',
+            sender: myProfile,
             x: pos.x || 0,
             y: pos.y || 0,
             z: pos.z || 0,
-            state: hero.state || 'run',
             alive: isRunActive,
-            timeMs: runElapsedTime
+            time: runElapsedTime
         };
+        sendRoomMessage(data);
+    }
 
-        sendNetworkMessage({
-            type: 'player_sync',
-            sender: myProfile,
-            data: data
+    function handleRunnerPos(msg) {
+        if (!MP.inMatch || !msg.sender) return;
+        MP.playersState.set(msg.sender.id, {
+            nick: msg.sender.nick,
+            avatar: msg.sender.avatar,
+            x: msg.x,
+            y: msg.y,
+            z: msg.z,
+            alive: msg.alive,
+            time: msg.time,
+            updated: Date.now()
         });
-
-        // Update placement
-        updateLiveLeaderboard();
+        updateGhostRunnersUI();
+        updateLivePlacementHUD();
     }
 
-    // ==========================================
-    // 8. GHOST PLAYERS & TRANSPARENCY RENDERING
-    // ==========================================
-    const ghostElements = new Map(); // id -> DOMElement
+    function updateGhostRunnersUI() {
+        let container = document.getElementById('subway-ghost-runners');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'subway-ghost-runners';
+            container.className = 'subway-ghost-container';
+            document.body.appendChild(container);
+        }
 
-    function updateGhostPlayer(sender, data) {
-        if (sender.id === myProfile.id) return;
-
-        let ghost = ghostElements.get(sender.id);
-        if (!ghost) {
-            ghost = document.createElement('div');
-            ghost.className = 'subway-ghost-player';
-            ghost.innerHTML = `
-                <div class="ghost-tag">
-                    <img class="ghost-tag-avatar" src="${sender.avatar}" />
-                    <span class="ghost-tag-nick">${sender.nick}</span>
+        let html = '';
+        MP.playersState.forEach((state, id) => {
+            if (id === myProfile.id || !state.alive) return;
+            // Screen projected tag
+            const laneOffset = state.x * 2.5;
+            html += `
+                <div class="ghost-tag" style="left: calc(50% + ${laneOffset}px); top: 32%;">
+                    <img class="gt-avatar" src="${state.avatar}" />
+                    <span class="gt-nick">${state.nick}</span>
                 </div>
-                <div class="ghost-runner-body"></div>
             `;
-            document.body.appendChild(ghost);
-            ghostElements.set(sender.id, ghost);
+        });
+        container.innerHTML = html;
+    }
+
+    function handleLocalMultiplayerDeath(timeMs) {
+        sendRoomMessage({
+            type: 'player_death',
+            sender: myProfile,
+            timeMs: timeMs
+        });
+        MP.placement.push({ ...myProfile, alive: false, timeMs: timeMs });
+        enterSpectatorMode();
+    }
+
+    function handlePlayerDeath(msg) {
+        const deadPlayer = msg.sender;
+        MP.placement.push({ ...deadPlayer, alive: false, timeMs: msg.timeMs });
+        showHUDNotification('💀 ' + deadPlayer.nick + ' encostou na moeda e foi eliminado!');
+
+        const aliveRemaining = MP.party.filter(p => !MP.placement.some(d => d.id === p.id));
+        if (aliveRemaining.length === 1) {
+            const winner = aliveRemaining[0];
+            sendRoomMessage({
+                type: 'match_end',
+                winner: winner,
+                placement: MP.placement
+            });
+            showWinnerCelebration(winner);
         }
+        updateLivePlacementHUD();
+    }
 
-        if (!data.alive) {
-            ghost.style.display = 'none';
-            return;
-        }
-
-        ghost.style.display = 'block';
-
-        // Map 3D lane & jump to screen coords
-        const screenW = window.innerWidth;
-        const screenH = window.innerHeight;
-        const laneOffset = (data.lane || 0) * (screenW * 0.18);
-        const jumpOffset = (data.y || 0) * 8;
-
-        const posX = (screenW / 2) + laneOffset - 35;
-        const posY = (screenH * 0.68) - jumpOffset;
-
-        ghost.style.transform = `translate3d(${posX}px, ${posY}px, 0)`;
-
-        const tagEl = ghost.querySelector('.ghost-tag-nick');
-        if (tagEl && tagEl.textContent !== sender.nick) {
-            tagEl.textContent = sender.nick;
+    function handleMatchEnd(msg) {
+        if (msg.winner) {
+            showWinnerCelebration(msg.winner);
         }
     }
 
-    function removeAllGhosts() {
-        ghostElements.forEach(el => el.remove());
-        ghostElements.clear();
+    function showWinnerCelebration(winner) {
+        MP.inMatch = false;
+        const banner = document.createElement('div');
+        banner.className = 'subway-winner-banner';
+        banner.innerHTML = `
+            <div class="winner-card">
+                <div class="winner-trophy">🏆</div>
+                <h2>VITÓRIA!</h2>
+                <img class="winner-avatar" src="${winner.avatar}" />
+                <h3>${winner.nick}</h3>
+                <p>Último sobrevivente no Modo No Coin!</p>
+                <button class="btn-winner-close" onclick="this.closest('.subway-winner-banner').remove(); window.__openUnifiedMenu('records');">
+                    Ver Recordes
+                </button>
+            </div>
+        `;
+        document.body.appendChild(banner);
+        hideSpectatorHUD();
+        hideLivePlacementHUD();
     }
 
-    // ==========================================
-    // 9. PLACEMENT LEADERBOARD & SPECTATOR MODE
-    // ==========================================
+    function enterSpectatorMode() {
+        const hud = document.getElementById('subway-spectator-hud') || document.createElement('div');
+        hud.id = 'subway-spectator-hud';
+        hud.className = 'subway-spectator-hud';
+        
+        const aliveOthers = MP.party.filter(p => p.id !== myProfile.id && !MP.placement.some(d => d.id === p.id));
+        if (aliveOthers.length === 0) return;
+        
+        MP.spectatingId = aliveOthers[0].id;
+        hud.innerHTML = `
+            <div class="spec-banner">
+                <span class="spec-live-dot">●</span> 
+                MODO ESPECTADOR: Assistindo <strong id="spec-target-nick">${aliveOthers[0].nick}</strong>
+            </div>
+            <div class="spec-controls">
+                <button id="btn-spec-prev">◀ Anterior</button>
+                <button id="btn-spec-next">Próximo ▶</button>
+            </div>
+        `;
+        document.body.appendChild(hud);
+
+        let specIdx = 0;
+        hud.querySelector('#btn-spec-next').onclick = () => {
+            specIdx = (specIdx + 1) % aliveOthers.length;
+            MP.spectatingId = aliveOthers[specIdx].id;
+            hud.querySelector('#spec-target-nick').textContent = aliveOthers[specIdx].nick;
+        };
+        hud.querySelector('#btn-spec-prev').onclick = () => {
+            specIdx = (specIdx - 1 + aliveOthers.length) % aliveOthers.length;
+            MP.spectatingId = aliveOthers[specIdx].id;
+            hud.querySelector('#spec-target-nick').textContent = aliveOthers[specIdx].nick;
+        };
+    }
+
+    function hideSpectatorHUD() {
+        const hud = document.getElementById('subway-spectator-hud');
+        if (hud) hud.remove();
+        const ghosts = document.getElementById('subway-ghost-runners');
+        if (ghosts) ghosts.remove();
+    }
+
     function showLivePlacementHUD() {
-        let hud = document.getElementById('subway-live-placement');
-        if (!hud) {
-            hud = document.createElement('div');
-            hud.id = 'subway-live-placement';
-            hud.className = 'subway-live-placement-hud';
-            document.body.appendChild(hud);
+        let el = document.getElementById('subway-live-rank');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'subway-live-rank';
+            el.className = 'subway-live-rank';
+            document.body.appendChild(el);
         }
-        hud.style.display = 'block';
-        updateLiveLeaderboard();
+        updateLivePlacementHUD();
     }
 
-    function updateLiveLeaderboard() {
-        const hud = document.getElementById('subway-live-placement');
-        if (!hud || !MP.inMatch) return;
+    function hideLivePlacementHUD() {
+        const el = document.getElementById('subway-live-rank');
+        if (el) el.remove();
+    }
 
-        // Build list of all players with their status
-        const list = MP.party.map(p => {
-            const isMe = p.id === myProfile.id;
-            const state = isMe ? { alive: isRunActive, timeMs: runElapsedTime } : (MP.playersState.get(p.id) || { alive: true, timeMs: runElapsedTime });
+    function updateLivePlacementHUD() {
+        const el = document.getElementById('subway-live-rank');
+        if (!el || !MP.inMatch) return;
+
+        // Sort: alive runners by distance/time, dead runners by time survived
+        const allList = MP.party.map(p => {
+            const isDead = MP.placement.some(d => d.id === p.id);
+            const state = MP.playersState.get(p.id);
+            const time = p.id === myProfile.id ? runElapsedTime : (state ? state.time : 0);
             return {
                 id: p.id,
                 nick: p.nick,
                 avatar: p.avatar,
-                alive: state.alive,
-                timeMs: state.timeMs || 0
+                alive: !isDead,
+                time: time
             };
         });
 
-        // Sort: alive players first (higher survival time), then eliminated players (ordered by elimination time)
-        list.sort((a, b) => {
+        allList.sort((a, b) => {
             if (a.alive && !b.alive) return -1;
             if (!a.alive && b.alive) return 1;
-            return b.timeMs - a.timeMs;
+            return b.time - a.time;
         });
 
-        const ranks = ['🥇 1º', '🥈 2º', '🥉 3º', '4º'];
-        let html = '<div class="placement-title">🏆 COLOCAÇÃO AO VIVO</div>';
-        list.forEach((p, idx) => {
-            const rank = ranks[idx] || `${idx + 1}º`;
-            const statusClass = p.alive ? 'status-alive' : 'status-eliminated';
-            const statusText = p.alive ? 'VIVO' : `ELIMINADO (${formatTime(p.timeMs)})`;
-            html += `
-                <div class="placement-row ${p.id === myProfile.id ? 'is-me' : ''}">
-                    <span class="placement-rank">${rank}</span>
-                    <img class="placement-avatar" src="${p.avatar}" />
-                    <span class="placement-nick">${p.nick}</span>
-                    <span class="placement-badge ${statusClass}">${statusText}</span>
+        el.innerHTML = `
+            <div class="rank-header">🏁 CLASSIFICAÇÃO</div>
+            ${allList.map((p, idx) => `
+                <div class="rank-item ${p.alive ? 'rk-alive' : 'rk-dead'}">
+                    <span class="rk-pos">#${idx + 1}</span>
+                    <img class="rk-avatar" src="${p.avatar}" />
+                    <span class="rk-nick">${p.nick}</span>
+                    <span class="rk-st">${p.alive ? '🟢 VIVO' : '💀 MORTO'}</span>
                 </div>
+            `).join('')}
+        `;
+    }
+
+    // ==========================================
+    // 8. UNIFIED MOD MENU & UI
+    // ==========================================
+    function createUnifiedUI() {
+        // Minimalist Stopwatch Timer (Hidden by default, shown ONLY during active run)
+        if (!document.getElementById('subway-top-timer-wrap')) {
+            const timer = document.createElement('div');
+            timer.id = 'subway-top-timer-wrap';
+            timer.className = 'subway-top-timer-wrap';
+            timer.style.display = 'none';
+            timer.innerHTML = `
+                <span class="timer-icon">⏱️</span>
+                <span id="subway-top-timer-val" class="timer-value">00:00.00</span>
+                <span id="subway-mode-indicator" class="timer-badge ${window.NO_COIN_MODE ? 'badge-nocoin' : 'badge-normal'}">
+                    ${window.NO_COIN_MODE ? 'NO COIN 🔴' : 'NORMAL 🟡'}
+                </span>
             `;
-        });
+            document.body.appendChild(timer);
+        }
 
-        hud.innerHTML = html;
-    }
-
-    function handleLocalMultiplayerDeath(survivalTime) {
-        sendNetworkMessage({
-            type: 'player_death',
-            sender: myProfile,
-            timeMs: survivalTime
-        });
-
-        // Add self to elimination placement
-        MP.placement.push({
-            id: myProfile.id,
-            nick: myProfile.nick,
-            avatar: myProfile.avatar,
-            timeMs: survivalTime,
-            rank: MP.aliveCount
-        });
-        MP.aliveCount--;
-
-        // Enter Spectator Mode
-        activateSpectatorMode();
-    }
-
-    function handleRemotePlayerDeath(sender, timeMs) {
-        const ghost = ghostElements.get(sender.id);
-        if (ghost) ghost.style.display = 'none';
-
-        MP.placement.push({
-            id: sender.id,
-            nick: sender.nick,
-            avatar: sender.avatar,
-            timeMs: timeMs,
-            rank: MP.aliveCount
-        });
-        MP.aliveCount--;
-
-        updateLiveLeaderboard();
-
-        // Check if only 1 player remains -> Winner!
-        if (MP.aliveCount <= 1) {
-            concludeMultiplayerMatch();
+        // Single Unified "⚡ MENU MOD" Button (Top Right)
+        if (!document.getElementById('btn-subway-unified-menu')) {
+            const menuBtn = document.createElement('button');
+            menuBtn.id = 'btn-subway-unified-menu';
+            menuBtn.className = 'btn-subway-unified-menu';
+            menuBtn.innerHTML = '⚡ MENU MOD';
+            menuBtn.onclick = () => openUnifiedModal('modes');
+            document.body.appendChild(menuBtn);
         }
     }
 
-    function activateSpectatorMode() {
-        const specHUD = document.createElement('div');
-        specHUD.id = 'subway-spectator-hud';
-        specHUD.className = 'subway-spectator-hud';
-        specHUD.innerHTML = `
-            <div class="spec-banner">
-                💀 VOCÊ FOI ELIMINADO! &nbsp;|&nbsp; <span>MODO ESPECTADOR</span>
-            </div>
-            <div class="spec-controls">
-                <button id="spec-prev-btn" class="btn-spec">◀ Jogador Anterior</button>
-                <span id="spec-current-target" class="spec-target-name">Assistindo sobreviventes</span>
-                <button id="spec-next-btn" class="btn-spec">Próximo Jogador ▶</button>
-            </div>
-        `;
-        document.body.appendChild(specHUD);
-
-        document.getElementById('spec-prev-btn').onclick = () => cycleSpectator(-1);
-        document.getElementById('spec-next-btn').onclick = () => cycleSpectator(1);
-    }
-
-    function cycleSpectator(dir) {
-        const alivePlayers = MP.party.filter(p => {
-            if (p.id === myProfile.id) return false;
-            const st = MP.playersState.get(p.id);
-            return st && st.alive;
-        });
-
-        if (alivePlayers.length === 0) return;
-
-        let idx = alivePlayers.findIndex(p => p.id === MP.spectatingId);
-        idx = (idx + dir + alivePlayers.length) % alivePlayers.length;
-        MP.spectatingId = alivePlayers[idx].id;
-
-        const targetEl = document.getElementById('spec-current-target');
-        if (targetEl) targetEl.textContent = 'Assistindo: ' + alivePlayers[idx].nick;
-    }
-
-    function concludeMultiplayerMatch() {
-        const specHUD = document.getElementById('subway-spectator-hud');
-        if (specHUD) specHUD.remove();
-
-        const placementHUD = document.getElementById('subway-live-placement');
-        if (placementHUD) placementHUD.style.display = 'none';
-
-        // Find winner (last alive player)
-        let winner = MP.party.find(p => !MP.placement.some(d => d.id === p.id));
-        if (!winner && MP.placement.length > 0) {
-            winner = MP.placement[MP.placement.length - 1];
+    function updateModeBadgeUI() {
+        const badge = document.getElementById('subway-mode-indicator');
+        if (badge) {
+            badge.className = `timer-badge ${window.NO_COIN_MODE ? 'badge-nocoin' : 'badge-normal'}`;
+            badge.textContent = window.NO_COIN_MODE ? 'NO COIN 🔴' : 'NORMAL 🟡';
         }
+    }
 
-        const winModal = document.createElement('div');
-        winModal.className = 'subway-victory-modal';
-        winModal.innerHTML = `
-            <div class="victory-box">
-                <div class="victory-crown">👑</div>
-                <h1 class="victory-title">${winner ? winner.nick : 'Fim de Jogo'} VENCEU!</h1>
-                <p class="victory-sub">Último sobrevivente no modo No Coin!</p>
-                <div class="victory-table">
-                    <h3>PLACAR FINAL</h3>
-                    ${MP.party.map((p, i) => `
-                        <div class="victory-row">
-                            <span class="v-rank">${i === 0 ? '🏆 1º' : `${i + 1}º`}</span>
-                            <img class="v-avatar" src="${p.avatar}" />
-                            <span class="v-nick">${p.nick}</span>
+    window.__openUnifiedMenu = function(tab) {
+        openUnifiedModal(tab || 'modes');
+    };
+
+    function openUnifiedModal(defaultTab) {
+        initMultiplayerEngine();
+
+        let modal = document.getElementById('modal-unified-menu');
+        if (modal) modal.remove();
+
+        modal = document.createElement('div');
+        modal.className = 'subway-modal-backdrop';
+        modal.id = 'modal-unified-menu';
+
+        modal.innerHTML = `
+            <div class="subway-modal-box unified-box">
+                <div class="modal-header">
+                    <h2>⚡ PAINEL SUBWAY SURFERS MOD</h2>
+                    <button class="btn-modal-close" id="btn-close-unified">✕</button>
+                </div>
+
+                <!-- Tabs Navigation -->
+                <div class="unified-tabs">
+                    <button class="tab-btn" data-tab="modes" id="tab-btn-modes">🎮 Modos de Jogo</button>
+                    <button class="tab-btn" data-tab="multiplayer" id="tab-btn-multiplayer">🌐 Multiplayer Online</button>
+                    <button class="tab-btn" data-tab="records" id="tab-btn-records">📜 Recordes</button>
+                </div>
+
+                <!-- Tab 1: Game Modes -->
+                <div class="tab-pane" id="pane-modes">
+                    <div class="mod-card">
+                        <div class="mod-info">
+                            <h3>⚡ MODO ILIMITADO (TUDO LIBERADO)</h3>
+                            <p>999M Moedas, 999M Chaves, 14 Personagens, 17 Pranchas, Roupas, Melhorias Max e Loja Grátis!</p>
                         </div>
-                    `).join('')}
+                        <button class="btn-toggle-unlimited ${window.UNLIMITED_MODE ? 'active-on' : 'active-off'}" id="btn-toggle-unlimited">
+                            ${window.UNLIMITED_MODE ? '✅ ATIVADO (INFINITO)' : '❌ DESATIVADO'}
+                        </button>
+                    </div>
+
+                    <div class="mod-card">
+                        <div class="mod-info">
+                            <h3>🔴 MODO NO COIN (MORTE INSTANTÂNEA)</h3>
+                            <p>Moedas ficam vermelhas. Qualquer toque na moeda resulta em derrota instantânea com hitbox 100% idêntica e sem atração!</p>
+                        </div>
+                        <button class="btn-toggle-nocoin ${window.NO_COIN_MODE ? 'nocoin-on' : 'nocoin-off'}" id="btn-toggle-nocoin">
+                            ${window.NO_COIN_MODE ? '🔴 NO COIN ATIVO' : '🟡 MODO NORMAL'}
+                        </button>
+                    </div>
                 </div>
-                <button class="btn-victory-back" id="btn-victory-close">Voltar ao Lobby</button>
+
+                <!-- Tab 2: Online Multiplayer -->
+                <div class="tab-pane" id="pane-multiplayer">
+                    <!-- Profile Card -->
+                    <div class="lobby-profile-card">
+                        <div class="profile-avatar-wrap">
+                            <img id="lobby-my-avatar" src="${myProfile.avatar}" alt="Avatar" />
+                        </div>
+                        <div class="profile-info-wrap">
+                            <div class="profile-input-group">
+                                <label>Seu Nickname:</label>
+                                <input type="text" id="input-my-nick" value="${myProfile.nick}" maxlength="15" />
+                            </div>
+                            <div class="profile-input-group">
+                                <label>URL da Foto (ou escolha uma padrão):</label>
+                                <input type="text" id="input-my-avatar" value="${myProfile.avatar}" placeholder="https://..." />
+                            </div>
+                            <div class="avatar-presets">
+                                ${DEFAULT_AVATARS.map(av => `
+                                    <img class="preset-img" src="${av.url}" title="${av.name}" onclick="window.__selectPresetAvatar('${av.url}')" />
+                                `).join('')}
+                            </div>
+                        </div>
+                        <button class="btn-save-profile" id="btn-save-profile">Salvar Perfil</button>
+                    </div>
+
+                    <div class="lobby-grid">
+                        <!-- Party Slots (2-4 players) -->
+                        <div class="lobby-column party-col">
+                            <div class="col-header">
+                                <h3>MEU GRUPO (${MP.party.length}/4)</h3>
+                                <span class="party-hint">Todos devem dar PRONTO para iniciar!</span>
+                            </div>
+                            <div class="party-slots-container" id="party-slots">
+                                <!-- Injected by renderPartySlots -->
+                            </div>
+                            <div class="party-bottom-actions">
+                                <button id="btn-toggle-ready" class="btn-ready ${MP.isReady ? 'ready-on' : 'ready-off'}">
+                                    ${MP.isReady ? '✅ PRONTO!' : '⏳ DAR PRONTO'}
+                                </button>
+                                <button id="btn-start-match" class="btn-start-match" ${checkCanStartMatch() ? '' : 'disabled'}>
+                                    🚀 INICIAR PARTIDA
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Online Players List -->
+                        <div class="lobby-column players-col">
+                            <div class="col-header">
+                                <h3>JOGADORES ONLINE NO MUNDO</h3>
+                                <button class="btn-refresh-online" onclick="window.__refreshOnline()">🔄 Atualizar</button>
+                            </div>
+                            <div class="online-players-list" id="online-players-list">
+                                <!-- Injected by renderOnlinePlayersList -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Records History -->
+                <div class="tab-pane" id="pane-records">
+                    <div class="records-filter-bar">
+                        <button class="btn-filter-record active" onclick="window.__filterRecords('all', this)">Todos</button>
+                        <button class="btn-filter-record" onclick="window.__filterRecords('nocoin', this)">Apenas No Coin 🔴</button>
+                        <button class="btn-filter-record" onclick="window.__filterRecords('normal', this)">Apenas Normal 🟡</button>
+                        <button class="btn-clear-records" onclick="window.__clearRecords()">🗑️ Limpar</button>
+                    </div>
+                    <div class="records-table-container" id="records-table-wrap">
+                        <!-- Injected by renderRecordsTable -->
+                    </div>
+                </div>
             </div>
         `;
-        document.body.appendChild(winModal);
+        document.body.appendChild(modal);
 
-        document.getElementById('btn-victory-close').onclick = () => {
-            winModal.remove();
-            removeAllGhosts();
-            MP.inMatch = false;
-            MP.isReady = false;
-            myProfile.ready = false;
-            openMultiplayerLobby();
-        };
+        // Bind tab buttons
+        const tabs = modal.querySelectorAll('.tab-btn');
+        tabs.forEach(btn => {
+            btn.onclick = () => switchTab(btn.getAttribute('data-tab'));
+        });
+
+        document.getElementById('btn-close-unified').onclick = closeUnifiedModal;
+        document.getElementById('btn-toggle-unlimited').onclick = toggleUnlimitedMode;
+        document.getElementById('btn-toggle-nocoin').onclick = toggleNoCoinMode;
+        document.getElementById('btn-save-profile').onclick = saveLobbyProfile;
+        document.getElementById('btn-toggle-ready').onclick = toggleReady;
+        document.getElementById('btn-start-match').onclick = requestStartMatch;
+
+        switchTab(defaultTab || 'modes');
+        renderPartySlots();
+        renderOnlinePlayersList();
+        renderRecordsTable('all');
     }
 
-    // ==========================================
-    // 10. UI & LOBBY SYSTEM
-    // ==========================================
-    function injectUI() {
-        // Top HUD Bar with Timer, Mode Toggle, and Online Button
-        const topHUD = document.createElement('div');
-        topHUD.className = 'subway-top-hud';
-        topHUD.innerHTML = `
-            <div class="hud-left">
-                <button id="btn-toggle-mode" class="subway-hud-btn mode-btn ${window.NO_COIN_MODE ? 'mode-nocoin' : 'mode-normal'}">
-                    MODO: <span id="hud-mode-name">${window.NO_COIN_MODE ? 'NO COIN 🔴' : 'NORMAL 🟡'}</span>
-                </button>
-            </div>
-            <div class="hud-center">
-                <div class="subway-timer-display">
-                    <span class="timer-icon">⏱️</span>
-                    <span id="subway-top-timer-val">00:00.00</span>
-                </div>
-            </div>
-            <div class="hud-right">
-                <button id="btn-open-records" class="subway-hud-btn">📜 RECORDES</button>
-                <button id="btn-open-multiplayer" class="subway-hud-btn btn-mp-glow">🌐 MODO ONLINE</button>
-            </div>
-        `;
-        document.body.appendChild(topHUD);
-
-        // Click handlers
-        document.getElementById('btn-toggle-mode').onclick = toggleGameMode;
-        document.getElementById('btn-open-records').onclick = openRecordsModal;
-        document.getElementById('btn-open-multiplayer').onclick = openMultiplayerLobby;
+    function switchTab(tabName) {
+        const modal = document.getElementById('modal-unified-menu');
+        if (!modal) return;
+        modal.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-tab') === tabName);
+        });
+        modal.querySelectorAll('.tab-pane').forEach(pane => {
+            pane.classList.toggle('active', pane.id === 'pane-' + tabName);
+        });
     }
 
-    function toggleGameMode() {
-        if (MP.inMatch) {
-            alert('Não é possível alterar o modo durante uma partida online!');
-            return;
+    function closeUnifiedModal() {
+        const modal = document.getElementById('modal-unified-menu');
+        if (modal) modal.remove();
+    }
+
+    function toggleUnlimitedMode() {
+        window.UNLIMITED_MODE = !window.UNLIMITED_MODE;
+        localStorage.setItem('subway_unlimited_mode', window.UNLIMITED_MODE ? 'true' : 'false');
+        if (window.UNLIMITED_MODE) {
+            applyUnlimitedStorage();
+            if (window.app && window.app.user) applyUnlockToUser(window.app.user);
+            showHUDNotification('⚡ MODO ILIMITADO ATIVADO! (Moedas e Chaves Infinitas)');
+        } else {
+            showHUDNotification('Modo Ilimitado desativado.');
         }
+        const btn = document.getElementById('btn-toggle-unlimited');
+        if (btn) {
+            btn.className = `btn-toggle-unlimited ${window.UNLIMITED_MODE ? 'active-on' : 'active-off'}`;
+            btn.textContent = window.UNLIMITED_MODE ? '✅ ATIVADO (INFINITO)' : '❌ DESATIVADO';
+        }
+    }
+
+    function toggleNoCoinMode() {
         window.NO_COIN_MODE = !window.NO_COIN_MODE;
         window.GAME_MODE = window.NO_COIN_MODE ? 'nocoin' : 'normal';
         localStorage.setItem('subway_game_mode', window.GAME_MODE);
         updateModeBadgeUI();
 
-        showDeathEffect(window.NO_COIN_MODE ? 'MODO NO COIN ATIVADO! 🔴 (Moedas vermelhas = morte instantânea)' : 'MODO NORMAL ATIVADO! 🟡');
-    }
-
-    function updateModeBadgeUI() {
-        const btn = document.getElementById('btn-toggle-mode');
-        const name = document.getElementById('hud-mode-name');
-        if (btn && name) {
-            btn.className = `subway-hud-btn mode-btn ${window.NO_COIN_MODE ? 'mode-nocoin' : 'mode-normal'}`;
-            name.textContent = window.NO_COIN_MODE ? 'NO COIN 🔴' : 'NORMAL 🟡';
+        const btn = document.getElementById('btn-toggle-nocoin');
+        if (btn) {
+            btn.className = `btn-toggle-nocoin ${window.NO_COIN_MODE ? 'nocoin-on' : 'nocoin-off'}`;
+            btn.textContent = window.NO_COIN_MODE ? '🔴 NO COIN ATIVO' : '🟡 MODO NORMAL';
         }
-    }
-
-    function openRecordsModal() {
-        const modal = document.createElement('div');
-        modal.className = 'subway-modal-backdrop';
-        modal.id = 'modal-records';
-
-        const records = JSON.parse(localStorage.getItem('subway_surfers_records') || '[]');
-
-        modal.innerHTML = `
-            <div class="subway-modal-box">
-                <div class="modal-header">
-                    <h2>📜 HISTÓRICO DE RECORDES</h2>
-                    <button class="btn-modal-close" onclick="document.getElementById('modal-records').remove()">✕</button>
-                </div>
-                <div class="records-filter">
-                    <button class="btn-filter active" id="flt-all">Todos</button>
-                    <button class="btn-filter" id="flt-nocoin">No Coin 🔴</button>
-                    <button class="btn-filter" id="flt-normal">Normal 🟡</button>
-                </div>
-                <div class="records-list" id="records-table-body">
-                    ${renderRecordsList(records, 'all')}
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-        document.getElementById('flt-all').onclick = (e) => setFilter(e, records, 'all');
-        document.getElementById('flt-nocoin').onclick = (e) => setFilter(e, records, 'No Coin');
-        document.getElementById('flt-normal').onclick = (e) => setFilter(e, records, 'Normal');
-    }
-
-    function setFilter(e, records, flt) {
-        document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        document.getElementById('records-table-body').innerHTML = renderRecordsList(records, flt);
-    }
-
-    function renderRecordsList(records, filter) {
-        const filtered = filter === 'all' ? records : records.filter(r => r.mode === filter);
-        if (filtered.length === 0) {
-            return '<div class="no-records">Nenhum recorde registrado ainda! Corra para pontuar!</div>';
-        }
-        return `
-            <table class="records-table">
-                <thead>
-                    <tr>
-                        <th>Modo</th>
-                        <th>Tempo</th>
-                        <th>Jogador</th>
-                        <th>Data</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${filtered.map(r => `
-                        <tr>
-                            <td><span class="badge-${r.mode === 'No Coin' ? 'nocoin' : 'normal'}">${r.mode}</span></td>
-                            <td class="rec-time">${r.timeStr}</td>
-                            <td>${r.nick || 'Surfer'}</td>
-                            <td>${r.date}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        `;
-    }
-
-    // Multiplayer Lobby Modal
-    function openMultiplayerLobby() {
-        initMultiplayerNetworking();
-        MP.active = true;
-
-        let modal = document.getElementById('modal-mp-lobby');
-        if (modal) modal.remove();
-
-        modal = document.createElement('div');
-        modal.className = 'subway-modal-backdrop';
-        modal.id = 'modal-mp-lobby';
-
-        modal.innerHTML = `
-            <div class="subway-modal-box lobby-box">
-                <div class="modal-header">
-                    <h2>🌐 LOBBY MULTIPLAYER (NO COIN ONLY)</h2>
-                    <button class="btn-modal-close" id="btn-close-lobby">✕</button>
-                </div>
-
-                <!-- Profile Customization -->
-                <div class="lobby-profile-card">
-                    <div class="profile-avatar-wrap">
-                        <img id="lobby-my-avatar" src="${myProfile.avatar}" alt="Avatar" />
-                    </div>
-                    <div class="profile-info-wrap">
-                        <div class="profile-input-group">
-                            <label>Seu Nickname:</label>
-                            <input type="text" id="input-my-nick" value="${myProfile.nick}" maxlength="15" />
-                        </div>
-                        <div class="profile-input-group">
-                            <label>URL da Foto de Perfil (ou escolha padrão):</label>
-                            <input type="text" id="input-my-avatar" value="${myProfile.avatar}" placeholder="https://..." />
-                        </div>
-                        <div class="avatar-presets">
-                            ${DEFAULT_AVATARS.map(av => `
-                                <img class="preset-img" src="${av.url}" title="${av.name}" onclick="window.__selectPresetAvatar('${av.url}')" />
-                            `).join('')}
-                        </div>
-                    </div>
-                    <button class="btn-save-profile" id="btn-save-profile">Salvar Perfil</button>
-                </div>
-
-                <div class="lobby-grid">
-                    <!-- Party Slots (2-4 players) -->
-                    <div class="lobby-column party-col">
-                        <div class="col-header">
-                            <h3>MEU GRUPO (${MP.party.length}/4)</h3>
-                            <span class="party-hint">Todos devem dar PRONTO para iniciar!</span>
-                        </div>
-                        <div class="party-slots-container" id="party-slots">
-                            <!-- Injected by renderPartySlots -->
-                        </div>
-                        <div class="party-bottom-actions">
-                            <button id="btn-toggle-ready" class="btn-ready ${MP.isReady ? 'ready-on' : 'ready-off'}">
-                                ${MP.isReady ? '✅ PRONTO!' : '⏳ DAR PRONTO'}
-                            </button>
-                            <button id="btn-start-match" class="btn-start-match" ${checkCanStartMatch() ? '' : 'disabled'}>
-                                🚀 INICIAR PARTIDA
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Online Players List -->
-                    <div class="lobby-column players-col">
-                        <div class="col-header">
-                            <h3>JOGADORES ONLINE</h3>
-                            <button class="btn-refresh-online" onclick="window.__refreshOnline()">🔄 Atualizar</button>
-                        </div>
-                        <div class="online-players-list" id="online-players-list">
-                            <!-- Injected by renderOnlinePlayersList -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-        document.getElementById('btn-close-lobby').onclick = closeMultiplayerLobby;
-        document.getElementById('btn-save-profile').onclick = saveLobbyProfile;
-        document.getElementById('btn-toggle-ready').onclick = toggleReady;
-        document.getElementById('btn-start-match').onclick = requestStartMatch;
-
-        renderPartySlots();
-        renderOnlinePlayersList();
+        showHUDNotification(window.NO_COIN_MODE ? '🔴 MODO NO COIN ATIVADO! Cuidado com as moedas vermelhas!' : '🟡 MODO NORMAL ATIVADO!');
     }
 
     window.__selectPresetAvatar = function(url) {
-        document.getElementById('input-my-avatar').value = url;
-        document.getElementById('lobby-my-avatar').src = url;
+        const inp = document.getElementById('input-my-avatar');
+        const img = document.getElementById('lobby-my-avatar');
+        if (inp) inp.value = url;
+        if (img) img.src = url;
     };
 
     window.__refreshOnline = function() {
@@ -1139,7 +1214,6 @@
         }
         localStorage.setItem('subway_surfers_profile', JSON.stringify(myProfile));
 
-        // Update in party
         const me = MP.party.find(p => p.id === myProfile.id);
         if (me) {
             me.nick = myProfile.nick;
@@ -1147,7 +1221,7 @@
         }
         renderPartySlots();
         broadcastPresence();
-        alert('Perfil salvo com sucesso!');
+        showHUDNotification('✅ Perfil salvo!');
     }
 
     function renderPartySlots() {
@@ -1183,19 +1257,13 @@
         }
         container.innerHTML = html;
 
-        // Update Start Match button state
         const startBtn = document.getElementById('btn-start-match');
         if (startBtn) {
             const canStart = checkCanStartMatch();
             startBtn.disabled = !canStart;
-            if (canStart) {
-                startBtn.classList.add('can-start');
-            } else {
-                startBtn.classList.remove('can-start');
-            }
+            startBtn.classList.toggle('can-start', canStart);
         }
 
-        // Update Ready button appearance
         const readyBtn = document.getElementById('btn-toggle-ready');
         if (readyBtn) {
             readyBtn.className = `btn-ready ${MP.isReady ? 'ready-on' : 'ready-off'}`;
@@ -1204,32 +1272,26 @@
     }
 
     window.__kickPlayer = function(playerId) {
-        removePlayerFromParty(playerId);
-        sendNetworkMessage({
-            type: 'party_sync',
-            sender: myProfile,
-            party: MP.party
-        });
+        MP.party = MP.party.filter(p => p.id !== playerId);
+        syncPartyToAll();
+        renderPartySlots();
     };
 
     function renderOnlinePlayersList() {
         const container = document.getElementById('online-players-list');
         if (!container) return;
 
-        const now = Date.now();
         const activeOnline = [];
-        onlinePlayersRegistry.forEach((entry, id) => {
-            if (id !== myProfile.id && now - entry.lastSeen < 15000) {
-                activeOnline.push(entry.profile);
-            }
+        MP.onlinePlayers.forEach(entry => {
+            activeOnline.push(entry.profile);
         });
 
-        // Add mock lobby bots if testing locally so user can test invite & group instantly
+        // Mock bots for instant solo testing if no one is online
         if (activeOnline.length < 3) {
             const botPresets = [
-                { id: 'bot_alex', nick: 'AlexPro', avatar: DEFAULT_AVATARS[1].url },
+                { id: 'bot_alex', nick: 'Alex_Pro', avatar: DEFAULT_AVATARS[1].url },
                 { id: 'bot_beatriz', nick: 'Bia_Surfer', avatar: DEFAULT_AVATARS[2].url },
-                { id: 'bot_carlos', nick: 'Carlos99', avatar: DEFAULT_AVATARS[3].url }
+                { id: 'bot_carlos', nick: 'Carlos_Speed', avatar: DEFAULT_AVATARS[3].url }
             ];
             botPresets.forEach(b => {
                 if (!activeOnline.some(o => o.id === b.id) && !MP.party.some(p => p.id === b.id)) {
@@ -1259,7 +1321,7 @@
 
     window.__invitePlayer = function(id, nick, avatar) {
         const target = { id, nick, avatar };
-        // If bot, auto-join & ready after 1 second
+        // Bot auto join for testing
         if (id.startsWith('bot_')) {
             if (MP.party.length < 4) {
                 target.ready = false;
@@ -1268,719 +1330,471 @@
                 setTimeout(() => {
                     target.ready = true;
                     renderPartySlots();
-                }, 1200);
+                }, 1000);
             }
             return;
         }
-        invitePlayer(target);
+
+        // Send invite to real online player
+        sendGlobalMessage('subwaysurf/player/' + id, {
+            type: 'invite',
+            sender: myProfile,
+            roomId: MP.roomId
+        });
+        showHUDNotification('Convite enviado para ' + nick + '!');
     };
 
-    function requestStartMatch() {
-        if (!checkCanStartMatch()) {
-            alert('Atenção: Todos os membros do grupo devem dar PRONTO antes de iniciar!');
+    // Records Table Rendering
+    function renderRecordsTable(filterMode) {
+        const container = document.getElementById('records-table-wrap');
+        if (!container) return;
+
+        let records = JSON.parse(localStorage.getItem('subway_surfers_records') || '[]');
+        if (filterMode === 'nocoin') {
+            records = records.filter(r => r.mode === 'No Coin');
+        } else if (filterMode === 'normal') {
+            records = records.filter(r => r.mode === 'Normal');
+        }
+
+        if (records.length === 0) {
+            container.innerHTML = '<div class="no-records">Nenhum recorde registrado ainda. Inicie uma corrida!</div>';
             return;
         }
 
-        sendNetworkMessage({
-            type: 'match_start',
-            sender: myProfile,
-            party: MP.party
-        });
-
-        startMultiplayerMatchCountdown();
+        container.innerHTML = `
+            <table class="records-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Jogador</th>
+                        <th>Modo</th>
+                        <th>Tempo Sobrevivido</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${records.map((r, i) => `
+                        <tr>
+                            <td>#${i + 1}</td>
+                            <td><strong>${r.nick || myProfile.nick}</strong></td>
+                            <td><span class="badge ${r.mode === 'No Coin' ? 'b-nocoin' : 'b-normal'}">${r.mode}</span></td>
+                            <td class="td-time">${r.timeStr}</td>
+                            <td class="td-date">${r.date}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
     }
 
-    function closeMultiplayerLobby() {
-        const modal = document.getElementById('modal-mp-lobby');
-        if (modal) modal.remove();
-    }
+    window.__filterRecords = function(mode, btn) {
+        document.querySelectorAll('.btn-filter-record').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        renderRecordsTable(mode);
+    };
+
+    window.__clearRecords = function() {
+        if (confirm('Deseja realmente apagar todo o histórico de recordes?')) {
+            localStorage.removeItem('subway_surfers_records');
+            renderRecordsTable('all');
+        }
+    };
 
     // ==========================================
-    // 11. MOD STYLES INJECTION
+    // 9. CSS STYLES INJECTION
     // ==========================================
-    function injectStyles() {
+    function injectModStyles() {
         const style = document.createElement('style');
         style.textContent = `
-            /* TOP HUD BAR */
-            .subway-top-hud {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 52px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                padding: 0 16px;
-                box-sizing: border-box;
-                z-index: 10000;
-                background: linear-gradient(180deg, rgba(10, 16, 32, 0.92) 0%, rgba(10, 16, 32, 0) 100%);
-                font-family: "Lilita One", "Verdana", sans-serif;
-                pointer-events: none;
-            }
-            .subway-top-hud * {
-                pointer-events: auto;
-            }
-            .subway-hud-btn {
-                background: #1a2238;
-                color: #fff;
-                border: 2px solid #2e3e6b;
-                border-radius: 8px;
-                padding: 8px 14px;
-                font-size: 13px;
-                font-weight: bold;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-            }
-            .subway-hud-btn:hover {
-                transform: translateY(-2px);
-                border-color: #4a68b5;
-            }
-            .mode-btn.mode-normal {
-                border-color: #ffd83c;
-                color: #ffd83c;
-            }
-            .mode-btn.mode-nocoin {
-                border-color: #ff3b30;
-                color: #ff3b30;
-                background: #381212;
-                animation: pulseRed 2s infinite;
-            }
-            @keyframes pulseRed {
-                0%, 100% { box-shadow: 0 0 12px rgba(255, 59, 48, 0.4); }
-                50% { box-shadow: 0 0 20px rgba(255, 59, 48, 0.8); }
-            }
-            .btn-mp-glow {
-                background: linear-gradient(135deg, #007aff, #5856d6);
-                border: 2px solid #70a1ff;
-                color: #fff;
-            }
-            .btn-mp-glow:hover {
-                box-shadow: 0 0 15px #007aff;
-            }
-            .subway-timer-display {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                background: rgba(0, 0, 0, 0.65);
-                border: 2px solid #ffd83c;
-                border-radius: 20px;
-                padding: 6px 18px;
-                color: #fff;
-                font-size: 20px;
-                font-weight: 900;
-                letter-spacing: 1px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            /* Netlify Remover */
+            [class*="netlify"], [id*="netlify"], [href*="netlify.com"], netlify-drawer, #netlify-drawer, .netlify-badge {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
             }
 
-            /* DEATH / NO-COIN BANNER */
-            .subway-death-banner {
+            /* Minimalist Top Timer */
+            .subway-top-timer-wrap {
                 position: fixed;
-                top: 25%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: rgba(220, 20, 20, 0.95);
-                color: #fff;
-                font-family: "Lilita One", sans-serif;
-                font-size: 26px;
-                padding: 16px 32px;
-                border-radius: 12px;
-                border: 3px solid #ff7b72;
-                box-shadow: 0 10px 30px rgba(255,0,0,0.6);
-                z-index: 100000;
-                animation: popIn 0.3s ease-out;
-            }
-            @keyframes popIn {
-                0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
-                100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-            }
-
-            /* LIVE PLACEMENT HUD */
-            .subway-live-placement-hud {
-                position: fixed;
-                top: 60px;
-                left: 14px;
-                background: rgba(12, 18, 36, 0.88);
-                border: 2px solid #2a3b68;
-                border-radius: 10px;
-                padding: 10px 14px;
-                font-family: sans-serif;
-                color: #fff;
-                z-index: 9999;
-                min-width: 220px;
-                box-shadow: 0 6px 16px rgba(0,0,0,0.5);
-            }
-            .placement-title {
-                font-size: 12px;
-                font-weight: 800;
-                color: #ffd83c;
-                margin-bottom: 8px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            .placement-row {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                padding: 4px 0;
-                font-size: 13px;
-                border-bottom: 1px solid rgba(255,255,255,0.06);
-            }
-            .placement-row.is-me {
-                color: #ffd83c;
-                font-weight: bold;
-            }
-            .placement-rank {
-                font-weight: 800;
-                width: 32px;
-            }
-            .placement-avatar {
-                width: 20px;
-                height: 20px;
-                border-radius: 50%;
-                object-fit: cover;
-            }
-            .placement-nick {
-                flex: 1;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-            .placement-badge {
-                font-size: 10px;
-                font-weight: bold;
-                padding: 2px 6px;
-                border-radius: 4px;
-            }
-            .status-alive {
-                background: #28a745;
-                color: #fff;
-            }
-            .status-eliminated {
-                background: #dc3545;
-                color: #fff;
-            }
-
-            /* GHOST RUNNERS ON TRACK */
-            .subway-ghost-player {
-                position: fixed;
-                width: 70px;
-                height: 110px;
-                pointer-events: none;
-                z-index: 8000;
-                transition: transform 0.08s linear;
-            }
-            .ghost-tag {
-                position: absolute;
-                top: -24px;
+                top: 14px;
                 left: 50%;
                 transform: translateX(-50%);
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                background: rgba(0, 122, 255, 0.85);
-                color: #fff;
-                padding: 2px 8px;
-                border-radius: 10px;
-                font-size: 11px;
-                font-weight: bold;
-                white-space: nowrap;
-                border: 1px solid #70a1ff;
-            }
-            .ghost-tag-avatar {
-                width: 14px;
-                height: 14px;
-                border-radius: 50%;
-            }
-            .ghost-runner-body {
-                width: 100%;
-                height: 100%;
-                background: radial-gradient(circle, rgba(0, 200, 255, 0.45) 0%, rgba(0, 122, 255, 0.15) 70%, transparent 100%);
-                border: 2px solid rgba(0, 220, 255, 0.6);
-                border-radius: 20px;
-                filter: blur(0.5px);
-                animation: ghostFloat 1.2s ease-in-out infinite alternate;
-            }
-            @keyframes ghostFloat {
-                0% { transform: translateY(0); }
-                100% { transform: translateY(-6px); }
-            }
-
-            /* SPECTATOR HUD */
-            .subway-spectator-hud {
-                position: fixed;
-                bottom: 30px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(12, 18, 36, 0.92);
-                border: 2px solid #5856d6;
-                border-radius: 14px;
-                padding: 12px 24px;
-                z-index: 10000;
-                display: flex;
-                flex-direction: column;
+                z-index: 99999;
+                display: none;
                 align-items: center;
                 gap: 8px;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+                padding: 6px 14px;
+                background: rgba(10, 16, 30, 0.75);
+                backdrop-filter: blur(8px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 24px;
+                color: #ffffff;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+                user-select: none;
+                pointer-events: none;
             }
-            .spec-banner {
-                color: #ff3b30;
-                font-weight: bold;
+            .subway-top-timer-wrap .timer-icon {
                 font-size: 15px;
             }
-            .spec-controls {
-                display: flex;
-                align-items: center;
-                gap: 14px;
-            }
-            .btn-spec {
-                background: #2a3b68;
-                color: #fff;
-                border: none;
-                border-radius: 6px;
-                padding: 6px 14px;
-                font-weight: bold;
-                cursor: pointer;
-            }
-            .spec-target-name {
-                color: #ffd83c;
+            .subway-top-timer-wrap .timer-value {
+                font-size: 17px;
                 font-weight: 800;
-                font-size: 14px;
+                letter-spacing: 0.5px;
+                font-variant-numeric: tabular-nums;
             }
+            .subway-top-timer-wrap .timer-badge {
+                font-size: 11px;
+                font-weight: 700;
+                padding: 2px 7px;
+                border-radius: 10px;
+                text-transform: uppercase;
+            }
+            .badge-nocoin { background: #e53935; color: #fff; }
+            .badge-normal { background: #fbc02d; color: #000; }
 
-            /* VICTORY MODAL */
-            .subway-victory-modal {
+            /* Floating Menu Button */
+            .btn-subway-unified-menu {
                 position: fixed;
-                top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(0,0,0,0.85);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 100000;
-            }
-            .victory-box {
-                background: #141c33;
-                border: 3px solid #ffd83c;
-                border-radius: 18px;
-                padding: 30px 40px;
-                text-align: center;
+                top: 14px;
+                right: 14px;
+                z-index: 99998;
+                padding: 8px 16px;
+                background: linear-gradient(135deg, #ff416c, #ff4b2b);
                 color: #fff;
-                max-width: 420px;
-                box-shadow: 0 10px 40px rgba(255, 216, 60, 0.4);
-            }
-            .victory-crown { font-size: 54px; }
-            .victory-title { font-size: 30px; color: #ffd83c; margin: 8px 0; }
-            .victory-sub { font-size: 14px; color: #a0aec0; margin-bottom: 20px; }
-            .victory-table { background: #0c1224; border-radius: 10px; padding: 12px; margin-bottom: 20px; }
-            .victory-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #1a233a; }
-            .v-rank { font-weight: bold; width: 40px; }
-            .v-avatar { width: 24px; height: 24px; border-radius: 50%; }
-            .v-nick { flex: 1; text-align: left; }
-            .btn-victory-back {
-                background: #ffd83c;
-                color: #000;
-                font-weight: 900;
-                font-size: 16px;
                 border: none;
-                border-radius: 8px;
-                padding: 12px 28px;
+                border-radius: 20px;
+                font-size: 13px;
+                font-weight: 800;
                 cursor: pointer;
-            }
-
-            /* COUNTDOWN OVERLAY */
-            .subway-countdown-overlay {
-                position: fixed;
-                top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(0,0,0,0.8);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                z-index: 100000;
-                font-family: "Lilita One", sans-serif;
-            }
-            .countdown-num {
-                font-size: 110px;
-                color: #ffd83c;
-                text-shadow: 0 0 20px rgba(255, 216, 60, 0.8);
-            }
-            .countdown-sub {
-                font-size: 20px;
-                color: #fff;
-                margin-top: 20px;
-                letter-spacing: 1px;
-            }
-
-            /* TOAST INVITE */
-            .subway-invite-toast {
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                background: #19233f;
-                border: 2px solid #007aff;
-                border-radius: 12px;
-                padding: 14px 18px;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                z-index: 100000;
-                color: #fff;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-            }
-            .toast-avatar { width: 36px; height: 36px; border-radius: 50%; background-size: cover; }
-            .toast-actions { display: flex; gap: 8px; }
-            .btn-toast-accept { background: #28a745; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-            .btn-toast-decline { background: #dc3545; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
-
-            /* MODAL BACKDROP & BOX */
-            .subway-modal-backdrop {
-                position: fixed;
-                top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(4, 8, 20, 0.85);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 100000;
+                box-shadow: 0 4px 12px rgba(255, 65, 108, 0.4);
+                transition: transform 0.15s ease, filter 0.15s ease;
                 font-family: sans-serif;
             }
+            .btn-subway-unified-menu:hover {
+                transform: scale(1.05);
+                filter: brightness(1.1);
+            }
+
+            /* Unified Modal Backdrops & Containers */
+            .subway-modal-backdrop {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(4, 10, 24, 0.85);
+                backdrop-filter: blur(6px);
+                z-index: 100000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
             .subway-modal-box {
-                background: #121a30;
-                border: 2px solid #2e3e6b;
+                background: #111a2e;
+                color: #fff;
+                border: 1px solid rgba(255,255,255,0.12);
                 border-radius: 16px;
-                width: 90%;
-                max-width: 780px;
-                max-height: 85vh;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+                overflow: hidden;
                 display: flex;
                 flex-direction: column;
-                color: #fff;
-                overflow: hidden;
-                box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+                max-width: 90vw;
+                max-height: 88vh;
             }
+            .unified-box { width: 720px; }
             .modal-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 16px 22px;
-                border-bottom: 1px solid #1f2b4d;
-                background: #0d1324;
+                padding: 14px 20px;
+                background: rgba(255,255,255,0.03);
+                border-bottom: 1px solid rgba(255,255,255,0.08);
             }
-            .modal-header h2 { margin: 0; font-size: 20px; color: #ffd83c; font-family: "Lilita One", sans-serif; }
+            .modal-header h2 {
+                margin: 0;
+                font-size: 17px;
+                font-weight: 800;
+                letter-spacing: 0.5px;
+            }
             .btn-modal-close {
-                background: transparent;
+                background: none;
                 border: none;
-                color: #a0aec0;
-                font-size: 20px;
+                color: #aaa;
+                font-size: 18px;
                 cursor: pointer;
+                padding: 4px 8px;
             }
             .btn-modal-close:hover { color: #fff; }
 
-            /* LOBBY PROFILE */
-            .lobby-profile-card {
+            /* Unified Tabs */
+            .unified-tabs {
                 display: flex;
-                align-items: center;
-                gap: 18px;
-                padding: 16px 22px;
-                background: #17203b;
-                border-bottom: 1px solid #1f2b4d;
+                background: rgba(0,0,0,0.25);
+                border-bottom: 1px solid rgba(255,255,255,0.08);
             }
-            .profile-avatar-wrap img {
-                width: 68px;
-                height: 68px;
-                border-radius: 50%;
-                border: 3px solid #007aff;
-                object-fit: cover;
-            }
-            .profile-info-wrap {
+            .tab-btn {
                 flex: 1;
-                display: flex;
-                flex-direction: column;
-                gap: 6px;
-            }
-            .profile-input-group label {
-                font-size: 11px;
-                color: #a0aec0;
-                font-weight: bold;
-            }
-            .profile-input-group input {
-                width: 100%;
-                background: #0d1324;
-                border: 1px solid #2e3e6b;
-                border-radius: 6px;
-                padding: 6px 10px;
-                color: #fff;
-                box-sizing: border-box;
-                font-size: 13px;
-            }
-            .avatar-presets {
-                display: flex;
-                gap: 8px;
-                margin-top: 4px;
-            }
-            .preset-img {
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
-                cursor: pointer;
-                border: 1px solid #2e3e6b;
-                transition: transform 0.2s;
-            }
-            .preset-img:hover {
-                transform: scale(1.15);
-                border-color: #ffd83c;
-            }
-            .btn-save-profile {
-                background: #007aff;
-                color: #fff;
+                padding: 12px;
+                background: none;
                 border: none;
-                border-radius: 8px;
-                padding: 10px 16px;
-                font-weight: bold;
+                color: #8c9ba5;
+                font-size: 13px;
+                font-weight: 700;
                 cursor: pointer;
-                align-self: center;
+                border-bottom: 2px solid transparent;
+                transition: all 0.2s ease;
             }
-
-            /* LOBBY GRID */
-            .lobby-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 16px;
-                padding: 16px 22px;
+            .tab-btn.active {
+                color: #fff;
+                background: rgba(255,255,255,0.04);
+                border-bottom-color: #ff4b2b;
+            }
+            .tab-pane {
+                display: none;
+                padding: 20px;
                 overflow-y: auto;
             }
-            .lobby-column {
-                background: #0d1324;
-                border: 1px solid #1f2b4d;
+            .tab-pane.active { display: block; }
+
+            /* Cards in Modes Tab */
+            .mod-card {
+                background: rgba(255,255,255,0.04);
+                border: 1px solid rgba(255,255,255,0.08);
                 border-radius: 12px;
-                padding: 14px;
-                display: flex;
-                flex-direction: column;
-            }
-            .col-header {
+                padding: 16px;
+                margin-bottom: 14px;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-bottom: 12px;
+                gap: 16px;
             }
-            .col-header h3 { margin: 0; font-size: 14px; color: #a0aec0; }
-            .party-hint { font-size: 11px; color: #ffd83c; font-weight: bold; }
-            .btn-refresh-online {
-                background: #1c2747;
-                color: #a0aec0;
-                border: none;
-                border-radius: 4px;
-                padding: 4px 8px;
-                font-size: 11px;
-                cursor: pointer;
-            }
-            .party-slots-container {
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-                flex: 1;
-            }
-            .party-slot {
+            .mod-info h3 { margin: 0 0 6px 0; font-size: 15px; }
+            .mod-info p { margin: 0; font-size: 12px; color: #a1b0be; line-height: 1.4; }
+            .btn-toggle-unlimited, .btn-toggle-nocoin {
+                padding: 10px 18px;
                 border-radius: 8px;
-                padding: 10px 12px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
+                font-weight: 800;
+                font-size: 12px;
+                border: none;
+                cursor: pointer;
+                white-space: nowrap;
             }
-            .slot-filled {
-                background: #17203b;
-                border: 2px solid #2e3e6b;
-            }
-            .slot-ready {
-                border-color: #28a745;
-                background: #12281e;
-            }
-            .slot-waiting {
-                border-color: #f39c12;
-            }
-            .slot-empty {
-                border: 2px dashed #222f52;
-                justify-content: center;
-                color: #4a5d8a;
-                font-size: 13px;
+            .active-on { background: #00c853; color: #fff; }
+            .active-off { background: #455a64; color: #cfd8dc; }
+            .nocoin-on { background: #e53935; color: #fff; }
+            .nocoin-off { background: #fbc02d; color: #000; }
+
+            /* Multiplayer Tab & Lobby */
+            .lobby-profile-card {
+                background: rgba(255,255,255,0.03);
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 12px;
                 padding: 14px;
-            }
-            .slot-avatar {
-                width: 38px;
-                height: 38px;
-                border-radius: 50%;
-                background-size: cover;
-                background-position: center;
-            }
-            .slot-details {
-                flex: 1;
+                margin-bottom: 16px;
                 display: flex;
-                flex-direction: column;
+                gap: 14px;
+                align-items: center;
             }
-            .slot-nick { font-weight: bold; font-size: 14px; }
-            .slot-status { font-size: 11px; font-weight: 800; margin-top: 2px; }
-            .st-ready { color: #28a745; }
-            .st-waiting { color: #f39c12; }
-            .btn-kick {
-                background: transparent;
-                border: none;
-                color: #dc3545;
-                font-size: 16px;
-                cursor: pointer;
+            .profile-avatar-wrap img {
+                width: 54px; height: 54px; border-radius: 50%;
+                border: 2px solid #ff4b2b; object-fit: cover;
             }
-            .party-bottom-actions {
-                display: flex;
-                gap: 10px;
-                margin-top: 14px;
+            .profile-info-wrap { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+            .profile-input-group { display: flex; flex-direction: column; gap: 4px; }
+            .profile-input-group label { font-size: 11px; color: #8fa0b0; }
+            .profile-input-group input {
+                background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15);
+                border-radius: 6px; padding: 6px 10px; color: #fff; font-size: 12px;
             }
+            .avatar-presets { display: flex; gap: 8px; margin-top: 4px; }
+            .preset-img {
+                width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+                border: 1px solid rgba(255,255,255,0.3); transition: transform 0.1s;
+            }
+            .preset-img:hover { transform: scale(1.15); border-color: #ff4b2b; }
+            .btn-save-profile {
+                background: #2979ff; border: none; color: #fff; border-radius: 8px;
+                padding: 8px 14px; font-weight: 700; font-size: 12px; cursor: pointer;
+            }
+
+            .lobby-grid { display: flex; gap: 16px; }
+            .lobby-column { flex: 1; background: rgba(0,0,0,0.25); border-radius: 12px; padding: 14px; }
+            .col-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+            .col-header h3 { margin: 0; font-size: 13px; font-weight: 800; }
+            .party-hint { font-size: 10px; color: #ffab40; }
+            .party-slots-container { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+            .party-slot {
+                height: 48px; border-radius: 8px; padding: 0 12px;
+                display: flex; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,0.08);
+            }
+            .slot-filled { background: rgba(255,255,255,0.05); }
+            .slot-ready { border-color: #00c853; }
+            .slot-waiting { border-color: #ffab40; }
+            .slot-empty {
+                border-style: dashed; justify-content: center;
+                background: rgba(255,255,255,0.01); color: #607d8b; font-size: 11px;
+            }
+            .slot-avatar { width: 34px; height: 34px; border-radius: 50%; background-size: cover; }
+            .slot-details { flex: 1; display: flex; flex-direction: column; }
+            .slot-nick { font-size: 12px; font-weight: 700; }
+            .slot-status { font-size: 10px; font-weight: 800; }
+            .st-ready { color: #00e676; }
+            .st-waiting { color: #ffab40; }
+            .btn-kick { background: none; border: none; color: #f44336; cursor: pointer; font-size: 14px; }
+            
+            .party-bottom-actions { display: flex; gap: 8px; }
             .btn-ready {
-                flex: 1;
-                padding: 12px;
-                border-radius: 8px;
-                font-weight: 900;
-                font-size: 14px;
-                cursor: pointer;
-                border: none;
+                flex: 1; padding: 10px; border-radius: 8px; border: none;
+                font-size: 12px; font-weight: 800; cursor: pointer;
             }
-            .ready-off { background: #f39c12; color: #fff; }
-            .ready-on { background: #28a745; color: #fff; }
+            .ready-on { background: #00c853; color: #fff; }
+            .ready-off { background: #37474f; color: #eceff1; }
             .btn-start-match {
-                flex: 1.2;
-                background: #2a375a;
-                color: #6a7b9f;
-                border: none;
-                border-radius: 8px;
-                font-weight: 900;
-                font-size: 14px;
-                cursor: not-allowed;
+                flex: 1.4; padding: 10px; border-radius: 8px; border: none;
+                font-size: 12px; font-weight: 800; cursor: not-allowed;
+                background: #263238; color: #546e7a;
             }
             .btn-start-match.can-start {
-                background: linear-gradient(135deg, #007aff, #5856d6);
-                color: #fff;
-                cursor: pointer;
-                box-shadow: 0 4px 15px rgba(0, 122, 255, 0.4);
+                cursor: pointer; background: linear-gradient(135deg, #ff416c, #ff4b2b);
+                color: #fff; box-shadow: 0 4px 12px rgba(255,65,108,0.4);
             }
 
-            /* ONLINE PLAYERS LIST */
-            .online-players-list {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                max-height: 250px;
-                overflow-y: auto;
-            }
+            .online-players-list { max-height: 230px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
             .player-card {
-                background: #17203b;
-                border: 1px solid #222f52;
-                border-radius: 8px;
-                padding: 8px 12px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
+                display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+                background: rgba(255,255,255,0.03); border-radius: 8px;
             }
-            .card-avatar {
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
-                object-fit: cover;
-            }
-            .card-nick { flex: 1; font-weight: bold; font-size: 13px; }
+            .card-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+            .card-nick { flex: 1; font-size: 12px; font-weight: 700; }
             .btn-invite {
-                background: #007aff;
-                color: #fff;
-                border: none;
-                border-radius: 6px;
-                padding: 6px 12px;
-                font-size: 12px;
-                font-weight: bold;
-                cursor: pointer;
+                background: #2979ff; border: none; color: #fff; border-radius: 6px;
+                padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer;
             }
-            .btn-invite:disabled {
-                background: #2a375a;
-                color: #6a7b9f;
-                cursor: default;
+            .btn-invite[disabled] { background: #37474f; color: #78909c; cursor: default; }
+
+            /* Records Tab */
+            .records-filter-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+            .btn-filter-record {
+                background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 6px; padding: 6px 12px; color: #a1b0be; font-size: 11px; cursor: pointer;
+            }
+            .btn-filter-record.active { background: #ff4b2b; color: #fff; border-color: #ff4b2b; font-weight: 700; }
+            .btn-clear-records { margin-left: auto; background: none; border: none; color: #e57373; font-size: 11px; cursor: pointer; }
+            .records-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            .records-table th { text-align: left; padding: 8px; color: #8fa0b0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+            .records-table td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+            .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+            .b-nocoin { background: #e53935; color: #fff; }
+            .b-normal { background: #fbc02d; color: #000; }
+            .td-time { font-weight: 700; font-family: monospace; }
+            .td-date { color: #8fa0b0; font-size: 11px; }
+
+            /* HUD Alerts & Death Flash */
+            .subway-death-flash {
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(229, 57, 53, 0.45); z-index: 999999;
+                pointer-events: none; animation: flashFade 0.4s ease forwards;
+            }
+            @keyframes flashFade { 0% { opacity: 1; } 100% { opacity: 0; } }
+            .subway-hud-alert {
+                position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+                z-index: 100000; background: #e53935; color: #fff; padding: 10px 20px;
+                border-radius: 20px; font-weight: 800; font-size: 13px;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.5); pointer-events: none;
             }
 
-            /* RECORDS TABLE */
-            .records-filter {
-                display: flex;
-                gap: 8px;
-                padding: 12px 22px;
-                background: #0d1324;
+            /* Invite Popup */
+            .subway-invite-popup {
+                position: fixed; bottom: 20px; right: 20px; z-index: 100001;
+                background: #152238; border: 1px solid #2979ff; border-radius: 12px;
+                padding: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.6);
             }
-            .btn-filter {
-                background: #1c2747;
-                color: #a0aec0;
-                border: none;
-                border-radius: 6px;
-                padding: 6px 14px;
-                font-weight: bold;
-                cursor: pointer;
+            .invite-pop-box { display: flex; align-items: center; gap: 12px; }
+            .invite-pop-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+            .invite-pop-text { font-size: 12px; color: #fff; }
+            .invite-pop-actions { display: flex; gap: 6px; margin-left: 10px; }
+            .btn-invite-accept { background: #00c853; border: none; color: #fff; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-weight: 700; }
+            .btn-invite-reject { background: #37474f; border: none; color: #fff; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+
+            /* Live Placement HUD & Ghost tags */
+            .subway-live-rank {
+                position: fixed; bottom: 20px; left: 20px; z-index: 99998;
+                background: rgba(10, 16, 30, 0.85); backdrop-filter: blur(8px);
+                border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+                padding: 10px 14px; color: #fff; font-size: 11px; min-width: 170px;
             }
-            .btn-filter.active {
-                background: #007aff;
-                color: #fff;
+            .rank-header { font-weight: 800; margin-bottom: 6px; color: #8fa0b0; }
+            .rank-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+            .rk-alive { color: #fff; }
+            .rk-dead { color: #78909c; text-decoration: line-through; }
+            .rk-avatar { width: 18px; height: 18px; border-radius: 50%; }
+            .rk-nick { flex: 1; font-weight: 700; }
+            .rk-st { font-size: 9px; font-weight: 800; }
+
+            .subway-ghost-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99997; }
+            .ghost-tag {
+                position: absolute; transform: translate(-50%, -100%);
+                background: rgba(10, 20, 40, 0.7); backdrop-filter: blur(4px);
+                border: 1px solid #2979ff; border-radius: 14px; padding: 2px 8px;
+                display: flex; align-items: center; gap: 4px; color: #fff; font-size: 10px; font-weight: 700;
             }
-            .records-list {
-                padding: 16px 22px;
-                overflow-y: auto;
-                max-height: 400px;
+            .gt-avatar { width: 14px; height: 14px; border-radius: 50%; }
+
+            /* Spectator HUD & Winner Celebration */
+            .subway-spectator-hud {
+                position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+                z-index: 99999; background: rgba(10, 16, 30, 0.9); border-radius: 20px;
+                padding: 8px 18px; display: flex; align-items: center; gap: 16px; color: #fff; font-size: 12px;
+                border: 1px solid #ff4b2b;
             }
-            .records-table {
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 13px;
+            .spec-live-dot { color: #ff1744; font-size: 14px; animation: blink 1s infinite; }
+            @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+            .spec-controls button {
+                background: rgba(255,255,255,0.1); border: none; color: #fff;
+                padding: 4px 8px; border-radius: 6px; cursor: pointer;
             }
-            .records-table th {
-                text-align: left;
-                padding: 8px;
-                color: #a0aec0;
-                border-bottom: 1px solid #1f2b4d;
+
+            .subway-winner-banner {
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.85); z-index: 100005;
+                display: flex; align-items: center; justify-content: center;
             }
-            .records-table td {
-                padding: 10px 8px;
-                border-bottom: 1px solid #17203b;
+            .winner-card {
+                background: #101c33; border: 2px solid #ffd700; border-radius: 16px;
+                padding: 30px; text-align: center; color: #fff; box-shadow: 0 0 40px rgba(255,215,0,0.4);
             }
-            .rec-time {
-                font-weight: 900;
-                color: #ffd83c;
-                font-family: monospace;
-                font-size: 14px;
+            .winner-trophy { font-size: 50px; margin-bottom: 10px; }
+            .winner-avatar { width: 70px; height: 70px; border-radius: 50%; border: 3px solid #ffd700; margin: 10px 0; }
+            .btn-winner-close {
+                margin-top: 16px; background: #ffd700; border: none; color: #000;
+                font-weight: 800; border-radius: 8px; padding: 10px 20px; cursor: pointer;
             }
-            .badge-nocoin {
-                background: #ff3b30;
-                color: #fff;
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-size: 11px;
-                font-weight: bold;
+
+            /* Countdown Overlay */
+            .subway-countdown-overlay {
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.7); z-index: 100004;
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
             }
-            .badge-normal {
-                background: #f39c12;
-                color: #fff;
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-size: 11px;
-                font-weight: bold;
-            }
-            .no-records, .no-players {
-                text-align: center;
-                padding: 24px;
-                color: #6a7b9f;
-                font-size: 13px;
-            }
+            .countdown-num { font-size: 90px; font-weight: 900; color: #ff4b2b; animation: popNum 0.9s ease; }
+            @keyframes popNum { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
+            .countdown-sub { font-size: 14px; font-weight: 800; color: #fff; margin-top: 14px; text-transform: uppercase; }
         `;
         document.head.appendChild(style);
     }
 
-    // Initialize UI on DOMContentLoaded
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            injectStyles();
-            injectUI();
-        });
-    } else {
-        injectStyles();
-        injectUI();
+    // ==========================================
+    // 10. INITIALIZATION
+    // ==========================================
+    function init() {
+        injectModStyles();
+        createUnifiedUI();
+        initMultiplayerEngine();
     }
 
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 })();

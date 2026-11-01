@@ -1,0 +1,11 @@
+[build]
+  publish = "."
+
+[build.environment]
+  NETLIFY_FEEDBACK = "false"
+  NETLIFY_BADGE = "false"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Netlify-Collaborative = "false"
