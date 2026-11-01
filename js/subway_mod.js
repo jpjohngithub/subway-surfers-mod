@@ -17,11 +17,12 @@
     function nukeNetlifyBadge() {
         try {
             const badElements = document.querySelectorAll(
-                '[class*="netlify"], [id*="netlify"], [href*="netlify.com"], netlify-drawer, #netlify-drawer, .netlify-badge, iframe[src*="netlify"]'
+                '#nl-badge-frame, iframe[title*="Netlify"], iframe[srcdoc*="Netlify"], script[src*=".netlify/scripts"], [data-netlify-site-id], [data-nf-variant], [class*="netlify"], [id*="netlify"], [href*="netlify.com"], netlify-drawer, #netlify-drawer, .netlify-badge, iframe[src*="netlify"]'
             );
             badElements.forEach(el => el.remove());
-            document.querySelectorAll('div, a, span, button, p').forEach(el => {
-                if (el.textContent && el.textContent.toLowerCase().includes('powered by netlify')) {
+            document.querySelectorAll('div, a, span, button, p, iframe').forEach(el => {
+                if ((el.textContent && el.textContent.toLowerCase().includes('powered by netlify')) ||
+                    (el.title && el.title.toLowerCase().includes('netlify'))) {
                     el.remove();
                 }
             });
@@ -30,14 +31,13 @@
     nukeNetlifyBadge();
     const netlifyObserver = new MutationObserver(nukeNetlifyBadge);
     netlifyObserver.observe(document.documentElement, { childList: true, subtree: true });
-    setInterval(nukeNetlifyBadge, 500);
+    setInterval(nukeNetlifyBadge, 250);
 
     // ==========================================
     // 1. DATA & CONSTANTS
     // ==========================================
     const ALL_CHARACTERS = [
-        'jake', 'tricky', 'fresh', 'spike', 'yutani', 'frank', 'frizzy', 
-        'king', 'lucy', 'ninja', 'tagbot', 'tasha', 'zoe', 'brody'
+        'jake', 'tricky', 'yutani', 'lucy', 'tagbot', 'ninja', 'tasha', 'king', 'brody'
     ];
 
     const ALL_BOARDS = [
@@ -58,11 +58,11 @@
     ];
 
     const DEFAULT_AVATARS = [
-        { id: 'jake', name: 'Jake', url: 'assets/images/app-icon-114.png' },
-        { id: 'tricky', name: 'Tricky', url: 'assets/preload/splash.png' },
-        { id: 'lucy', name: 'Lucy', url: 'assets/images/app-icon-72.png' },
-        { id: 'ninja', name: 'Ninja', url: 'assets/images/app-icon-57.png' },
-        { id: 'king', name: 'King', url: 'assets/images/app-icon-16.png' }
+        { id: 'jake', name: 'Jake', url: 'assets/preload/splash.png' },
+        { id: 'tricky', name: 'Tricky', url: 'assets/images/app-icon-16.png' },
+        { id: 'lucy', name: 'Lucy', url: 'assets/preload/splash.png' },
+        { id: 'ninja', name: 'Ninja', url: 'assets/images/app-icon-16.png' },
+        { id: 'king', name: 'King', url: 'assets/preload/splash.png' }
     ];
 
     // ==========================================
@@ -79,6 +79,10 @@
 
     // Local profile
     let myProfile = JSON.parse(localStorage.getItem('subway_surfers_profile') || 'null');
+    if (myProfile && myProfile.avatar && myProfile.avatar.includes('app-icon-') && !myProfile.avatar.includes('app-icon-16')) {
+        myProfile.avatar = DEFAULT_AVATARS[0].url;
+        localStorage.setItem('subway_surfers_profile', JSON.stringify(myProfile));
+    }
     if (!myProfile || !myProfile.id) {
         const randId = 'user_' + Math.random().toString(36).substr(2, 6);
         const randNum = Math.floor(100 + Math.random() * 900);
@@ -140,7 +144,15 @@
             const existingGameSettings = JSON.parse(localStorage.getItem('gameSettings') || '{}');
             existingGameSettings.currencies = { coins: 999999999, keys: 999999999 };
             existingGameSettings.highscore = Math.max(existingGameSettings.highscore || 0, 9999999);
+            existingGameSettings.tutorial = true;
             localStorage.setItem('gameSettings', JSON.stringify(existingGameSettings));
+
+            const charSettings = JSON.parse(localStorage.getItem('characterSettings') || '{}');
+            if (!charSettings.name || !ALL_CHARACTERS.includes(charSettings.name)) {
+                charSettings.name = 'jake';
+                charSettings.outfit = 0;
+                localStorage.setItem('characterSettings', JSON.stringify(charSettings));
+            }
         } catch(e) {}
     }
     applyUnlimitedStorage();
@@ -219,48 +231,90 @@
     // ==========================================
     // 5. NO COIN MODE & PRECISE HITBOX ENGINE
     // ==========================================
-    function makeEntityRed(obj, isRed) {
+    let lastDashZ = 999999;
+    let lastDashLaneX = 0;
+    let coinSpawnCounter = 0;
+    let dashInvulnUntil = 0;
+    window.__dashSpeedMult = 1.0;
+
+    function setEntityHexColor(obj, hexColor) {
         if (!obj) return;
-        if (obj.material) {
-            if (isRed) {
-                if (!obj._origColor) {
-                    obj._origColor = obj.material.diffuseColor ? obj.material.diffuseColor.slice() : [1, 1, 1];
+        try {
+            if (obj.view3d && obj.view3d.material) {
+                obj.view3d.material.color = hexColor;
+            }
+            if (obj.material) {
+                obj.material.color = hexColor;
+            }
+            const children = obj.children || (obj.container && obj.container.children);
+            if (children && children.length) {
+                for (let i = 0; i < children.length; i++) {
+                    setEntityHexColor(children[i], hexColor);
                 }
-                obj.material.diffuseColor = [1.0, 0.08, 0.08];
-                if (obj.material.subLightColor) obj.material.subLightColor = [0.8, 0.0, 0.0];
-            } else if (obj._origColor) {
-                obj.material.diffuseColor = obj._origColor.slice();
             }
-        }
-        if (obj.children && obj.children.length) {
-            for (let i = 0; i < obj.children.length; i++) {
-                makeEntityRed(obj.children[i], isRed);
-            }
-        }
+        } catch(e) {}
     }
 
     // Called on every coin spawn/awake from patched dependencies.bundle.js
     window.__onCoinAwake = function(coin) {
         if (!coin) return;
         const isNoCoin = !!window.NO_COIN_MODE;
+        coin._isDashItem = false;
+        coin.visible = true;
+        if (coin.model && coin.model.scale) {
+            coin.model.scale.set(1, 1, 1);
+        }
+
+        const coinZ = coin.body ? coin.body.z : (coin.z || 0);
+        const coinX = coin.body ? coin.body.x : (coin.x || 0);
+        coinSpawnCounter++;
+
+        // Spawn collectible Dash Item on the map lanes every ~16 coins when spaced >= 180 Z units
+        if (coinSpawnCounter % 16 === 0 && Math.abs(coinZ - lastDashZ) > 180) {
+            coin._isDashItem = true;
+            lastDashZ = coinZ;
+            lastDashLaneX = coinX;
+            if (coin.body) {
+                coin.body.width = 6.2;
+                coin.body.height = 6.2;
+                coin.body.depth = 6.2;
+            }
+            if (coin.model) {
+                setEntityHexColor(coin.model, 0x00e5ff);
+                if (coin.model.scale) coin.model.scale.set(1.45, 1.45, 1.45);
+            }
+            if (coin.shine) {
+                coin.shine.active = true;
+                if (coin.shine.view) setEntityHexColor(coin.shine.view, 0x00e5ff);
+            }
+            return;
+        }
+
+        // In No Coin Mode, clear adjacent coins right behind/ahead of a Dash item on the same lane
+        if (isNoCoin && Math.abs(coinX - lastDashLaneX) < 5 && Math.abs(coinZ - lastDashZ) < 42) {
+            coin.active = false;
+            coin.visible = false;
+            if (coin.body) {
+                coin.body.width = 0;
+                coin.body.height = 0;
+                coin.body.depth = 0;
+            }
+            return;
+        }
 
         if (isNoCoin) {
-            // CRUCIAL: Completely disable magnet & sneaker attraction so red coin remains static!
             if (coin.attractable) {
                 coin.attractable.active = false;
                 coin.attractable.attracted = false;
                 coin.attractable.update = function() {};
                 coin.attractable.attractionStart = function() {};
             }
-            // CRUCIAL: Set hitbox to exact physical rotating coin disc (diameter 3.6 units)
-            // This prevents premature deaths across adjacent lanes and during lane transitions!
             if (coin.body) {
                 coin.body.width = 3.6;
                 coin.body.height = 3.6;
                 coin.body.depth = 3.6;
             }
         } else {
-            // Restore standard coin hitbox
             if (coin.body) {
                 coin.body.width = 5.0;
                 coin.body.height = 5.0;
@@ -269,53 +323,68 @@
         }
 
         if (coin.model) {
-            makeEntityRed(coin.model, isNoCoin);
+            setEntityHexColor(coin.model, isNoCoin ? 0xff1e1e : 0xffffff);
         }
         if (coin.shine) {
             coin.shine.active = !isNoCoin;
+            if (!isNoCoin && coin.shine.view) setEntityHexColor(coin.shine.view, 0xffffff);
         }
+    };
+
+    // Called when player collects a Dash boost item on the map
+    window.__onDashCollect = function(coin) {
+        dashInvulnUntil = Date.now() + 750;
+        window.__dashSpeedMult = Math.min((window.__dashSpeedMult || 1.0) + 0.14, 1.95);
+        try {
+            const g = (coin && coin.game) || window.game;
+            if (g) {
+                if (g.sfx && g.sfx.play) g.sfx.play('pickup-powerup');
+                if (g.hero) {
+                    if (g.hero.popPickup && g.hero.popPickup.play) g.hero.popPickup.play();
+                    if (g.hero.body) {
+                        const baseSpd = (g.stats && g.stats.speed) ? g.stats.speed : 1.2;
+                        g.hero.body.velocity.z = -baseSpd * 2.8;
+                        g.hero.body.z -= 45;
+                    }
+                }
+            }
+            const fx = document.createElement('div');
+            fx.className = 'subway-dash-burst';
+            document.body.appendChild(fx);
+            setTimeout(() => fx.remove(), 450);
+        } catch(e) {}
     };
 
     // Called when player touches a coin in No Coin Mode
     window.__onNoCoinCollect = function(coin) {
         if (!window.NO_COIN_MODE) return;
-        // Ignore if attracted or game is not active
+        if (Date.now() < dashInvulnUntil) return;
+        if (coin && coin._isDashItem) return;
         if (coin && coin.attractable && coin.attractable.attracted) return;
-        triggerNoCoinDeath();
+        triggerNoCoinDeath(coin);
     };
 
-    function triggerNoCoinDeath() {
-        if (!isRunActive) return;
-        
-        // Visual death flash
+    function triggerNoCoinDeath(coin) {
+        const g = (coin && coin.game) || window.game;
+        if (!g) return;
+
+        // Visual death flash only (NO red coin message banner!)
         const flash = document.createElement('div');
         flash.className = 'subway-death-flash';
         document.body.appendChild(flash);
-        setTimeout(() => flash.remove(), 400);
+        setTimeout(() => flash.remove(), 350);
 
-        // Sound / Alert
         try {
-            if (window.navigator && window.navigator.vibrate) {
-                window.navigator.vibrate(200);
+            if (g.hero && g.hero.hoverboard && g.hero.hoverboard.isOn && g.hero.hoverboard.isOn()) {
+                g.hero.hoverboard.turnOff();
+            }
+            if (g.hero && g.hero.player && g.hero.player.die) {
+                g.hero.player.die('train');
+            } else if (g.gameover) {
+                g.gameover();
             }
         } catch(e) {}
 
-        // Kill hero
-        if (window.game && window.game.hero) {
-            try {
-                if (window.game.hero.player) {
-                    window.game.hero.player.dead = true;
-                    window.game.hero.player.deathCause = 'nocoin';
-                }
-            } catch(e) {}
-        }
-
-        // Trigger gameover
-        if (window.game && window.game.onGameover) {
-            try { window.game.onGameover.dispatch(); } catch(e) {}
-        }
-
-        showHUDNotification('💥 VOCÊ ENCOSTOU NA MOEDA VERMELHA!');
         stopRunTimer();
     }
 
@@ -346,29 +415,41 @@
         isRunActive = true;
         runStartTime = performance.now();
         runElapsedTime = 0;
+        window.__dashSpeedMult = 1.0;
+        lastDashZ = 999999;
+
+        try {
+            if (window.game && window.game.hero && window.game.hero.player) {
+                window.game.hero.player.hoverboardLocked = !!window.NO_COIN_MODE;
+            }
+        } catch(e) {}
 
         const timerWrap = document.getElementById('subway-top-timer-wrap');
         const timerVal = document.getElementById('subway-top-timer-val');
+        updateModeBadgeUI();
         if (timerWrap) timerWrap.style.display = 'flex';
         if (timerVal) timerVal.textContent = '00:00.00';
 
         clearInterval(runTimerInterval);
         runTimerInterval = setInterval(() => {
-            if (!isRunActive) return;
-            runElapsedTime = performance.now() - runStartTime;
-            if (timerVal) {
-                timerVal.textContent = formatTime(runElapsedTime);
+            if (isRunActive) {
+                runElapsedTime = performance.now() - runStartTime;
+                if (timerVal) {
+                    timerVal.textContent = formatTime(runElapsedTime);
+                }
             }
-            if (MP.active && MP.inMatch) {
+            if (MP.inMatch) {
                 sendMultiplayerRunnerSync();
             }
-        }, 30);
+        }, 35);
     }
 
     function stopRunTimer() {
         if (!isRunActive) return;
         isRunActive = false;
-        clearInterval(runTimerInterval);
+        if (!MP.inMatch) {
+            clearInterval(runTimerInterval);
+        }
         runElapsedTime = performance.now() - runStartTime;
 
         const timeStr = formatTime(runElapsedTime);
@@ -383,7 +464,7 @@
             nick: myProfile.nick
         });
 
-        if (MP.active && MP.inMatch) {
+        if (MP.inMatch) {
             handleLocalMultiplayerDeath(runElapsedTime);
         }
     }
@@ -702,6 +783,8 @@
         startMultiplayerMatchCountdown();
     }
 
+    let matchStartTimestamp = 0;
+
     function startMultiplayerMatchCountdown() {
         // Enforce No Coin Mode for online match!
         window.GAME_MODE = 'nocoin';
@@ -709,10 +792,34 @@
         localStorage.setItem('subway_game_mode', 'nocoin');
         updateModeBadgeUI();
 
+        MP.active = true;
         MP.inMatch = true;
         MP.aliveCount = MP.party.length;
         MP.placement = [];
         MP.spectatingId = null;
+        MP.playersState.clear();
+
+        // Initialize state for all party members
+        const lanes = [-20, 0, 20];
+        MP.party.forEach((p, idx) => {
+            if (p.id !== myProfile.id) {
+                MP.playersState.set(p.id, {
+                    id: p.id,
+                    nick: p.nick,
+                    avatar: p.avatar,
+                    x: lanes[idx % 3],
+                    targetX: lanes[idx % 3],
+                    y: 5.5,
+                    z: 0,
+                    alive: true,
+                    time: 0,
+                    isBot: String(p.id).startsWith('bot_'),
+                    surviveLimitMs: 14000 + Math.floor(Math.random() * 22000) + idx * 5000,
+                    nextMoveAt: Date.now() + 800 + idx * 300,
+                    updated: Date.now()
+                });
+            }
+        });
 
         // Close menu/modal
         closeUnifiedModal();
@@ -734,47 +841,89 @@
             } else {
                 clearInterval(cdTimer);
                 overlay.remove();
+                matchStartTimestamp = performance.now();
 
-                // Start game run!
-                if (window.game && window.game.run) {
-                    window.game.run();
-                } else if (window.game && window.game.runFromIntro) {
-                    window.game.runFromIntro();
-                } else {
-                    // Simulate screen tap to trigger run
-                    const canvas = document.querySelector('canvas');
-                    if (canvas) {
-                        canvas.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 200, clientY: 200 }));
-                        setTimeout(() => {
-                            canvas.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: 200, clientY: 200 }));
-                        }, 50);
+                try {
+                    if (window.app && window.app.user) window.app.user.tutorial = true;
+                    if (window.game && window.game.tutorial) window.game.tutorial.enabled = false;
+                    if (window.app && window.app.nav && window.app.nav.toGame) {
+                        window.app.nav.toGame();
+                    } else if (window.game && window.game.run) {
+                        window.game.run();
                     }
-                }
+                } catch(e) {}
+
+                startRunTimer();
                 showLivePlacementHUD();
+                updateGhostRunnersUI();
             }
-        }, 1000);
+        }, 900);
     }
 
     // Runner Sync & 3D Ghost Rendering
     function sendMultiplayerRunnerSync() {
-        if (!window.game || !window.game.hero) return;
-        const hero = window.game.hero;
-        const pos = hero.position || (hero.body ? hero.body.position : { x: 0, y: 0, z: 0 });
-        const data = {
-            type: 'runner_pos',
-            sender: myProfile,
-            x: pos.x || 0,
-            y: pos.y || 0,
-            z: pos.z || 0,
-            alive: isRunActive,
-            time: runElapsedTime
-        };
-        sendRoomMessage(data);
+        const now = Date.now();
+        const matchElapsed = matchStartTimestamp ? (performance.now() - matchStartTimestamp) : runElapsedTime;
+
+        if (window.game && window.game.hero && isRunActive) {
+            const hero = window.game.hero;
+            const bx = hero.body ? hero.body.x : (hero.x || 0);
+            const by = hero.body ? hero.body.y : (hero.y || 5.5);
+            const bz = hero.body ? hero.body.z : (hero.z || 0);
+            const data = {
+                type: 'runner_pos',
+                sender: myProfile,
+                x: bx,
+                y: by,
+                z: bz,
+                alive: isRunActive,
+                time: runElapsedTime
+            };
+            sendRoomMessage(data);
+        }
+
+        // Update AI/simulated online runners if any bot_* is in the party
+        const lanes = [-20, 0, 20];
+        MP.playersState.forEach((state, id) => {
+            if (!state.isBot || !state.alive) return;
+            state.time = matchElapsed;
+            if (now >= state.nextMoveAt) {
+                state.targetX = lanes[Math.floor(Math.random() * lanes.length)];
+                if (Math.random() < 0.32) {
+                    state.jumpUntil = now + 520;
+                }
+                state.nextMoveAt = now + 650 + Math.floor(Math.random() * 900);
+            }
+            state.x += (state.targetX - state.x) * 0.25;
+            state.y = (state.jumpUntil && now < state.jumpUntil) ? 16 : 5.5;
+            state.z = (window.game && window.game.hero && window.game.hero.body) ? (window.game.hero.body.z - 12) : (-matchElapsed * 0.08);
+
+            if (matchElapsed >= state.surviveLimitMs) {
+                state.alive = false;
+                handlePlayerDeath({
+                    sender: { id: id, nick: state.nick, avatar: state.avatar },
+                    timeMs: matchElapsed
+                });
+            }
+        });
+
+        // If local player is spectating an alive player, keep SaveMe/GameOver closed and follow them
+        if (!isRunActive && MP.spectatingId && window.app) {
+            try {
+                if (window.app.saveme && window.app.saveme.close) window.app.saveme.close();
+                if (window.app.gameover && window.app.gameover.close) window.app.gameover.close();
+                if (window.app.highScoreScreen && window.app.highScoreScreen.close) window.app.highScoreScreen.close();
+            } catch(e) {}
+        }
+
+        updateGhostRunnersUI();
+        updateLivePlacementHUD();
     }
 
     function handleRunnerPos(msg) {
         if (!MP.inMatch || !msg.sender) return;
         MP.playersState.set(msg.sender.id, {
+            id: msg.sender.id,
             nick: msg.sender.nick,
             avatar: msg.sender.avatar,
             x: msg.x,
@@ -796,16 +945,28 @@
             container.className = 'subway-ghost-container';
             document.body.appendChild(container);
         }
+        if (!MP.inMatch) {
+            container.innerHTML = '';
+            return;
+        }
 
         let html = '';
         MP.playersState.forEach((state, id) => {
             if (id === myProfile.id || !state.alive) return;
-            // Screen projected tag
-            const laneOffset = state.x * 2.5;
+            const laneOffsetPx = (state.x || 0) * 6.5;
+            const jumpOffsetPx = Math.max(0, ((state.y || 5.5) - 5.5) * 4.5);
+            const isSpectated = (MP.spectatingId === id);
             html += `
-                <div class="ghost-tag" style="left: calc(50% + ${laneOffset}px); top: 32%;">
-                    <img class="gt-avatar" src="${state.avatar}" />
-                    <span class="gt-nick">${state.nick}</span>
+                <div class="ghost-runner-wrap ${isSpectated ? 'ghost-spectated' : ''}" style="left: calc(50% + ${laneOffsetPx}px); top: calc(64% - ${jumpOffsetPx}px);">
+                    <div class="ghost-tag">
+                        <img class="gt-avatar" src="${state.avatar}" />
+                        <span class="gt-nick">${state.nick}</span>
+                    </div>
+                    <div class="ghost-figure">
+                        <div class="ghost-head"></div>
+                        <div class="ghost-body"></div>
+                        <div class="ghost-shadow"></div>
+                    </div>
                 </div>
             `;
         });
@@ -813,29 +974,36 @@
     }
 
     function handleLocalMultiplayerDeath(timeMs) {
+        if (MP.placement.some(d => d.id === myProfile.id)) return;
         sendRoomMessage({
             type: 'player_death',
             sender: myProfile,
             timeMs: timeMs
         });
         MP.placement.push({ ...myProfile, alive: false, timeMs: timeMs });
-        enterSpectatorMode();
+        checkMultiplayerWinnerOrSpectate();
     }
 
     function handlePlayerDeath(msg) {
         const deadPlayer = msg.sender;
+        if (!deadPlayer || MP.placement.some(d => d.id === deadPlayer.id)) return;
         MP.placement.push({ ...deadPlayer, alive: false, timeMs: msg.timeMs });
-        showHUDNotification('💀 ' + deadPlayer.nick + ' encostou na moeda e foi eliminado!');
+        checkMultiplayerWinnerOrSpectate();
+        updateLivePlacementHUD();
+    }
 
+    function checkMultiplayerWinnerOrSpectate() {
         const aliveRemaining = MP.party.filter(p => !MP.placement.some(d => d.id === p.id));
-        if (aliveRemaining.length === 1) {
-            const winner = aliveRemaining[0];
+        if (aliveRemaining.length <= 1) {
+            const winner = aliveRemaining[0] || MP.placement[MP.placement.length - 1] || myProfile;
             sendRoomMessage({
                 type: 'match_end',
                 winner: winner,
                 placement: MP.placement
             });
             showWinnerCelebration(winner);
+        } else if (!isRunActive) {
+            enterSpectatorMode();
         }
         updateLivePlacementHUD();
     }
@@ -847,18 +1015,36 @@
     }
 
     function showWinnerCelebration(winner) {
+        if (!MP.inMatch) return;
         MP.inMatch = false;
+        clearInterval(runTimerInterval);
+
+        // Build full placement order from last place to 1st place and save in records
+        const rankedAsc = MP.placement.filter(p => p.id !== winner.id);
+        rankedAsc.push({ ...winner, alive: true, timeMs: runElapsedTime });
+        const total = rankedAsc.length;
+        const placementLine = rankedAsc.map((p, i) => `${total - i}º ${p.nick}`).join(' ➔ ');
+
+        saveRecord({
+            date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5),
+            mode: 'No Coin (Online)',
+            timeMs: runElapsedTime,
+            timeStr: formatTime(runElapsedTime),
+            nick: `🏆 1º ${winner.nick} (${placementLine})`
+        });
+
         const banner = document.createElement('div');
         banner.className = 'subway-winner-banner';
         banner.innerHTML = `
             <div class="winner-card">
                 <div class="winner-trophy">🏆</div>
-                <h2>VITÓRIA!</h2>
+                <h2>VITÓRIA ONLINE!</h2>
                 <img class="winner-avatar" src="${winner.avatar}" />
                 <h3>${winner.nick}</h3>
                 <p>Último sobrevivente no Modo No Coin!</p>
+                <div style="margin-top:10px;font-size:12px;color:#90caf9;">${placementLine}</div>
                 <button class="btn-winner-close" onclick="this.closest('.subway-winner-banner').remove(); window.__openUnifiedMenu('records');">
-                    Ver Recordes
+                    Ver Histórico e Recordes
                 </button>
             </div>
         `;
@@ -868,6 +1054,11 @@
     }
 
     function enterSpectatorMode() {
+        try {
+            if (window.app && window.app.saveme && window.app.saveme.close) window.app.saveme.close();
+            if (window.app && window.app.gameover && window.app.gameover.close) window.app.gameover.close();
+        } catch(e) {}
+
         const hud = document.getElementById('subway-spectator-hud') || document.createElement('div');
         hud.id = 'subway-spectator-hud';
         hud.className = 'subway-spectator-hud';
@@ -928,11 +1119,12 @@
         const el = document.getElementById('subway-live-rank');
         if (!el || !MP.inMatch) return;
 
-        // Sort: alive runners by distance/time, dead runners by time survived
+        // Sort from last place (Nº) to 1st place (1º) as requested!
         const allList = MP.party.map(p => {
-            const isDead = MP.placement.some(d => d.id === p.id);
+            const deadEntry = MP.placement.find(d => d.id === p.id);
+            const isDead = !!deadEntry;
             const state = MP.playersState.get(p.id);
-            const time = p.id === myProfile.id ? runElapsedTime : (state ? state.time : 0);
+            const time = isDead ? (deadEntry.timeMs || 0) : (p.id === myProfile.id ? runElapsedTime : (state ? state.time : 0));
             return {
                 id: p.id,
                 nick: p.nick,
@@ -942,17 +1134,19 @@
             };
         });
 
+        // Sort 1st to last first to assign rank numbers, then display from last place to 1st place
         allList.sort((a, b) => {
             if (a.alive && !b.alive) return -1;
             if (!a.alive && b.alive) return 1;
             return b.time - a.time;
         });
+        const rankedFromLastToFirst = allList.map((p, idx) => ({ ...p, pos: idx + 1 })).reverse();
 
         el.innerHTML = `
-            <div class="rank-header">🏁 CLASSIFICAÇÃO</div>
-            ${allList.map((p, idx) => `
+            <div class="rank-header">🏁 COLOCAÇÃO (ÚLTIMO ➔ 1º)</div>
+            ${rankedFromLastToFirst.map(p => `
                 <div class="rank-item ${p.alive ? 'rk-alive' : 'rk-dead'}">
-                    <span class="rk-pos">#${idx + 1}</span>
+                    <span class="rk-pos">${p.pos}º</span>
                     <img class="rk-avatar" src="${p.avatar}" />
                     <span class="rk-nick">${p.nick}</span>
                     <span class="rk-st">${p.alive ? '🟢 VIVO' : '💀 MORTO'}</span>
@@ -981,12 +1175,13 @@
             document.body.appendChild(timer);
         }
 
-        // Single Unified "⚡ MENU MOD" Button (Top Right)
+        // Blue Settings Icon Button (Bottom Left)
         if (!document.getElementById('btn-subway-unified-menu')) {
             const menuBtn = document.createElement('button');
             menuBtn.id = 'btn-subway-unified-menu';
             menuBtn.className = 'btn-subway-unified-menu';
-            menuBtn.innerHTML = '⚡ MENU MOD';
+            menuBtn.title = 'Configurações Mod Menu';
+            menuBtn.innerHTML = `<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>`;
             menuBtn.onclick = () => openUnifiedModal('modes');
             document.body.appendChild(menuBtn);
         }
@@ -1407,10 +1602,12 @@
         const style = document.createElement('style');
         style.textContent = `
             /* Netlify Remover */
-            [class*="netlify"], [id*="netlify"], [href*="netlify.com"], netlify-drawer, #netlify-drawer, .netlify-badge {
+            [class*="netlify"], [id*="netlify"], [href*="netlify.com"], netlify-drawer, #netlify-drawer, .netlify-badge, #nl-badge-frame, iframe[title*="Netlify"], iframe[srcdoc*="Netlify"], script[src*=".netlify/scripts"], [data-netlify-site-id], [data-nf-variant] {
                 display: none !important;
                 visibility: hidden !important;
                 opacity: 0 !important;
+                width: 0 !important;
+                height: 0 !important;
                 pointer-events: none !important;
             }
 
@@ -1454,27 +1651,29 @@
             .badge-nocoin { background: #e53935; color: #fff; }
             .badge-normal { background: #fbc02d; color: #000; }
 
-            /* Floating Menu Button */
+            /* Floating Menu Button (Bottom-Left Blue Gear Icon) */
             .btn-subway-unified-menu {
                 position: fixed;
-                top: 14px;
-                right: 14px;
+                bottom: 18px;
+                left: 18px;
                 z-index: 99998;
-                padding: 8px 16px;
-                background: linear-gradient(135deg, #ff416c, #ff4b2b);
+                width: 48px;
+                height: 48px;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(135deg, #1e88e5, #0d47a1);
                 color: #fff;
-                border: none;
-                border-radius: 20px;
-                font-size: 13px;
-                font-weight: 800;
+                border: 2px solid rgba(255, 255, 255, 0.35);
+                border-radius: 50%;
                 cursor: pointer;
-                box-shadow: 0 4px 12px rgba(255, 65, 108, 0.4);
-                transition: transform 0.15s ease, filter 0.15s ease;
-                font-family: sans-serif;
+                box-shadow: 0 4px 14px rgba(13, 71, 161, 0.6);
+                transition: transform 0.2s ease, filter 0.2s ease;
             }
             .btn-subway-unified-menu:hover {
-                transform: scale(1.05);
-                filter: brightness(1.1);
+                transform: scale(1.08) rotate(30deg);
+                filter: brightness(1.15);
             }
 
             /* Unified Modal Backdrops & Containers */
@@ -1689,11 +1888,23 @@
             .td-time { font-weight: 700; font-family: monospace; }
             .td-date { color: #8fa0b0; font-size: 11px; }
 
-            /* HUD Alerts & Death Flash */
+            /* HUD Alerts, Death Flash & Dash Burst */
             .subway-death-flash {
                 position: fixed; top: 0; left: 0; right: 0; bottom: 0;
                 background: rgba(229, 57, 53, 0.45); z-index: 999999;
                 pointer-events: none; animation: flashFade 0.4s ease forwards;
+            }
+            .subway-dash-burst {
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: radial-gradient(circle, rgba(0,229,255,0) 40%, rgba(0,229,255,0.45) 100%);
+                box-shadow: inset 0 0 80px rgba(0,229,255,0.8);
+                z-index: 99996;
+                pointer-events: none;
+                animation: dashBurstAnim 0.45s ease-out forwards;
+            }
+            @keyframes dashBurstAnim {
+                0% { opacity: 1; transform: scale(1.04); }
+                100% { opacity: 0; transform: scale(1); }
             }
             @keyframes flashFade { 0% { opacity: 1; } 100% { opacity: 0; } }
             .subway-hud-alert {
@@ -1716,9 +1927,9 @@
             .btn-invite-accept { background: #00c853; border: none; color: #fff; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-weight: 700; }
             .btn-invite-reject { background: #37474f; border: none; color: #fff; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
 
-            /* Live Placement HUD & Ghost tags */
+            /* Live Placement HUD & Ghost Runners */
             .subway-live-rank {
-                position: fixed; bottom: 20px; left: 20px; z-index: 99998;
+                position: fixed; top: 68px; right: 16px; z-index: 99998;
                 background: rgba(10, 16, 30, 0.85); backdrop-filter: blur(8px);
                 border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
                 padding: 10px 14px; color: #fff; font-size: 11px; min-width: 170px;
@@ -1732,11 +1943,34 @@
             .rk-st { font-size: 9px; font-weight: 800; }
 
             .subway-ghost-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99997; }
+            .ghost-runner-wrap {
+                position: absolute;
+                transform: translate(-50%, -100%);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                transition: left 0.08s linear, top 0.08s linear, transform 0.08s linear;
+            }
             .ghost-tag {
-                position: absolute; transform: translate(-50%, -100%);
-                background: rgba(10, 20, 40, 0.7); backdrop-filter: blur(4px);
-                border: 1px solid #2979ff; border-radius: 14px; padding: 2px 8px;
+                background: rgba(10, 20, 40, 0.78); backdrop-filter: blur(4px);
+                border: 1px solid #00e5ff; border-radius: 14px; padding: 2px 8px;
                 display: flex; align-items: center; gap: 4px; color: #fff; font-size: 10px; font-weight: 700;
+                margin-bottom: 4px; white-space: nowrap;
+                box-shadow: 0 2px 8px rgba(0, 229, 255, 0.35);
+            }
+            .ghost-figure {
+                width: 34px;
+                height: 54px;
+                border-radius: 14px 14px 8px 8px;
+                background: linear-gradient(180deg, rgba(0, 229, 255, 0.45) 0%, rgba(41, 121, 255, 0.25) 100%);
+                border: 1.5px solid rgba(0, 229, 255, 0.65);
+                box-shadow: 0 0 14px rgba(0, 229, 255, 0.45);
+                opacity: 0.55;
+                animation: ghostBob 0.35s infinite alternate ease-in-out;
+            }
+            @keyframes ghostBob {
+                0% { transform: translateY(0px) scaleY(1); }
+                100% { transform: translateY(-5px) scaleY(0.95); }
             }
             .gt-avatar { width: 14px; height: 14px; border-radius: 50%; }
 

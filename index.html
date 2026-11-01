@@ -72,7 +72,13 @@
         netlify-drawer,
         #netlify-drawer,
         .netlify-badge,
-        iframe[src*="netlify"] {
+        #nl-badge-frame,
+        iframe[src*="netlify"],
+        iframe[title*="Netlify"],
+        iframe[srcdoc*="Netlify"],
+        script[src*=".netlify/scripts"],
+        [data-netlify-site-id],
+        [data-nf-variant] {
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
@@ -103,8 +109,8 @@
     </div>
     <script src="patch/js/peerjs.min.js"></script>
     <script src="patch/js/mqtt.min.js"></script>
-    <script src="js/subway_mod.js"></script>
-    <script src="js/loading.js"></script>
-    <script src="js/boot.js"></script>
+    <script src="js/subway_mod.js?v=6"></script>
+    <script src="js/loading.js?v=6"></script>
+    <script src="js/boot.js?v=6"></script>
 </body>
 </html>
