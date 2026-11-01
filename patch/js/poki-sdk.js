@@ -21,9 +21,8 @@ navigator.sendBeacon= function() {
   consoleLog("--fx--navigator.sendBeacon--", arguments);
 }
 
-WebSocket= function() {
-  
-}
+// native WebSocket preserved
+if (typeof window !== "undefined" && !window._nativeWebSocket) window._nativeWebSocket = window.WebSocket;
 
 xlocation= new Proxy(location, {
   get: function(target, property, receiver) {
