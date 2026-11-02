@@ -631,11 +631,157 @@
             }
         } catch (e) {}
     };
+    // ==========================================
+    // CANNON OBSTACLE ENGINE (Canhão de Moedas Vermelhas)
+    // ==========================================
+    let cannonState = {
+        active: false,
+        cannonZ: 0,
+        laneX: 0,
+        nextSpawnZ: -1200,
+        shots: [],
+        lastShotTime: 0,
+        elCannon: null
+    };
+
+    function resetCannon() {
+        if (cannonState.elCannon) {
+            cannonState.elCannon.remove();
+            cannonState.elCannon = null;
+        }
+        cannonState.shots.forEach(s => s.el && s.el.remove());
+        cannonState.shots = [];
+        cannonState.active = false;
+        cannonState.nextSpawnZ = (window.game && window.game.hero && window.game.hero.body ? window.game.hero.body.z : 0) - 1400;
+    }
+
+    function createCannonHUD() {
+        if (document.getElementById('subway-cannon-hud')) return;
+        const c = document.createElement('div');
+        c.id = 'subway-cannon-hud';
+        c.className = 'subway-cannon-hud';
+        c.innerHTML = `
+            <div class="cannon-barrel">
+                <div class="cannon-muzzle-glow"></div>
+                <div class="cannon-icon">💥</div>
+                <span class="cannon-alert">CANHÃO DE MOEDAS!</span>
+            </div>
+        `;
+        document.body.appendChild(c);
+        cannonState.elCannon = c;
+    }
+
+    function spawnCannonShot(fromZ, targetLaneX) {
+        const shotEl = document.createElement('div');
+        shotEl.className = 'subway-cannon-projectile';
+        shotEl.innerHTML = `<div class="cannon-coin-coin"></div>`;
+        document.body.appendChild(shotEl);
+
+        cannonState.shots.push({
+            x: targetLaneX,
+            z: fromZ,
+            speedZ: 4.8, // Velocidade moderada para dar tempo de desvio
+            el: shotEl,
+            spawnTime: performance.now()
+        });
+
+        // Som de disparo suave se disponível
+        try {
+            if (window.game && window.game.sfx && window.game.sfx.play) {
+                window.game.sfx.play('hoverboard-turnoff');
+            }
+        } catch(e) {}
+    }
+
+    function updateCannonEngine() {
+        if (!isRunActive || isGamePaused || deathFrozen) {
+            if (cannonState.elCannon) cannonState.elCannon.style.display = 'none';
+            return;
+        }
+
+        const g = window.game;
+        const hero = g && g.hero;
+        if (!hero || !hero.body) return;
+
+        const heroZ = hero.body.z;
+        const heroX = hero.body.x;
+
+        // Ativar canhão periodicamente à frente do jogador
+        if (!cannonState.active && heroZ < cannonState.nextSpawnZ) {
+            cannonState.active = true;
+            cannonState.cannonZ = heroZ - 480;
+            const lanes = [-15, 0, 15];
+            cannonState.laneX = lanes[Math.floor(Math.random() * lanes.length)];
+            cannonState.lastShotTime = performance.now();
+            createCannonHUD();
+        }
+
+        // Se ativo e o jogador ainda NÃO passou pelo canhão (heroZ > cannonZ no Subway Surfers z negativo avança)
+        if (cannonState.active) {
+            const dist = heroZ - cannonState.cannonZ;
+
+            if (dist > 0 && dist < 580) {
+                // Jogador se aproximando do canhão: canhão visível e atirando
+                if (cannonState.elCannon) {
+                    cannonState.elCannon.style.display = 'flex';
+                }
+
+                // Disparar moeda vermelha a cada 1.1s
+                const now = performance.now();
+                if (now - cannonState.lastShotTime > 1100) {
+                    cannonState.lastShotTime = now;
+                    // Mira na faixa onde o jogador está no momento do disparo!
+                    const targetX = Math.abs(heroX) < 7 ? 0 : (heroX < 0 ? -15 : 15);
+                    spawnCannonShot(cannonState.cannonZ + 25, targetX);
+                }
+            } else if (dist <= 0) {
+                // O jogador passou do canhão: canhão para de atirar e some
+                cannonState.active = false;
+                if (cannonState.elCannon) {
+                    cannonState.elCannon.remove();
+                    cannonState.elCannon = null;
+                }
+                // Próximo canhão daqui a 1600 a 2400 unidades à frente
+                cannonState.nextSpawnZ = heroZ - (1600 + Math.random() * 800);
+            }
+        }
+
+        // Atualizar projéteis
+        for (let i = cannonState.shots.length - 1; i >= 0; i--) {
+            const shot = cannonState.shots[i];
+            shot.z += shot.speedZ; // Projétil viaja em direção ao corredor (+Z relativo)
+
+            // Hitbox check com o corredor
+            const zDiff = Math.abs(shot.z - heroZ);
+            const xDiff = Math.abs(shot.x - heroX);
+
+            if (zDiff < 14 && xDiff < 7.5) {
+                // ACERTOU! Morte instantânea por moeda vermelha (com invulnerabilidade do dash protegendo)
+                if (Date.now() >= dashInvulnUntil) {
+                    shot.el.remove();
+                    cannonState.shots.splice(i, 1);
+                    triggerNoCoinDeath(null);
+                    return;
+                }
+            }
+
+            // Se o projétil passou longe do jogador, remove
+            if (shot.z > heroZ + 80) {
+                shot.el.remove();
+                cannonState.shots.splice(i, 1);
+            }
+        }
+    }
+
+    setInterval(updateCannonEngine, 30);
+
     window.__onGameOver = function() {
         stopRunTimer();
+        resetCannon();
     };
     window.__onGameReset = function() {
         hideRunTimer();
+        resetCannon();
     };
 
     // ==========================================
@@ -3474,6 +3620,51 @@
                 0% { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
                 30% { opacity: 1; transform: translate(-50%, -24px) scale(1.15); }
                 100% { opacity: 0; transform: translate(-50%, -55px) scale(1); }
+            }
+
+            /* Red Coin Cannon HUD & Projectile */
+            .subway-cannon-hud {
+                position: fixed;
+                top: 18%;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                background: rgba(15, 23, 42, 0.92);
+                border: 2px solid #ef4444;
+                border-radius: 9999px;
+                padding: 6px 18px;
+                color: #fff;
+                box-shadow: 0 0 25px rgba(239, 68, 68, 0.7);
+                z-index: 99995;
+                pointer-events: none;
+                animation: cannonPulse 0.8s infinite alternate ease-in-out;
+            }
+            @keyframes cannonPulse {
+                0% { transform: translateX(-50%) scale(0.96); box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); }
+                100% { transform: translateX(-50%) scale(1.04); box-shadow: 0 0 32px rgba(239, 68, 68, 0.95); }
+            }
+            .cannon-alert { font-size: 13px; font-weight: 900; letter-spacing: 1px; color: #fca5a5; }
+            .cannon-icon { font-size: 20px; }
+            .subway-cannon-projectile {
+                position: fixed;
+                top: 48%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                background: radial-gradient(circle, #ff1e1e 0%, #990000 70%, #ff0000 100%);
+                box-shadow: 0 0 22px rgba(255, 30, 30, 0.9), inset 0 0 10px #ffffff;
+                z-index: 99997;
+                pointer-events: none;
+                animation: projectileFly 0.65s linear forwards;
+            }
+            @keyframes projectileFly {
+                0% { opacity: 0.2; transform: translate(-50%, -100%) scale(0.35); }
+                50% { opacity: 1; transform: translate(-50%, -40%) scale(0.85); }
+                100% { opacity: 1; transform: translate(-50%, 60%) scale(1.35); }
             }
             .rec-player-cell { display: flex; align-items: center; gap: 8px; }
             .rec-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2); }
