@@ -683,7 +683,7 @@
         } catch (e) {}
     };
     // ==========================================
-    // NO COIN DYNAMIC RED COIN OBSTACLE ENGINE
+    // NO COIN DYNAMIC OBSTACLE ENGINE (DUMPSTERS & RED COINS)
     // ==========================================
     let customObstacles = [];
     let nextObstacleZ = -300;
@@ -744,22 +744,39 @@
         return false;
     }
 
-    function createRedCoin3D(x, y, z) {
+    function createObstacle3D(type, x, y, z) {
         if (!window.__lib || !window.__lib.getEntity) return null;
-        if (isPositionBlocked(x, y, z)) return null;
+        const margin = (type === 'dumpster') ? 25 : 18;
+        if (isPositionBlocked(x, y, z, margin)) return null;
 
         try {
-            const mesh = window.__lib.getEntity('currency_coin');
+            let mesh = null;
+            let bounds = { depth: 5, width: 4, height: 6 };
+
+            if (type === 'dumpster') {
+                mesh = window.__lib.getEntity('dumpster');
+                if (mesh) {
+                    if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
+                    bounds = { depth: 10, width: 14, height: 14 };
+                }
+            } else {
+                mesh = window.__lib.getEntity('currency_coin');
+                if (mesh) {
+                    if (mesh.scale) mesh.scale.set(1.15, 1.15, 1.15);
+                    setEntityHexColor(mesh, 0xff1e1e);
+                    bounds = { depth: 5, width: 4, height: 6 };
+                }
+            }
+
             if (!mesh) return null;
             mesh.x = x;
             mesh.y = y;
             mesh.z = z;
-            if (mesh.scale) mesh.scale.set(1.15, 1.15, 1.15);
-            setEntityHexColor(mesh, 0xff1e1e);
+
             const hero = window.game && window.game.hero;
             if (hero && hero.parent) {
                 hero.parent.addChild(mesh);
-                return { x, y, z, mesh, destroyed: false };
+                return { type, x, y, z, mesh, bounds, destroyed: false };
             }
         } catch(e) {}
         return null;
@@ -767,49 +784,70 @@
 
     function spawnNoCoinObstaclePattern(centerZ) {
         const lanes = [-20, 0, 20];
-        // Filter lanes that are free from trains/obstacles
-        const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 6, centerZ));
+        const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 7, centerZ, 25));
         if (freeGroundLanes.length === 0) return;
 
-        // 4 Obstacle Types:
-        // 0: Wall with 1 open escape lane (blocks up to 2 free lanes, never all 3)
-        // 1: Low hurdle across free ground lanes (y = 5, must jump!)
-        // 2: High bar across free lanes (y = 26, must roll/slide!)
-        // 3: Zig-zag weave (3 coins spaced 65 units apart on alternating free lanes)
-        const pattern = Math.floor(Math.random() * 4);
+        // 6 Obstacle Patterns:
+        // 0: Caçamba de Ferro (1 dumpster on a free lane + red coin in another free lane)
+        // 1: Dupla Caçamba (dumpsters at -20 and 20, center 0 open)
+        // 2: Paredão de moedas vermelhas com brecha (free lanes blocked, 1 open)
+        // 3: Pulo Obrigatório (low coin barrier, must jump)
+        // 4: Rolamento Obrigatório (high bar, must roll)
+        // 5: Zig-zag Slalom (3 alternating coins)
+        const pattern = Math.floor(Math.random() * 6);
 
         if (pattern === 0) {
-            // Keep at least 1 free lane open
+            // Caçamba de Ferro 3D
+            const dLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const d = createObstacle3D('dumpster', dLane, 7, centerZ);
+            if (d) customObstacles.push(d);
+
+            const otherFree = freeGroundLanes.filter(l => l !== dLane);
+            if (otherFree.length > 0) {
+                const cLane = otherFree[Math.floor(Math.random() * otherFree.length)];
+                const c = createObstacle3D('coin', cLane, 6, centerZ);
+                if (c) customObstacles.push(c);
+            }
+        } else if (pattern === 1) {
+            // Dupla caçamba nos cantos (-20 e 20) deixando centro livre
+            if (!isPositionBlocked(-20, 7, centerZ, 25) && !isPositionBlocked(20, 7, centerZ, 25) && !isPositionBlocked(0, 7, centerZ, 25)) {
+                const d1 = createObstacle3D('dumpster', -20, 7, centerZ);
+                const d2 = createObstacle3D('dumpster', 20, 7, centerZ);
+                if (d1) customObstacles.push(d1);
+                if (d2) customObstacles.push(d2);
+            }
+        } else if (pattern === 2) {
+            // Paredão de moedas vermelhas com 1 brecha
             if (freeGroundLanes.length > 1) {
                 const openLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
                 freeGroundLanes.forEach(lx => {
                     if (lx !== openLane) {
-                        const c = createRedCoin3D(lx, 6, centerZ);
+                        const c = createObstacle3D('coin', lx, 6, centerZ);
                         if (c) customObstacles.push(c);
                     }
                 });
             }
-        } else if (pattern === 1) {
-            // Low hurdle - must JUMP over!
-            freeGroundLanes.forEach(lx => {
-                const c = createRedCoin3D(lx, 5, centerZ);
-                if (c) customObstacles.push(c);
-            });
-        } else if (pattern === 2) {
-            // High bar - must ROLL / SLIDE under!
-            const freeHighLanes = lanes.filter(lx => !isPositionBlocked(lx, 26, centerZ));
-            freeHighLanes.forEach(lx => {
-                const c = createRedCoin3D(lx, 26, centerZ);
-                if (c) customObstacles.push(c);
-            });
         } else if (pattern === 3) {
-            // Zig-zag weave
+            // Pulo Obrigatório
+            freeGroundLanes.forEach(lx => {
+                const c = createObstacle3D('coin', lx, 5, centerZ);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 4) {
+            // Rolamento Obrigatório
+            const freeHigh = lanes.filter(lx => !isPositionBlocked(lx, 26, centerZ));
+            freeHigh.forEach(lx => {
+                const c = createObstacle3D('coin', lx, 26, centerZ);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 5) {
+            // Zig-zag Slalom
             const order = [-20, 0, 20];
             if (Math.random() > 0.5) order.reverse();
             order.forEach((lx, idx) => {
                 const pz = centerZ - (idx * 65);
                 if (!isPositionBlocked(lx, 6, pz)) {
-                    const c = createRedCoin3D(lx, 6, pz);
+                    const c = createObstacle3D('coin', lx, 6, pz);
                     if (c) customObstacles.push(c);
                 }
             });
@@ -847,8 +885,8 @@
                 continue;
             }
 
-            // Spin 3D coin
-            if (obs.mesh && obs.mesh.rotation) {
+            // Spin coin
+            if (obs.type === 'coin' && obs.mesh && obs.mesh.rotation) {
                 obs.mesh.rotation.y += 0.09;
             }
 
@@ -856,9 +894,12 @@
             const dx = Math.abs(obs.x - heroX);
             const dy = Math.abs(obs.y - heroY);
 
-            // Precise, fair hitbox matching standard coin size (scale 1.15)
-            // dz < 7.5, dx < 4.2, dy < 6.8
-            if (dz < 7.5 && dx < 4.2 && dy < 6.8) {
+            // Calibrated hitboxes per obstacle type
+            const hitDepth = (obs.bounds ? obs.bounds.depth : 5) + 2.5;
+            const hitWidth = (obs.bounds ? obs.bounds.width / 2 : 4) + 1.2;
+            const hitHeight = (obs.bounds ? obs.bounds.height / 2 : 6) + 2.5;
+
+            if (dz < hitDepth && dx < hitWidth && dy < hitHeight) {
                 if (isDashing) {
                     obs.destroyed = true;
                     if (obs.mesh && obs.mesh.parent) {
