@@ -1559,6 +1559,7 @@
     window.__openUnifiedMenu = function(tab) {
         openUnifiedModal(tab || 'modes');
     };
+    window.openUnifiedMenu = window.__openUnifiedMenu;
 
     function openUnifiedModal(defaultTab) {
         initMultiplayerEngine();
@@ -1609,75 +1610,70 @@
 
                 <!-- Tab 2: Online Multiplayer (Modern Elimination Hub) -->
                 <div class="tab-pane" id="pane-multiplayer">
-                    <!-- Top Status Bar & Room Connect -->
-                    <div class="lobby-top-bar">
-                        <div class="server-status-pill">
-                            <span class="live-pulse-dot"></span>
-                            <span class="server-status-text">SERVIDOR GLOBAL ONLINE</span>
-                        </div>
-                        <div class="room-share-card">
-                            <span class="room-lbl">CÓDIGO DA SALA:</span>
+                    <!-- Clean Pro Top Bar: Room Status + User Profile + Quick Join -->
+                    <div class="lobby-header-bar">
+                        <div class="lobby-room-badge">
+                            <span class="live-dot"></span>
+                            <span class="room-lbl">SALA</span>
                             <span class="room-code-tag" id="lobby-room-code">#${(MP.roomId || '').replace('room_', '').slice(0, 8)}</span>
-                            <button class="btn-copy-link" onclick="window.__copyRoomLink()">📋 Copiar Link</button>
+                            <button class="btn-copy-code" onclick="window.__copyRoomLink()" title="Copiar link da sala">Copiar</button>
                         </div>
-                        <div class="room-join-card">
-                            <input type="text" id="input-join-room" placeholder="Código da sala (#123)..." maxlength="15" />
-                            <button class="btn-join-room" onclick="window.__joinRoomByInput()">🚪 Entrar</button>
+
+                        <div class="lobby-user-profile">
+                            <div class="user-avatar-wrap">
+                                <img id="lobby-my-avatar" src="${myProfile.avatar}" alt="Avatar" />
+                            </div>
+                            <div class="user-meta-wrap">
+                                <input type="text" id="input-my-nick" value="${myProfile.nick}" maxlength="14" placeholder="Seu Nick" title="Clique para editar seu nick" onchange="window.__saveMyNick(this.value)" onblur="window.__saveMyNick(this.value)" />
+                                <div class="avatar-dots-bar">
+                                    ${DEFAULT_AVATARS.map(av => `
+                                        <img class="avatar-dot-chip ${av.url === myProfile.avatar ? 'active' : ''}" src="${av.url}" title="${av.name}" onclick="window.__selectPresetAvatar('${av.url}')" />
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lobby-join-box">
+                            <input type="text" id="input-join-room" placeholder="Código..." maxlength="15" />
+                            <button class="btn-join-room" onclick="window.__joinRoomByInput()">Entrar</button>
                         </div>
                     </div>
 
-                    <!-- Profile Quick Bar -->
-                    <div class="lobby-profile-card">
-                        <div class="profile-avatar-wrap">
-                            <img id="lobby-my-avatar" src="${myProfile.avatar}" alt="Avatar" />
-                        </div>
-                        <div class="profile-info-wrap">
-                            <div class="profile-input-group">
-                                <label>Seu Nickname:</label>
-                                <input type="text" id="input-my-nick" value="${myProfile.nick}" maxlength="15" />
-                            </div>
-                            <div class="profile-input-group">
-                                <label>Foto de Perfil:</label>
-                                <input type="text" id="input-my-avatar" value="${myProfile.avatar}" placeholder="https://..." />
-                            </div>
-                            <div class="avatar-presets">
-                                ${DEFAULT_AVATARS.map(av => `
-                                    <img class="preset-img" src="${av.url}" title="${av.name}" onclick="window.__selectPresetAvatar('${av.url}')" />
-                                `).join('')}
-                            </div>
-                        </div>
-                        <button class="btn-save-profile" id="btn-save-profile">Salvar Perfil</button>
-                    </div>
-
+                    <!-- Main Grid: Party Slots & Online List -->
                     <div class="lobby-grid">
-                        <!-- Party Slots (2-4 players) -->
+                        <!-- Left: Party Roster (2-4 players) -->
                         <div class="lobby-column party-col">
                             <div class="col-header">
                                 <div class="col-title-wrap">
                                     <h3>🏆 SALA DO TORNEIO (${MP.party.length}/4)</h3>
-                                    <span class="party-hint">Modo Eliminatório No Coin — Quem cai por último avança!</span>
+                                    <span class="party-hint">Eliminatório No Coin · 3 Rodadas · Maior tempo total vence</span>
                                 </div>
-                                <button class="btn-add-bot" onclick="window.__addTestBot()" title="Adicionar bot para testar">🤖 + Bot</button>
+                                <button class="btn-add-bot" onclick="window.__addTestBot()" title="Adicionar bot para treinar">+ Bot</button>
                             </div>
+
                             <div class="party-slots-container" id="party-slots">
                                 <!-- Injected by renderPartySlots -->
                             </div>
+
                             <div class="party-bottom-actions">
                                 <button id="btn-toggle-ready" class="btn-ready ${MP.isReady ? 'ready-on' : 'ready-off'}">
-                                    ${MP.isReady ? '✅ PRONTO PARA A CORRIDA!' : '⏳ DAR PRONTO'}
+                                    ${MP.isReady ? 'ESTOU PRONTO ✓' : 'DAR PRONTO'}
                                 </button>
-                                <button id="btn-leave-party" class="btn-leave-room" onclick="window.__leaveParty()">↩ Sair</button>
                                 <button id="btn-start-match" class="btn-start-match" ${checkCanStartMatch() ? '' : 'disabled'}>
-                                    ⚔️ INICIAR TORNEIO ELIMINATÓRIO 🚀
+                                    INICIAR TORNEIO
                                 </button>
+                                <button id="btn-leave-party" class="btn-leave-room" onclick="window.__leaveParty()" title="Sair da sala">Sair</button>
                             </div>
                         </div>
 
-                        <!-- Online Players List -->
+                        <!-- Right: Online Players -->
                         <div class="lobby-column players-col">
                             <div class="col-header">
-                                <h3>🌐 JOGADORES DISPONÍVEIS</h3>
-                                <button class="btn-refresh-online" onclick="window.__refreshOnline()">🔄 Atualizar</button>
+                                <div class="col-title-wrap">
+                                    <h3>JOGADORES ONLINE</h3>
+                                    <span class="party-hint">Convide corredores para a sala</span>
+                                </div>
+                                <button class="btn-refresh-online" onclick="window.__refreshOnline()" title="Atualizar lista">Atualizar</button>
                             </div>
                             <div class="online-players-list" id="online-players-list">
                                 <!-- Injected by renderOnlinePlayersList -->
@@ -1711,7 +1707,7 @@
         document.getElementById('btn-close-unified').onclick = closeUnifiedModal;
         document.getElementById('btn-toggle-unlimited').onclick = toggleUnlimitedMode;
         document.getElementById('btn-toggle-nocoin').onclick = toggleNoCoinMode;
-        document.getElementById('btn-save-profile').onclick = saveLobbyProfile;
+        const btnSave = document.getElementById('btn-save-profile'); if (btnSave) btnSave.onclick = saveLobbyProfile;
         document.getElementById('btn-toggle-ready').onclick = toggleReady;
         document.getElementById('btn-start-match').onclick = requestStartMatch;
 
@@ -1772,11 +1768,30 @@
         showHUDNotification(window.NO_COIN_MODE ? '🔴 MODO NO COIN ATIVADO! Cuidado com as moedas vermelhas!' : '🟡 MODO NORMAL ATIVADO!');
     }
 
+    window.__saveMyNick = function(val) {
+        if (!val || !val.trim()) return;
+        myProfile.nick = val.trim();
+        localStorage.setItem('subway_surfers_profile', JSON.stringify(myProfile));
+        const me = MP.party.find(p => p.id === myProfile.id);
+        if (me) me.nick = myProfile.nick;
+        renderPartySlots();
+        broadcastPresence();
+        showHUDNotification('Nickname atualizado!');
+    };
+
     window.__selectPresetAvatar = function(url) {
-        const inp = document.getElementById('input-my-avatar');
+        myProfile.avatar = url;
         const img = document.getElementById('lobby-my-avatar');
-        if (inp) inp.value = url;
         if (img) img.src = url;
+        localStorage.setItem('subway_surfers_profile', JSON.stringify(myProfile));
+        const me = MP.party.find(p => p.id === myProfile.id);
+        if (me) me.avatar = url;
+        document.querySelectorAll('.avatar-dot-chip').forEach(el => {
+            el.classList.toggle('active', el.getAttribute('src') === url);
+        });
+        renderPartySlots();
+        broadcastPresence();
+        showHUDNotification('Avatar atualizado!');
     };
 
     window.__refreshOnline = function() {
@@ -1819,23 +1834,31 @@
                 const isThisBot = isBot(player.id);
                 html += `
                     <div class="party-slot slot-filled ${isReady ? 'slot-ready' : 'slot-waiting'} ${isMe ? 'slot-me' : ''}">
+                        <div class="slot-idx">${i + 1}</div>
                         <div class="slot-avatar" style="background-image: url('${player.avatar}')">
-                            ${isLeader ? '<span class="crown-icon" title="Líder da Sala">👑</span>' : ''}
+                            ${isLeader ? '<span class="crown-icon" title="Líder">👑</span>' : ''}
                         </div>
                         <div class="slot-details">
-                            <span class="slot-nick">${player.nick} ${isMe ? '<span class="tag-you">(Você)</span>' : ''} ${isThisBot ? '<span class="tag-bot">BOT</span>' : ''}</span>
-                            <span class="slot-status ${isReady ? 'st-ready' : 'st-waiting'}">
-                                ${isReady ? '✅ PRONTO' : '⏳ AGUARDANDO'}
-                            </span>
+                            <div class="slot-nick-row">
+                                <span class="slot-nick">${player.nick}</span>
+                                ${isMe ? '<span class="tag-you">VOCÊ</span>' : ''}
+                                ${isThisBot ? '<span class="tag-bot">BOT</span>' : ''}
+                            </div>
                         </div>
-                        ${!isMe && MP.isPartyLeader ? `<button class="btn-kick" title="Remover" onclick="window.__kickPlayer('${player.id}')">✕</button>` : ''}
+                        <div class="slot-right">
+                            <span class="slot-status-pill ${isReady ? 'st-ready' : 'st-waiting'}">
+                                ${isReady ? 'PRONTO' : 'AGUARDANDO'}
+                            </span>
+                            ${!isMe && MP.isPartyLeader ? `<button class="btn-kick" title="Expulsar" onclick="window.__kickPlayer('${player.id}')">✕</button>` : ''}
+                        </div>
                     </div>
                 `;
             } else {
                 html += `
                     <div class="party-slot slot-empty">
-                        <span class="empty-plus">+</span>
-                        <span class="empty-label">Vaga Livre (Convide ao lado)</span>
+                        <div class="slot-idx">${i + 1}</div>
+                        <span class="empty-label">Vaga disponível</span>
+                        <button class="btn-slot-add-bot" onclick="window.__addTestBot()" title="Adicionar bot">+ Bot</button>
                     </div>
                 `;
             }
@@ -1852,7 +1875,7 @@
         const readyBtn = document.getElementById('btn-toggle-ready');
         if (readyBtn) {
             readyBtn.className = `btn-ready ${MP.isReady ? 'ready-on' : 'ready-off'}`;
-            readyBtn.textContent = MP.isReady ? '✅ PRONTO!' : '⏳ DAR PRONTO';
+            readyBtn.textContent = MP.isReady ? 'ESTOU PRONTO ✓' : 'DAR PRONTO';
         }
     }
 
@@ -2115,279 +2138,13 @@
                 100% { transform: scale(0.9); opacity: 0.8; }
             }
 
-            /* Modern Elimination Hub Header & Room Connect */
-            .lobby-top-bar {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 10px;
-                background: rgba(255, 255, 255, 0.04);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 12px;
-                padding: 10px 14px;
-                margin-bottom: 12px;
-            }
-            .server-status-pill {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                background: rgba(16, 185, 129, 0.15);
-                border: 1px solid rgba(16, 185, 129, 0.35);
-                border-radius: 16px;
-                padding: 4px 10px;
-                font-size: 10px;
-                font-weight: 800;
-                color: #6ee7b7;
-            }
-            .live-pulse-dot {
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                background: #10b981;
-                box-shadow: 0 0 6px #10b981;
-            }
-            .room-share-card {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                font-size: 11px;
-            }
-            .room-lbl { color: #94a3b8; font-weight: 700; }
-            .room-code-tag {
-                background: #1e293b;
-                border: 1px solid #38bdf8;
-                border-radius: 6px;
-                padding: 3px 8px;
-                color: #38bdf8;
-                font-weight: 900;
-                font-family: monospace;
-                letter-spacing: 1px;
-            }
-            .btn-copy-link {
-                background: #0284c7;
-                color: #fff;
-                border: none;
-                border-radius: 6px;
-                padding: 5px 10px;
-                font-size: 11px;
-                font-weight: 700;
-                cursor: pointer;
-                transition: background 0.2s;
-            }
-            .btn-copy-link:hover { background: #0369a1; }
-            .room-join-card {
-                margin-left: auto;
-                display: flex;
-                align-items: center;
-                gap: 6px;
-            }
-            .room-join-card input {
-                background: #0f172a;
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                border-radius: 6px;
-                padding: 5px 10px;
-                color: #fff;
-                font-size: 11px;
-                width: 130px;
-            }
-            .btn-join-room {
-                background: #3b82f6;
-                color: #fff;
-                border: none;
-                border-radius: 6px;
-                padding: 5px 10px;
-                font-size: 11px;
-                font-weight: 700;
-                cursor: pointer;
-            }
-            .btn-join-room:hover { background: #2563eb; }
-
-            /* Modern Party Card Details */
-            .col-title-wrap h3 { margin: 0; font-size: 13px; color: #fff; }
-            .btn-add-bot {
-                background: rgba(168, 85, 247, 0.2);
-                border: 1px solid rgba(168, 85, 247, 0.4);
-                color: #c084fc;
-                border-radius: 6px;
-                padding: 4px 10px;
-                font-size: 11px;
-                font-weight: 800;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-            .btn-add-bot:hover {
-                background: rgba(168, 85, 247, 0.35);
-                color: #fff;
-            }
-            .crown-icon {
-                position: absolute;
-                top: -8px;
-                left: -6px;
-                font-size: 16px;
-                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
-            }
-            .tag-you { color: #38bdf8; font-size: 10px; font-weight: 800; }
-            .tag-bot {
-                background: #a855f7;
-                color: #fff;
-                font-size: 9px;
-                font-weight: 800;
-                padding: 1px 4px;
-                border-radius: 4px;
-                margin-left: 4px;
-            }
-            .btn-leave-room {
-                background: #475569;
-                color: #fff;
-                border: none;
-                border-radius: 8px;
-                padding: 10px 14px;
-                font-weight: 700;
-                font-size: 12px;
-                cursor: pointer;
-            }
-            .btn-leave-room:hover { background: #334155; }
-
-            /* Interlude Elimination Badges */
-            .il-title-gold {
-                color: #facc15 !important;
-                font-size: 18px !important;
-                text-shadow: 0 0 14px rgba(250, 204, 21, 0.6);
-            }
-            .il-subtitle {
-                font-size: 11px;
-                color: #94a3b8;
-                margin-top: -6px;
-                margin-bottom: 12px;
-            }
-            .il-badge {
-                font-size: 10px;
-                font-weight: 800;
-                padding: 2px 7px;
-                border-radius: 6px;
-                display: inline-block;
-            }
-            .il-pass { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
-            .il-elim { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
-            .il-champ { background: linear-gradient(135deg, #eab308, #ca8a04); color: #000; box-shadow: 0 0 10px rgba(234, 179, 8, 0.5); }
-            .il-silver { background: #94a3b8; color: #000; }
-            .il-cut { opacity: 0.65; border-left: 3px solid #ef4444 !important; }
-            .btn-il-back {
-                margin-top: 14px;
-                background: #2563eb;
-                color: #fff;
-                border: none;
-                border-radius: 8px;
-                padding: 10px 20px;
-                font-weight: 800;
-                font-size: 13px;
-                cursor: pointer;
-            }
-
-            /* Timeline Danger Zone */
-            .tl-danger-zone {
-                position: absolute;
-                bottom: 2px;
-                left: 0;
-                right: 0;
-                font-size: 8px;
-                color: #ef4444;
-                font-weight: 800;
-                text-align: center;
-                letter-spacing: 0.5px;
-                opacity: 0.8;
-                pointer-events: none;
-            }
-            .tl-node.tl-danger .tl-pill {
-                border-color: #ef4444 !important;
-                background: rgba(239, 68, 68, 0.35) !important;
-            }
-
-            /* Netlify Remover */
-            [class*="netlify"], [id*="netlify"], [href*="netlify.com"], netlify-drawer, #netlify-drawer, .netlify-badge, #nl-badge-frame, iframe[title*="Netlify"], iframe[srcdoc*="Netlify"], script[src*=".netlify/scripts"], [data-netlify-site-id], [data-nf-variant] {
-                display: none !important;
-                visibility: hidden !important;
-                opacity: 0 !important;
-                width: 0 !important;
-                height: 0 !important;
-                pointer-events: none !important;
-            }
-
-            /* Minimalist Top Timer */
-            .subway-top-timer-wrap {
-                position: fixed;
-                top: 14px;
-                left: 50%;
-                transform: translateX(-50%);
-                z-index: 99999;
-                display: none;
-                align-items: center;
-                gap: 8px;
-                padding: 6px 14px;
-                background: rgba(10, 16, 30, 0.75);
-                backdrop-filter: blur(8px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                border-radius: 24px;
-                color: #ffffff;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                box-shadow: 0 4px 14px rgba(0,0,0,0.4);
-                user-select: none;
-                pointer-events: none;
-            }
-            .subway-top-timer-wrap .timer-icon {
-                font-size: 15px;
-            }
-            .subway-top-timer-wrap .timer-value {
-                font-size: 17px;
-                font-weight: 800;
-                letter-spacing: 0.5px;
-                font-variant-numeric: tabular-nums;
-            }
-            .subway-top-timer-wrap .timer-badge {
-                font-size: 11px;
-                font-weight: 700;
-                padding: 2px 7px;
-                border-radius: 10px;
-                text-transform: uppercase;
-            }
-            .badge-nocoin { background: #e53935; color: #fff; }
-            .badge-normal { background: #fbc02d; color: #000; }
-
-            /* Floating Menu Button (Bottom-Left Blue Gear Icon) */
-            body.sw-in-run #btn-subway-unified-menu { display: none !important; }
             
-            
-
-            .btn-subway-unified-menu {
-                position: fixed;
-                bottom: 18px;
-                left: 18px;
-                z-index: 99998;
-                width: 48px;
-                height: 48px;
-                padding: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: linear-gradient(135deg, #1e88e5, #0d47a1);
-                color: #fff;
-                border: 2px solid rgba(255, 255, 255, 0.35);
-                border-radius: 50%;
-                cursor: pointer;
-                box-shadow: 0 4px 14px rgba(13, 71, 161, 0.6);
-                transition: transform 0.2s ease, filter 0.2s ease;
-            }
-            .btn-subway-unified-menu:hover {
-                transform: scale(1.08) rotate(30deg);
-                filter: brightness(1.15);
-            }
-
-            /* Unified Modal Backdrops & Containers */
+            /* Modal Backdrop & Structure */
             .subway-modal-backdrop {
                 position: fixed;
                 top: 0; left: 0; right: 0; bottom: 0;
                 background: rgba(4, 10, 24, 0.85);
-                backdrop-filter: blur(6px);
+                backdrop-filter: blur(8px);
                 z-index: 100000;
                 display: flex;
                 align-items: center;
@@ -2395,18 +2152,18 @@
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             }
             .subway-modal-box {
-                background: #111a2e;
+                background: #0f172a;
                 color: #fff;
                 border: 1px solid rgba(255,255,255,0.12);
                 border-radius: 16px;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+                box-shadow: 0 20px 50px rgba(0,0,0,0.8);
                 overflow: hidden;
                 display: flex;
                 flex-direction: column;
                 max-width: 90vw;
                 max-height: 88vh;
             }
-            .unified-box { width: 720px; }
+            .unified-box { width: 740px; }
             .modal-header {
                 display: flex;
                 justify-content: space-between;
@@ -2417,19 +2174,21 @@
             }
             .modal-header h2 {
                 margin: 0;
-                font-size: 17px;
+                font-size: 15px;
                 font-weight: 800;
                 letter-spacing: 0.5px;
             }
             .btn-modal-close {
                 background: none;
                 border: none;
-                color: #aaa;
+                color: #94a3b8;
                 font-size: 18px;
                 cursor: pointer;
                 padding: 4px 8px;
+                border-radius: 6px;
+                transition: all 0.2s;
             }
-            .btn-modal-close:hover { color: #fff; }
+            .btn-modal-close:hover { color: #fff; background: rgba(255,255,255,0.1); }
 
             /* Unified Tabs */
             .unified-tabs {
@@ -2452,16 +2211,16 @@
             .tab-btn.active {
                 color: #fff;
                 background: rgba(255,255,255,0.04);
-                border-bottom-color: #ff4b2b;
+                border-bottom-color: #38bdf8;
             }
             .tab-pane {
                 display: none;
-                padding: 20px;
+                padding: 12px 18px 14px;
                 overflow-y: auto;
             }
             .tab-pane.active { display: block; }
 
-            /* Cards in Modes Tab */
+            /* Modes Tab */
             .mod-card {
                 background: rgba(255,255,255,0.04);
                 border: 1px solid rgba(255,255,255,0.08);
@@ -2489,93 +2248,476 @@
             .nocoin-on { background: #e53935; color: #fff; }
             .nocoin-off { background: #fbc02d; color: #000; }
 
-            /* Multiplayer Tab & Lobby */
-            .lobby-profile-card {
-                background: rgba(255,255,255,0.03);
-                border: 1px solid rgba(255,255,255,0.08);
+/* Modern Elimination Hub Header & Room Connect */
+            .lobby-header-bar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                background: rgba(15, 23, 42, 0.7);
+                border: 1px solid rgba(255, 255, 255, 0.08);
                 border-radius: 12px;
-                padding: 14px;
-                margin-bottom: 16px;
+                padding: 8px 14px;
+                margin-bottom: 12px;
+            }
+            .lobby-room-badge {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .live-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #10b981;
+                box-shadow: 0 0 8px #10b981;
+            }
+            .room-lbl {
+                color: #64748b;
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: 0.5px;
+            }
+            .room-code-tag {
+                background: rgba(56, 189, 248, 0.1);
+                border: 1px solid rgba(56, 189, 248, 0.3);
+                border-radius: 6px;
+                padding: 3px 8px;
+                color: #38bdf8;
+                font-weight: 800;
+                font-family: monospace;
+                letter-spacing: 1px;
+                font-size: 12px;
+            }
+            .btn-copy-code {
+                background: rgba(255, 255, 255, 0.06);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                color: #cbd5e1;
+                border-radius: 6px;
+                padding: 4px 10px;
+                font-size: 11px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            .btn-copy-code:hover {
+                background: rgba(255, 255, 255, 0.12);
+                color: #fff;
+            }
+
+            .lobby-user-profile {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                border-radius: 10px;
+                padding: 4px 10px;
+            }
+            .user-avatar-wrap img {
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                border: 2px solid #38bdf8;
+                object-fit: cover;
+                display: block;
+            }
+            .user-meta-wrap {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            #input-my-nick {
+                background: transparent;
+                border: none;
+                border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+                color: #f8fafc;
+                font-size: 12px;
+                font-weight: 800;
+                padding: 1px 4px;
+                width: 105px;
+                outline: none;
+                transition: border-color 0.2s;
+            }
+            #input-my-nick:focus {
+                border-bottom-color: #38bdf8;
+            }
+            .avatar-dots-bar {
+                display: flex;
+                gap: 5px;
+            }
+            .avatar-dot-chip {
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                opacity: 0.5;
+                cursor: pointer;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                transition: all 0.15s;
+            }
+            .avatar-dot-chip:hover, .avatar-dot-chip.active {
+                opacity: 1;
+                border-color: #38bdf8;
+                transform: scale(1.15);
+                box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+            }
+
+            .lobby-join-box {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .lobby-join-box input {
+                background: rgba(0, 0, 0, 0.35);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 6px;
+                padding: 5px 8px;
+                color: #fff;
+                font-size: 11px;
+                width: 95px;
+                outline: none;
+            }
+            .lobby-join-box input:focus {
+                border-color: #38bdf8;
+            }
+            .btn-join-room {
+                background: #0284c7;
+                color: #fff;
+                border: none;
+                border-radius: 6px;
+                padding: 5px 10px;
+                font-size: 11px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .btn-join-room:hover { background: #0369a1; }
+
+            /* Grid Layout */
+            .lobby-grid {
                 display: flex;
                 gap: 14px;
+            }
+            .lobby-column {
+                flex: 1;
+                background: rgba(15, 23, 42, 0.55);
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                border-radius: 12px;
+                padding: 12px 14px;
+                display: flex;
+                flex-direction: column;
+            }
+            .col-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 12px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            }
+            .col-title-wrap h3 {
+                margin: 0;
+                font-size: 12px;
+                font-weight: 800;
+                letter-spacing: 0.5px;
+                color: #f1f5f9;
+            }
+            .party-hint {
+                display: block;
+                font-size: 10px;
+                color: #94a3b8;
+                margin-top: 2px;
+            }
+            .btn-add-bot, .btn-refresh-online {
+                background: rgba(255, 255, 255, 0.06);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: #cbd5e1;
+                border-radius: 6px;
+                padding: 3px 9px;
+                font-size: 11px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            .btn-add-bot:hover, .btn-refresh-online:hover {
+                background: rgba(255, 255, 255, 0.12);
+                color: #fff;
+            }
+
+            /* Party Slots */
+            .party-slots-container {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                margin-bottom: 14px;
+                flex: 1;
+            }
+            .party-slot {
+                height: 44px;
+                border-radius: 8px;
+                padding: 0 12px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                transition: all 0.2s;
+            }
+            .slot-filled {
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            .slot-ready {
+                border-color: rgba(16, 185, 129, 0.5);
+                background: rgba(16, 185, 129, 0.05);
+            }
+            .slot-waiting {
+                border-color: rgba(245, 158, 11, 0.35);
+            }
+            .slot-me {
+                box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.25);
+            }
+            .slot-empty {
+                border: 1px dashed rgba(255, 255, 255, 0.1);
+                background: transparent;
+                justify-content: space-between;
+                color: #64748b;
+                font-size: 11px;
+            }
+            .slot-idx {
+                font-size: 11px;
+                font-weight: 800;
+                color: #475569;
+                width: 14px;
+                text-align: center;
+            }
+            .slot-avatar {
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                background-size: cover;
+                background-position: center;
+                position: relative;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .crown-icon {
+                position: absolute;
+                top: -8px;
+                left: -6px;
+                font-size: 13px;
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+            }
+            .slot-details {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+            }
+            .slot-nick-row {
+                display: flex;
                 align-items: center;
             }
-            .profile-avatar-wrap img {
-                width: 54px; height: 54px; border-radius: 50%;
-                border: 2px solid #ff4b2b; object-fit: cover;
+            .slot-nick {
+                font-size: 12px;
+                font-weight: 700;
+                color: #e2e8f0;
             }
-            .profile-info-wrap { flex: 1; display: flex; flex-direction: column; gap: 8px; }
-            .profile-input-group { display: flex; flex-direction: column; gap: 4px; }
-            .profile-input-group label { font-size: 11px; color: #8fa0b0; }
-            .profile-input-group input {
-                background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15);
-                border-radius: 6px; padding: 6px 10px; color: #fff; font-size: 12px;
+            .tag-you {
+                background: #0284c7;
+                color: #fff;
+                font-size: 9px;
+                font-weight: 800;
+                padding: 1px 5px;
+                border-radius: 4px;
+                margin-left: 6px;
+                letter-spacing: 0.5px;
             }
-            .avatar-presets { display: flex; gap: 8px; margin-top: 4px; }
-            .preset-img {
-                width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
-                border: 1px solid rgba(255,255,255,0.3); transition: transform 0.1s;
+            .tag-bot {
+                background: #7c3aed;
+                color: #fff;
+                font-size: 9px;
+                font-weight: 800;
+                padding: 1px 5px;
+                border-radius: 4px;
+                margin-left: 6px;
+                letter-spacing: 0.5px;
             }
-            .preset-img:hover { transform: scale(1.15); border-color: #ff4b2b; }
-            .btn-save-profile {
-                background: #2979ff; border: none; color: #fff; border-radius: 8px;
-                padding: 8px 14px; font-weight: 700; font-size: 12px; cursor: pointer;
+            .slot-right {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .slot-status-pill {
+                font-size: 10px;
+                font-weight: 800;
+                padding: 2px 8px;
+                border-radius: 12px;
+                letter-spacing: 0.5px;
+            }
+            .slot-status-pill.st-ready {
+                background: rgba(16, 185, 129, 0.15);
+                color: #34d399;
+                border: 1px solid rgba(16, 185, 129, 0.3);
+            }
+            .slot-status-pill.st-waiting {
+                background: rgba(245, 158, 11, 0.15);
+                color: #fbbf24;
+                border: 1px solid rgba(245, 158, 11, 0.3);
+            }
+            .btn-kick {
+                background: none;
+                border: none;
+                color: #f43f5e;
+                cursor: pointer;
+                font-size: 13px;
+                padding: 2px 5px;
+                opacity: 0.7;
+            }
+            .btn-kick:hover { opacity: 1; }
+            .btn-slot-add-bot {
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: #94a3b8;
+                border-radius: 5px;
+                padding: 3px 8px;
+                font-size: 10px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            .btn-slot-add-bot:hover {
+                background: rgba(255, 255, 255, 0.12);
+                color: #fff;
             }
 
-            .lobby-grid { display: flex; gap: 16px; }
-            .lobby-column { flex: 1; background: rgba(0,0,0,0.25); border-radius: 12px; padding: 14px; }
-            .col-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-            .col-header h3 { margin: 0; font-size: 13px; font-weight: 800; }
-            .party-hint { font-size: 10px; color: #ffab40; }
-            .party-slots-container { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-            .party-slot {
-                height: 48px; border-radius: 8px; padding: 0 12px;
-                display: flex; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,0.08);
+            /* Bottom Actions */
+            .party-bottom-actions {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                margin-top: auto;
             }
-            .slot-filled { background: rgba(255,255,255,0.05); }
-            .slot-ready { border-color: #00c853; }
-            .slot-waiting { border-color: #ffab40; }
-            .slot-empty {
-                border-style: dashed; justify-content: center;
-                background: rgba(255,255,255,0.01); color: #607d8b; font-size: 11px;
-            }
-            .slot-avatar { width: 34px; height: 34px; border-radius: 50%; background-size: cover; }
-            .slot-details { flex: 1; display: flex; flex-direction: column; }
-            .slot-nick { font-size: 12px; font-weight: 700; }
-            .slot-status { font-size: 10px; font-weight: 800; }
-            .st-ready { color: #00e676; }
-            .st-waiting { color: #ffab40; }
-            .btn-kick { background: none; border: none; color: #f44336; cursor: pointer; font-size: 14px; }
-            
-            .party-bottom-actions { display: flex; gap: 8px; }
             .btn-ready {
-                flex: 1; padding: 10px; border-radius: 8px; border: none;
-                font-size: 12px; font-weight: 800; cursor: pointer;
+                flex: 1.1;
+                height: 38px;
+                border-radius: 8px;
+                border: none;
+                font-size: 12px;
+                font-weight: 800;
+                letter-spacing: 0.5px;
+                cursor: pointer;
+                transition: all 0.2s;
             }
-            .ready-on { background: #00c853; color: #fff; }
-            .ready-off { background: #37474f; color: #eceff1; }
+            .btn-ready.ready-on {
+                background: #10b981;
+                color: #fff;
+                box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+            }
+            .btn-ready.ready-off {
+                background: #334155;
+                color: #cbd5e1;
+            }
+            .btn-ready.ready-off:hover {
+                background: #475569;
+            }
             .btn-start-match {
-                flex: 1.4; padding: 10px; border-radius: 8px; border: none;
-                font-size: 12px; font-weight: 800; cursor: not-allowed;
-                background: #263238; color: #546e7a;
+                flex: 1.4;
+                height: 38px;
+                border-radius: 8px;
+                border: none;
+                font-size: 12px;
+                font-weight: 800;
+                letter-spacing: 0.5px;
+                cursor: not-allowed;
+                background: #1e293b;
+                color: #64748b;
+                transition: all 0.2s;
             }
             .btn-start-match.can-start {
-                cursor: pointer; background: linear-gradient(135deg, #ff416c, #ff4b2b);
-                color: #fff; box-shadow: 0 4px 12px rgba(255,65,108,0.4);
+                cursor: pointer;
+                background: linear-gradient(135deg, #f43f5e, #e11d48);
+                color: #fff;
+                box-shadow: 0 0 14px rgba(244, 63, 94, 0.4);
+            }
+            .btn-start-match.can-start:hover {
+                filter: brightness(1.1);
+            }
+            .btn-leave-room {
+                height: 38px;
+                padding: 0 12px;
+                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                background: rgba(255, 255, 255, 0.05);
+                color: #94a3b8;
+                font-size: 11px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            .btn-leave-room:hover {
+                background: rgba(255, 255, 255, 0.1);
+                color: #fff;
             }
 
-            .online-players-list { max-height: 230px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+            /* Online Players List */
+            .online-players-list {
+                max-height: 195px;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                flex: 1;
+            }
             .player-card {
-                display: flex; align-items: center; gap: 10px; padding: 8px 12px;
-                background: rgba(255,255,255,0.03); border-radius: 8px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 6px 10px;
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 8px;
+                transition: all 0.2s;
             }
-            .card-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
-            .card-nick { flex: 1; font-size: 12px; font-weight: 700; }
+            .player-card.in-party {
+                opacity: 0.6;
+            }
+            .card-avatar {
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+            }
+            .card-info {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+            }
+            .card-nick {
+                font-size: 12px;
+                font-weight: 700;
+                color: #e2e8f0;
+            }
+            .card-state-text {
+                font-size: 9px;
+                color: #64748b;
+            }
             .btn-invite {
-                background: #2979ff; border: none; color: #fff; border-radius: 6px;
-                padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer;
+                background: #0284c7;
+                border: none;
+                color: #fff;
+                border-radius: 6px;
+                padding: 4px 10px;
+                font-size: 11px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: background 0.2s;
             }
-            .btn-invite[disabled] { background: #37474f; color: #78909c; cursor: default; }
+            .btn-invite:hover {
+                background: #0369a1;
+            }
+            .btn-invite[disabled] {
+                background: rgba(255, 255, 255, 0.05);
+                color: #64748b;
+                cursor: default;
+            }
 
             /* Records Tab */
             .records-filter-bar { display: flex; gap: 8px; margin-bottom: 12px; }
