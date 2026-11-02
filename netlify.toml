@@ -9,6 +9,10 @@
   for = "/*"
   [headers.values]
     X-Netlify-Collaborative = "false"
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
 [[headers]]
   for = "/assets/*"

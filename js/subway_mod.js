@@ -350,6 +350,25 @@
     window.__onDashCollect = function(coin) {
         dashInvulnUntil = Date.now() + 750;
         window.__dashSpeedMult = Math.min((window.__dashSpeedMult || 1.0) + 0.14, 1.95);
+
+        // Boost de tempo adicional (APENAS no modo online ativo)
+        if (MP.inMatch && MPX.roundActive && !MPX.isPracticing && isRunActive && !deathFrozen) {
+            const timeBonusMs = 5000; // +5.000s de bônus no tempo da corrida
+            runStartTime -= timeBonusMs;
+            runElapsedTime += timeBonusMs;
+            MPX.live[myProfile.id] = runElapsedTime;
+            sendMultiplayerRunnerSync();
+
+            // Floating feedback banner (+5s)
+            try {
+                const pop = document.createElement('div');
+                pop.className = 'subway-boost-time-pop';
+                pop.innerHTML = '+5.0s ⚡';
+                document.body.appendChild(pop);
+                setTimeout(() => pop.remove(), 700);
+            } catch(e) {}
+        }
+
         try {
             const g = (coin && coin.game) || window.game;
             if (g) {
@@ -516,7 +535,67 @@
             history.unshift(record);
             if (history.length > 50) history.pop();
             localStorage.setItem('subway_surfers_records', JSON.stringify(history));
+
+            // Sync with global leaderboard if valid
+            record.avatar = myProfile.avatar;
+            record.id = myProfile.id;
+            updateGlobalRecord(record);
+            broadcastGlobalRecord(record);
         } catch(e) {}
+    }
+
+    function getGlobalLeaderboard() {
+        try {
+            return JSON.parse(localStorage.getItem('subway_global_leaderboard_v1') || '[]');
+        } catch(e) {
+            return [];
+        }
+    }
+
+    function updateGlobalRecord(record) {
+        if (!record || !record.timeMs || record.timeMs < 1000 || record.timeMs > 86400000) return;
+        try {
+            let list = getGlobalLeaderboard();
+            const idx = list.findIndex(r => r.id === (record.id || (record.nick + '_' + record.mode)) && r.mode === record.mode);
+            if (idx !== -1) {
+                if (record.timeMs > list[idx].timeMs) {
+                    list[idx] = { ...list[idx], ...record };
+                }
+            } else {
+                list.push(record);
+            }
+            list.sort((a, b) => b.timeMs - a.timeMs);
+            if (list.length > 100) list = list.slice(0, 100);
+            localStorage.setItem('subway_global_leaderboard_v1', JSON.stringify(list));
+        } catch(e) {}
+    }
+
+    function broadcastGlobalRecord(specificRecord) {
+        try {
+            let rec = specificRecord;
+            if (!rec) {
+                const list = getGlobalLeaderboard().filter(r => r.id === myProfile.id || r.nick === myProfile.nick);
+                if (list.length) rec = list[0];
+            }
+            if (rec && rec.timeMs) {
+                sendGlobalMessage('subwaysurf/lobby/records', {
+                    type: 'record_share',
+                    sender: myProfile,
+                    record: rec
+                });
+            }
+        } catch(e) {}
+    }
+
+    function handleGlobalRecordReceived(msg) {
+        if (!msg || !msg.record) return;
+        updateGlobalRecord(msg.record);
+        const modal = document.getElementById('modal-unified-menu');
+        const activeTab = modal && modal.querySelector('.tab-btn.active');
+        if (activeTab && activeTab.getAttribute('data-tab') === 'records') {
+            const curFilter = (window.__currentRecordFilter || 'global');
+            renderRecordsTable(curFilter);
+        }
     }
 
     // Game lifecycle hooks from patched dependencies.bundle.js
@@ -560,6 +639,32 @@
     };
 
     // ==========================================
+    // ANTI-CHEAT & INTEGRITY SHIELD
+    // ==========================================
+    (function installAntiCheatShield() {
+        try {
+            // 1. Sanitize text and URL payloads against XSS injection
+            window.__sanitizeInput = function(str, maxLen = 40) {
+                if (typeof str !== 'string') return '';
+                return str.replace(/[<>"'&]/g, '').slice(0, maxLen).trim();
+            };
+
+            // 2. Prevent debugger breakpoints and console inspection tampering
+            setInterval(() => {
+                const start = performance.now();
+                (function() { return false; }['constructor']('debugger')());
+                if (performance.now() - start > 100) {
+                    // Debugger hook detected
+                    window.__dashSpeedMult = 1.0;
+                }
+            }, 3000);
+
+            // 3. Freeze core game state globals to prevent runtime hijacking
+            Object.seal(window.MPX || {});
+        } catch(e) {}
+    })();
+
+    // ==========================================
     // 7. REAL-TIME MULTIPLAYER (MQTT WEBSOCKETS + P2P)
     // ==========================================
     function initMultiplayerEngine() {
@@ -585,6 +690,7 @@
                     console.log('[Multiplayer] MQTT Global Conectado!');
                     // Subscribe to public lobby & private inbox
                     MP.mqtt.subscribe('subwaysurf/lobby/presence');
+                    MP.mqtt.subscribe('subwaysurf/lobby/records');
                     MP.mqtt.subscribe('subwaysurf/player/' + myProfile.id);
 
                     // If in a room, subscribe to room
@@ -592,6 +698,7 @@
                         MP.mqtt.subscribe(MP.currentRoomTopic);
                     }
                     broadcastPresence();
+                    broadcastGlobalRecord();
                 });
 
                 MP.mqtt.on('message', (topic, payload) => {
@@ -667,6 +774,9 @@
         switch(msg.type) {
             case 'presence':
                 handlePresenceMessage(msg);
+                break;
+            case 'record_share':
+                handleGlobalRecordReceived(msg);
                 break;
             case 'invite':
                 handleInviteReceived(msg);
@@ -1239,13 +1349,6 @@
                 </div>
 
                 <div class="wait-actions">
-                    <button class="btn-wait-spectate" onclick="window.__startSpectatorMode()">
-                        <span class="wait-act-icon">👁️</span>
-                        <div class="wait-act-text">
-                            <span class="wait-act-main">MODO ESPECTADOR</span>
-                            <span class="wait-act-sub">Assista a tela dos outros corredores ao vivo</span>
-                        </div>
-                    </button>
                     <button class="btn-wait-practice" onclick="window.__startPracticeMode()">
                         <span class="wait-act-icon">⚡</span>
                         <div class="wait-act-text">
@@ -1308,115 +1411,7 @@
 
 
 
-    // ==========================================
-    // SPECTATOR ENGINE
-    // ==========================================
-    window.__startSpectatorMode = function() {
-        MPX.isSpectating = true;
-        MPX.isPracticing = false;
-        clearInterval(MPX.waitUpdateTimer);
-        removeEl('subway-wait-hud');
 
-        const alive = MP.party.filter(p => MPX.dead[p.id] === undefined && p.id !== myProfile.id);
-        if (!alive.length) {
-            showOnlineNotice('Nenhum corredor ativo no momento.');
-            showWaitHUD(MPX.dead[myProfile.id] || 0);
-            return;
-        }
-
-        if (!MPX.spectatingId || !alive.some(p => p.id === MPX.spectatingId)) {
-            MPX.spectatingId = alive[0].id;
-        }
-
-        showSpectatorHUD();
-    };
-
-    window.__stopSpectatorMode = function() {
-        MPX.isSpectating = false;
-        clearInterval(MPX.spectatorTimer);
-        removeEl('subway-spectator-hud');
-        if (MPX.roundActive && MP.inMatch) {
-            showWaitHUD(MPX.dead[myProfile.id] || 0);
-        }
-    };
-
-    window.__spectateCycle = function(dir) {
-        const alive = MP.party.filter(p => MPX.dead[p.id] === undefined && p.id !== myProfile.id);
-        if (!alive.length) {
-            window.__stopSpectatorMode();
-            return;
-        }
-        let idx = alive.findIndex(p => p.id === MPX.spectatingId);
-        if (idx === -1) idx = 0;
-        idx = (idx + dir + alive.length) % alive.length;
-        MPX.spectatingId = alive[idx].id;
-        updateSpectatorTargetUI();
-    };
-
-    function updateSpectatorTargetUI() {
-        const hud = document.getElementById('subway-spectator-hud');
-        if (!hud) return;
-        const target = MP.party.find(p => p.id === MPX.spectatingId);
-        if (!target) return;
-
-        const timeMs = MPX.live[target.id] || 0;
-        const isDead = MPX.dead[target.id] !== undefined;
-
-        hud.innerHTML = `
-            <div class="spec-bar-card">
-                <div class="spec-left-meta">
-                    <span class="spec-pulse-live"></span>
-                    <span class="spec-live-tag">AO VIVO</span>
-                    <span class="spec-divider">|</span>
-                    <img class="spec-target-avatar" src="${target.avatar}" alt="" />
-                    <div class="spec-name-box">
-                        <span class="spec-target-name">${target.nick}</span>
-                        <span class="spec-target-status ${isDead ? 'status-dead' : 'status-alive'}">${isDead ? 'ELIMINADO' : 'CORRENDO'}</span>
-                    </div>
-                </div>
-
-                <div class="spec-center-stat">
-                    <span class="spec-stat-lbl">TEMPO ATUAL</span>
-                    <span class="spec-stat-time">${fmtS(timeMs)}</span>
-                </div>
-
-                <div class="spec-right-controls">
-                    <button class="btn-spec-nav" onclick="window.__spectateCycle(-1)" title="Corredor Anterior">◀</button>
-                    <button class="btn-spec-nav" onclick="window.__spectateCycle(1)" title="Próximo Corredor">▶</button>
-                    <button class="btn-spec-practice" onclick="window.__stopSpectatorMode(); window.__startPracticeMode();">⚡ Treinar</button>
-                    <button class="btn-spec-exit" onclick="window.__stopSpectatorMode()" title="Voltar ao Painel">✕</button>
-                </div>
-            </div>
-        `;
-    }
-
-    function showSpectatorHUD() {
-        removeEl('subway-spectator-hud');
-        const hud = document.createElement('div');
-        hud.id = 'subway-spectator-hud';
-        hud.className = 'subway-spectator-hud';
-        document.body.appendChild(hud);
-        updateSpectatorTargetUI();
-
-        clearInterval(MPX.spectatorTimer);
-        MPX.spectatorTimer = setInterval(() => {
-            if (!MPX.isSpectating || !MPX.roundActive) {
-                clearInterval(MPX.spectatorTimer);
-                removeEl('subway-spectator-hud');
-                return;
-            }
-            if (MPX.dead[MPX.spectatingId] !== undefined) {
-                const alive = MP.party.filter(p => MPX.dead[p.id] === undefined && p.id !== myProfile.id);
-                if (alive.length) {
-                    window.__spectateCycle(1);
-                } else {
-                    window.__stopSpectatorMode();
-                }
-            } else {
-                updateSpectatorTargetUI();
-            }
-        }, 200);
-    }
 
     window.__startPracticeMode = function() {
         MPX.isPracticing = true;
@@ -2169,10 +2164,11 @@
                 <!-- Tab 3: Records History -->
                 <div class="tab-pane" id="pane-records">
                     <div class="records-filter-bar">
-                        <button class="btn-filter-record active" onclick="window.__filterRecords('all', this)">TODOS</button>
+                        <button class="btn-filter-record active" onclick="window.__filterRecords('global', this)">🏆 GLOBAL TOP</button>
                         <button class="btn-filter-record" onclick="window.__filterRecords('nocoin', this)">NO COIN</button>
                         <button class="btn-filter-record" onclick="window.__filterRecords('normal', this)">NORMAL</button>
-                        <button class="btn-clear-records" onclick="window.__clearRecords()">LIMPAR</button>
+                        <button class="btn-filter-record" onclick="window.__filterRecords('local', this)">HISTÓRICO LOCAL</button>
+                        <button class="btn-clear-records" onclick="window.__clearRecords()">LIMPAR LOCAL</button>
                     </div>
                     <div class="records-table-container" id="records-table-wrap">
                         <!-- Injected by renderRecordsTable -->
@@ -2201,7 +2197,7 @@
         switchTab(defaultTab || 'modes');
         renderPartySlots();
         renderOnlinePlayersList();
-        renderRecordsTable('all');
+        renderRecordsTable('global');
     }
 
     function switchTab(tabName) {
@@ -2472,16 +2468,38 @@
     function renderRecordsTable(filterMode) {
         const container = document.getElementById('records-table-wrap');
         if (!container) return;
+        window.__currentRecordFilter = filterMode || 'global';
 
-        let records = JSON.parse(localStorage.getItem('subway_surfers_records') || '[]');
-        if (filterMode === 'nocoin') {
-            records = records.filter(r => r.mode === 'No Coin');
+        let records = [];
+        const isGlobal = (filterMode === 'global' || !filterMode);
+
+        if (isGlobal) {
+            records = getGlobalLeaderboard();
+        } else if (filterMode === 'nocoin') {
+            const globalNc = getGlobalLeaderboard().filter(r => r.mode === 'No Coin');
+            const localNc = JSON.parse(localStorage.getItem('subway_surfers_records') || '[]').filter(r => r.mode === 'No Coin');
+            const map = new Map();
+            [...globalNc, ...localNc].forEach(r => {
+                const k = (r.nick || 'Você') + '_' + r.mode;
+                if (!map.has(k) || r.timeMs > map.get(k).timeMs) map.set(k, r);
+            });
+            records = Array.from(map.values()).sort((a, b) => b.timeMs - a.timeMs);
         } else if (filterMode === 'normal') {
-            records = records.filter(r => r.mode === 'Normal');
+            const globalNm = getGlobalLeaderboard().filter(r => r.mode === 'Normal');
+            const localNm = JSON.parse(localStorage.getItem('subway_surfers_records') || '[]').filter(r => r.mode === 'Normal');
+            const map = new Map();
+            [...globalNm, ...localNm].forEach(r => {
+                const k = (r.nick || 'Você') + '_' + r.mode;
+                if (!map.has(k) || r.timeMs > map.get(k).timeMs) map.set(k, r);
+            });
+            records = Array.from(map.values()).sort((a, b) => b.timeMs - a.timeMs);
+        } else {
+            // Local history
+            records = JSON.parse(localStorage.getItem('subway_surfers_records') || '[]');
         }
 
         if (records.length === 0) {
-            container.innerHTML = '<div class="no-records">Nenhum recorde registrado ainda. Inicie uma corrida!</div>';
+            container.innerHTML = '<div class="no-records">Nenhum recorde registrado ainda. Inicie uma corrida para pontuar!</div>';
             return;
         }
 
@@ -2489,23 +2507,33 @@
             <table class="records-table">
                 <thead>
                     <tr>
-                        <th>#</th>
+                        <th>Pos</th>
                         <th>Jogador</th>
                         <th>Modo</th>
-                        <th>Tempo Sobrevivido</th>
+                        <th>Tempo</th>
                         <th>Data</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${records.map((r, i) => `
-                        <tr>
-                            <td>#${i + 1}</td>
-                            <td><strong>${r.nick || myProfile.nick}</strong></td>
+                    ${records.map((r, i) => {
+                        const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
+                        const rankIcon = i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : `#${i + 1}`;
+                        const isMe = r.id === myProfile.id || r.nick === myProfile.nick;
+                        return `
+                        <tr class="${rankClass} ${isMe ? 'row-me' : ''}">
+                            <td class="td-rank"><strong>${rankIcon}</strong></td>
+                            <td class="td-player">
+                                <div class="rec-player-cell">
+                                    <img class="rec-avatar" src="${r.avatar || myProfile.avatar || DEFAULT_AVATARS[0].url}" alt="" />
+                                    <span>${r.nick || myProfile.nick}</span>
+                                    ${isMe ? '<span class="rec-you-tag">VOCÊ</span>' : ''}
+                                </div>
+                            </td>
                             <td><span class="badge ${r.mode === 'No Coin' ? 'b-nocoin' : 'b-normal'}">${r.mode}</span></td>
-                            <td class="td-time">${r.timeStr}</td>
-                            <td class="td-date">${r.date}</td>
+                            <td class="td-time">${r.timeStr || formatTime(r.timeMs || 0)}</td>
+                            <td class="td-date">${r.date || 'Hoje'}</td>
                         </tr>
-                    `).join('')}
+                    `;}).join('')}
                 </tbody>
             </table>
         `;
@@ -2520,7 +2548,7 @@
     window.__clearRecords = function() {
         if (confirm('Deseja realmente apagar todo o histórico de recordes?')) {
             localStorage.removeItem('subway_surfers_records');
-            renderRecordsTable('all');
+            renderRecordsTable('global');
         }
     };
 
@@ -3422,6 +3450,33 @@
                 pointer-events: none;
                 animation: dashBurstAnim 0.45s ease-out forwards;
             }
+            .subway-boost-time-pop {
+                position: fixed;
+                top: 42%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                font-size: 32px;
+                font-weight: 900;
+                color: #00e5ff;
+                text-shadow: 0 0 16px rgba(0, 229, 255, 0.9), 0 4px 12px rgba(0,0,0,0.8);
+                letter-spacing: 1px;
+                pointer-events: none;
+                z-index: 99999;
+                animation: boostPopAnim 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            }
+            @keyframes boostPopAnim {
+                0% { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
+                30% { opacity: 1; transform: translate(-50%, -24px) scale(1.15); }
+                100% { opacity: 0; transform: translate(-50%, -55px) scale(1); }
+            }
+            .rec-player-cell { display: flex; align-items: center; gap: 8px; }
+            .rec-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2); }
+            .rec-you-tag { background: #3b82f6; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+            .row-me { background: rgba(59, 130, 246, 0.12) !important; font-weight: 700; }
+            .rank-1 { background: rgba(234, 179, 8, 0.12) !important; color: #fde047; }
+            .rank-2 { background: rgba(148, 163, 184, 0.1) !important; color: #e2e8f0; }
+            .rank-3 { background: rgba(217, 119, 6, 0.1) !important; color: #fdba74; }
             @keyframes dashBurstAnim {
                 0% { opacity: 1; transform: scale(1.04); }
                 100% { opacity: 0; transform: scale(1); }
