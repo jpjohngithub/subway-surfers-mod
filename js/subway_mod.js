@@ -740,23 +740,54 @@
         return false;
     }
 
-    function createRedCoin3D(x, y, z, options = {}) {
+    function createObstacle3D(type, x, y, z, options = {}) {
         if (!window.__lib || !window.__lib.getEntity) return null;
-        if (isPositionBlocked(x, y, z)) return null;
+        const margin = (type === 'dumpster') ? 22 : 16;
+        if (isPositionBlocked(x, y, z, margin)) return null;
 
         try {
-            const mesh = window.__lib.getEntity('currency_coin');
+            let mesh = null;
+            let bounds = { width: 8, height: 12, depth: 10 };
+
+            if (type === 'dumpster') {
+                mesh = window.__lib.getEntity('dumpster');
+                if (mesh) {
+                    if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
+                    setEntityHexColor(mesh, 0x334155);
+                    bounds = { width: 14, height: 14, depth: 14 };
+                }
+            } else if (type === 'lightSignal') {
+                mesh = window.__lib.getEntity('lightSignal');
+                if (mesh) {
+                    mesh.rotation.y = Math.PI;
+                    bounds = { width: 6, height: 26, depth: 6 };
+                }
+            } else if (type === 'pillar') {
+                mesh = window.__lib.getEntity('pillar');
+                if (mesh) {
+                    bounds = { width: 8, height: 24, depth: 8 };
+                }
+            } else {
+                mesh = window.__lib.getEntity('currency_coin');
+                if (mesh) {
+                    if (mesh.scale) mesh.scale.set(1.4, 1.4, 1.4);
+                    setEntityHexColor(mesh, 0xff1e1e);
+                    bounds = { width: 8, height: 12, depth: 10 };
+                }
+            }
+
             if (!mesh) return null;
             mesh.x = x;
             mesh.y = y;
             mesh.z = z;
-            if (mesh.scale) mesh.scale.set(1.4, 1.4, 1.4);
-            setEntityHexColor(mesh, 0xff1e1e);
+
             const hero = window.game && window.game.hero;
             if (hero && hero.parent) {
                 hero.parent.addChild(mesh);
                 return {
+                    type,
                     x, y, z, mesh,
+                    bounds,
                     destroyed: false,
                     isOscillating: !!options.isOscillating,
                     baseX: x,
@@ -770,62 +801,80 @@
 
     function spawnNoCoinObstaclePattern(centerZ) {
         const lanes = [-20, 0, 20];
-        // 6 Dynamic Obstacle Formations:
-        // 0: Paredão com Brecha (2 lanes blocked at y=6, 1 lane free)
-        // 1: Pulo Obrigatório (low coins across open lanes at y=5, requires jump)
-        // 2: Rolamento Obrigatório (high bar at y=26, requires roll/slide)
-        // 3: Ziguezague Slalom (3 coins staggered across alternate lanes)
-        // 4: Barreira Móvel Oscilante (coin sliding left and right)
-        // 5: Diamante Central (center lane cluster with side flares)
-        const pattern = Math.floor(Math.random() * 6);
+        // 8 Diverse Dynamic Obstacle Formations (Coins + 3D Dumpsters + Signal Poles):
+        // 0: Caçamba de Ferro (3D dumpster in 1 lane + red coin hurdle in adjacent)
+        // 1: Poste Ferroviário de Sinalização (3D lightSignal pole in 1 lane + red coins)
+        // 2: Dupla Caçamba com Brecha Central (dumpsters at -20 and 20, center 0 open)
+        // 3: Paredão com Brecha (2 lanes blocked by red coins at y=6, 1 lane free)
+        // 4: Pulo Obrigatório (low coins across open lanes at y=5, requires jump)
+        // 5: Rolamento Obrigatório (high bar at y=26, requires roll/slide)
+        // 6: Ziguezague Slalom (3 coins staggered across alternate lanes)
+        // 7: Barreira Móvel Oscilante (coin sliding left and right)
+        const pattern = Math.floor(Math.random() * 8);
 
         if (pattern === 0) {
+            // Caçamba de Ferro 3D
+            const dLane = lanes[Math.floor(Math.random() * lanes.length)];
+            const otherLanes = lanes.filter(l => l !== dLane);
+            const coinLane = otherLanes[Math.floor(Math.random() * otherLanes.length)];
+            const d = createObstacle3D('dumpster', dLane, 7, centerZ);
+            if (d) customObstacles.push(d);
+            const c = createObstacle3D('coin', coinLane, 6, centerZ);
+            if (c) customObstacles.push(c);
+        } else if (pattern === 1) {
+            // Poste Ferroviário de Sinalização 3D
+            const sLane = lanes[Math.floor(Math.random() * lanes.length)];
+            const s = createObstacle3D('lightSignal', sLane, 12, centerZ);
+            if (s) customObstacles.push(s);
+            // Red coin in another lane
+            const otherLane = lanes.find(l => l !== sLane);
+            if (typeof otherLane === 'number') {
+                const c = createObstacle3D('coin', otherLane, 6, centerZ + 20);
+                if (c) customObstacles.push(c);
+            }
+        } else if (pattern === 2) {
+            // Dupla Caçamba nos cantos (-20 e 20), centro (0) livre
+            const d1 = createObstacle3D('dumpster', -20, 7, centerZ);
+            const d2 = createObstacle3D('dumpster', 20, 7, centerZ);
+            if (d1) customObstacles.push(d1);
+            if (d2) customObstacles.push(d2);
+        } else if (pattern === 3) {
             // Paredão com 1 brecha
             const openLane = lanes[Math.floor(Math.random() * lanes.length)];
             lanes.forEach(lx => {
                 if (lx !== openLane) {
-                    const c = createRedCoin3D(lx, 6, centerZ);
+                    const c = createObstacle3D('coin', lx, 6, centerZ);
                     if (c) customObstacles.push(c);
                 }
             });
-        } else if (pattern === 1) {
+        } else if (pattern === 4) {
             // Pulo Obrigatório: low hurdle
             lanes.forEach(lx => {
-                const c = createRedCoin3D(lx, 5, centerZ);
+                const c = createObstacle3D('coin', lx, 5, centerZ);
                 if (c) customObstacles.push(c);
             });
-        } else if (pattern === 2) {
+        } else if (pattern === 5) {
             // Rolamento Obrigatório: high bar
             lanes.forEach(lx => {
-                const c = createRedCoin3D(lx, 26, centerZ);
+                const c = createObstacle3D('coin', lx, 26, centerZ);
                 if (c) customObstacles.push(c);
             });
-        } else if (pattern === 3) {
+        } else if (pattern === 6) {
             // Ziguezague Slalom
             const order = [-20, 0, 20];
             if (Math.random() > 0.5) order.reverse();
             order.forEach((lx, idx) => {
-                const c = createRedCoin3D(lx, 6, centerZ - (idx * 65));
+                const c = createObstacle3D('coin', lx, 6, centerZ - (idx * 65));
                 if (c) customObstacles.push(c);
             });
-        } else if (pattern === 4) {
+        } else if (pattern === 7) {
             // Barreira Móvel Oscilante
-            const c = createRedCoin3D(0, 6, centerZ, {
+            const c = createObstacle3D('coin', 0, 6, centerZ, {
                 isOscillating: true,
                 speed: 2.4,
                 phase: Math.random() * Math.PI
             });
             if (c) customObstacles.push(c);
-        } else if (pattern === 5) {
-            // Diamante / Cruz
-            const c1 = createRedCoin3D(0, 6, centerZ);
-            const c2 = createRedCoin3D(-20, 6, centerZ - 45);
-            const c3 = createRedCoin3D(20, 6, centerZ - 45);
-            const c4 = createRedCoin3D(0, 6, centerZ - 90);
-            if (c1) customObstacles.push(c1);
-            if (c2) customObstacles.push(c2);
-            if (c3) customObstacles.push(c3);
-            if (c4) customObstacles.push(c4);
         }
     }
 
@@ -866,8 +915,8 @@
                 obs.mesh.x = obs.x;
             }
 
-            // Spin 3D coin
-            if (obs.mesh && obs.mesh.rotation) {
+            // Spin 3D coin if type is coin
+            if (obs.type === 'coin' && obs.mesh && obs.mesh.rotation) {
                 obs.mesh.rotation.y += 0.09;
             }
 
@@ -875,8 +924,12 @@
             const dx = Math.abs(obs.x - heroX);
             const dy = Math.abs(obs.y - heroY);
 
+            const hitDepth = (obs.bounds ? obs.bounds.depth / 2 : 5) + 6;
+            const hitWidth = (obs.bounds ? obs.bounds.width / 2 : 4) + 4;
+            const hitHeight = (obs.bounds ? obs.bounds.height / 2 : 6) + 7;
+
             // Hitbox check
-            if (dz < 14 && dx < 8 && dy < 15) {
+            if (dz < hitDepth && dx < hitWidth && dy < hitHeight) {
                 if (isDashing) {
                     obs.destroyed = true;
                     if (obs.mesh && obs.mesh.parent) {
