@@ -389,10 +389,83 @@
         } catch(e) {}
     };
 
+    function playCoinShatterAudio() {
+        try {
+            if (window.game && window.game.sfx && window.game.sfx.play) {
+                window.game.sfx.play('hero-hoverboard-crash', { volume: 0.28, rate: 1.85 });
+            }
+        } catch(e) {}
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+                if (!window.__shatterAudioCtx) window.__shatterAudioCtx = new AudioCtx();
+                const ctx = window.__shatterAudioCtx;
+                if (ctx.state === 'suspended') ctx.resume();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(950, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.11);
+                gain.gain.setValueAtTime(0.22, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.11);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.12);
+            }
+        } catch(e) {}
+    }
+
+    function triggerCoinShatter(coin) {
+        try { if (navigator.vibrate) navigator.vibrate(25); } catch(e) {}
+        playCoinShatterAudio();
+
+        // Subtle micro-shake
+        try {
+            const canvas = document.querySelector('canvas');
+            if (canvas) {
+                const rx = (Math.random() - 0.5) * 5;
+                const ry = (Math.random() - 0.5) * 5;
+                canvas.style.transform = `translate(${rx}px, ${ry}px)`;
+                setTimeout(() => { canvas.style.transform = ''; }, 60);
+            }
+        } catch(e) {}
+
+        // Visual shatter / impact burst
+        try {
+            let screenX = window.innerWidth / 2;
+            let screenY = window.innerHeight * 0.62;
+            if (coin && coin.body && typeof coin.body.x === 'number') {
+                if (coin.body.x < -10) screenX = window.innerWidth * 0.35;
+                else if (coin.body.x > 10) screenX = window.innerWidth * 0.65;
+            }
+
+            const container = document.createElement('div');
+            container.className = 'subway-shatter-burst';
+            container.style.left = screenX + 'px';
+            container.style.top = screenY + 'px';
+            container.innerHTML = `
+                <div class="shatter-flash"></div>
+                <div class="shatter-ring"></div>
+                <div class="shatter-shard s1"></div>
+                <div class="shatter-shard s2"></div>
+                <div class="shatter-shard s3"></div>
+                <div class="shatter-shard s4"></div>
+                <div class="shatter-shard s5"></div>
+                <div class="shatter-shard s6"></div>
+            `;
+            document.body.appendChild(container);
+            setTimeout(() => container.remove(), 380);
+        } catch(e) {}
+    }
+
     // Called when player touches a coin in No Coin Mode
     window.__onNoCoinCollect = function(coin) {
         if (!window.NO_COIN_MODE) return;
-        if (Date.now() < dashInvulnUntil) return;
+        if (Date.now() < dashInvulnUntil) {
+            triggerCoinShatter(coin);
+            return;
+        }
         if (coin && coin._isDashItem) return;
         if (coin && coin.attractable && coin.attractable.attracted) return;
         triggerNoCoinDeath(coin);
@@ -631,12 +704,160 @@
             }
         } catch (e) {}
     };
+    // ==========================================
+    // NO COIN DYNAMIC OBSTACLE ENGINE
+    // ==========================================
+    let customObstacles = [];
+    let nextObstacleZ = -300;
+
+    function cleanupCustomObstacles() {
+        for (let i = 0; i < customObstacles.length; i++) {
+            const obs = customObstacles[i];
+            if (obs && obs.mesh && obs.mesh.parent) {
+                try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+            }
+        }
+        customObstacles = [];
+        nextObstacleZ = (window.game && window.game.hero && window.game.hero.body ? window.game.hero.body.z : 0) - 350;
+    }
+
+    function createRedCoin3D(x, y, z) {
+        if (!window.__lib || !window.__lib.getEntity) return null;
+        try {
+            const mesh = window.__lib.getEntity('currency_coin');
+            if (!mesh) return null;
+            mesh.x = x;
+            mesh.y = y;
+            mesh.z = z;
+            if (mesh.scale) mesh.scale.set(1.4, 1.4, 1.4);
+            setEntityHexColor(mesh, 0xff1e1e);
+            const hero = window.game && window.game.hero;
+            if (hero && hero.parent) {
+                hero.parent.addChild(mesh);
+                return { x, y, z, mesh, destroyed: false };
+            }
+        } catch(e) {}
+        return null;
+    }
+
+    function spawnNoCoinObstaclePattern(centerZ) {
+        const lanes = [-20, 0, 20];
+        // 4 Obstacle Types:
+        // 0: Wall with 1 open escape lane (2 lanes blocked at ground)
+        // 1: Low hurdle across all 3 lanes (y = 5, must jump!)
+        // 2: High laser bar across all 3 lanes (y = 26, must roll/slide!)
+        // 3: Zig-zag weave (3 coins spaced 65 units apart, alternating lanes)
+        const pattern = Math.floor(Math.random() * 4);
+
+        if (pattern === 0) {
+            // Wall with 1 escape lane
+            const openLane = lanes[Math.floor(Math.random() * lanes.length)];
+            lanes.forEach(lx => {
+                if (lx !== openLane) {
+                    const c = createRedCoin3D(lx, 6, centerZ);
+                    if (c) customObstacles.push(c);
+                }
+            });
+        } else if (pattern === 1) {
+            // Low hurdle - must JUMP over!
+            lanes.forEach(lx => {
+                const c = createRedCoin3D(lx, 5, centerZ);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 2) {
+            // High bar - must ROLL / SLIDE under!
+            lanes.forEach(lx => {
+                const c = createRedCoin3D(lx, 26, centerZ);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 3) {
+            // Zig-zag weave
+            const order = [-20, 0, 20];
+            if (Math.random() > 0.5) order.reverse();
+            order.forEach((lx, idx) => {
+                const c = createRedCoin3D(lx, 6, centerZ - (idx * 65));
+                if (c) customObstacles.push(c);
+            });
+        }
+    }
+
+    function updateNoCoinObstacleEngine() {
+        if (!window.NO_COIN_MODE || !window.game || !window.game.hero || !window.game.hero.body) {
+            if (customObstacles.length) cleanupCustomObstacles();
+            return;
+        }
+
+        const hero = window.game.hero;
+        const heroBody = hero.body;
+        const heroZ = heroBody.z;
+        const heroX = heroBody.x;
+        const heroY = heroBody.y || 0;
+
+        if (window.isGamePaused) return;
+
+        // Check spawn ahead of runner
+        if (heroZ < nextObstacleZ) {
+            spawnNoCoinObstaclePattern(heroZ - 420);
+            nextObstacleZ = heroZ - (340 + Math.random() * 180);
+        }
+
+        // Update active obstacles
+        const now = Date.now();
+        const isDashing = now < dashInvulnUntil;
+
+        for (let i = customObstacles.length - 1; i >= 0; i--) {
+            const obs = customObstacles[i];
+            if (!obs || obs.destroyed) {
+                customObstacles.splice(i, 1);
+                continue;
+            }
+
+            // Spin 3D coin
+            if (obs.mesh && obs.mesh.rotation) {
+                obs.mesh.rotation.y += 0.09;
+            }
+
+            const dz = Math.abs(obs.z - heroZ);
+            const dx = Math.abs(obs.x - heroX);
+            const dy = Math.abs(obs.y - heroY);
+
+            // Hitbox check
+            if (dz < 14 && dx < 8 && dy < 15) {
+                if (isDashing) {
+                    obs.destroyed = true;
+                    if (obs.mesh && obs.mesh.parent) {
+                        try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                    }
+                    customObstacles.splice(i, 1);
+                    triggerCoinShatter({ body: { x: obs.x, y: obs.y, z: obs.z } });
+                    continue;
+                } else {
+                    obs.destroyed = true;
+                    triggerNoCoinDeath(null);
+                    return;
+                }
+            }
+
+            // Passed behind player
+            if (obs.z > heroZ + 80) {
+                if (obs.mesh && obs.mesh.parent) {
+                    try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                }
+                customObstacles.splice(i, 1);
+            }
+        }
+    }
+
+    setInterval(updateNoCoinObstacleEngine, 30);
+
     window.__onGameOver = function() {
         stopRunTimer();
-            };
+        cleanupCustomObstacles();
+    };
     window.__onGameReset = function() {
         hideRunTimer();
-            };
+        cleanupCustomObstacles();
+    };
 
     // ==========================================
     // ANTI-CHEAT & INTEGRITY SHIELD
@@ -2661,6 +2882,68 @@
                 user-select: none;
                 pointer-events: none;
             }
+
+            /* Red Coin Shatter Effect on Dash Boost */
+            .subway-shatter-burst {
+                position: fixed;
+                transform: translate(-50%, -50%);
+                width: 60px;
+                height: 60px;
+                pointer-events: none;
+                z-index: 99996;
+            }
+            .shatter-flash {
+                position: absolute;
+                top: 50%; left: 50%;
+                transform: translate(-50%, -50%);
+                width: 70px;
+                height: 70px;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(255, 60, 60, 0.95) 0%, rgba(239, 68, 68, 0.4) 50%, rgba(255, 0, 0, 0) 75%);
+                animation: shatterFlashAnim 0.25s ease-out forwards;
+            }
+            .shatter-ring {
+                position: absolute;
+                top: 50%; left: 50%;
+                transform: translate(-50%, -50%);
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                border: 3px solid #ff3344;
+                box-shadow: 0 0 14px #ff2233;
+                animation: shatterRingAnim 0.32s ease-out forwards;
+            }
+            .shatter-shard {
+                position: absolute;
+                top: 50%; left: 50%;
+                width: 9px;
+                height: 9px;
+                background: linear-gradient(135deg, #ff4d4d, #b91c1c);
+                border: 1px solid #ffffff;
+                border-radius: 2px;
+                box-shadow: 0 0 8px rgba(255, 50, 50, 0.8);
+            }
+            .shatter-shard.s1 { animation: shardFly1 0.35s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+            .shatter-shard.s2 { animation: shardFly2 0.35s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+            .shatter-shard.s3 { animation: shardFly3 0.35s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+            .shatter-shard.s4 { animation: shardFly4 0.35s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+            .shatter-shard.s5 { animation: shardFly5 0.35s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+            .shatter-shard.s6 { animation: shardFly6 0.35s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+
+            @keyframes shatterFlashAnim {
+                0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+                100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+            }
+            @keyframes shatterRingAnim {
+                0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+                100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; }
+            }
+            @keyframes shardFly1 { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-42px, -36px) rotate(140deg) scale(0.2); opacity: 0; } }
+            @keyframes shardFly2 { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(45px, -32px) rotate(-160deg) scale(0.2); opacity: 0; } }
+            @keyframes shardFly3 { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-50px, 16px) rotate(220deg) scale(0.2); opacity: 0; } }
+            @keyframes shardFly4 { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(48px, 20px) rotate(-240deg) scale(0.2); opacity: 0; } }
+            @keyframes shardFly5 { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-14px, -55px) rotate(80deg) scale(0.2); opacity: 0; } }
+            @keyframes shardFly6 { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(18px, 45px) rotate(-110deg) scale(0.2); opacity: 0; } }
             .subway-top-timer-wrap .timer-icon {
                 font-size: 14px;
             }
