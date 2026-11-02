@@ -798,17 +798,17 @@
         const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 26));
         if (freeGroundLanes.length === 0) return;
 
-        // 7 Obstacle Formations:
-        // 0: Caçamba de Ferro 3D (alinhada no nível do solo y=0) + moeda vermelha
-        // 1: Dupla Caçamba nos cantos (-20 e 20) com centro livre
-        // 2: Paredão de moedas com 1 brecha
-        // 3: Pulo Obrigatório (low coin barrier, must jump)
-        // 4: Rolamento Obrigatório (high bar, must roll)
-        // 5: Zig-zag Slalom (3 moedas alternadas)
-        // 6: Moeda Móvel Oscilante (desliza de um lado pro outro entre as pistas)
-        const pattern = Math.floor(Math.random() * 7);
+        // Formações de Obstáculos com alta probabilidade para Caçamba de Ferro:
+        // 0, 1, 7: Caçamba 3D individual (pista livre) + moeda vermelha
+        // 2: Dupla Caçamba nos cantos (-20 e 20) com centro livre
+        // 3: Paredão de moedas com 1 brecha
+        // 4: Pulo Obrigatório (low coin barrier, must jump)
+        // 5: Rolamento Obrigatório (high bar, must roll)
+        // 6: Zig-zag Slalom (3 moedas alternadas)
+        // 8: Moeda Móvel Oscilante (desliza de um lado pro outro)
+        const pattern = Math.floor(Math.random() * 9);
 
-        if (pattern === 0) {
+        if (pattern === 0 || pattern === 1 || pattern === 7) {
             // Caçamba 3D no chão (y = 0)
             const dLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const d = createObstacle3D('dumpster', dLane, 0, centerZ);
@@ -820,7 +820,7 @@
                 const c = createObstacle3D('coin', cLane, 6, centerZ);
                 if (c) customObstacles.push(c);
             }
-        } else if (pattern === 1) {
+        } else if (pattern === 2) {
             // Dupla caçamba nos cantos (-20 e 20) com centro livre
             if (!isPositionBlocked(-20, 0, centerZ, 26) && !isPositionBlocked(20, 0, centerZ, 26) && !isPositionBlocked(0, 0, centerZ, 26)) {
                 const d1 = createObstacle3D('dumpster', -20, 0, centerZ);
@@ -828,7 +828,7 @@
                 if (d1) customObstacles.push(d1);
                 if (d2) customObstacles.push(d2);
             }
-        } else if (pattern === 2) {
+        } else if (pattern === 3) {
             // Paredão com 1 brecha
             if (freeGroundLanes.length > 1) {
                 const openLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
@@ -839,20 +839,20 @@
                     }
                 });
             }
-        } else if (pattern === 3) {
+        } else if (pattern === 4) {
             // Pulo Obrigatório
             freeGroundLanes.forEach(lx => {
                 const c = createObstacle3D('coin', lx, 5, centerZ);
                 if (c) customObstacles.push(c);
             });
-        } else if (pattern === 4) {
+        } else if (pattern === 5) {
             // Rolamento Obrigatório
             const freeHigh = lanes.filter(lx => !isPositionBlocked(lx, 26, centerZ));
             freeHigh.forEach(lx => {
                 const c = createObstacle3D('coin', lx, 26, centerZ);
                 if (c) customObstacles.push(c);
             });
-        } else if (pattern === 5) {
+        } else if (pattern === 6) {
             // Zig-zag Slalom
             const order = [-20, 0, 20];
             if (Math.random() > 0.5) order.reverse();
@@ -863,7 +863,7 @@
                     if (c) customObstacles.push(c);
                 }
             });
-        } else if (pattern === 6) {
+        } else if (pattern === 8) {
             // Moeda Móvel Oscilante (vai de -20 a +20 continuamente)
             const c = createObstacle3D('coin', 0, 6, centerZ, {
                 isOscillating: true,
