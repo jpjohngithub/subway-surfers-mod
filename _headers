@@ -1,2 +1,12 @@
-/*
-  X-Netlify-Collaborative: false
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+/bundles/*
+  Cache-Control: public, max-age=31536000, immutable
+/patch/*
+  Cache-Control: public, max-age=31536000, immutable
+/js/*
+  Cache-Control: public, max-age=31536000, immutable
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+/
+  Cache-Control: public, max-age=0, must-revalidate

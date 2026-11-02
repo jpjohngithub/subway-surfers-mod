@@ -68,7 +68,18 @@
     // ==========================================
     // 2. STATE MANAGEMENT
     // ==========================================
-    window.UNLIMITED_MODE = localStorage.getItem('subway_unlimited_mode') !== 'false'; // Default true
+    window.UNLIMITED_MODE = localStorage.getItem('subway_unlimited_v2') === 'true'; // Default OFF
+    function resetUnlimitedStorage() {
+        try {
+            const gs = JSON.parse(localStorage.getItem('gameSettings') || '{}');
+            if (gs.currencies && gs.currencies.coins >= 999999999) {
+                gs.currencies = { coins: 0, keys: 0 };
+                localStorage.setItem('gameSettings', JSON.stringify(gs));
+                localStorage.removeItem('shopSettings');
+            }
+        } catch(e) {}
+    }
+    if (!window.UNLIMITED_MODE) resetUnlimitedStorage();
     window.GAME_MODE = localStorage.getItem('subway_game_mode') || 'normal'; // 'normal' | 'nocoin'
     window.NO_COIN_MODE = (window.GAME_MODE === 'nocoin');
 
@@ -76,6 +87,8 @@
     let runStartTime = 0;
     let runElapsedTime = 0;
     let isRunActive = false;
+    let deathFrozen = false;
+    let frozenAt = 0;
 
     // Local profile
     let myProfile = JSON.parse(localStorage.getItem('subway_surfers_profile') || 'null');
@@ -100,7 +113,7 @@
         mqtt: null,
         broadcast: null,
         roomId: 'room_' + myProfile.id,
-        currentRoomTopic: null,
+        currentRoomTopic: 'subwaysurf/room/room_' + myProfile.id,
         party: [{ ...myProfile, ready: false, isLeader: true }],
         isPartyLeader: true,
         isReady: false,
@@ -413,6 +426,7 @@
     function startRunTimer() {
         if (isRunActive) return;
         isRunActive = true;
+        deathFrozen = false;
         runStartTime = performance.now();
         runElapsedTime = 0;
         window.__dashSpeedMult = 1.0;
@@ -427,13 +441,22 @@
         const timerWrap = document.getElementById('subway-top-timer-wrap');
         const timerVal = document.getElementById('subway-top-timer-val');
         updateModeBadgeUI();
+        document.body.classList.add('sw-in-run');
+        try { showWorldTourBanner(window.CURRENT_MAP); } catch(e){}
         if (timerWrap) timerWrap.style.display = 'flex';
         if (timerVal) timerVal.textContent = '00:00.00';
 
         clearInterval(runTimerInterval);
         runTimerInterval = setInterval(() => {
-            if (isRunActive) {
+            if (isRunActive && !deathFrozen) {
                 runElapsedTime = performance.now() - runStartTime;
+            } else if (isRunActive && deathFrozen) {
+                try {
+                    const pl = window.game && window.game.hero && window.game.hero.player;
+                    if (pl && !pl.dead) { runStartTime += performance.now() - frozenAt; deathFrozen = false; }
+                } catch (e) {}
+            }
+            if (isRunActive && !deathFrozen) {
                 if (timerVal) {
                     timerVal.textContent = formatTime(runElapsedTime);
                 }
@@ -447,16 +470,17 @@
     function stopRunTimer() {
         if (!isRunActive) return;
         isRunActive = false;
+        document.body.classList.remove('sw-in-run');
         if (!MP.inMatch) {
             clearInterval(runTimerInterval);
         }
-        runElapsedTime = performance.now() - runStartTime;
+        if (!deathFrozen) runElapsedTime = performance.now() - runStartTime;
 
         const timeStr = formatTime(runElapsedTime);
         const timerVal = document.getElementById('subway-top-timer-val');
         if (timerVal) timerVal.textContent = timeStr;
 
-        saveRecord({
+        if (!MP.inMatch) saveRecord({
             date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5),
             mode: window.NO_COIN_MODE ? 'No Coin' : 'Normal',
             timeMs: runElapsedTime,
@@ -470,6 +494,7 @@
     }
 
     function hideRunTimer() {
+        document.body.classList.remove('sw-in-run');
         isRunActive = false;
         clearInterval(runTimerInterval);
         const timerWrap = document.getElementById('subway-top-timer-wrap');
@@ -488,6 +513,16 @@
     // Game lifecycle hooks from patched dependencies.bundle.js
     window.__onGameRun = function() {
         startRunTimer();
+    };
+    window.__onHeroDeath = function() {
+        try {
+            if (isRunActive && !deathFrozen) {
+                deathFrozen = true;
+                frozenAt = performance.now();
+                runElapsedTime = frozenAt - runStartTime;
+            }
+            if (MP.inMatch && MPX.roundActive) handleLocalMultiplayerDeath(runElapsedTime);
+        } catch (e) {}
     };
     window.__onGameOver = function() {
         stopRunTimer();
@@ -575,6 +610,7 @@
     }
 
     function sendGlobalMessage(topic, msg) {
+        msg.mid = msg.mid || (Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
         if (MP.broadcast) {
             try { MP.broadcast.postMessage({ topic: topic, ...msg }); } catch(e) {}
         }
@@ -590,6 +626,12 @@
 
     function handleNetworkMessage(msg) {
         if (!msg || !msg.type) return;
+
+        if (msg.mid) {
+            if (MPX.seen.has(msg.mid)) return;
+            MPX.seen.add(msg.mid);
+            if (MPX.seen.size > 600) MPX.seen.clear();
+        }
 
         // Ignore messages from self
         if (msg.sender && msg.sender.id === myProfile.id) return;
@@ -610,17 +652,26 @@
             case 'party_ready':
                 handlePartyReady(msg);
                 break;
-            case 'match_start':
-                handleMatchStart(msg);
+            case 'party_leave':
+                handlePartyLeave(msg);
                 break;
-            case 'runner_pos':
-                handleRunnerPos(msg);
+            case 'hb':
+                handleHeartbeat(msg);
+                break;
+            case 'round_start':
+                if (!MP.isPartyLeader) handleRoundStart(msg);
+                break;
+            case 'round_end':
+                if (!MP.isPartyLeader) handleRoundEnd(msg);
+                break;
+            case 'tick':
+                handleTick(msg);
                 break;
             case 'player_death':
                 handlePlayerDeath(msg);
                 break;
-            case 'match_end':
-                handleMatchEnd(msg);
+            case 'party_leave_ack':
+                if (msg.full) { showHUDNotification('Grupo cheio.'); leaveToOwnRoom(); }
                 break;
         }
     }
@@ -673,17 +724,33 @@
         setTimeout(() => { if (pop.parentNode) pop.remove(); }, 12000);
     }
 
+    const MPX = { round: 0, totalRounds: 3, totals: {}, live: {}, dead: {}, lastTick: {}, roundActive: false, lastSeen: {}, myRseq: 0, endedRound: 0, seen: new Set(), botTimer: null, botPlan: {}, suppressTimer: null, interTimer: null, autoTimer: null, lastTickSent: 0, lastHostMsg: Date.now(), goAt: 0 };
+    const isBot = id => String(id).startsWith('bot_');
+
+    function leaveToOwnRoom() {
+        MP.roomId = 'room_' + myProfile.id;
+        MP.currentRoomTopic = 'subwaysurf/room/' + MP.roomId;
+        MP.hostId = null;
+        MP.isPartyLeader = true;
+        MP.isReady = false;
+        MP.party = [{ ...myProfile, ready: false, isLeader: true, rseq: 0 }];
+        MPX.myRseq = 0;
+        if (MP.mqtt && MP.mqtt.connected) MP.mqtt.subscribe(MP.currentRoomTopic);
+        renderPartySlots();
+    }
+
     function acceptInvite(host, roomId) {
         MP.roomId = roomId;
+        MP.hostId = host.id;
         MP.isPartyLeader = false;
         MP.isReady = false;
+        MPX.myRseq = 0;
+        MPX.lastHostMsg = Date.now();
         MP.currentRoomTopic = 'subwaysurf/room/' + roomId;
+        MP.party = [{ ...myProfile, ready: false, isLeader: false, rseq: 0 }];
 
-        if (MP.mqtt && MP.mqtt.connected) {
-            MP.mqtt.subscribe(MP.currentRoomTopic);
-        }
+        if (MP.mqtt && MP.mqtt.connected) MP.mqtt.subscribe(MP.currentRoomTopic);
 
-        // Notify host
         sendGlobalMessage('subwaysurf/player/' + host.id, {
             type: 'invite_response',
             sender: myProfile,
@@ -699,16 +766,13 @@
         if (!MP.isPartyLeader) return;
         const player = msg.sender;
         if (msg.accepted) {
-            if (MP.party.length < 4 && !MP.party.some(p => p.id === player.id)) {
-                MP.party.push({
-                    id: player.id,
-                    nick: player.nick,
-                    avatar: player.avatar,
-                    ready: false,
-                    isLeader: false
-                });
+            if (!MP.inMatch && MP.party.length < 4 && !MP.party.some(p => p.id === player.id)) {
+                MP.party.push({ id: player.id, nick: player.nick, avatar: player.avatar, ready: false, isLeader: false, rseq: 0 });
+                MPX.lastSeen[player.id] = Date.now();
                 syncPartyToAll();
                 showHUDNotification('🎉 ' + player.nick + ' entrou no grupo!');
+            } else if (MP.party.length >= 4) {
+                sendGlobalMessage('subwaysurf/player/' + player.id, { type: 'party_leave_ack', sender: myProfile, full: true });
             }
         } else {
             showHUDNotification('❌ ' + player.nick + ' recusou o convite.');
@@ -717,76 +781,137 @@
     }
 
     function syncPartyToAll() {
-        sendRoomMessage({
-            type: 'party_sync',
-            sender: myProfile,
-            party: MP.party
-        });
+        sendRoomMessage({ type: 'party_sync', sender: myProfile, party: MP.party, inMatch: MP.inMatch });
     }
 
     function handlePartySync(msg) {
-        if (msg.party && Array.isArray(msg.party)) {
-            MP.party = msg.party;
-            const me = MP.party.find(p => p.id === myProfile.id);
-            if (me) {
-                MP.isReady = !!me.ready;
-                MP.isPartyLeader = !!me.isLeader;
-            }
-            renderPartySlots();
-        }
+        if (MP.isPartyLeader || !Array.isArray(msg.party)) return;
+        MPX.lastHostMsg = Date.now();
+        const mine = msg.party.find(p => p.id === myProfile.id);
+        if (!mine) { if (!MP.inMatch) { showHUDNotification('Você saiu do grupo.'); leaveToOwnRoom(); } return; }
+        if ((mine.rseq || 0) < MPX.myRseq) { mine.ready = MP.isReady; mine.rseq = MPX.myRseq; }
+        else MP.isReady = !!mine.ready;
+        MP.party = msg.party.map(p => ({ ...p }));
+        renderPartySlots();
+        if (MP.inMatch) renderTimeline();
     }
 
     function toggleReady() {
+        if (MP.inMatch) return;
         MP.isReady = !MP.isReady;
+        MPX.myRseq++;
         const me = MP.party.find(p => p.id === myProfile.id);
-        if (me) me.ready = MP.isReady;
-
-        sendRoomMessage({
-            type: 'party_ready',
-            sender: myProfile,
-            ready: MP.isReady
-        });
-
+        if (me) { me.ready = MP.isReady; me.rseq = MPX.myRseq; }
+        if (MP.isPartyLeader) {
+            syncPartyToAll();
+            maybeAutoStart();
+        } else {
+            sendRoomMessage({ type: 'party_ready', sender: myProfile, ready: MP.isReady, rseq: MPX.myRseq });
+        }
         renderPartySlots();
     }
 
     function handlePartyReady(msg) {
+        if (!MP.isPartyLeader || MP.inMatch) return;
         const player = MP.party.find(p => p.id === msg.sender.id);
         if (player) {
             player.ready = !!msg.ready;
+            player.rseq = msg.rseq || 0;
+            MPX.lastSeen[player.id] = Date.now();
+            syncPartyToAll();
             renderPartySlots();
+            maybeAutoStart();
         }
     }
+
+    function handlePartyLeave(msg) {
+        if (!MP.isPartyLeader || MP.inMatch) return;
+        MP.party = MP.party.filter(p => p.id !== msg.sender.id);
+        syncPartyToAll();
+        renderPartySlots();
+    }
+
+    window.__leaveParty = function() {
+        if (MP.isPartyLeader || MP.inMatch) return;
+        sendRoomMessage({ type: 'party_leave', sender: myProfile });
+        leaveToOwnRoom();
+    };
+
+    function handleHeartbeat(msg) {
+        MPX.lastSeen[msg.sender.id] = Date.now();
+    }
+
+    function lobbyHeartbeat() {
+        if (MP.inMatch) return;
+        if (MP.isPartyLeader) {
+            const now = Date.now();
+            const before = MP.party.length;
+            MP.party = MP.party.filter(p => p.isLeader || isBot(p.id) || p.id === myProfile.id || (now - (MPX.lastSeen[p.id] || now)) < 9000);
+            if (MP.party.length > 1 || before !== MP.party.length) { syncPartyToAll(); renderPartySlots(); }
+        } else {
+            sendRoomMessage({ type: 'hb', sender: myProfile });
+            if (Date.now() - MPX.lastHostMsg > 14000) { showHUDNotification('Conexão com o líder perdida.'); leaveToOwnRoom(); }
+        }
+    }
+    setInterval(lobbyHeartbeat, 2000);
 
     function checkCanStartMatch() {
         if (MP.party.length < 2) return false;
         return MP.party.every(p => p.ready === true);
     }
 
+    function maybeAutoStart() {
+        if (!MP.isPartyLeader || MP.inMatch) return;
+        clearTimeout(MPX.autoTimer);
+        if (!checkCanStartMatch()) return;
+        MPX.autoTimer = setTimeout(() => { if (MP.isPartyLeader && !MP.inMatch && checkCanStartMatch()) startSeries(); }, 1200);
+    }
+
     function requestStartMatch() {
+        if (!MP.isPartyLeader) { alert('Apenas o líder do grupo pode iniciar. Dê PRONTO e aguarde!'); return; }
         if (!checkCanStartMatch()) {
             alert('Atenção: Todos os membros do grupo (2 a 4) devem dar PRONTO antes de iniciar!');
             return;
         }
+        startSeries();
+    }
 
-        sendRoomMessage({
-            type: 'match_start',
+    // ---------- Series / Rounds (host authoritative) ----------
+    function startSeries() {
+        clearTimeout(MPX.autoTimer);
+        MPX.totals = {};
+        MP.party.forEach(p => { MPX.totals[p.id] = 0; });
+        MPX.round = 0;
+        MPX.endedRound = 0;
+        hostBeginRound();
+    }
+
+    function hostBeginRound() {
+        MPX.round += 1;
+        const msg = {
+            type: 'round_start',
             sender: myProfile,
-            party: MP.party
-        });
-
-        startMultiplayerMatchCountdown();
+            party: MP.party,
+            round: MPX.round,
+            totalRounds: MPX.totalRounds,
+            totals: MPX.totals,
+            delay: 3
+        };
+        sendRoomMessage(msg);
+        handleRoundStart(msg);
     }
 
-    function handleMatchStart(msg) {
-        if (msg.party) MP.party = msg.party;
-        startMultiplayerMatchCountdown();
-    }
+    function handleRoundStart(msg) {
+        if (!MP.isPartyLeader && msg.party) MP.party = msg.party.map(p => ({ ...p }));
+        MPX.round = msg.round;
+        MPX.totalRounds = msg.totalRounds || 3;
+        MPX.totals = msg.totals || {};
+        MPX.live = {};
+        MPX.dead = {};
+        MPX.lastTick = {};
+        MPX.roundActive = false;
+        MPX.endedRound = MPX.round - 1;
 
-    let matchStartTimestamp = 0;
-
-    function startMultiplayerMatchCountdown() {
-        // Enforce No Coin Mode for online match!
         window.GAME_MODE = 'nocoin';
         window.NO_COIN_MODE = true;
         localStorage.setItem('subway_game_mode', 'nocoin');
@@ -794,366 +919,338 @@
 
         MP.active = true;
         MP.inMatch = true;
-        MP.aliveCount = MP.party.length;
-        MP.placement = [];
-        MP.spectatingId = null;
-        MP.playersState.clear();
-
-        // Initialize state for all party members
-        const lanes = [-20, 0, 20];
-        MP.party.forEach((p, idx) => {
-            if (p.id !== myProfile.id) {
-                MP.playersState.set(p.id, {
-                    id: p.id,
-                    nick: p.nick,
-                    avatar: p.avatar,
-                    x: lanes[idx % 3],
-                    targetX: lanes[idx % 3],
-                    y: 5.5,
-                    z: 0,
-                    alive: true,
-                    time: 0,
-                    isBot: String(p.id).startsWith('bot_'),
-                    surviveLimitMs: 14000 + Math.floor(Math.random() * 22000) + idx * 5000,
-                    nextMoveAt: Date.now() + 800 + idx * 300,
-                    updated: Date.now()
-                });
-            }
-        });
-
-        // Close menu/modal
         closeUnifiedModal();
+        removeEl('subway-interlude');
+        removeEl('subway-wait-hud');
+        removeEl('subway-final-banner');
+        suppressRevive(false);
+        showTimeline();
+        renderTimeline();
 
-        // 3... 2... 1... Countdown overlay
-        const overlay = document.createElement('div');
-        overlay.className = 'subway-countdown-overlay';
-        overlay.innerHTML = '<div class="countdown-num" id="cd-num">3</div><div class="countdown-sub">MODO NO COIN ONLINE - ÚLTIMO SOBREVIVENTE VENCE!</div>';
-        document.body.appendChild(overlay);
+        runCountdown(msg.delay || 3, 'RODADA ' + MPX.round + ' / ' + MPX.totalRounds + ' — VALENDO!', () => {
+            try { if (window.app && window.app.user) window.app.user.tutorial = true; } catch (e) {}
+            MPX.roundActive = true;
+            MPX.goAt = Date.now();
+            try { window.app.nav.toGame(); } catch (e) {}
+            if (MP.isPartyLeader) hostStartBots();
+        });
+    }
 
-        let count = 3;
-        const cdTimer = setInterval(() => {
-            count--;
-            const numEl = document.getElementById('cd-num');
-            if (count > 0) {
-                if (numEl) numEl.textContent = count;
-            } else if (count === 0) {
-                if (numEl) numEl.textContent = 'VALENDO!';
+    function removeEl(id) { const e = document.getElementById(id); if (e) e.remove(); }
+
+    function runCountdown(seconds, label, done) {
+        removeEl('subway-cd-overlay');
+        const ov = document.createElement('div');
+        ov.className = 'subway-countdown-overlay';
+        ov.id = 'subway-cd-overlay';
+        ov.innerHTML = `<div class="countdown-num" id="cd-num">${seconds}</div><div class="countdown-sub">${label}</div>`;
+        document.body.appendChild(ov);
+        let c = seconds;
+        const tm = setInterval(() => {
+            c--;
+            const n = document.getElementById('cd-num');
+            if (c > 0) {
+                if (n) { n.textContent = c; n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; }
             } else {
-                clearInterval(cdTimer);
-                overlay.remove();
-                matchStartTimestamp = performance.now();
-
-                try {
-                    if (window.app && window.app.user) window.app.user.tutorial = true;
-                    if (window.game && window.game.tutorial) window.game.tutorial.enabled = false;
-                    if (window.app && window.app.nav && window.app.nav.toGame) {
-                        window.app.nav.toGame();
-                    } else if (window.game && window.game.run) {
-                        window.game.run();
-                    }
-                } catch(e) {}
-
-                startRunTimer();
-                showLivePlacementHUD();
-                updateGhostRunnersUI();
+                clearInterval(tm);
+                ov.remove();
+                done();
             }
-        }, 900);
+        }, 1000);
     }
 
-    // Runner Sync & 3D Ghost Rendering
-    function sendMultiplayerRunnerSync() {
-        const now = Date.now();
-        const matchElapsed = matchStartTimestamp ? (performance.now() - matchStartTimestamp) : runElapsedTime;
-
-        if (window.game && window.game.hero && isRunActive) {
-            const hero = window.game.hero;
-            const bx = hero.body ? hero.body.x : (hero.x || 0);
-            const by = hero.body ? hero.body.y : (hero.y || 5.5);
-            const bz = hero.body ? hero.body.z : (hero.z || 0);
-            const data = {
-                type: 'runner_pos',
-                sender: myProfile,
-                x: bx,
-                y: by,
-                z: bz,
-                alive: isRunActive,
-                time: runElapsedTime
-            };
-            sendRoomMessage(data);
-        }
-
-        // Update AI/simulated online runners if any bot_* is in the party
-        const lanes = [-20, 0, 20];
-        MP.playersState.forEach((state, id) => {
-            if (!state.isBot || !state.alive) return;
-            state.time = matchElapsed;
-            if (now >= state.nextMoveAt) {
-                state.targetX = lanes[Math.floor(Math.random() * lanes.length)];
-                if (Math.random() < 0.32) {
-                    state.jumpUntil = now + 520;
+    // Bots (solo testing) simulated by the host
+    function hostStartBots() {
+        clearInterval(MPX.botTimer);
+        const t0 = performance.now();
+        MPX.botPlan = {};
+        MP.party.forEach(p => { if (isBot(p.id)) MPX.botPlan[p.id] = 9000 + Math.random() * 30000; });
+        if (!Object.keys(MPX.botPlan).length) return;
+        MPX.botTimer = setInterval(() => {
+            if (!MPX.roundActive) { clearInterval(MPX.botTimer); return; }
+            const t = performance.now() - t0;
+            Object.keys(MPX.botPlan).forEach(id => {
+                if (MPX.dead[id] !== undefined) return;
+                const p = MP.party.find(x => x.id === id);
+                if (!p) return;
+                const sender = { id: p.id, nick: p.nick, avatar: p.avatar };
+                if (t >= MPX.botPlan[id]) {
+                    const m = { type: 'player_death', sender, timeMs: MPX.botPlan[id], round: MPX.round };
+                    sendRoomMessage(m);
+                    handlePlayerDeath(m);
+                } else {
+                    MPX.live[id] = t;
+                    MPX.lastTick[id] = Date.now();
+                    sendRoomMessage({ type: 'tick', sender, t, round: MPX.round });
                 }
-                state.nextMoveAt = now + 650 + Math.floor(Math.random() * 900);
-            }
-            state.x += (state.targetX - state.x) * 0.25;
-            state.y = (state.jumpUntil && now < state.jumpUntil) ? 16 : 5.5;
-            state.z = (window.game && window.game.hero && window.game.hero.body) ? (window.game.hero.body.z - 12) : (-matchElapsed * 0.08);
-
-            if (matchElapsed >= state.surviveLimitMs) {
-                state.alive = false;
-                handlePlayerDeath({
-                    sender: { id: id, nick: state.nick, avatar: state.avatar },
-                    timeMs: matchElapsed
-                });
-            }
-        });
-
-        // If local player is spectating an alive player, keep SaveMe/GameOver closed and follow them
-        if (!isRunActive && MP.spectatingId && window.app) {
-            try {
-                if (window.app.saveme && window.app.saveme.close) window.app.saveme.close();
-                if (window.app.gameover && window.app.gameover.close) window.app.gameover.close();
-                if (window.app.highScoreScreen && window.app.highScoreScreen.close) window.app.highScoreScreen.close();
-            } catch(e) {}
-        }
-
-        updateGhostRunnersUI();
-        updateLivePlacementHUD();
+            });
+            renderTimeline();
+        }, 250);
     }
 
-    function handleRunnerPos(msg) {
-        if (!MP.inMatch || !msg.sender) return;
-        MP.playersState.set(msg.sender.id, {
-            id: msg.sender.id,
-            nick: msg.sender.nick,
-            avatar: msg.sender.avatar,
-            x: msg.x,
-            y: msg.y,
-            z: msg.z,
-            alive: msg.alive,
-            time: msg.time,
-            updated: Date.now()
-        });
-        updateGhostRunnersUI();
-        updateLivePlacementHUD();
+    // Tick sender (called from run timer interval)
+    function sendMultiplayerRunnerSync() {
+        if (!MP.inMatch || !MPX.roundActive || !isRunActive) return;
+        const now = performance.now();
+        if (now - (MPX.lastTickSent || 0) < 250) return;
+        MPX.lastTickSent = now;
+        if (MPX.dead[myProfile.id] !== undefined) return;
+        MPX.live[myProfile.id] = runElapsedTime;
+        sendRoomMessage({ type: 'tick', sender: myProfile, t: runElapsedTime, round: MPX.round });
+        renderTimeline();
     }
 
-    function updateGhostRunnersUI() {
-        let container = document.getElementById('subway-ghost-runners');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'subway-ghost-runners';
-            container.className = 'subway-ghost-container';
-            document.body.appendChild(container);
-        }
-        if (!MP.inMatch) {
-            container.innerHTML = '';
-            return;
-        }
-
-        let html = '';
-        MP.playersState.forEach((state, id) => {
-            if (id === myProfile.id || !state.alive) return;
-            const laneOffsetPx = (state.x || 0) * 6.5;
-            const jumpOffsetPx = Math.max(0, ((state.y || 5.5) - 5.5) * 4.5);
-            const isSpectated = (MP.spectatingId === id);
-            html += `
-                <div class="ghost-runner-wrap ${isSpectated ? 'ghost-spectated' : ''}" style="left: calc(50% + ${laneOffsetPx}px); top: calc(64% - ${jumpOffsetPx}px);">
-                    <div class="ghost-tag">
-                        <img class="gt-avatar" src="${state.avatar}" />
-                        <span class="gt-nick">${state.nick}</span>
-                    </div>
-                    <div class="ghost-figure">
-                        <div class="ghost-head"></div>
-                        <div class="ghost-body"></div>
-                        <div class="ghost-shadow"></div>
-                    </div>
-                </div>
-            `;
-        });
-        container.innerHTML = html;
+    function handleTick(msg) {
+        if (!MP.inMatch || msg.round !== MPX.round) return;
+        const id = msg.sender.id;
+        if (MPX.dead[id] !== undefined) return;
+        MPX.live[id] = msg.t;
+        MPX.lastTick[id] = Date.now();
+        renderTimeline();
     }
 
     function handleLocalMultiplayerDeath(timeMs) {
-        if (MP.placement.some(d => d.id === myProfile.id)) return;
-        sendRoomMessage({
-            type: 'player_death',
-            sender: myProfile,
-            timeMs: timeMs
-        });
-        MP.placement.push({ ...myProfile, alive: false, timeMs: timeMs });
-        checkMultiplayerWinnerOrSpectate();
+        if (!MP.inMatch || !MPX.roundActive || MPX.dead[myProfile.id] !== undefined) return;
+        MPX.dead[myProfile.id] = timeMs;
+        MPX.live[myProfile.id] = timeMs;
+        sendRoomMessage({ type: 'player_death', sender: myProfile, timeMs: timeMs, round: MPX.round });
+        suppressRevive(true);
+        showWaitHUD();
+        renderTimeline();
+        hostCheckRoundEnd();
     }
 
     function handlePlayerDeath(msg) {
-        const deadPlayer = msg.sender;
-        if (!deadPlayer || MP.placement.some(d => d.id === deadPlayer.id)) return;
-        MP.placement.push({ ...deadPlayer, alive: false, timeMs: msg.timeMs });
-        checkMultiplayerWinnerOrSpectate();
-        updateLivePlacementHUD();
+        if (!MP.inMatch || msg.round !== MPX.round || !msg.sender) return;
+        if (MPX.dead[msg.sender.id] !== undefined) return;
+        MPX.dead[msg.sender.id] = msg.timeMs;
+        MPX.live[msg.sender.id] = msg.timeMs;
+        renderTimeline();
+        hostCheckRoundEnd();
     }
 
-    function checkMultiplayerWinnerOrSpectate() {
-        const aliveRemaining = MP.party.filter(p => !MP.placement.some(d => d.id === p.id));
-        if (aliveRemaining.length <= 1) {
-            const winner = aliveRemaining[0] || MP.placement[MP.placement.length - 1] || myProfile;
-            sendRoomMessage({
-                type: 'match_end',
-                winner: winner,
-                placement: MP.placement
-            });
-            showWinnerCelebration(winner);
-        } else if (!isRunActive) {
-            enterSpectatorMode();
-        }
-        updateLivePlacementHUD();
+    function suppressRevive(on) {
+        clearInterval(MPX.suppressTimer);
+        if (!on) return;
+        MPX.suppressTimer = setInterval(() => {
+            try {
+                ['saveme', 'gameover'].forEach(k => {
+                    const s = window.app && window.app[k];
+                    if (s && s.opened && s.close) s.close();
+                });
+            } catch (e) {}
+        }, 100);
     }
 
-    function handleMatchEnd(msg) {
-        if (msg.winner) {
-            showWinnerCelebration(msg.winner);
-        }
+    function showWaitHUD() {
+        if (document.getElementById('subway-wait-hud')) return;
+        const h = document.createElement('div');
+        h.id = 'subway-wait-hud';
+        h.className = 'subway-spectator-hud';
+        h.innerHTML = '<span class="spec-live-dot">●</span> Você caiu! Acompanhe a linha do tempo — aguardando os outros...';
+        document.body.appendChild(h);
     }
 
-    function showWinnerCelebration(winner) {
-        if (!MP.inMatch) return;
-        MP.inMatch = false;
-        clearInterval(runTimerInterval);
+    // Host: decide when a round is over (≤1 alive) and drop disconnected players
+    function hostCheckRoundEnd() {
+        if (!MP.isPartyLeader || !MP.inMatch || !MPX.roundActive || MPX.endedRound === MPX.round) return;
+        const alive = MP.party.filter(p => MPX.dead[p.id] === undefined);
+        if (alive.length <= 1) hostEndRound(alive[0]);
+    }
 
-        // Build full placement order from last place to 1st place and save in records
-        const rankedAsc = MP.placement.filter(p => p.id !== winner.id);
-        rankedAsc.push({ ...winner, alive: true, timeMs: runElapsedTime });
-        const total = rankedAsc.length;
-        const placementLine = rankedAsc.map((p, i) => `${total - i}º ${p.nick}`).join(' ➔ ');
+    function hostWatchdog() {
+        if (!MP.isPartyLeader || !MP.inMatch || !MPX.roundActive) return;
+        const now = Date.now();
+        MP.party.forEach(p => {
+            if (MPX.dead[p.id] !== undefined || isBot(p.id) || p.id === myProfile.id) return;
+            const last = MPX.lastTick[p.id] || MPX.goAt + 15000;
+            if (now - last > 9000) {
+                const m = { type: 'player_death', sender: { id: p.id, nick: p.nick, avatar: p.avatar }, timeMs: MPX.live[p.id] || 0, round: MPX.round };
+                sendRoomMessage(m);
+                handlePlayerDeath(m);
+            }
+        });
+    }
+    setInterval(hostWatchdog, 1500);
 
+    function hostEndRound(winnerP) {
+        if (MPX.endedRound === MPX.round) return;
+        const results = {};
+        MP.party.forEach(p => { results[p.id] = MPX.dead[p.id] !== undefined ? MPX.dead[p.id] : (MPX.live[p.id] || 0); });
+        let winnerId = winnerP ? winnerP.id : null;
+        if (!winnerId) winnerId = Object.keys(results).sort((a, b) => results[b] - results[a])[0];
+        const maxT = Math.max.apply(null, Object.keys(results).map(k => results[k]));
+        if (winnerP) results[winnerP.id] = Math.max(results[winnerP.id], maxT);
+        const totals = { ...MPX.totals };
+        MP.party.forEach(p => { totals[p.id] = (totals[p.id] || 0) + results[p.id]; });
+        const msg = {
+            type: 'round_end', sender: myProfile, round: MPX.round, results, totals,
+            winnerId, final: MPX.round >= MPX.totalRounds, delay: MPX.round >= MPX.totalRounds ? 12 : 8,
+            party: MP.party
+        };
+        sendRoomMessage(msg);
+        handleRoundEnd(msg);
+    }
+
+    function handleRoundEnd(msg) {
+        if (!MP.inMatch || MPX.endedRound === msg.round) return;
+        MPX.endedRound = msg.round;
+        MPX.roundActive = false;
+        MPX.totals = msg.totals || MPX.totals;
+        if (msg.party && !MP.isPartyLeader) MP.party = msg.party.map(p => ({ ...p }));
+        clearInterval(MPX.botTimer);
+        suppressRevive(false);
+        removeEl('subway-wait-hud');
+
+        const nameOf = id => { const p = MP.party.find(x => x.id === id); return p ? p.nick : id; };
+        const order = Object.keys(msg.results).sort((a, b) => msg.results[b] - msg.results[a]);
+        const line = order.map((id, i) => `${i + 1}º ${nameOf(id)}`).join(' ➔ ');
         saveRecord({
             date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5),
             mode: 'No Coin (Online)',
-            timeMs: runElapsedTime,
-            timeStr: formatTime(runElapsedTime),
-            nick: `🏆 1º ${winner.nick} (${placementLine})`
+            timeMs: msg.results[myProfile.id] || 0,
+            timeStr: formatTime(msg.results[myProfile.id] || 0),
+            nick: `R${msg.round}/${MPX.totalRounds} 🏆 ${nameOf(msg.winnerId)} (${line})`
         });
 
-        const banner = document.createElement('div');
-        banner.className = 'subway-winner-banner';
-        banner.innerHTML = `
-            <div class="winner-card">
-                <div class="winner-trophy">🏆</div>
-                <h2>VITÓRIA ONLINE!</h2>
-                <img class="winner-avatar" src="${winner.avatar}" />
-                <h3>${winner.nick}</h3>
-                <p>Último sobrevivente no Modo No Coin!</p>
-                <div style="margin-top:10px;font-size:12px;color:#90caf9;">${placementLine}</div>
-                <button class="btn-winner-close" onclick="this.closest('.subway-winner-banner').remove(); window.__openUnifiedMenu('records');">
-                    Ver Histórico e Recordes
-                </button>
-            </div>
-        `;
-        document.body.appendChild(banner);
-        hideSpectatorHUD();
-        hideLivePlacementHUD();
+        exitRunToTitle();
+        renderTimeline();
+        showInterlude(msg);
     }
 
-    function enterSpectatorMode() {
+    function exitRunToTitle() {
         try {
-            if (window.app && window.app.saveme && window.app.saveme.close) window.app.saveme.close();
-            if (window.app && window.app.gameover && window.app.gameover.close) window.app.gameover.close();
-        } catch(e) {}
-
-        const hud = document.getElementById('subway-spectator-hud') || document.createElement('div');
-        hud.id = 'subway-spectator-hud';
-        hud.className = 'subway-spectator-hud';
-        
-        const aliveOthers = MP.party.filter(p => p.id !== myProfile.id && !MP.placement.some(d => d.id === p.id));
-        if (aliveOthers.length === 0) return;
-        
-        MP.spectatingId = aliveOthers[0].id;
-        hud.innerHTML = `
-            <div class="spec-banner">
-                <span class="spec-live-dot">●</span> 
-                MODO ESPECTADOR: Assistindo <strong id="spec-target-nick">${aliveOthers[0].nick}</strong>
-            </div>
-            <div class="spec-controls">
-                <button id="btn-spec-prev">◀ Anterior</button>
-                <button id="btn-spec-next">Próximo ▶</button>
-            </div>
-        `;
-        document.body.appendChild(hud);
-
-        let specIdx = 0;
-        hud.querySelector('#btn-spec-next').onclick = () => {
-            specIdx = (specIdx + 1) % aliveOthers.length;
-            MP.spectatingId = aliveOthers[specIdx].id;
-            hud.querySelector('#spec-target-nick').textContent = aliveOthers[specIdx].nick;
-        };
-        hud.querySelector('#btn-spec-prev').onclick = () => {
-            specIdx = (specIdx - 1 + aliveOthers.length) % aliveOthers.length;
-            MP.spectatingId = aliveOthers[specIdx].id;
-            hud.querySelector('#spec-target-nick').textContent = aliveOthers[specIdx].nick;
-        };
+            ['saveme', 'gameover'].forEach(k => { const s = window.app && window.app[k]; if (s && s.close) s.close(); });
+        } catch (e) {}
+        hideRunTimer();
+        try { window.app.nav.toTitleScreen(); } catch (e) { try { window.app.nav.resetUi(); } catch (e2) {} }
     }
 
-    function hideSpectatorHUD() {
-        const hud = document.getElementById('subway-spectator-hud');
-        if (hud) hud.remove();
-        const ghosts = document.getElementById('subway-ghost-runners');
-        if (ghosts) ghosts.remove();
+    function showInterlude(msg) {
+        removeEl('subway-interlude');
+        const nameOf = id => { const p = MP.party.find(x => x.id === id); return p || { nick: id, avatar: DEFAULT_AVATARS[0].url }; };
+        const ranked = Object.keys(msg.totals).sort((a, b) => msg.totals[b] - msg.totals[a]);
+        const rows = ranked.map((id, i) => {
+            const p = nameOf(id);
+            return `<div class="il-row ${id === msg.winnerId ? 'il-win' : ''}">
+                <span class="il-pos">${i + 1}º</span>
+                <img class="il-av" src="${p.avatar}" />
+                <span class="il-nick">${p.nick}${id === myProfile.id ? ' (você)' : ''}</span>
+                <span class="il-r">${fmtS(msg.results[id] || 0)}${id === msg.winnerId ? ' 🏆' : ''}</span>
+                <span class="il-t">${fmtS(msg.totals[id] || 0)}</span>
+            </div>`;
+        }).join('');
+        const champ = nameOf(ranked[0]);
+        const box = document.createElement('div');
+        box.id = 'subway-interlude';
+        box.className = 'subway-interlude';
+        box.innerHTML = `
+            <div class="il-card">
+                <div class="il-title">${msg.final ? '🏆 CAMPEÃO: ' + champ.nick : 'Rodada ' + msg.round + '/' + MPX.totalRounds + ' concluída'}</div>
+                <div class="il-head"><span>#</span><span></span><span>Jogador</span><span>Rodada</span><span>Total</span></div>
+                ${rows}
+                <div class="il-count" id="il-count"></div>
+            </div>`;
+        document.body.appendChild(box);
+        let left = msg.delay || 8;
+        const upd = () => {
+            const el = document.getElementById('il-count');
+            if (el) el.textContent = msg.final ? `Voltando ao lobby em ${left}s...` : `Próxima rodada (${msg.round + 1}/${MPX.totalRounds}) começa em ${left}s...`;
+        };
+        upd();
+        clearInterval(MPX.interTimer);
+        MPX.interTimer = setInterval(() => {
+            left--;
+            if (left > 0) { upd(); return; }
+            clearInterval(MPX.interTimer);
+            removeEl('subway-interlude');
+            if (msg.final) endSeries();
+            else if (MP.isPartyLeader) hostBeginRound();
+        }, 1000);
     }
 
-    function showLivePlacementHUD() {
-        let el = document.getElementById('subway-live-rank');
+    function endSeries() {
+        MP.inMatch = false;
+        MP.active = false;
+        MPX.roundActive = false;
+        MP.isReady = false;
+        MP.party.forEach(p => { p.ready = isBot(p.id); p.rseq = 0; });
+        MPX.myRseq = 0;
+        hideTimeline();
+        removeEl('subway-final-banner');
+        if (MP.isPartyLeader) syncPartyToAll();
+        showHUDNotification('Série finalizada! Veja o histórico em Recordes.');
+        openUnifiedModal('multiplayer');
+    }
+
+    // ---------- Timeline UI ----------
+    function fmtS(ms) { return (ms / 1000).toFixed(1) + 's'; }
+
+    function showTimeline() {
+        let el = document.getElementById('subway-timeline');
         if (!el) {
             el = document.createElement('div');
-            el.id = 'subway-live-rank';
-            el.className = 'subway-live-rank';
+            el.id = 'subway-timeline';
+            el.className = 'subway-tl-wrap';
+            el.innerHTML = '<div class="tl-head" id="tl-head"></div><div class="tl-track" id="tl-track"><div class="tl-line"></div></div>';
             document.body.appendChild(el);
         }
-        updateLivePlacementHUD();
     }
 
-    function hideLivePlacementHUD() {
-        const el = document.getElementById('subway-live-rank');
-        if (el) el.remove();
-    }
+    function hideTimeline() { removeEl('subway-timeline'); }
 
-    function updateLivePlacementHUD() {
-        const el = document.getElementById('subway-live-rank');
-        if (!el || !MP.inMatch) return;
+    function renderTimeline() {
+        const el = document.getElementById('subway-timeline');
+        if (!el || !MP.inMatch || !MP.party.length) return;
+        const list = MP.party.map(p => {
+            const base = MPX.totals[p.id] || 0;
+            const isDead = MPX.dead[p.id] !== undefined;
+            const cur = isDead ? MPX.dead[p.id] : (MPX.live[p.id] || 0);
+            return { p, score: base + (MPX.roundActive || isDead ? cur : 0), dead: MPX.roundActive && isDead };
+        }).sort((a, b) => b.score - a.score);
 
-        // Sort from last place (Nº) to 1st place (1º) as requested!
-        const allList = MP.party.map(p => {
-            const deadEntry = MP.placement.find(d => d.id === p.id);
-            const isDead = !!deadEntry;
-            const state = MP.playersState.get(p.id);
-            const time = isDead ? (deadEntry.timeMs || 0) : (p.id === myProfile.id ? runElapsedTime : (state ? state.time : 0));
-            return {
-                id: p.id,
-                nick: p.nick,
-                avatar: p.avatar,
-                alive: !isDead,
-                time: time
-            };
+        const head = el.querySelector('#tl-head');
+        if (head) head.textContent = 'RODADA ' + Math.max(1, MPX.round) + '/' + MPX.totalRounds;
+
+        const track = el.querySelector('#tl-track');
+        const H = track.clientHeight || 180;
+        const NODE = 28;
+        const max = Math.max(30000, list[0].score * 1.12);
+        const gap = Math.min(NODE + 4, (H - NODE) / Math.max(1, list.length - 1));
+        const ys = list.map(e => ({ e, y: (1 - e.score / max) * (H - NODE) }));
+        for (let i = 1; i < ys.length; i++) if (ys[i].y < ys[i - 1].y + gap) ys[i].y = ys[i - 1].y + gap;
+        const over = ys[ys.length - 1].y - (H - NODE);
+        if (over > 0) ys.forEach(o => { o.y = Math.max(0, o.y - over); });
+
+        const ids = list.map(e => String(e.p.id));
+        track.querySelectorAll('.tl-node').forEach(n => { if (!ids.includes(n.getAttribute('data-id'))) n.remove(); });
+
+        ys.forEach((o, i) => {
+            const id = String(o.e.p.id);
+            let n = track.querySelector('.tl-node[data-id="' + id + '"]');
+            if (!n) {
+                n = document.createElement('div');
+                n.className = 'tl-node';
+                n.setAttribute('data-id', id);
+                n.innerHTML = '<div class="tl-pill"><span class="tl-rank"></span><span class="tl-nick"></span><span class="tl-time"></span></div><img class="tl-dot" />';
+                track.appendChild(n);
+            }
+            n.style.top = o.y + 'px';
+            n.classList.toggle('tl-dead', o.e.dead);
+            n.classList.toggle('tl-me', o.e.p.id === myProfile.id);
+            n.querySelector('.tl-rank').textContent = (i + 1) + 'º';
+            n.querySelector('.tl-nick').textContent = o.e.p.nick;
+            n.querySelector('.tl-time').textContent = fmtS(o.e.score);
+            const img = n.querySelector('.tl-dot');
+            if (img.getAttribute('src') !== o.e.p.avatar) img.setAttribute('src', o.e.p.avatar);
         });
-
-        // Sort 1st to last first to assign rank numbers, then display from last place to 1st place
-        allList.sort((a, b) => {
-            if (a.alive && !b.alive) return -1;
-            if (!a.alive && b.alive) return 1;
-            return b.time - a.time;
-        });
-        const rankedFromLastToFirst = allList.map((p, idx) => ({ ...p, pos: idx + 1 })).reverse();
-
-        el.innerHTML = `
-            <div class="rank-header">🏁 COLOCAÇÃO (ÚLTIMO ➔ 1º)</div>
-            ${rankedFromLastToFirst.map(p => `
-                <div class="rank-item ${p.alive ? 'rk-alive' : 'rk-dead'}">
-                    <span class="rk-pos">${p.pos}º</span>
-                    <img class="rk-avatar" src="${p.avatar}" />
-                    <span class="rk-nick">${p.nick}</span>
-                    <span class="rk-st">${p.alive ? '🟢 VIVO' : '💀 MORTO'}</span>
-                </div>
-            `).join('')}
-        `;
     }
+    setInterval(() => { if (MP.inMatch) renderTimeline(); }, 500);
+
+    // Keep legacy names used elsewhere
+    function hideSpectatorHUD() { removeEl('subway-wait-hud'); }
+    function hideLivePlacementHUD() { hideTimeline(); }
+
 
     // ==========================================
     // 8. UNIFIED MOD MENU & UI
@@ -1285,6 +1382,7 @@
                                 <button id="btn-toggle-ready" class="btn-ready ${MP.isReady ? 'ready-on' : 'ready-off'}">
                                     ${MP.isReady ? '✅ PRONTO!' : '⏳ DAR PRONTO'}
                                 </button>
+                                <button id="btn-leave-party" class="btn-start-match" style="background:#37474f" onclick="window.__leaveParty()">↩ Sair do grupo</button>
                                 <button id="btn-start-match" class="btn-start-match" ${checkCanStartMatch() ? '' : 'disabled'}>
                                     🚀 INICIAR PARTIDA
                                 </button>
@@ -1357,7 +1455,11 @@
 
     function toggleUnlimitedMode() {
         window.UNLIMITED_MODE = !window.UNLIMITED_MODE;
-        localStorage.setItem('subway_unlimited_mode', window.UNLIMITED_MODE ? 'true' : 'false');
+        localStorage.setItem('subway_unlimited_v2', window.UNLIMITED_MODE ? 'true' : 'false');
+        if (!window.UNLIMITED_MODE) {
+            resetUnlimitedStorage();
+            try { if (window.app && window.app.user && window.app.user.gameSettings && window.app.user.gameSettings.currencies) { window.app.user.gameSettings.currencies.coins = 0; window.app.user.gameSettings.currencies.keys = 0; } } catch(e) {}
+        }
         if (window.UNLIMITED_MODE) {
             applyUnlimitedStorage();
             if (window.app && window.app.user) applyUnlockToUser(window.app.user);
@@ -1515,7 +1617,9 @@
     }
 
     window.__invitePlayer = function(id, nick, avatar) {
-        const target = { id, nick, avatar };
+        if (!MP.isPartyLeader) { showHUDNotification('Só o líder do grupo pode convidar.'); return; }
+        if (MP.inMatch) return;
+        const target = { id, nick, avatar, rseq: 0, isLeader: false };
         // Bot auto join for testing
         if (id.startsWith('bot_')) {
             if (MP.party.length < 4) {
@@ -1524,7 +1628,9 @@
                 renderPartySlots();
                 setTimeout(() => {
                     target.ready = true;
+                    syncPartyToAll();
                     renderPartySlots();
+                    maybeAutoStart();
                 }, 1000);
             }
             return;
@@ -1601,6 +1707,81 @@
     function injectModStyles() {
         const style = document.createElement('style');
         style.textContent = `
+            
+            /* Map Themes */
+            .map-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+                gap: 8px;
+                width: 100%;
+                margin-top: 8px;
+            }
+            .btn-map-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.06);
+                border: 2px solid rgba(255, 255, 255, 0.12);
+                border-radius: 12px;
+                padding: 10px 6px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                color: #fff;
+                font-family: inherit;
+                text-align: center;
+            }
+            .btn-map-item:hover {
+                background: rgba(0, 195, 255, 0.15);
+                border-color: rgba(0, 195, 255, 0.5);
+                transform: translateY(-2px);
+            }
+            .btn-map-item.active-map {
+                background: linear-gradient(135deg, rgba(0, 195, 255, 0.3), rgba(0, 102, 255, 0.3));
+                border-color: #00c3ff;
+                box-shadow: 0 0 12px rgba(0, 195, 255, 0.4);
+            }
+            .btn-map-item .map-icon { font-size: 24px; margin-bottom: 4px; }
+            .btn-map-item .map-name { font-size: 13px; font-weight: 700; }
+            .btn-map-item .map-desc { font-size: 10px; color: #a0aec0; margin-top: 2px; }
+
+            /* World Tour Notification Banner */
+            .world-tour-banner {
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%) translateY(-100px);
+                background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+                border: 2px solid #00c3ff;
+                border-radius: 30px;
+                padding: 8px 24px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                z-index: 999999;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 195, 255, 0.3);
+                transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+                opacity: 0;
+                pointer-events: none;
+                color: #fff;
+            }
+            .world-tour-banner.show {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+            .world-tour-banner .wt-icon { font-size: 26px; }
+            .world-tour-banner .wt-info { display: flex; flex-direction: column; }
+            .world-tour-banner .wt-label { font-size: 9px; letter-spacing: 2px; color: #38bdf8; font-weight: 800; }
+            .world-tour-banner .wt-city { font-size: 14px; font-weight: 900; letter-spacing: 1px; color: #fff; }
+
+            /* Map Filter Grading */
+            body[data-map-theme="tokyo"] canvas { filter: contrast(1.18) hue-rotate(25deg) saturate(1.35) !important; }
+            body[data-map-theme="rio"] canvas { filter: brightness(1.08) saturate(1.4) hue-rotate(-15deg) !important; }
+            body[data-map-theme="hawaii"] canvas { filter: saturate(1.45) sepia(0.22) hue-rotate(-25deg) brightness(1.05) !important; }
+            body[data-map-theme="paris"] canvas { filter: hue-rotate(275deg) saturate(1.15) brightness(1.03) !important; }
+            body[data-map-theme="cairo"] canvas { filter: sepia(0.45) saturate(1.35) contrast(1.05) brightness(1.06) !important; }
+            body[data-map-theme="las_vegas"] canvas { filter: none !important; }
+
             /* Netlify Remover */
             [class*="netlify"], [id*="netlify"], [href*="netlify.com"], netlify-drawer, #netlify-drawer, .netlify-badge, #nl-badge-frame, iframe[title*="Netlify"], iframe[srcdoc*="Netlify"], script[src*=".netlify/scripts"], [data-netlify-site-id], [data-nf-variant] {
                 display: none !important;
@@ -1652,6 +1833,7 @@
             .badge-normal { background: #fbc02d; color: #000; }
 
             /* Floating Menu Button (Bottom-Left Blue Gear Icon) */
+            body.sw-in-run #btn-subway-unified-menu { display: none !important; }
             .btn-subway-unified-menu {
                 position: fixed;
                 bottom: 18px;
@@ -2013,6 +2195,55 @@
             .countdown-num { font-size: 90px; font-weight: 900; color: #ff4b2b; animation: popNum 0.9s ease; }
             @keyframes popNum { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
             .countdown-sub { font-size: 14px; font-weight: 800; color: #fff; margin-top: 14px; text-transform: uppercase; }
+
+            
+            /* Online: Timeline, Interlude, Wait HUD */
+            .subway-tl-wrap { position: fixed; top: 52px; right: 8px; z-index: 99998; width: 190px; pointer-events: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+            .tl-head { text-align: right; font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #cfe3ff; text-shadow: 0 1px 3px #000; margin: 0 4px 6px 0; }
+            .tl-track { position: relative; height: min(46vh, 300px); min-height: 140px; }
+            .tl-line { position: absolute; right: 13px; top: 0; bottom: 0; width: 3px; border-radius: 3px; background: linear-gradient(180deg, #ffd54f, #29b6f6 60%, rgba(41,182,246,.25)); box-shadow: 0 0 8px rgba(41,182,246,.5); }
+            .tl-node { position: absolute; right: 0; left: 0; height: 28px; transition: top .35s cubic-bezier(.3,.8,.3,1); }
+            .tl-dot { position: absolute; right: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; background: #12203a; box-shadow: 0 2px 8px rgba(0,0,0,.6); }
+            .tl-me .tl-dot { border-color: #00e5ff; box-shadow: 0 0 10px #00e5ff; }
+            .tl-pill { position: absolute; right: 34px; top: 3px; height: 22px; display: flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 11px; background: rgba(10,16,30,.78); backdrop-filter: blur(4px); color: #fff; font-size: 10px; font-weight: 700; white-space: nowrap; border: 1px solid rgba(255,255,255,.15); }
+            .tl-rank { color: #ffd54f; font-weight: 900; }
+            .tl-nick { max-width: 70px; overflow: hidden; text-overflow: ellipsis; }
+            .tl-time { color: #90caf9; font-variant-numeric: tabular-nums; }
+            .tl-dead .tl-dot { filter: grayscale(1); opacity: .6; border-color: #78909c; }
+            .tl-dead .tl-pill { opacity: .6; text-decoration: line-through; }
+            .subway-interlude { position: fixed; inset: 0; z-index: 100006; background: rgba(4,10,24,.55); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+            .il-card { background: #101c33; color: #fff; border: 1px solid rgba(255,255,255,.15); border-radius: 16px; padding: 18px 22px; min-width: min(420px, 92vw); box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+            .il-title { font-size: 17px; font-weight: 900; text-align: center; margin-bottom: 12px; color: #ffd54f; }
+            .il-head, .il-row { display: grid; grid-template-columns: 28px 30px 1fr 64px 64px; align-items: center; gap: 8px; font-size: 12px; padding: 5px 4px; }
+            .il-head { color: #8fa0b0; font-size: 10px; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,.1); }
+            .il-row { border-bottom: 1px solid rgba(255,255,255,.05); }
+            .il-win { background: rgba(255,213,79,.12); border-radius: 8px; }
+            .il-av { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+            .il-nick { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .il-t { font-weight: 800; color: #90caf9; text-align: right; }
+            .il-r { text-align: right; }
+            .il-count { margin-top: 14px; text-align: center; font-weight: 800; font-size: 13px; color: #00e5ff; }
+
+            /* Mobile / small-screen adaptation */
+            @media (max-width: 760px), (max-height: 480px) {
+                .btn-subway-unified-menu { width: 34px; height: 34px; bottom: 8px; left: 8px; }
+                .btn-subway-unified-menu svg { width: 18px; height: 18px; }
+                .subway-top-timer-wrap { top: 6px; padding: 3px 9px; gap: 5px; }
+                .subway-top-timer-wrap .timer-value { font-size: 12px; }
+                .subway-top-timer-wrap .timer-icon { font-size: 11px; }
+                .subway-top-timer-wrap .timer-badge { font-size: 8px; padding: 1px 5px; }
+                .subway-tl-wrap { top: 34px; right: 4px; width: 150px; } .tl-track { height: 150px; min-height: 120px; } .tl-nick { max-width: 44px; } .tl-pill { font-size: 8px; height: 18px; right: 30px; top: 5px; padding: 0 5px; } .tl-dot { width: 24px; height: 24px; } .il-card { padding: 10px 12px; } .il-head, .il-row { font-size: 10px; padding: 3px 2px; }
+                .subway-live-rank { top: 44px; right: 6px; min-width: 120px; padding: 6px 8px; font-size: 9px; }
+                .subway-modal-box, .unified-box { width: 96vw !important; max-height: 94vh; }
+                .modal-header { padding: 8px 12px; }
+                .modal-header h2 { font-size: 13px; }
+                .countdown-num { font-size: 54px; }
+                .subway-spectator-hud { bottom: 6px; padding: 4px 10px; font-size: 10px; gap: 8px; }
+                .ghost-figure { width: 22px; height: 36px; }
+                .ghost-tag { font-size: 8px; padding: 1px 5px; }
+                .subway-invite-popup { bottom: 8px; right: 8px; padding: 8px; }
+            }
+            .subway-modal-box { overflow-y: auto; }
         `;
         document.head.appendChild(style);
     }
@@ -2020,6 +2251,27 @@
     // ==========================================
     // 10. INITIALIZATION
     // ==========================================
+    function hideHubButtons() {
+        try {
+            const t = window.app && window.app.title;
+            if (!t || !t.btnMyTour || t.__hubClean) return;
+            t.__hubClean = true;
+            ['btnMyTour', 'btnShop', 'btnTopRun'].forEach(k => {
+                const b = t[k];
+                if (!b) return;
+                try { if (b.parent) b.parent.removeChild(b); } catch (e) {}
+                b.interactive = false;
+                b.interactiveChildren = false;
+                try { Object.defineProperty(b, 'visible', { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+                try { Object.defineProperty(b, 'renderable', { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+            });
+            if (t.bottomMenu) {
+                try { t.bottomMenu.organise(); } catch (e) {}
+            }
+        } catch (e) {}
+    }
+    setInterval(hideHubButtons, 300);
+
     function init() {
         injectModStyles();
         createUnifiedUI();

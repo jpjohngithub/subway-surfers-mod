@@ -12,6 +12,8 @@
     <meta name="viewport" content="height=device-height, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui, viewport-fit=cover" />
     <meta name="description" content="">
     
+    <link rel="preload" href="js/dependencies.bundle.js?v=7" as="script">
+    <link rel="preload" href="js/index.js?v=7" as="script">
     <link rel="manifest" href="subwaysurfers.webmanifest">
     <link rel="icon" href="assets/images/app-icon-16.png" type="image/png">
     <link rel="apple-touch-icon-precomposed" sizes="114x114" href="assets/images/app-icon-114.png">
@@ -90,6 +92,7 @@
             height: 0 !important;
             z-index: -9999 !important;
         }
+            html, body, canvas { touch-action: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; overscroll-behavior: none; }
     </style>
 </head>
 <body>
@@ -102,6 +105,14 @@
         }
         // https://github.com/pixijs/pixijs/issues/9414
         delete Array.prototype.group;
+        // Performance: cap render resolution on high-DPR phones (big fill-rate saving)
+        (function () {
+            var real = window.devicePixelRatio || 1;
+            var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+            var cap = coarse ? 1.5 : 2;
+            window.__dprCap = cap;
+            try { Object.defineProperty(window, 'devicePixelRatio', { get: function () { return Math.min(real, cap); }, configurable: true }); } catch (e) {}
+        })();
     </script>
     <div id="message">
         <h1>Loading</h1>
@@ -109,8 +120,8 @@
     </div>
     <script src="patch/js/peerjs.min.js"></script>
     <script src="patch/js/mqtt.min.js"></script>
-    <script src="js/subway_mod.js?v=6"></script>
-    <script src="js/loading.js?v=6"></script>
-    <script src="js/boot.js?v=6"></script>
+    <script src="js/subway_mod.js?v=7"></script>
+    <script src="js/loading.js?v=7"></script>
+    <script src="js/boot.js?v=7"></script>
 </body>
 </html>
