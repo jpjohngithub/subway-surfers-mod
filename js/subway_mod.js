@@ -3514,6 +3514,7 @@
                 background: rgba(10, 16, 30, 0.85); backdrop-filter: blur(8px);
                 border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
                 padding: 10px 14px; color: #fff; font-size: 11px; min-width: 170px;
+                pointer-events: none; user-select: none;
             }
             .rank-header { font-weight: 800; margin-bottom: 6px; color: #8fa0b0; }
             .rank-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
@@ -4489,177 +4490,423 @@
             @media (max-width: 768px) {
                 .subway-modal-backdrop {
                     padding: 8px !important;
+                    align-items: flex-end !important;
                 }
                 .subway-modal-box, .unified-box {
-                    width: 96vw !important;
-                    max-width: 96vw !important;
-                    max-height: 92vh !important;
-                    padding: 10px 12px !important;
-                    border-radius: 12px !important;
+                    width: 100vw !important;
+                    max-width: 100vw !important;
+                    height: 94vh !important;
+                    max-height: 94vh !important;
+                    padding: 0 !important;
+                    border-radius: 18px 18px 0 0 !important;
                     box-sizing: border-box !important;
-                    overflow-y: auto !important;
-                    -webkit-overflow-scrolling: touch !important;
+                    overflow: hidden !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.9) !important;
                 }
                 .modal-header {
-                    padding: 4px 2px 8px 2px !important;
-                    margin-bottom: 8px !important;
+                    padding: 12px 16px !important;
+                    margin-bottom: 0 !important;
+                    flex-shrink: 0 !important;
+                    background: rgba(15, 23, 42, 0.8) !important;
                 }
                 .modal-brand-title {
-                    font-size: 13px !important;
+                    font-size: 14px !important;
                 }
-                .unified-tabs {
-                    gap: 4px !important;
-                    margin-bottom: 10px !important;
-                }
-                .tab-btn {
-                    padding: 6px 4px !important;
-                    font-size: 10px !important;
-                    flex: 1 !important;
-                    text-align: center !important;
-                    white-space: nowrap !important;
+                .btn-modal-close {
+                    font-size: 20px !important;
+                    padding: 6px 12px !important;
                 }
 
-                /* Header Bar: Stack cleanly in rows */
+                /* Tabs: Touch-Friendly Segmented Control */
+                .unified-tabs {
+                    display: flex !important;
+                    gap: 6px !important;
+                    padding: 6px 12px !important;
+                    margin-bottom: 0 !important;
+                    flex-shrink: 0 !important;
+                    background: rgba(10, 15, 29, 0.95) !important;
+                }
+                .tab-btn {
+                    padding: 10px 6px !important;
+                    font-size: 11px !important;
+                    font-weight: 800 !important;
+                    flex: 1 !important;
+                    height: 40px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    text-align: center !important;
+                    border-radius: 8px !important;
+                    background: rgba(255, 255, 255, 0.04) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+                }
+                .tab-btn.active {
+                    background: rgba(56, 189, 248, 0.18) !important;
+                    border-color: #38bdf8 !important;
+                    color: #fff !important;
+                }
+
+                /* Scrollable Tab Pane */
+                .tab-pane {
+                    flex: 1 !important;
+                    overflow-y: auto !important;
+                    -webkit-overflow-scrolling: touch !important;
+                    padding: 14px 16px 24px 16px !important;
+                    box-sizing: border-box !important;
+                }
+
+                /* Header Bar: Stack cleanly in mobile */
                 .lobby-header-bar {
                     flex-direction: column !important;
                     align-items: stretch !important;
-                    gap: 8px !important;
-                    padding: 8px 10px !important;
-                    margin-bottom: 10px !important;
+                    gap: 10px !important;
+                    padding: 12px !important;
+                    margin-bottom: 12px !important;
+                    background: rgba(255, 255, 255, 0.03) !important;
+                    border-radius: 12px !important;
                 }
                 .lobby-room-badge {
                     display: flex !important;
                     align-items: center !important;
                     justify-content: space-between !important;
                     width: 100% !important;
+                    padding: 4px 0 !important;
                 }
+                .room-code-tag {
+                    font-size: 13px !important;
+                }
+                .btn-copy-code {
+                    padding: 6px 14px !important;
+                    font-size: 12px !important;
+                    height: 34px !important;
+                }
+
+                /* User Profile in Mobile */
                 .lobby-user-profile {
                     display: flex !important;
-                    align-items: center !important;
+                    flex-direction: column !important;
+                    align-items: stretch !important;
                     gap: 8px !important;
                     width: 100% !important;
                     box-sizing: border-box !important;
-                    padding: 8px !important;
+                    padding: 0 !important;
+                }
+                .user-avatar-wrap {
+                    width: 44px !important;
+                    height: 44px !important;
+                    align-self: center !important;
                 }
                 .user-meta-wrap {
-                    flex: 1 !important;
-                    min-width: 0 !important;
-                    gap: 4px !important;
+                    width: 100% !important;
+                    gap: 8px !important;
                 }
                 .user-fields-row {
                     display: flex !important;
                     flex-direction: column !important;
-                    gap: 4px !important;
+                    gap: 8px !important;
                     width: 100% !important;
                 }
                 #input-my-nick {
                     width: 100% !important;
                     max-width: 100% !important;
                     box-sizing: border-box !important;
-                    font-size: 12px !important;
+                    height: 42px !important;
+                    font-size: 15px !important;
+                    padding: 8px 12px !important;
+                    border-radius: 8px !important;
                 }
                 #input-my-avatar-url {
                     width: 100% !important;
                     max-width: 100% !important;
                     box-sizing: border-box !important;
-                    font-size: 11px !important;
+                    height: 38px !important;
+                    font-size: 14px !important;
+                    padding: 6px 10px !important;
+                    border-radius: 8px !important;
                 }
                 .avatar-dots-bar {
-                    flex-wrap: wrap !important;
-                    gap: 4px !important;
-                }
-                .lobby-join-box {
                     display: flex !important;
-                    width: 100% !important;
-                    gap: 6px !important;
-                    box-sizing: border-box !important;
+                    flex-wrap: nowrap !important;
+                    overflow-x: auto !important;
+                    -webkit-overflow-scrolling: touch !important;
+                    gap: 8px !important;
+                    padding: 4px 2px 8px 2px !important;
                 }
-                .lobby-join-box input {
-                    flex: 1 !important;
-                    width: auto !important;
-                    min-width: 0 !important;
+                .avatar-dot-chip {
+                    width: 32px !important;
+                    height: 32px !important;
+                    flex-shrink: 0 !important;
                 }
-                .btn-join-room {
+                .btn-avatar-url-chip {
+                    height: 32px !important;
+                    padding: 0 10px !important;
+                    font-size: 11px !important;
                     flex-shrink: 0 !important;
                 }
 
-                /* Grid Layout: Stack vertically to prevent horizontal overflow */
+                /* Join Room Box */
+                .lobby-join-box {
+                    display: flex !important;
+                    width: 100% !important;
+                    gap: 8px !important;
+                    box-sizing: border-box !important;
+                }
+                #input-join-room {
+                    flex: 1 !important;
+                    height: 42px !important;
+                    font-size: 15px !important;
+                    padding: 8px 12px !important;
+                    border-radius: 8px !important;
+                }
+                .btn-join-room {
+                    height: 42px !important;
+                    padding: 0 16px !important;
+                    font-size: 13px !important;
+                    font-weight: 800 !important;
+                    border-radius: 8px !important;
+                    flex-shrink: 0 !important;
+                }
+
+                /* Lobby Grid */
                 .lobby-grid {
                     flex-direction: column !important;
-                    gap: 12px !important;
+                    gap: 14px !important;
                 }
                 .lobby-column {
                     width: 100% !important;
                     box-sizing: border-box !important;
-                    padding: 10px !important;
+                    padding: 12px !important;
+                    border-radius: 12px !important;
                 }
-                .party-col {
-                    order: 1 !important;
+                .col-header {
+                    margin-bottom: 10px !important;
                 }
-                .players-col {
-                    order: 2 !important;
-                    max-height: 240px !important;
-                    overflow-y: auto !important;
-                    -webkit-overflow-scrolling: touch !important;
+                .col-title-wrap h3 {
+                    font-size: 13px !important;
                 }
-                .online-players-list {
-                    max-height: 180px !important;
-                    overflow-y: auto !important;
+                .party-hint {
+                    font-size: 10px !important;
+                }
+                .btn-add-bot {
+                    height: 32px !important;
+                    padding: 0 10px !important;
+                    font-size: 11px !important;
+                }
+                .btn-refresh-online {
+                    height: 32px !important;
+                    padding: 0 10px !important;
+                    font-size: 11px !important;
                 }
 
                 /* Party Slots */
-                .party-slot {
-                    padding: 0 8px !important;
+                .party-slots-container {
+                    display: flex !important;
+                    flex-direction: column !important;
                     gap: 8px !important;
-                    height: 42px !important;
+                    margin-bottom: 14px !important;
+                }
+                .party-slot {
+                    padding: 8px 12px !important;
+                    gap: 10px !important;
+                    height: 48px !important;
+                    box-sizing: border-box !important;
+                    border-radius: 10px !important;
+                }
+                .slot-avatar {
+                    width: 32px !important;
+                    height: 32px !important;
                 }
                 .slot-nick {
-                    max-width: 120px !important;
-                    font-size: 11px !important;
+                    max-width: 130px !important;
+                    font-size: 13px !important;
                     overflow: hidden !important;
                     text-overflow: ellipsis !important;
                     white-space: nowrap !important;
                 }
-                .slot-badge {
-                    font-size: 8px !important;
-                    padding: 2px 6px !important;
+                .slot-status-pill {
+                    font-size: 10px !important;
+                    padding: 4px 8px !important;
+                }
+
+                /* Party Bottom Actions: Big Thumb Buttons */
+                .party-bottom-actions {
+                    display: grid !important;
+                    grid-template-columns: 1fr 1fr !important;
+                    gap: 10px !important;
+                    margin-top: 10px !important;
+                }
+                .btn-ready {
+                    height: 46px !important;
+                    font-size: 13px !important;
+                    font-weight: 800 !important;
+                    border-radius: 10px !important;
+                    grid-column: 1 / 2 !important;
+                }
+                .btn-leave-room {
+                    height: 46px !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
+                    border-radius: 10px !important;
+                    grid-column: 2 / 3 !important;
+                }
+                .btn-start-match {
+                    height: 48px !important;
+                    font-size: 14px !important;
+                    font-weight: 900 !important;
+                    letter-spacing: 0.5px !important;
+                    border-radius: 10px !important;
+                    grid-column: 1 / -1 !important;
+                }
+
+                /* Online Players List */
+                .players-col {
+                    max-height: 220px !important;
+                    overflow-y: auto !important;
+                    -webkit-overflow-scrolling: touch !important;
+                }
+                .online-player-item {
+                    height: 44px !important;
+                    padding: 6px 8px !important;
+                }
+                .btn-invite-player {
+                    height: 32px !important;
+                    padding: 0 10px !important;
+                    font-size: 11px !important;
+                }
+
+                /* Mod Cards in Modes Tab */
+                .mod-card {
+                    padding: 12px 14px !important;
+                    gap: 12px !important;
+                    margin-bottom: 8px !important;
+                }
+                .mod-title {
+                    font-size: 14px !important;
+                }
+                .mod-desc {
+                    font-size: 11px !important;
+                }
+                .btn-clean-toggle {
+                    height: 38px !important;
+                    padding: 0 12px !important;
+                    font-size: 11px !important;
+                    border-radius: 19px !important;
                     flex-shrink: 0 !important;
                 }
-                .party-actions-row {
+
+                /* Records Filters */
+                .records-filter-bar {
                     display: flex !important;
-                    gap: 6px !important;
                     flex-wrap: wrap !important;
+                    gap: 6px !important;
+                    margin-bottom: 10px !important;
                 }
-                .party-actions-row button {
-                    flex: 1 !important;
-                    min-width: 80px !important;
-                    font-size: 10px !important;
-                    padding: 8px 4px !important;
+                .btn-filter-record, .btn-clear-records {
+                    height: 34px !important;
+                    padding: 0 10px !important;
+                    font-size: 11px !important;
                 }
 
                 /* Game Screen Floating Buttons & Timers */
-                .btn-subway-unified-menu { width: 34px !important; height: 34px !important; bottom: 8px !important; left: 8px !important; }
-                .btn-subway-online-lobby { height: 34px !important; padding: 0 10px !important; bottom: 8px !important; left: 48px !important; font-size: 11px !important; gap: 4px !important; border-radius: 17px !important; }
-                .btn-subway-unified-menu svg { width: 18px !important; height: 18px !important; }
-                .subway-top-timer-wrap { top: 6px !important; padding: 3px 9px !important; gap: 5px !important; }
-                .subway-top-timer-wrap .timer-value { font-size: 12px !important; }
-                .subway-top-timer-wrap .timer-icon { font-size: 11px !important; }
-                .subway-top-timer-wrap .timer-badge { font-size: 8px !important; padding: 1px 5px !important; }
-                .subway-tl-wrap { top: 34px !important; right: 4px !important; width: 150px !important; }
-                .tl-track { height: 150px !important; min-height: 120px !important; }
-                .tl-nick { max-width: 44px !important; }
-                .tl-pill { font-size: 8px !important; height: 18px !important; right: 30px !important; top: 5px !important; padding: 0 5px !important; }
-                .tl-dot { width: 24px !important; height: 24px !important; }
-                .il-card { padding: 10px 12px !important; }
-                .il-head, .il-row { font-size: 10px !important; padding: 3px 2px !important; }
-                .subway-live-rank { top: 44px !important; right: 6px !important; min-width: 120px !important; padding: 6px 8px !important; font-size: 9px !important; }
-                .countdown-num { font-size: 64px !important; }
-                .cd-circle-glow { width: 140px !important; height: 140px !important; }
-                .countdown-sub { font-size: 9px !important; padding: 3px 10px !important; }
-                .subway-spectator-hud { bottom: 6px !important; padding: 4px 10px !important; font-size: 10px !important; gap: 8px !important; }
-                .ghost-figure { width: 22px !important; height: 36px !important; }
-                .ghost-tag { font-size: 8px !important; padding: 1px 5px !important; }
-                .subway-invite-popup { bottom: 8px !important; right: 8px !important; padding: 8px !important; }
+                .btn-subway-unified-menu {
+                    width: 44px !important;
+                    height: 44px !important;
+                    bottom: max(14px, env(safe-area-inset-bottom, 14px)) !important;
+                    left: 12px !important;
+                    border-radius: 22px !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.6) !important;
+                }
+                .btn-subway-unified-menu svg {
+                    width: 22px !important;
+                    height: 22px !important;
+                }
+                .btn-subway-online-lobby {
+                    height: 44px !important;
+                    padding: 0 14px !important;
+                    bottom: max(14px, env(safe-area-inset-bottom, 14px)) !important;
+                    left: 64px !important;
+                    font-size: 13px !important;
+                    font-weight: 800 !important;
+                    gap: 6px !important;
+                    border-radius: 22px !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.6) !important;
+                }
+                .subway-top-timer-wrap {
+                    top: max(12px, env(safe-area-inset-top, 12px)) !important;
+                    padding: 6px 14px !important;
+                    gap: 8px !important;
+                    pointer-events: none !important;
+                    box-shadow: 0 4px 18px rgba(0,0,0,0.6) !important;
+                }
+                .subway-top-timer-wrap .timer-value {
+                    font-size: 15px !important;
+                    font-weight: 800 !important;
+                }
+                .subway-top-timer-wrap .timer-icon {
+                    font-size: 13px !important;
+                }
+                .subway-top-timer-wrap .timer-badge {
+                    font-size: 9px !important;
+                    padding: 2px 7px !important;
+                }
+
+                /* Scoreboards & Overlays: No Overlap & Pass Through Touches */
+                .subway-live-rank {
+                    top: max(54px, env(safe-area-inset-top, 54px)) !important;
+                    right: 8px !important;
+                    min-width: 120px !important;
+                    padding: 6px 10px !important;
+                    font-size: 10px !important;
+                    pointer-events: none !important;
+                    user-select: none !important;
+                }
+                .subway-tl-wrap {
+                    top: 155px !important;
+                    right: 6px !important;
+                    width: 125px !important;
+                    pointer-events: none !important;
+                }
+                .tl-track {
+                    height: 140px !important;
+                    min-height: 110px !important;
+                }
+                .tl-nick {
+                    max-width: 48px !important;
+                    font-size: 9px !important;
+                }
+                .tl-pill {
+                    font-size: 8px !important;
+                    height: 18px !important;
+                    right: 28px !important;
+                    top: 5px !important;
+                    padding: 0 5px !important;
+                }
+                .tl-dot {
+                    width: 24px !important;
+                    height: 24px !important;
+                }
+                .il-card {
+                    padding: 10px 12px !important;
+                }
+                .countdown-num {
+                    font-size: 64px !important;
+                }
+                .cd-circle-glow {
+                    width: 140px !important;
+                    height: 140px !important;
+                }
+                .countdown-sub {
+                    font-size: 10px !important;
+                    padding: 4px 12px !important;
+                }
+                .subway-invite-popup {
+                    bottom: 12px !important;
+                    right: 12px !important;
+                    padding: 12px !important;
+                    border-radius: 12px !important;
+                }
             }
 
             @media (max-height: 520px) {
