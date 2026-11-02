@@ -1474,11 +1474,16 @@
                 window.app.game.__hookedResume = true;
                 const origResume = window.app.game.resume;
                 window.app.game.resume = function(...args) {
-                    if (isGamePaused) {
-                        runStartTime += (performance.now() - pauseStartedAt);
-                        isGamePaused = false;
+                    const cd = args[0];
+                    const res = origResume.apply(this, args);
+                    // A contagem real só retoma quando a contagem regressiva (3s) termina e o jogo volta a RUNNING
+                    if (!cd || cd === 0) {
+                        if (isGamePaused) {
+                            runStartTime += (performance.now() - pauseStartedAt);
+                            isGamePaused = false;
+                        }
                     }
-                    return origResume.apply(this, args);
+                    return res;
                 };
             }
             if (!window.app.game.__hookedRevive && typeof window.app.game.revive === 'function') {
