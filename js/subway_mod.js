@@ -525,7 +525,20 @@
                 frozenAt = performance.now();
                 runElapsedTime = frozenAt - runStartTime;
             }
-            if (MP.inMatch && MPX.roundActive) handleLocalMultiplayerDeath(runElapsedTime);
+            if (MP.inMatch && MPX.roundActive) {
+                if (MPX.isPracticing) {
+                    setTimeout(() => {
+                        if (MPX.isPracticing && MPX.roundActive) {
+                            try {
+                                ['saveme', 'gameover'].forEach(k => { const s = window.app && window.app[k]; if (s && s.close) s.close(); });
+                                window.app.nav.toGame();
+                            } catch (e) {}
+                        }
+                    }, 500);
+                } else {
+                    handleLocalMultiplayerDeath(runElapsedTime);
+                }
+            }
         } catch (e) {}
     };
     window.__onGameOver = function() {
@@ -1135,14 +1148,122 @@
     }
 
     function showWaitHUD(roundTimeMs) {
+        window.showWaitHUD = showWaitHUD;
         removeEl('subway-wait-hud');
+        if (MPX.isPracticing) return;
+
         const prevTotal = MPX.totals[myProfile.id] || 0;
         const totalNow = prevTotal + roundTimeMs;
+
         const h = document.createElement('div');
         h.id = 'subway-wait-hud';
-        h.className = 'subway-spectator-hud';
-        h.innerHTML = `<span class="spec-live-dot"></span> <strong>VOCÊ CAIU!</strong> Tempo desta rodada: <strong>${fmtS(roundTimeMs)}</strong> | Total Acumulado: <strong>${fmtS(totalNow)}</strong> — Aguardando a outra pessoa morrer...`;
+        h.className = 'subway-wait-overlay';
+
+        const getRunnersListHTML = () => {
+            const alive = MP.party.filter(p => MPX.dead[p.id] === undefined && p.id !== myProfile.id);
+            if (!alive.length) return '<div class="wait-no-alive">Todos os corredores caíram! Finalizando rodada...</div>';
+            return alive.map(p => `
+                <div class="wait-live-runner-row">
+                    <img class="wait-runner-avatar" src="${p.avatar}" alt="" />
+                    <span class="wait-runner-name">${p.nick}</span>
+                    <span class="wait-runner-time">${fmtS(MPX.live[p.id] || 0)}</span>
+                    <span class="wait-runner-tag">CORRENDO</span>
+                </div>
+            `).join('');
+        };
+
+        h.innerHTML = `
+            <div class="wait-card">
+                <div class="wait-card-header">
+                    <span class="wait-pulse-dot"></span>
+                    <span class="wait-header-title">RODADA EM ANDAMENTO</span>
+                    <span class="wait-round-badge">RODADA ${MPX.round}/${MPX.totalRounds}</span>
+                </div>
+
+                <div class="wait-stats-row">
+                    <div class="wait-stat-box">
+                        <span class="wait-stat-lbl">Seu Tempo nesta Rodada</span>
+                        <span class="wait-stat-val val-cyan">${fmtS(roundTimeMs)}</span>
+                    </div>
+                    <div class="wait-stat-box">
+                        <span class="wait-stat-lbl">Total Acumulado</span>
+                        <span class="wait-stat-val val-gold">${fmtS(totalNow)}</span>
+                    </div>
+                </div>
+
+                <div class="wait-runners-section">
+                    <span class="wait-section-lbl">CORREDORES AINDA NA PISTA:</span>
+                    <div class="wait-runners-list" id="wait-live-runners">
+                        ${getRunnersListHTML()}
+                    </div>
+                </div>
+
+                <div class="wait-actions">
+                    <button class="btn-wait-practice" onclick="window.__startPracticeMode()">
+                        <span class="practice-icon">⚡</span>
+                        <div class="practice-text-wrap">
+                            <span class="practice-main">TREINAR ENQUANTO ESPERA</span>
+                            <span class="practice-sub">Jogue o modo normal até a próxima rodada começar</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        `;
         document.body.appendChild(h);
+
+        clearInterval(MPX.waitUpdateTimer);
+        MPX.waitUpdateTimer = setInterval(() => {
+            const listEl = document.getElementById('wait-live-runners');
+            if (!listEl) { clearInterval(MPX.waitUpdateTimer); return; }
+            listEl.innerHTML = getRunnersListHTML();
+        }, 300);
+    }
+    window.showWaitHUD = showWaitHUD;
+
+    window.__startPracticeMode = function() {
+        MPX.isPracticing = true;
+        clearInterval(MPX.waitUpdateTimer);
+        removeEl('subway-wait-hud');
+        suppressRevive(false);
+
+        showPracticeHUD();
+
+        try {
+            if (window.app && window.app.user) window.app.user.tutorial = true;
+            window.app.nav.toGame();
+        } catch (e) {
+            console.error('Error starting practice run:', e);
+        }
+    };
+
+    window.__stopPracticeMode = function() {
+        MPX.isPracticing = false;
+        removeEl('subway-practice-hud');
+        suppressRevive(true);
+        try {
+            ['saveme', 'gameover'].forEach(k => { const s = window.app && window.app[k]; if (s && s.close) s.close(); });
+            window.app.nav.toTitleScreen();
+        } catch (e) {}
+        if (MPX.roundActive && MP.inMatch) {
+            showWaitHUD(MPX.dead[myProfile.id] || 0);
+        }
+    };
+
+    function showPracticeHUD() {
+        removeEl('subway-practice-hud');
+        const d = document.createElement('div');
+        d.id = 'subway-practice-hud';
+        d.className = 'subway-practice-hud';
+        d.innerHTML = `
+            <div class="practice-pill">
+                <span class="practice-pulse"></span>
+                <span class="practice-lbl">MODO TREINO</span>
+                <span class="practice-sep">·</span>
+                <span class="practice-msg">Aguardando outros corredores...</span>
+                <button class="btn-quit-practice" onclick="window.__stopPracticeMode()" title="Sair do treino">✕</button>
+            </div>
+        `;
+        document.body.appendChild(d);
     }
 
     // Authoritative Host: only ends round when all active competitors have died
@@ -1221,6 +1342,12 @@
         if (msg.party && !MP.isPartyLeader) MP.party = msg.party.map(p => ({ ...p }));
 
         clearInterval(MPX.botTimer);
+        clearInterval(MPX.waitUpdateTimer);
+        if (MPX.isPracticing) {
+            MPX.isPracticing = false;
+            removeEl('subway-practice-hud');
+            showHUDNotification('Rodada finalizada! Iniciando próxima fase...');
+        }
         suppressRevive(false);
         removeEl('subway-wait-hud');
 
@@ -1476,7 +1603,7 @@
             onlBtn.id = 'btn-subway-online-lobby';
             onlBtn.className = 'btn-subway-online-lobby';
             onlBtn.title = 'Lobby Multiplayer Online';
-            onlBtn.innerHTML = '<span class="pulse-dot"></span><span>MODO ONLINE 🌐</span>';
+            onlBtn.innerHTML = '<span class="status-dot"></span><span class="btn-text">ONLINE</span>';
             onlBtn.onclick = () => openUnifiedModal('multiplayer');
             document.body.appendChild(onlBtn);
         }
@@ -1574,41 +1701,46 @@
         modal.innerHTML = `
             <div class="subway-modal-box unified-box">
                 <div class="modal-header">
-                    <h2>⚡ PAINEL SUBWAY SURFERS MOD</h2>
-                    <button class="btn-modal-close" id="btn-close-unified">✕</button>
+                    <div class="modal-header-branding">
+                        <span class="modal-brand-title">SUBWAY SURFERS</span>
+                        <span class="modal-brand-tag">ARENA</span>
+                    </div>
+                    <button class="btn-modal-close" id="btn-close-unified" title="Fechar">✕</button>
                 </div>
 
                 <!-- Tabs Navigation -->
                 <div class="unified-tabs">
-                    <button class="tab-btn" data-tab="modes" id="tab-btn-modes">🎮 Modos</button>
-                    <button class="tab-btn" data-tab="multiplayer" id="tab-btn-multiplayer">🌐 Multiplayer</button>
-                    <button class="tab-btn" data-tab="records" id="tab-btn-records">📜 Recordes</button>
+                    <button class="tab-btn" data-tab="modes" id="tab-btn-modes">MODOS DE JOGO</button>
+                    <button class="tab-btn" data-tab="multiplayer" id="tab-btn-multiplayer">MULTIPLAYER</button>
+                    <button class="tab-btn" data-tab="records" id="tab-btn-records">RECORDES</button>
                 </div>
 
                 <!-- Tab 1: Game Modes -->
                 <div class="tab-pane" id="pane-modes">
                     <div class="mod-card">
                         <div class="mod-info">
-                            <h3>⚡ MODO ILIMITADO (TUDO LIBERADO)</h3>
-                            <p>999M Moedas, 999M Chaves, 14 Personagens, 17 Pranchas, Roupas, Melhorias Max e Loja Grátis!</p>
+                            <span class="mod-title">Modo Ilimitado</span>
+                            <span class="mod-desc">Moedas, chaves, personagens e skates infinitos liberados</span>
                         </div>
-                        <button class="btn-toggle-unlimited ${window.UNLIMITED_MODE ? 'active-on' : 'active-off'}" id="btn-toggle-unlimited">
-                            ${window.UNLIMITED_MODE ? '✅ ATIVADO (INFINITO)' : '❌ DESATIVADO'}
+                        <button class="btn-clean-toggle ${window.UNLIMITED_MODE ? 'toggle-active' : ''}" id="btn-toggle-unlimited">
+                            <span class="toggle-indicator"></span>
+                            <span class="toggle-label">${window.UNLIMITED_MODE ? 'ATIVADO' : 'DESATIVADO'}</span>
                         </button>
                     </div>
 
                     <div class="mod-card">
                         <div class="mod-info">
-                            <h3>🔴 MODO NO COIN (MORTE INSTANTÂNEA)</h3>
-                            <p>Moedas ficam vermelhas. Qualquer toque na moeda resulta em derrota instantânea com hitbox 100% idêntica e sem atração!</p>
+                            <span class="mod-title">Modo No Coin</span>
+                            <span class="mod-desc">Moedas vermelhas — qualquer contato com moedas causa eliminação</span>
                         </div>
-                        <button class="btn-toggle-nocoin ${window.NO_COIN_MODE ? 'nocoin-on' : 'nocoin-off'}" id="btn-toggle-nocoin">
-                            ${window.NO_COIN_MODE ? '🔴 NO COIN ATIVO' : '🟡 MODO NORMAL'}
+                        <button class="btn-clean-toggle ${window.NO_COIN_MODE ? 'toggle-active-danger' : ''}" id="btn-toggle-nocoin">
+                            <span class="toggle-indicator"></span>
+                            <span class="toggle-label">${window.NO_COIN_MODE ? 'ATIVADO' : 'DESATIVADO'}</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Tab 2: Online Multiplayer (Modern Elimination Hub) -->
+                <!-- Tab 2: Online Multiplayer -->
                 <div class="tab-pane" id="pane-multiplayer">
                     <!-- Clean Pro Top Bar: Room Status + User Profile + Quick Join -->
                     <div class="lobby-header-bar">
@@ -1620,15 +1752,20 @@
                         </div>
 
                         <div class="lobby-user-profile">
-                            <div class="user-avatar-wrap">
+                            <div class="user-avatar-wrap" onclick="window.__promptAvatarUrl()" title="Clique para alterar foto por URL">
                                 <img id="lobby-my-avatar" src="${myProfile.avatar}" alt="Avatar" />
+                                <span class="avatar-edit-icon" title="Inserir URL">✎</span>
                             </div>
                             <div class="user-meta-wrap">
-                                <input type="text" id="input-my-nick" value="${myProfile.nick}" maxlength="14" placeholder="Seu Nick" title="Clique para editar seu nick" onchange="window.__saveMyNick(this.value)" onblur="window.__saveMyNick(this.value)" />
+                                <div class="user-fields-row">
+                                    <input type="text" id="input-my-nick" value="${myProfile.nick}" maxlength="14" placeholder="Seu Nick" title="Clique para editar seu nick" onchange="window.__saveMyNick(this.value)" onblur="window.__saveMyNick(this.value)" />
+                                    <input type="text" id="input-my-avatar-url" value="${myProfile.avatar.startsWith('http') ? myProfile.avatar : ''}" placeholder="URL da foto..." title="Cole o link da foto de perfil" onchange="window.__saveAvatarUrl(this.value)" onblur="window.__saveAvatarUrl(this.value)" />
+                                </div>
                                 <div class="avatar-dots-bar">
                                     ${DEFAULT_AVATARS.map(av => `
                                         <img class="avatar-dot-chip ${av.url === myProfile.avatar ? 'active' : ''}" src="${av.url}" title="${av.name}" onclick="window.__selectPresetAvatar('${av.url}')" />
                                     `).join('')}
+                                    <button class="btn-avatar-url-chip" onclick="window.__promptAvatarUrl()" title="Inserir URL da foto">+ URL</button>
                                 </div>
                             </div>
                         </div>
@@ -1645,8 +1782,8 @@
                         <div class="lobby-column party-col">
                             <div class="col-header">
                                 <div class="col-title-wrap">
-                                    <h3>🏆 SALA DO TORNEIO (${MP.party.length}/4)</h3>
-                                    <span class="party-hint">Eliminatório No Coin · 3 Rodadas · Maior tempo total vence</span>
+                                    <h3>SALA DO TORNEIO (${MP.party.length}/4)</h3>
+                                    <span class="party-hint">Eliminatório No Coin · 3 Rodadas · Maior tempo acumulado vence</span>
                                 </div>
                                 <button class="btn-add-bot" onclick="window.__addTestBot()" title="Adicionar bot para treinar">+ Bot</button>
                             </div>
@@ -1685,10 +1822,10 @@
                 <!-- Tab 3: Records History -->
                 <div class="tab-pane" id="pane-records">
                     <div class="records-filter-bar">
-                        <button class="btn-filter-record active" onclick="window.__filterRecords('all', this)">Todos</button>
-                        <button class="btn-filter-record" onclick="window.__filterRecords('nocoin', this)">Apenas No Coin 🔴</button>
-                        <button class="btn-filter-record" onclick="window.__filterRecords('normal', this)">Apenas Normal 🟡</button>
-                        <button class="btn-clear-records" onclick="window.__clearRecords()">🗑️ Limpar</button>
+                        <button class="btn-filter-record active" onclick="window.__filterRecords('all', this)">TODOS</button>
+                        <button class="btn-filter-record" onclick="window.__filterRecords('nocoin', this)">NO COIN</button>
+                        <button class="btn-filter-record" onclick="window.__filterRecords('normal', this)">NORMAL</button>
+                        <button class="btn-clear-records" onclick="window.__clearRecords()">LIMPAR</button>
                     </div>
                     <div class="records-table-container" id="records-table-wrap">
                         <!-- Injected by renderRecordsTable -->
@@ -1749,8 +1886,8 @@
         }
         const btn = document.getElementById('btn-toggle-unlimited');
         if (btn) {
-            btn.className = `btn-toggle-unlimited ${window.UNLIMITED_MODE ? 'active-on' : 'active-off'}`;
-            btn.textContent = window.UNLIMITED_MODE ? '✅ ATIVADO (INFINITO)' : '❌ DESATIVADO';
+            btn.className = `btn-clean-toggle ${window.UNLIMITED_MODE ? 'toggle-active' : ''}`;
+            btn.innerHTML = `<span class="toggle-indicator"></span><span class="toggle-label">${window.UNLIMITED_MODE ? 'ATIVADO' : 'DESATIVADO'}</span>`;
         }
     }
 
@@ -1762,11 +1899,36 @@
 
         const btn = document.getElementById('btn-toggle-nocoin');
         if (btn) {
-            btn.className = `btn-toggle-nocoin ${window.NO_COIN_MODE ? 'nocoin-on' : 'nocoin-off'}`;
-            btn.textContent = window.NO_COIN_MODE ? '🔴 NO COIN ATIVO' : '🟡 MODO NORMAL';
+            btn.className = `btn-clean-toggle ${window.NO_COIN_MODE ? 'toggle-active-danger' : ''}`;
+            btn.innerHTML = `<span class="toggle-indicator"></span><span class="toggle-label">${window.NO_COIN_MODE ? 'ATIVADO' : 'DESATIVADO'}</span>`;
         }
         showHUDNotification(window.NO_COIN_MODE ? '🔴 MODO NO COIN ATIVADO! Cuidado com as moedas vermelhas!' : '🟡 MODO NORMAL ATIVADO!');
     }
+
+    window.__saveAvatarUrl = function(url) {
+        if (!url || !url.trim()) return;
+        url = url.trim();
+        myProfile.avatar = url;
+        const img = document.getElementById('lobby-my-avatar');
+        if (img) img.src = url;
+        const inp = document.getElementById('input-my-avatar-url');
+        if (inp) inp.value = url;
+        localStorage.setItem('subway_surfers_profile', JSON.stringify(myProfile));
+        const me = MP.party.find(p => p.id === myProfile.id);
+        if (me) me.avatar = url;
+        document.querySelectorAll('.avatar-dot-chip').forEach(el => el.classList.remove('active'));
+        renderPartySlots();
+        broadcastPresence();
+        showHUDNotification('Foto de perfil atualizada!');
+    };
+
+    window.__promptAvatarUrl = function() {
+        const cur = (myProfile.avatar && myProfile.avatar.startsWith('http')) ? myProfile.avatar : '';
+        const res = prompt('Insira o link direto (URL) da sua foto de perfil:', cur);
+        if (res && res.trim()) {
+            window.__saveAvatarUrl(res.trim());
+        }
+    };
 
     window.__saveMyNick = function(val) {
         if (!val || !val.trim()) return;
@@ -2098,53 +2260,99 @@
             body.sw-in-run #btn-subway-online-lobby { display: none !important; }
             .btn-subway-online-lobby {
                 position: fixed;
-                bottom: 18px;
-                left: 74px;
+                bottom: 20px;
+                left: 66px;
                 z-index: 99998;
-                height: 48px;
-                padding: 0 16px;
+                height: 36px;
+                padding: 0 14px 0 10px;
                 display: flex;
                 align-items: center;
                 gap: 8px;
-                background: linear-gradient(135deg, #10b981, #059669);
-                color: #fff;
-                border: 2px solid rgba(255, 255, 255, 0.4);
-                border-radius: 24px;
+                background: rgba(15, 23, 42, 0.8);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                color: #e2e8f0;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 18px;
                 cursor: pointer;
-                box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-                font-weight: 800;
-                font-size: 13px;
-                letter-spacing: 0.5px;
-                transition: transform 0.2s ease, filter 0.2s ease;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+                font-weight: 700;
+                font-size: 11px;
+                letter-spacing: 0.8px;
+                text-transform: uppercase;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
                 user-select: none;
                 -webkit-user-select: none;
-                font-family: inherit;
             }
             .btn-subway-online-lobby:hover {
-                transform: scale(1.05);
-                filter: brightness(1.15);
+                background: rgba(30, 41, 59, 0.95);
+                border-color: rgba(56, 189, 248, 0.5);
+                color: #fff;
+                box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
+                transform: translateY(-1px);
             }
-            .pulse-dot {
-                width: 10px;
-                height: 10px;
+            .status-dot {
+                width: 7px;
+                height: 7px;
                 border-radius: 50%;
-                background: #6ee7b7;
-                box-shadow: 0 0 10px #34d399;
-                animation: pulseGlow 1.5s infinite;
+                background: #10b981;
+                box-shadow: 0 0 8px #10b981;
+                position: relative;
             }
-            @keyframes pulseGlow {
+            .status-dot::after {
+                content: '';
+                position: absolute;
+                top: -2px; left: -2px; right: -2px; bottom: -2px;
+                border-radius: 50%;
+                border: 1px solid #10b981;
+                animation: pingRing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+            }
+            @keyframes pingRing {
                 0% { transform: scale(0.9); opacity: 0.8; }
-                50% { transform: scale(1.3); opacity: 1; }
-                100% { transform: scale(0.9); opacity: 0.8; }
+                80%, 100% { transform: scale(2.2); opacity: 0; }
             }
 
-            
+            body.sw-in-run #btn-subway-unified-menu { display: none !important; }
+            .btn-subway-unified-menu {
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                z-index: 99998;
+                width: 36px;
+                height: 36px;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(15, 23, 42, 0.8);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                color: #94a3b8;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 18px;
+                cursor: pointer;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .btn-subway-unified-menu:hover {
+                background: rgba(30, 41, 59, 0.95);
+                border-color: rgba(255, 255, 255, 0.25);
+                color: #fff;
+                transform: translateY(-1px);
+            }
+            .btn-subway-unified-menu svg {
+                width: 17px;
+                height: 17px;
+            }
+
             /* Modal Backdrop & Structure */
             .subway-modal-backdrop {
                 position: fixed;
                 top: 0; left: 0; right: 0; bottom: 0;
-                background: rgba(4, 10, 24, 0.85);
-                backdrop-filter: blur(8px);
+                background: rgba(2, 6, 23, 0.82);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
                 z-index: 100000;
                 display: flex;
                 align-items: center;
@@ -2152,103 +2360,166 @@
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             }
             .subway-modal-box {
-                background: #0f172a;
+                background: #090d16;
                 color: #fff;
-                border: 1px solid rgba(255,255,255,0.12);
-                border-radius: 16px;
-                box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 14px;
+                box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 1px 1px rgba(255, 255, 255, 0.05);
                 overflow: hidden;
                 display: flex;
                 flex-direction: column;
                 max-width: 90vw;
                 max-height: 88vh;
             }
-            .unified-box { width: 740px; }
+            .unified-box { width: 760px; }
             .modal-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 padding: 14px 20px;
-                background: rgba(255,255,255,0.03);
-                border-bottom: 1px solid rgba(255,255,255,0.08);
+                background: rgba(255, 255, 255, 0.02);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             }
-            .modal-header h2 {
-                margin: 0;
-                font-size: 15px;
+            .modal-header-branding {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .modal-brand-title {
+                font-size: 13px;
                 font-weight: 800;
-                letter-spacing: 0.5px;
+                letter-spacing: 1.2px;
+                color: #f8fafc;
+            }
+            .modal-brand-tag {
+                font-size: 9px;
+                font-weight: 800;
+                letter-spacing: 1px;
+                padding: 2px 6px;
+                border-radius: 4px;
+                background: rgba(56, 189, 248, 0.12);
+                color: #38bdf8;
+                border: 1px solid rgba(56, 189, 248, 0.25);
             }
             .btn-modal-close {
                 background: none;
                 border: none;
-                color: #94a3b8;
-                font-size: 18px;
+                color: #64748b;
+                font-size: 16px;
                 cursor: pointer;
                 padding: 4px 8px;
                 border-radius: 6px;
                 transition: all 0.2s;
             }
-            .btn-modal-close:hover { color: #fff; background: rgba(255,255,255,0.1); }
+            .btn-modal-close:hover { color: #fff; background: rgba(255,255,255,0.06); }
 
             /* Unified Tabs */
             .unified-tabs {
                 display: flex;
-                background: rgba(0,0,0,0.25);
-                border-bottom: 1px solid rgba(255,255,255,0.08);
+                background: rgba(0, 0, 0, 0.35);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+                padding: 0 10px;
             }
             .tab-btn {
-                flex: 1;
-                padding: 12px;
+                padding: 12px 18px;
                 background: none;
                 border: none;
-                color: #8c9ba5;
-                font-size: 13px;
+                color: #64748b;
+                font-size: 11px;
                 font-weight: 700;
+                letter-spacing: 0.8px;
                 cursor: pointer;
                 border-bottom: 2px solid transparent;
                 transition: all 0.2s ease;
+                margin-bottom: -1px;
             }
+            .tab-btn:hover { color: #cbd5e1; }
             .tab-btn.active {
-                color: #fff;
-                background: rgba(255,255,255,0.04);
+                color: #f8fafc;
                 border-bottom-color: #38bdf8;
             }
             .tab-pane {
                 display: none;
-                padding: 12px 18px 14px;
+                padding: 14px 18px;
+                overflow-x: hidden;
                 overflow-y: auto;
             }
             .tab-pane.active { display: block; }
 
             /* Modes Tab */
             .mod-card {
-                background: rgba(255,255,255,0.04);
-                border: 1px solid rgba(255,255,255,0.08);
-                border-radius: 12px;
-                padding: 16px;
-                margin-bottom: 14px;
+                background: rgba(255, 255, 255, 0.02);
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                border-radius: 10px;
+                padding: 14px 18px;
+                margin-bottom: 10px;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 gap: 16px;
+                transition: border-color 0.2s;
             }
-            .mod-info h3 { margin: 0 0 6px 0; font-size: 15px; }
-            .mod-info p { margin: 0; font-size: 12px; color: #a1b0be; line-height: 1.4; }
-            .btn-toggle-unlimited, .btn-toggle-nocoin {
-                padding: 10px 18px;
-                border-radius: 8px;
-                font-weight: 800;
-                font-size: 12px;
-                border: none;
+            .mod-card:hover {
+                border-color: rgba(255, 255, 255, 0.12);
+            }
+            .mod-info {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+            }
+            .mod-title {
+                font-size: 13px;
+                font-weight: 700;
+                color: #f1f5f9;
+                letter-spacing: 0.3px;
+            }
+            .mod-desc {
+                font-size: 11px;
+                color: #64748b;
+                line-height: 1.4;
+            }
+            .btn-clean-toggle {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 14px;
+                border-radius: 20px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                background: rgba(255, 255, 255, 0.04);
+                color: #94a3b8;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.8px;
                 cursor: pointer;
-                white-space: nowrap;
+                transition: all 0.2s ease;
             }
-            .active-on { background: #00c853; color: #fff; }
-            .active-off { background: #455a64; color: #cfd8dc; }
-            .nocoin-on { background: #e53935; color: #fff; }
-            .nocoin-off { background: #fbc02d; color: #000; }
+            .btn-clean-toggle .toggle-indicator {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: #64748b;
+                transition: all 0.2s;
+            }
+            .btn-clean-toggle.toggle-active {
+                background: rgba(16, 185, 129, 0.12);
+                border-color: rgba(16, 185, 129, 0.4);
+                color: #34d399;
+            }
+            .btn-clean-toggle.toggle-active .toggle-indicator {
+                background: #10b981;
+                box-shadow: 0 0 6px #10b981;
+            }
+            .btn-clean-toggle.toggle-active-danger {
+                background: rgba(244, 63, 94, 0.12);
+                border-color: rgba(244, 63, 94, 0.4);
+                color: #fb7185;
+            }
+            .btn-clean-toggle.toggle-active-danger .toggle-indicator {
+                background: #f43f5e;
+                box-shadow: 0 0 6px #f43f5e;
+            }
 
-/* Modern Elimination Hub Header & Room Connect */
+            /* Modern Elimination Hub Header & Room Connect */
             .lobby-header-bar {
                 display: flex;
                 align-items: center;
@@ -2821,6 +3092,328 @@
                 100% { transform: translateY(-5px) scaleY(0.95); }
             }
             .gt-avatar { width: 14px; height: 14px; border-radius: 50%; }
+
+            /* User Avatar URL input and chip */
+            .avatar-edit-icon {
+                position: absolute;
+                bottom: -2px;
+                right: -2px;
+                background: #0284c7;
+                color: #fff;
+                font-size: 9px;
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid #0f172a;
+            }
+            .user-avatar-wrap {
+                position: relative;
+                cursor: pointer;
+            }
+            .user-avatar-wrap:hover img {
+                border-color: #38bdf8;
+                box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+            }
+            .user-fields-row {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            #input-my-avatar-url {
+                background: rgba(0, 0, 0, 0.35);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 6px;
+                color: #cbd5e1;
+                font-size: 10px;
+                padding: 2px 6px;
+                width: 90px;
+                outline: none;
+                transition: all 0.2s;
+            }
+            #input-my-avatar-url:focus {
+                border-color: #38bdf8;
+                width: 130px;
+                background: rgba(0, 0, 0, 0.7);
+            }
+            .btn-avatar-url-chip {
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                color: #94a3b8;
+                border-radius: 10px;
+                padding: 1px 6px;
+                font-size: 9px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.15s;
+            }
+            .btn-avatar-url-chip:hover {
+                background: rgba(56, 189, 248, 0.2);
+                border-color: #38bdf8;
+                color: #fff;
+            }
+
+            /* Clean Waiting Overlay (When player dies in online tournament) */
+            .subway-wait-overlay {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(2, 6, 23, 0.75);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                z-index: 99999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                animation: waitFadeIn 0.3s ease;
+            }
+            @keyframes waitFadeIn {
+                from { opacity: 0; transform: scale(0.96); }
+                to { opacity: 1; transform: scale(1); }
+            }
+            .wait-card {
+                background: #0b1120;
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 14px;
+                padding: 20px 24px;
+                width: 440px;
+                max-width: 90vw;
+                box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+            .wait-card-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding-bottom: 12px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            }
+            .wait-pulse-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #f43f5e;
+                box-shadow: 0 0 10px #f43f5e;
+                animation: waitPulse 1.5s infinite;
+            }
+            @keyframes waitPulse {
+                0% { transform: scale(0.9); opacity: 0.8; }
+                50% { transform: scale(1.3); opacity: 1; }
+                100% { transform: scale(0.9); opacity: 0.8; }
+            }
+            .wait-header-title {
+                font-size: 13px;
+                font-weight: 800;
+                letter-spacing: 1px;
+                color: #f8fafc;
+            }
+            .wait-round-badge {
+                margin-left: auto;
+                background: rgba(56, 189, 248, 0.1);
+                border: 1px solid rgba(56, 189, 248, 0.3);
+                color: #38bdf8;
+                border-radius: 6px;
+                padding: 2px 8px;
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: 0.5px;
+            }
+            .wait-stats-row {
+                display: flex;
+                gap: 12px;
+            }
+            .wait-stat-box {
+                flex: 1;
+                background: rgba(255, 255, 255, 0.02);
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                border-radius: 8px;
+                padding: 10px 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .wait-stat-lbl {
+                font-size: 10px;
+                color: #64748b;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .wait-stat-val {
+                font-size: 16px;
+                font-weight: 900;
+                font-family: monospace;
+            }
+            .val-cyan { color: #38bdf8; }
+            .val-gold { color: #facc15; }
+
+            .wait-runners-section {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .wait-section-lbl {
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: 0.8px;
+                color: #94a3b8;
+            }
+            .wait-runners-list {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                max-height: 120px;
+                overflow-y: auto;
+            }
+            .wait-live-runner-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 10px;
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 6px;
+            }
+            .wait-runner-avatar {
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+            .wait-runner-name {
+                font-size: 11px;
+                font-weight: 700;
+                color: #e2e8f0;
+                flex: 1;
+            }
+            .wait-runner-time {
+                font-size: 11px;
+                font-family: monospace;
+                font-weight: 800;
+                color: #38bdf8;
+            }
+            .wait-runner-tag {
+                background: rgba(16, 185, 129, 0.15);
+                border: 1px solid rgba(16, 185, 129, 0.3);
+                color: #34d399;
+                font-size: 9px;
+                font-weight: 800;
+                padding: 1px 5px;
+                border-radius: 4px;
+            }
+            .wait-no-alive {
+                font-size: 11px;
+                color: #94a3b8;
+                padding: 6px 0;
+                text-align: center;
+            }
+
+            .wait-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                margin-top: 4px;
+            }
+            .btn-wait-practice {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                background: linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(16, 185, 129, 0.25));
+                border: 1px solid rgba(56, 189, 248, 0.4);
+                border-radius: 10px;
+                padding: 12px 16px;
+                cursor: pointer;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                color: #fff;
+                text-align: left;
+            }
+            .btn-wait-practice:hover {
+                background: linear-gradient(135deg, rgba(2, 132, 199, 0.4), rgba(16, 185, 129, 0.4));
+                border-color: #38bdf8;
+                transform: translateY(-1px);
+                box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
+            }
+            .practice-icon {
+                font-size: 20px;
+            }
+            .practice-text-wrap {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            .practice-main {
+                font-size: 13px;
+                font-weight: 800;
+                letter-spacing: 0.8px;
+                color: #f8fafc;
+            }
+            .practice-sub {
+                font-size: 10px;
+                color: #94a3b8;
+            }
+
+            /* Practice HUD during active training */
+            .subway-practice-hud {
+                position: fixed;
+                top: 18px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 99999;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                animation: waitFadeIn 0.3s ease;
+            }
+            .practice-pill {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                background: rgba(15, 23, 42, 0.85);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid rgba(56, 189, 248, 0.35);
+                border-radius: 20px;
+                padding: 6px 14px;
+                color: #e2e8f0;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+                font-size: 11px;
+                font-weight: 700;
+            }
+            .practice-pulse {
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                background: #38bdf8;
+                box-shadow: 0 0 8px #38bdf8;
+            }
+            .practice-lbl {
+                color: #38bdf8;
+                font-weight: 800;
+                letter-spacing: 0.8px;
+            }
+            .practice-sep { color: #64748b; }
+            .practice-msg { color: #cbd5e1; font-weight: 500; }
+            .btn-quit-practice {
+                background: rgba(255, 255, 255, 0.08);
+                border: none;
+                color: #94a3b8;
+                border-radius: 50%;
+                width: 18px;
+                height: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 10px;
+                cursor: pointer;
+                margin-left: 4px;
+                transition: all 0.2s;
+            }
+            .btn-quit-practice:hover {
+                background: rgba(244, 63, 94, 0.2);
+                color: #f43f5e;
+            }
 
             /* Spectator HUD & Winner Celebration */
             .subway-spectator-hud {
