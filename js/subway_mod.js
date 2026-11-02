@@ -746,7 +746,7 @@
 
     function createObstacle3D(type, x, y, z, options = {}) {
         if (!window.__lib || !window.__lib.getEntity) return null;
-        const margin = (type === 'dumpster') ? 26 : 18;
+        const margin = (type === 'dumpster' || type === 'bush') ? 24 : 18;
         if (isPositionBlocked(x, y, z, margin)) return null;
 
         try {
@@ -759,6 +759,13 @@
                     mesh.ry = Math.PI;
                     if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
                     bounds = { depth: 10, width: 18, height: 14 };
+                }
+            } else if (type === 'bush') {
+                mesh = window.__lib.getEntity('bush_1');
+                if (mesh) {
+                    mesh.ry = Math.PI;
+                    if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
+                    bounds = { depth: 8, width: 16, height: 12 };
                 }
             } else {
                 mesh = window.__lib.getEntity('currency_coin');
@@ -798,17 +805,18 @@
         const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 26));
         if (freeGroundLanes.length === 0) return;
 
-        // Formações de Obstáculos com alta probabilidade para Caçamba de Ferro:
-        // 0, 1, 7: Caçamba 3D individual (pista livre) + moeda vermelha
-        // 2: Dupla Caçamba nos cantos (-20 e 20) com centro livre
-        // 3: Paredão de moedas com 1 brecha
-        // 4: Pulo Obrigatório (low coin barrier, must jump)
-        // 5: Rolamento Obrigatório (high bar, must roll)
-        // 6: Zig-zag Slalom (3 moedas alternadas)
-        // 8: Moeda Móvel Oscilante (desliza de um lado pro outro)
-        const pattern = Math.floor(Math.random() * 9);
+        // Formações de Obstáculos Dinâmicos (Caçamba, Arbusto/Mato bush_1 e Moedas Vermelhas):
+        // 0, 1: Caçamba 3D individual (y=0) + moeda vermelha
+        // 2, 7: Arbusto / Mato 3D nativo (bush_1 no solo y=0)
+        // 3: Dupla Caçamba / Mato nos cantos (-20 e 20) com centro livre
+        // 4: Paredão de moedas com 1 brecha
+        // 5: Pulo Obrigatório (low coin barrier, must jump)
+        // 6: Rolamento Obrigatório (high bar, must roll)
+        // 8: Zig-zag Slalom (3 moedas alternadas)
+        // 9: Moeda Móvel Oscilante (desliza de um lado pro outro)
+        const pattern = Math.floor(Math.random() * 10);
 
-        if (pattern === 0 || pattern === 1 || pattern === 7) {
+        if (pattern === 0 || pattern === 1) {
             // Caçamba 3D no chão (y = 0)
             const dLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const d = createObstacle3D('dumpster', dLane, 0, centerZ);
@@ -820,15 +828,29 @@
                 const c = createObstacle3D('coin', cLane, 6, centerZ);
                 if (c) customObstacles.push(c);
             }
-        } else if (pattern === 2) {
-            // Dupla caçamba nos cantos (-20 e 20) com centro livre
-            if (!isPositionBlocked(-20, 0, centerZ, 26) && !isPositionBlocked(20, 0, centerZ, 26) && !isPositionBlocked(0, 0, centerZ, 26)) {
-                const d1 = createObstacle3D('dumpster', -20, 0, centerZ);
-                const d2 = createObstacle3D('dumpster', 20, 0, centerZ);
-                if (d1) customObstacles.push(d1);
-                if (d2) customObstacles.push(d2);
+        } else if (pattern === 2 || pattern === 7) {
+            // Arbusto / Mato 3D nativo (bush_1 no solo y = 0)
+            const bLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const b = createObstacle3D('bush', bLane, 0, centerZ);
+            if (b) customObstacles.push(b);
+
+            const otherFree = freeGroundLanes.filter(l => l !== bLane);
+            if (otherFree.length > 0) {
+                const cLane = otherFree[Math.floor(Math.random() * otherFree.length)];
+                const c = createObstacle3D('coin', cLane, 6, centerZ);
+                if (c) customObstacles.push(c);
             }
         } else if (pattern === 3) {
+            // Dupla nos cantos (-20 e 20) deixando centro livre
+            if (!isPositionBlocked(-20, 0, centerZ, 26) && !isPositionBlocked(20, 0, centerZ, 26) && !isPositionBlocked(0, 0, centerZ, 26)) {
+                const t1 = Math.random() > 0.5 ? 'dumpster' : 'bush';
+                const t2 = Math.random() > 0.5 ? 'bush' : 'dumpster';
+                const o1 = createObstacle3D(t1, -20, 0, centerZ);
+                const o2 = createObstacle3D(t2, 20, 0, centerZ);
+                if (o1) customObstacles.push(o1);
+                if (o2) customObstacles.push(o2);
+            }
+        } else if (pattern === 4) {
             // Paredão com 1 brecha
             if (freeGroundLanes.length > 1) {
                 const openLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
@@ -839,20 +861,20 @@
                     }
                 });
             }
-        } else if (pattern === 4) {
+        } else if (pattern === 5) {
             // Pulo Obrigatório
             freeGroundLanes.forEach(lx => {
                 const c = createObstacle3D('coin', lx, 5, centerZ);
                 if (c) customObstacles.push(c);
             });
-        } else if (pattern === 5) {
+        } else if (pattern === 6) {
             // Rolamento Obrigatório
             const freeHigh = lanes.filter(lx => !isPositionBlocked(lx, 26, centerZ));
             freeHigh.forEach(lx => {
                 const c = createObstacle3D('coin', lx, 26, centerZ);
                 if (c) customObstacles.push(c);
             });
-        } else if (pattern === 6) {
+        } else if (pattern === 8) {
             // Zig-zag Slalom
             const order = [-20, 0, 20];
             if (Math.random() > 0.5) order.reverse();
@@ -863,7 +885,7 @@
                     if (c) customObstacles.push(c);
                 }
             });
-        } else if (pattern === 8) {
+        } else if (pattern === 9) {
             // Moeda Móvel Oscilante (vai de -20 a +20 continuamente)
             const c = createObstacle3D('coin', 0, 6, centerZ, {
                 isOscillating: true,
