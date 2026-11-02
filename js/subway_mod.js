@@ -89,6 +89,8 @@
     let isRunActive = false;
     let deathFrozen = false;
     let frozenAt = 0;
+    let isGamePaused = false;
+    let pauseStartedAt = 0;
 
     // Local profile
     let myProfile = JSON.parse(localStorage.getItem('subway_surfers_profile') || 'null');
@@ -428,6 +430,8 @@
         if (isRunActive) return;
         isRunActive = true;
         deathFrozen = false;
+        isGamePaused = false;
+        pauseStartedAt = 0;
         runStartTime = performance.now();
         runElapsedTime = 0;
         window.__dashSpeedMult = 1.0;
@@ -452,7 +456,7 @@
 
         clearInterval(runTimerInterval);
         runTimerInterval = setInterval(() => {
-            if (isRunActive && !deathFrozen) {
+            if (isRunActive && !deathFrozen && !isGamePaused) {
                 runElapsedTime = performance.now() - runStartTime;
             } else if (isRunActive && deathFrozen) {
                 try {
@@ -466,7 +470,7 @@
                     timerVal.textContent = formatTime(prevTotal + runElapsedTime);
                 }
             }
-            if (MP.inMatch) {
+            if (MP.inMatch && !isGamePaused) {
                 sendMultiplayerRunnerSync();
             }
         }, 35);
@@ -1464,7 +1468,22 @@
                         showOnlineNotice('⚠️ Pausa bloqueada na rodada online!');
                         return;
                     }
+                    if (isRunActive && !deathFrozen && !isGamePaused) {
+                        isGamePaused = true;
+                        pauseStartedAt = performance.now();
+                    }
                     return origPause.apply(this, args);
+                };
+            }
+            if (!window.app.game.__hookedResume && typeof window.app.game.resume === 'function') {
+                window.app.game.__hookedResume = true;
+                const origResume = window.app.game.resume;
+                window.app.game.resume = function(...args) {
+                    if (isGamePaused) {
+                        runStartTime += (performance.now() - pauseStartedAt);
+                        isGamePaused = false;
+                    }
+                    return origResume.apply(this, args);
                 };
             }
             if (!window.app.game.__hookedRevive && typeof window.app.game.revive === 'function') {
@@ -2162,6 +2181,9 @@
             </div>
         `;
         document.body.appendChild(modal);
+        modal.onclick = (e) => {
+            if (e.target === modal) closeUnifiedModal();
+        };
 
         // Bind tab buttons
         const tabs = modal.querySelectorAll('.tab-btn');
@@ -4630,7 +4652,7 @@
             const t = window.app && window.app.title;
             if (!t) return;
             let changed = false;
-            ['btnMyTour', 'btnShop', 'btnTopRun', 'btnMe'].forEach(k => {
+            ['btnMyTour', 'btnShop', 'btnTopRun', 'btnMe', 'freeStuffButton', 'freeStuffBtn'].forEach(k => {
                 const b = t[k];
                 if (!b || b.__hiddenDone) return;
                 b.__hiddenDone = true;
@@ -4644,6 +4666,22 @@
                 try { Object.defineProperty(b, 'renderable', { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
                 changed = true;
             });
+            // Also scan t.children for mystery box / tv icons
+            if (t.children && Array.isArray(t.children)) {
+                t.children.forEach(ch => {
+                    if (ch && !ch.__hiddenDone && (ch.tvIcon || ch.itemIcon || ch.itemShine || ch.arrowIcon)) {
+                        ch.__hiddenDone = true;
+                        try { if (ch.parent) ch.parent.removeChild(ch); } catch (e) {}
+                        ch.interactive = false;
+                        ch.interactiveChildren = false;
+                        ch.alpha = 0;
+                        ch.x = -9999;
+                        ch.y = -9999;
+                        try { Object.defineProperty(ch, 'visible', { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+                        try { Object.defineProperty(ch, 'renderable', { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+                    }
+                });
+            }
             if (changed && t.bottomMenu) {
                 try { t.bottomMenu.organise(); } catch (e) {}
             }
