@@ -442,7 +442,7 @@
         const timerVal = document.getElementById('subway-top-timer-val');
         updateModeBadgeUI();
         document.body.classList.add('sw-in-run');
-        try { showWorldTourBanner(window.CURRENT_MAP); } catch(e){}
+        
         if (timerWrap) timerWrap.style.display = 'flex';
         if (timerVal) timerVal.textContent = '00:00.00';
 
@@ -1283,16 +1283,7 @@
             document.body.appendChild(menuBtn);
         }
 
-        // World Tour Map Selection Button (Bottom Left, next to config icon)
-        if (!document.getElementById('btn-subway-maps-menu')) {
-            const mapsBtn = document.createElement('button');
-            mapsBtn.id = 'btn-subway-maps-menu';
-            mapsBtn.className = 'btn-subway-maps-menu';
-            mapsBtn.title = 'Seleção de Mapas (World Tour)';
-            mapsBtn.innerHTML = '<span>🌍</span> <span class="map-btn-lbl">MAPAS</span>';
-            mapsBtn.onclick = () => openUnifiedModal('maps');
-            document.body.appendChild(mapsBtn);
-        }
+        
     }
 
     function updateModeBadgeUI() {
@@ -1304,53 +1295,7 @@
     }
 
     
-    // ==========================================
-    // MAP THEMES (SUBWAY SURFERS WORLD TOUR)
-    // ==========================================
-    const MAP_THEMES = [
-        { id: 'las_vegas', name: 'Las Vegas', desc: 'Cassinos & Neon Original', icon: '🎰' },
-        { id: 'tokyo', name: 'Tóquio', desc: 'Cyberpunk & Luzes Neon', icon: '🗼' },
-        { id: 'rio', name: 'Rio de Janeiro', desc: 'Praia Tropical & Sol', icon: '🏖️' },
-        { id: 'hawaii', name: 'Havaí', desc: 'Pôr do Sol & Coqueiros', icon: '🌺' },
-        { id: 'paris', name: 'Paris', desc: 'Crepúsculo & Lavanda', icon: '🥐' },
-        { id: 'cairo', name: 'Cairo', desc: 'Pirâmides & Deserto Dourado', icon: '🏜️' },
-        { id: 'new_york', name: 'Nova York', desc: 'Metrô Original Graffiti', icon: '🗽' },
-        { id: 'london', name: 'Londres', desc: 'Névoa Britânica & Tijolos', icon: '🇬🇧' }
-    ];
-
-    window.CURRENT_MAP = localStorage.getItem('subway_selected_map') || 'las_vegas';
-
-    function setMapTheme(mapId) {
-        window.CURRENT_MAP = mapId;
-        localStorage.setItem('subway_selected_map', mapId);
-        document.body.setAttribute('data-map-theme', mapId);
-        showWorldTourBanner(mapId);
-        const btns = document.querySelectorAll('.btn-map-item');
-        btns.forEach(b => {
-            const isThis = b.getAttribute('data-map') === mapId;
-            b.classList.toggle('active-map', isThis);
-            const badge = b.querySelector('.map-badge-active');
-            if (badge) badge.textContent = isThis ? 'ATIVO ✓' : 'ESCOLHER';
-        });
-    }
-    window.__selectMapTheme = setMapTheme;
-
-    function showWorldTourBanner(mapId) {
-        const theme = MAP_THEMES.find(m => m.id === mapId) || MAP_THEMES[0];
-        let banner = document.getElementById('world-tour-banner');
-        if (!banner) {
-            banner = document.createElement('div');
-            banner.id = 'world-tour-banner';
-            banner.className = 'world-tour-banner';
-            document.body.appendChild(banner);
-        }
-        banner.innerHTML = '<span class="wt-icon">' + theme.icon + '</span><div class="wt-info"><span class="wt-label">SUBWAY SURFERS WORLD TOUR</span><span class="wt-city">' + theme.name.toUpperCase() + '</span></div>';
-        banner.classList.add('show');
-        clearTimeout(banner._timer);
-        banner._timer = setTimeout(() => {
-            banner.classList.remove('show');
-        }, 3200);
-    }
+    
 
     window.__openUnifiedMenu = function(tab) {
         openUnifiedModal(tab || 'modes');
@@ -1376,7 +1321,6 @@
                 <!-- Tabs Navigation -->
                 <div class="unified-tabs">
                     <button class="tab-btn" data-tab="modes" id="tab-btn-modes">🎮 Modos</button>
-                    <button class="tab-btn" data-tab="maps" id="tab-btn-maps">🌍 Mapas</button>
                     <button class="tab-btn" data-tab="multiplayer" id="tab-btn-multiplayer">🌐 Multiplayer</button>
                     <button class="tab-btn" data-tab="records" id="tab-btn-records">📜 Recordes</button>
                 </div>
@@ -1401,26 +1345,6 @@
                         <button class="btn-toggle-nocoin ${window.NO_COIN_MODE ? 'nocoin-on' : 'nocoin-off'}" id="btn-toggle-nocoin">
                             ${window.NO_COIN_MODE ? '🔴 NO COIN ATIVO' : '🟡 MODO NORMAL'}
                         </button>
-                    </div>
-                </div>
-
-                <!-- Tab: Map Selection -->
-                <div class="tab-pane" id="pane-maps">
-                    <div class="mod-card" style="flex-direction:column; align-items:flex-start; width:100%;">
-                        <div class="mod-info" style="margin-bottom:12px;">
-                            <h3 style="font-size:16px; color:#38bdf8;">🌍 SELEÇÃO DE MAPAS (SUBWAY SURFERS WORLD TOUR)</h3>
-                            <p style="font-size:12px; color:#cbd5e1;">Escolha o cenário com iluminação, paleta de cores e atmosfera da cidade:</p>
-                        </div>
-                        <div class="map-grid">
-                            ${MAP_THEMES.map(m => `
-                                <div class="btn-map-item ${m.id === window.CURRENT_MAP ? 'active-map' : ''}" data-map="${m.id}" onclick="window.__selectMapTheme('${m.id}')">
-                                    <div class="map-badge-active">${m.id === window.CURRENT_MAP ? 'ATIVO ✓' : 'ESCOLHER'}</div>
-                                    <span class="map-icon">${m.icon}</span>
-                                    <span class="map-name">${m.name}</span>
-                                    <span class="map-desc">${m.desc}</span>
-                                </div>
-                            `).join('')}
-                        </div>
                     </div>
                 </div>
 
@@ -1916,126 +1840,7 @@
             /* Floating Menu Button (Bottom-Left Blue Gear Icon) */
             body.sw-in-run #btn-subway-unified-menu { display: none !important; }
             
-            /* Maps Button & Modal Styles */
-            body.sw-in-run #btn-subway-maps-menu { display: none !important; }
-            .btn-subway-maps-menu {
-                position: fixed;
-                bottom: 18px;
-                left: 74px;
-                z-index: 99998;
-                height: 48px;
-                padding: 0 16px;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                background: linear-gradient(135deg, #0284c7, #0369a1);
-                color: #fff;
-                border: 2px solid rgba(255, 255, 255, 0.4);
-                border-radius: 24px;
-                cursor: pointer;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
-                font-weight: 800;
-                font-size: 14px;
-                letter-spacing: 0.5px;
-                transition: transform 0.2s ease, filter 0.2s ease;
-                user-select: none;
-                -webkit-user-select: none;
-                font-family: inherit;
-            }
-            .btn-subway-maps-menu:hover {
-                transform: scale(1.05);
-                filter: brightness(1.15);
-            }
-            .map-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-                gap: 10px;
-                width: 100%;
-                margin-top: 8px;
-            }
-            .btn-map-item {
-                position: relative;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                background: rgba(255, 255, 255, 0.06);
-                border: 2px solid rgba(255, 255, 255, 0.12);
-                border-radius: 12px;
-                padding: 14px 8px 10px;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                color: #fff;
-                font-family: inherit;
-                text-align: center;
-            }
-            .btn-map-item:hover {
-                background: rgba(0, 195, 255, 0.15);
-                border-color: rgba(0, 195, 255, 0.5);
-                transform: translateY(-2px);
-            }
-            .btn-map-item.active-map {
-                background: linear-gradient(135deg, rgba(0, 195, 255, 0.3), rgba(0, 102, 255, 0.3));
-                border-color: #00c3ff;
-                box-shadow: 0 0 14px rgba(0, 195, 255, 0.45);
-            }
-            .map-badge-active {
-                position: absolute;
-                top: 4px;
-                right: 6px;
-                font-size: 9px;
-                font-weight: 800;
-                padding: 1px 5px;
-                border-radius: 6px;
-                background: rgba(0,0,0,0.4);
-                color: #94a3b8;
-            }
-            .btn-map-item.active-map .map-badge-active {
-                background: #00c3ff;
-                color: #000;
-            }
-            .btn-map-item .map-icon { font-size: 26px; margin-bottom: 4px; }
-            .btn-map-item .map-name { font-size: 13px; font-weight: 700; color: #fff; }
-            .btn-map-item .map-desc { font-size: 10px; color: #a0aec0; margin-top: 2px; }
-
-            /* World Tour Notification Banner */
-            .world-tour-banner {
-                position: fixed;
-                top: 20px;
-                left: 50%;
-                transform: translateX(-50%) translateY(-100px);
-                background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
-                border: 2px solid #00c3ff;
-                border-radius: 30px;
-                padding: 8px 24px;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                z-index: 999999;
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 195, 255, 0.3);
-                transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
-                opacity: 0;
-                pointer-events: none;
-                color: #fff;
-            }
-            .world-tour-banner.show {
-                transform: translateX(-50%) translateY(0);
-                opacity: 1;
-            }
-            .world-tour-banner .wt-icon { font-size: 26px; }
-            .world-tour-banner .wt-info { display: flex; flex-direction: column; }
-            .world-tour-banner .wt-label { font-size: 9px; letter-spacing: 2px; color: #38bdf8; font-weight: 800; }
-            .world-tour-banner .wt-city { font-size: 14px; font-weight: 900; letter-spacing: 1px; color: #fff; }
-
-            /* Map Filter Grading */
-            body[data-map-theme="tokyo"] canvas { filter: contrast(1.18) hue-rotate(25deg) saturate(1.35) !important; }
-            body[data-map-theme="rio"] canvas { filter: brightness(1.08) saturate(1.4) hue-rotate(-15deg) !important; }
-            body[data-map-theme="hawaii"] canvas { filter: saturate(1.45) sepia(0.22) hue-rotate(-25deg) brightness(1.05) !important; }
-            body[data-map-theme="paris"] canvas { filter: hue-rotate(275deg) saturate(1.15) brightness(1.03) !important; }
-            body[data-map-theme="cairo"] canvas { filter: sepia(0.45) saturate(1.35) contrast(1.05) brightness(1.06) !important; }
-            body[data-map-theme="new_york"] canvas { filter: contrast(1.12) saturate(1.2) brightness(0.98) !important; }
-            body[data-map-theme="london"] canvas { filter: contrast(1.08) saturate(0.85) sepia(0.15) !important; }
-            body[data-map-theme="las_vegas"] canvas { filter: none !important; }
+            
 
             .btn-subway-unified-menu {
                 position: fixed;
@@ -2430,7 +2235,6 @@
             /* Mobile / small-screen adaptation */
             @media (max-width: 760px), (max-height: 480px) {
                 .btn-subway-unified-menu { width: 34px; height: 34px; bottom: 8px; left: 8px; }
-                .btn-subway-maps-menu { height: 34px; padding: 0 10px; bottom: 8px; left: 48px; font-size: 11px; gap: 4px; border-radius: 17px; }
                 .btn-subway-unified-menu svg { width: 18px; height: 18px; }
                 .subway-top-timer-wrap { top: 6px; padding: 3px 9px; gap: 5px; }
                 .subway-top-timer-wrap .timer-value { font-size: 12px; }
@@ -2482,6 +2286,7 @@
     setInterval(hideHubButtons, 300);
 
     function init() {
+        try { document.body.removeAttribute("data-map-theme"); } catch(e){}
         injectModStyles();
         createUnifiedUI();
         initMultiplayerEngine();
