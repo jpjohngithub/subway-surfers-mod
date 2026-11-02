@@ -772,6 +772,9 @@
         goAt: 0,
         partySizeAtStart: 0
     };
+    window.__MP = MP;
+    window.__MPX = MPX;
+    window.__myProfile = myProfile;
 
     const isBot = id => String(id).startsWith('bot_');
 
@@ -1377,6 +1380,7 @@
     }
 
     function showInterlude(msg) {
+        window.showInterlude = showInterlude;
         removeEl('subway-interlude');
         const nameOf = id => {
             const p = MP.party.find(x => x.id === id);
@@ -1387,13 +1391,13 @@
         const champ = nameOf(msg.tournamentWinnerId || msg.roundWinnerId);
 
         let roundTitle = '';
+        let roundSubtitle = '';
         if (isOver) {
-            roundTitle = `🏆 GRANDE CAMPEÃO DO TORNEIO: ${champ.nick.toUpperCase()}!`;
-        } else if (msg.eliminatedThisRound) {
-            const elimName = nameOf(msg.eliminatedThisRound).nick;
-            roundTitle = `⚔️ RODADA ${msg.round}/${msg.totalRounds} CONCLUÍDA — ${elimName} FOI ELIMINADO!`;
+            roundTitle = 'TORNEIO FINALIZADO';
+            roundSubtitle = 'Resultado Oficial da Competição';
         } else {
-            roundTitle = `⚔️ RODADA ${msg.round}/${msg.totalRounds} CONCLUÍDA — TEMPOS ACUMULADOS!`;
+            roundTitle = `RODADA ${msg.round} DE ${msg.totalRounds}`;
+            roundSubtitle = 'Classificação por Tempo Acumulado';
         }
 
         const rows = (msg.rankedIds || []).map((id, i) => {
@@ -1401,49 +1405,80 @@
             const isChamp = isOver && id === msg.tournamentWinnerId;
             const roundT = msg.results[id] || 0;
             const totalT = msg.totals[id] || 0;
+            const isMe = id === myProfile.id;
 
             let badgeHtml = '';
             if (isOver) {
-                if (i === 0) badgeHtml = '<span class="il-badge il-champ">🏆 CAMPEÃO (MAIOR TEMPO!)</span>';
-                else if (i === 1) badgeHtml = '<span class="il-badge il-silver">🥈 2º LUGAR</span>';
-                else badgeHtml = `<span class="il-badge il-elim">${i + 1}º LUGAR</span>`;
+                if (i === 0) badgeHtml = '<span class="il-badge il-champ">1º LUGAR</span>';
+                else if (i === 1) badgeHtml = '<span class="il-badge il-silver">2º LUGAR</span>';
+                else badgeHtml = `<span class="il-badge il-sub">${i + 1}º LUGAR</span>`;
             } else {
-                if (i === 0) badgeHtml = '<span class="il-badge il-champ">👑 LÍDER GERAL</span>';
-                else badgeHtml = `<span class="il-badge il-pass">${i + 1}º GERAL</span>`;
+                if (i === 0) badgeHtml = '<span class="il-badge il-champ">LÍDER</span>';
+                else badgeHtml = `<span class="il-badge il-sub">${i + 1}º</span>`;
             }
 
             return `
-                <div class="il-row ${i === 0 ? 'il-win' : ''}">
-                    <span class="il-pos">${i + 1}º</span>
+                <div class="il-row ${i === 0 ? 'il-winner-row' : ''} ${isMe ? 'il-me-row' : ''}">
+                    <span class="il-pos ${i === 0 ? 'pos-1' : ''}">${i + 1}</span>
                     <img class="il-av" src="${p.avatar}" />
-                    <span class="il-nick">${p.nick}${id === myProfile.id ? ' (você)' : ''}</span>
-                    <span class="il-r" title="Tempo nesta rodada">+${fmtS(roundT)}</span>
-                    <span class="il-t" style="font-weight:900; color:#38bdf8;" title="Tempo acumulado total">${fmtS(totalT)}</span>
-                    <span class="il-status">${badgeHtml}</span>
+                    <div class="il-runner-col">
+                        <span class="il-nick">${p.nick}${isMe ? '<span class="tag-you">VOCÊ</span>' : ''}</span>
+                    </div>
+                    <span class="il-r">+${fmtS(roundT)}</span>
+                    <span class="il-t">${fmtS(totalT)}</span>
+                    <div class="il-status-col">${badgeHtml}</div>
                 </div>
             `;
         }).join('');
+
+        const winnerSpotlight = isOver ? `
+            <div class="il-winner-spotlight">
+                <div class="il-trophy-ring">
+                    <img class="il-champ-avatar" src="${champ.avatar}" />
+                    <span class="il-crown">👑</span>
+                </div>
+                <div class="il-champ-info">
+                    <span class="il-champ-label">CAMPEÃO DO TORNEIO</span>
+                    <span class="il-champ-name">${champ.nick}</span>
+                    <span class="il-champ-score">TEMPO TOTAL: ${fmtS(msg.totals[champ.id] || 0)}</span>
+                </div>
+            </div>
+        ` : '';
 
         const box = document.createElement('div');
         box.id = 'subway-interlude';
         box.className = 'subway-interlude';
         box.innerHTML = `
             <div class="il-card">
-                <div class="il-title ${isOver ? 'il-title-gold' : ''}">${roundTitle}</div>
-                <div class="il-subtitle">${isOver ? 'Parabéns a todos os corredores!' : 'Classificação e Eliminatórias da Partida:'}</div>
-                <div class="il-head">
-                    <span>#</span>
-                    <span></span>
-                    <span>Jogador</span>
-                    <span>Rodada</span>
-                    <span style="color:#38bdf8; font-weight:800;">Total Acumulado</span>
-                    <span>Classificação</span>
+                <div class="il-header">
+                    <div class="il-title-wrap">
+                        <span class="il-title">${roundTitle}</span>
+                        <span class="il-subtitle">${roundSubtitle}</span>
+                    </div>
                 </div>
-                <div class="il-rows">${rows}</div>
-                <div class="il-count" id="il-count">
-                    ${isOver ? 'Retornando ao lobby em' : 'Próxima rodada eliminatória em'} <span id="il-sec">${msg.delay}</span>s...
+
+                ${winnerSpotlight}
+
+                <div class="il-table-wrap">
+                    <div class="il-head">
+                        <span>#</span>
+                        <span></span>
+                        <span>CORREDOR</span>
+                        <span style="text-align:right;">RODADA</span>
+                        <span style="text-align:right; color:#38bdf8;">ACUMULADO</span>
+                        <span style="text-align:right;">STATUS</span>
+                    </div>
+                    <div class="il-rows">${rows}</div>
                 </div>
-                ${isOver ? '<button class="btn-il-back" onclick="window.__endSeriesNow()">Voltar ao Lobby</button>' : ''}
+
+                <div class="il-footer-actions">
+                    <span class="il-countdown-text">
+                        ${isOver ? 'Retornando ao lobby em' : 'Próxima rodada em'} <strong id="il-sec">${msg.delay}</strong>s...
+                    </span>
+                    <button class="btn-il-lobby" onclick="window.__endSeriesNow()">
+                        ${isOver ? 'VOLTAR AO LOBBY' : 'SAIR PARA O LOBBY'}
+                    </button>
+                </div>
             </div>
         `;
         document.body.appendChild(box);
@@ -1460,6 +1495,7 @@
             else if (MP.isPartyLeader) hostBeginRound();
         }, 1000);
     }
+    window.showInterlude = showInterlude;
 
     window.__endSeriesNow = function() {
         clearInterval(MPX.interTimer);
@@ -1494,10 +1530,12 @@
             el.id = 'subway-timeline';
             el.className = 'subway-tl-wrap';
             el.innerHTML = `
-                <div class="tl-head" id="tl-head">TORNEIO NO COIN</div>
-                <div class="tl-track" id="tl-track">
-                    <div class="tl-line"></div>
-                    <div class="tl-danger-zone">⚠️ ZONA DE ELIMINAÇÃO</div>
+                <div class="tl-panel">
+                    <div class="tl-head-row">
+                        <span class="tl-pulse-dot"></span>
+                        <span class="tl-head" id="tl-head">RODADA ${Math.max(1, MPX.round)}/${MPX.totalRounds}</span>
+                    </div>
+                    <div class="tl-runners-list" id="tl-runners-list"></div>
                 </div>
             `;
             document.body.appendChild(el);
@@ -1507,10 +1545,14 @@
     function hideTimeline() { removeEl('subway-timeline'); }
 
     function renderTimeline() {
-        const el = document.getElementById('subway-timeline');
+        let el = document.getElementById('subway-timeline');
+        if (!el) {
+            showTimeline();
+            el = document.getElementById('subway-timeline');
+        }
         if (!el || !MP.inMatch || !MP.party.length) return;
 
-        // Sort active competitors by live/dead survival time
+        // Sort active competitors by total accumulated survival time
         const list = MP.party.map(p => {
             const base = MPX.totals[p.id] || 0;
             const isDead = MPX.dead[p.id] !== undefined;
@@ -1522,45 +1564,30 @@
         const head = el.querySelector('#tl-head');
         if (head) {
             const roundTxt = `RODADA ${Math.max(1, MPX.round)}/${MPX.totalRounds}`;
-            head.textContent = list.length === 2 ? `🏆 FINAL (${roundTxt})` : `⚔️ ${roundTxt}`;
+            head.textContent = list.length === 2 ? `FINAL · ${roundTxt}` : roundTxt;
         }
 
-        const track = el.querySelector('#tl-track');
-        if (!track) return;
-        const H = track.clientHeight || 180;
-        const NODE = 28;
-        const max = Math.max(25000, (list[0]?.score || 10000) * 1.15);
-        const gap = Math.min(NODE + 4, (H - NODE) / Math.max(1, list.length - 1));
-        const ys = list.map(e => ({ e, y: (1 - e.score / max) * (H - NODE) }));
-        for (let i = 1; i < ys.length; i++) if (ys[i].y < ys[i - 1].y + gap) ys[i].y = ys[i - 1].y + gap;
-        const over = ys[ys.length - 1] ? (ys[ys.length - 1].y - (H - NODE)) : 0;
-        if (over > 0) ys.forEach(o => { o.y = Math.max(0, o.y - over); });
+        const listContainer = el.querySelector('#tl-runners-list');
+        if (!listContainer) return;
 
-        const ids = list.map(e => String(e.p.id));
-        track.querySelectorAll('.tl-node').forEach(n => { if (!ids.includes(n.getAttribute('data-id'))) n.remove(); });
-
-        ys.forEach((o, i) => {
-            const id = String(o.e.p.id);
-            let n = track.querySelector('.tl-node[data-id="' + id + '"]');
-            if (!n) {
-                n = document.createElement('div');
-                n.className = 'tl-node';
-                n.setAttribute('data-id', id);
-                n.innerHTML = '<div class="tl-pill"><span class="tl-rank"></span><span class="tl-nick"></span><span class="tl-time"></span></div><img class="tl-dot" />';
-                track.appendChild(n);
-            }
-            n.style.top = o.y + 'px';
-            n.classList.toggle('tl-dead', o.e.dead);
-            n.classList.toggle('tl-me', o.e.p.id === myProfile.id);
-            n.classList.toggle('tl-danger', i === list.length - 1 && list.length > 2); // Bottom player is in elimination danger
-            n.querySelector('.tl-rank').textContent = (i + 1) + 'º';
-            n.querySelector('.tl-nick').textContent = o.e.p.nick;
-            n.querySelector('.tl-time').textContent = o.e.dead ? `💀 Total: ${fmtS(o.e.score)}` : `🏃 Total: ${fmtS(o.e.score)}`;
-            const img = n.querySelector('.tl-dot');
-            if (img.getAttribute('src') !== o.e.p.avatar) img.setAttribute('src', o.e.p.avatar);
-        });
+        listContainer.innerHTML = list.map((item, i) => {
+            const isMe = item.p.id === myProfile.id;
+            const isDead = item.dead;
+            return `
+                <div class="tl-runner-item ${isDead ? 'runner-dead' : 'runner-alive'} ${isMe ? 'runner-me' : ''}">
+                    <span class="tl-pos ${i === 0 ? 'pos-gold' : ''}">${i + 1}</span>
+                    <img class="tl-av" src="${item.p.avatar}" alt="" />
+                    <span class="tl-name">${item.p.nick}${isMe ? '<span class="tl-you">VOCÊ</span>' : ''}</span>
+                    <span class="tl-score ${isDead ? 'score-dead' : 'score-alive'}">
+                        ${isDead ? 'CAIU · ' + fmtS(item.score) : fmtS(item.score)}
+                    </span>
+                </div>
+            `;
+        }).join('');
     }
     setInterval(() => { if (MP.inMatch) renderTimeline(); }, 400);
+    window.showTimeline = showTimeline;
+    window.renderTimeline = renderTimeline;
 
     // Keep legacy aliases
     function hideSpectatorHUD() { removeEl('subway-wait-hud'); }
@@ -3508,32 +3535,353 @@
             .countdown-sub { font-size: 14px; font-weight: 800; color: #fff; margin-top: 14px; text-transform: uppercase; }
 
             
-            /* Online: Timeline, Interlude, Wait HUD */
-            .subway-tl-wrap { position: fixed; top: 52px; right: 8px; z-index: 99998; width: 190px; pointer-events: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-            .tl-head { text-align: right; font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #cfe3ff; text-shadow: 0 1px 3px #000; margin: 0 4px 6px 0; }
-            .tl-track { position: relative; height: min(46vh, 300px); min-height: 140px; }
-            .tl-line { position: absolute; right: 13px; top: 0; bottom: 0; width: 3px; border-radius: 3px; background: linear-gradient(180deg, #ffd54f, #29b6f6 60%, rgba(41,182,246,.25)); box-shadow: 0 0 8px rgba(41,182,246,.5); }
-            .tl-node { position: absolute; right: 0; left: 0; height: 28px; transition: top .35s cubic-bezier(.3,.8,.3,1); }
-            .tl-dot { position: absolute; right: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; background: #12203a; box-shadow: 0 2px 8px rgba(0,0,0,.6); }
-            .tl-me .tl-dot { border-color: #00e5ff; box-shadow: 0 0 10px #00e5ff; }
-            .tl-pill { position: absolute; right: 34px; top: 3px; height: 22px; display: flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 11px; background: rgba(10,16,30,.78); backdrop-filter: blur(4px); color: #fff; font-size: 10px; font-weight: 700; white-space: nowrap; border: 1px solid rgba(255,255,255,.15); }
-            .tl-rank { color: #ffd54f; font-weight: 900; }
-            .tl-nick { max-width: 70px; overflow: hidden; text-overflow: ellipsis; }
-            .tl-time { color: #90caf9; font-variant-numeric: tabular-nums; }
-            .tl-dead .tl-dot { filter: grayscale(1); opacity: .6; border-color: #78909c; }
-            .tl-dead .tl-pill { opacity: .6; text-decoration: line-through; }
-            .subway-interlude { position: fixed; inset: 0; z-index: 100006; background: rgba(4,10,24,.55); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-            .il-card { background: #101c33; color: #fff; border: 1px solid rgba(255,255,255,.15); border-radius: 16px; padding: 18px 22px; min-width: min(420px, 92vw); box-shadow: 0 10px 40px rgba(0,0,0,.6); }
-            .il-title { font-size: 17px; font-weight: 900; text-align: center; margin-bottom: 12px; color: #ffd54f; }
-            .il-head, .il-row { display: grid; grid-template-columns: 28px 30px 1fr 64px 64px; align-items: center; gap: 8px; font-size: 12px; padding: 5px 4px; }
-            .il-head { color: #8fa0b0; font-size: 10px; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,.1); }
-            .il-row { border-bottom: 1px solid rgba(255,255,255,.05); }
-            .il-win { background: rgba(255,213,79,.12); border-radius: 8px; }
-            .il-av { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
-            .il-nick { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            .il-t { font-weight: 800; color: #90caf9; text-align: right; }
-            .il-r { text-align: right; }
-            .il-count { margin-top: 14px; text-align: center; font-weight: 800; font-size: 13px; color: #00e5ff; }
+            /* Minimalist Live Race Standings (Top-Right) */
+            .subway-tl-wrap {
+                position: fixed;
+                top: 58px;
+                right: 14px;
+                z-index: 99998;
+                width: 215px;
+                pointer-events: none;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                animation: waitFadeIn 0.3s ease;
+            }
+            .tl-panel {
+                background: #0b1120 !important;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 12px;
+                padding: 8px 10px;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+            .tl-head-row {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding-bottom: 5px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            .tl-pulse-dot {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: #10b981;
+                box-shadow: 0 0 6px #10b981;
+            }
+            .tl-head {
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: 0.8px;
+                color: #e2e8f0;
+                text-transform: uppercase;
+            }
+            .tl-runners-list {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .tl-runner-item {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 4px 6px;
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 6px;
+                transition: all 0.2s ease;
+            }
+            .tl-runner-item.runner-me {
+                border-color: rgba(56, 189, 248, 0.4);
+                background: rgba(56, 189, 248, 0.08);
+            }
+            .tl-runner-item.runner-dead {
+                opacity: 0.55;
+            }
+            .tl-pos {
+                font-size: 10px;
+                font-weight: 800;
+                color: #94a3b8;
+                width: 12px;
+                text-align: center;
+            }
+            .tl-pos.pos-gold { color: #facc15; }
+            .tl-av {
+                width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .tl-name {
+                font-size: 11px;
+                font-weight: 700;
+                color: #f1f5f9;
+                flex: 1;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .tl-you {
+                font-size: 8px;
+                font-weight: 800;
+                background: #0284c7;
+                color: #fff;
+                padding: 1px 3px;
+                border-radius: 3px;
+                margin-left: 4px;
+            }
+            .tl-score {
+                font-size: 10px;
+                font-family: monospace;
+                font-weight: 800;
+            }
+            .score-alive { color: #38bdf8; }
+            .score-dead { color: #f43f5e; }
+
+            /* Championship Interlude & Final Results Hub */
+            .subway-interlude {
+                position: fixed;
+                inset: 0;
+                z-index: 100006;
+                background: rgba(2, 6, 23, 0.85);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                animation: waitFadeIn 0.3s ease;
+            }
+            .il-card {
+                background: #0b1120 !important;
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 16px;
+                padding: 24px;
+                width: 480px;
+                max-width: 92vw;
+                box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+            .il-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding-bottom: 12px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            }
+            .il-title-wrap {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            .il-title {
+                font-size: 14px;
+                font-weight: 800;
+                letter-spacing: 1px;
+                color: #f8fafc;
+            }
+            .il-subtitle {
+                font-size: 11px;
+                color: #64748b;
+            }
+
+            /* Winner Spotlight */
+            .il-winner-spotlight {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                background: linear-gradient(135deg, rgba(250, 204, 21, 0.12), rgba(245, 158, 11, 0.04));
+                border: 1px solid rgba(250, 204, 21, 0.35);
+                border-radius: 12px;
+                padding: 14px 18px;
+            }
+            .il-trophy-ring {
+                position: relative;
+                width: 52px;
+                height: 52px;
+            }
+            .il-champ-avatar {
+                width: 52px;
+                height: 52px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 2px solid #facc15;
+                box-shadow: 0 0 15px rgba(250, 204, 21, 0.4);
+            }
+            .il-crown {
+                position: absolute;
+                top: -10px;
+                left: -6px;
+                font-size: 18px;
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+            }
+            .il-champ-info {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            .il-champ-label {
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: 1px;
+                color: #facc15;
+            }
+            .il-champ-name {
+                font-size: 18px;
+                font-weight: 900;
+                color: #fff;
+            }
+            .il-champ-score {
+                font-size: 11px;
+                font-family: monospace;
+                font-weight: 700;
+                color: #38bdf8;
+            }
+
+            /* Standings Table */
+            .il-table-wrap {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .il-head {
+                display: grid;
+                grid-template-columns: 24px 24px 1fr 65px 75px 65px;
+                align-items: center;
+                gap: 8px;
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: 0.5px;
+                color: #64748b;
+                padding: 4px 8px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            }
+            .il-rows {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                max-height: 180px;
+                overflow-y: auto;
+            }
+            .il-row {
+                display: grid;
+                grid-template-columns: 24px 24px 1fr 65px 75px 65px;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 8px;
+                background: rgba(255, 255, 255, 0.02);
+                border: 1px solid rgba(255, 255, 255, 0.04);
+                border-radius: 8px;
+                transition: all 0.2s;
+            }
+            .il-winner-row {
+                border-color: rgba(250, 204, 21, 0.3);
+                background: rgba(250, 204, 21, 0.05);
+            }
+            .il-me-row {
+                border-color: rgba(56, 189, 248, 0.3);
+                background: rgba(56, 189, 248, 0.06);
+            }
+            .il-pos {
+                font-size: 11px;
+                font-weight: 800;
+                color: #64748b;
+                text-align: center;
+            }
+            .il-pos.pos-1 { color: #facc15; }
+            .il-av {
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+            .il-runner-col {
+                display: flex;
+                align-items: center;
+                overflow: hidden;
+            }
+            .il-nick {
+                font-size: 12px;
+                font-weight: 700;
+                color: #f1f5f9;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .il-r {
+                font-size: 11px;
+                font-family: monospace;
+                color: #94a3b8;
+                text-align: right;
+            }
+            .il-t {
+                font-size: 12px;
+                font-family: monospace;
+                font-weight: 800;
+                color: #38bdf8;
+                text-align: right;
+            }
+            .il-status-col { text-align: right; }
+            .il-badge {
+                font-size: 9px;
+                font-weight: 800;
+                padding: 2px 6px;
+                border-radius: 4px;
+                letter-spacing: 0.5px;
+            }
+            .il-champ {
+                background: rgba(250, 204, 21, 0.2);
+                color: #facc15;
+                border: 1px solid rgba(250, 204, 21, 0.4);
+            }
+            .il-silver {
+                background: rgba(203, 213, 225, 0.15);
+                color: #e2e8f0;
+                border: 1px solid rgba(203, 213, 225, 0.3);
+            }
+            .il-sub {
+                background: rgba(255, 255, 255, 0.05);
+                color: #94a3b8;
+            }
+
+            /* Footer Actions */
+            .il-footer-actions {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding-top: 10px;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+            }
+            .il-countdown-text {
+                font-size: 11px;
+                color: #94a3b8;
+            }
+            .il-countdown-text strong {
+                color: #38bdf8;
+                font-family: monospace;
+            }
+            .btn-il-lobby {
+                background: #0284c7;
+                color: #fff;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 0.8px;
+                cursor: pointer;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+            }
+            .btn-il-lobby:hover {
+                background: #0369a1;
+                transform: translateY(-1px);
+                box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45);
+            }
 
             /* Mobile / small-screen adaptation */
             @media (max-width: 760px), (max-height: 480px) {
