@@ -424,6 +424,7 @@
     }
 
     function startRunTimer() {
+        window.startRunTimer = startRunTimer;
         if (isRunActive) return;
         isRunActive = true;
         deathFrozen = false;
@@ -2256,6 +2257,57 @@
             body[data-map-theme="las_vegas"] canvas { filter: none !important; }
 
             
+            /* Stopwatch Run Timer (Top Center HUD) */
+            .subway-top-timer-wrap {
+                position: fixed;
+                top: 16px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 99999;
+                display: none;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 16px;
+                background: rgba(15, 23, 42, 0.82);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 20px;
+                color: #ffffff;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+                user-select: none;
+                pointer-events: none;
+            }
+            .subway-top-timer-wrap .timer-icon {
+                font-size: 14px;
+            }
+            .subway-top-timer-wrap .timer-value {
+                font-size: 16px;
+                font-weight: 800;
+                letter-spacing: 0.5px;
+                font-family: monospace;
+                color: #f8fafc;
+            }
+            .subway-top-timer-wrap .timer-badge {
+                font-size: 10px;
+                font-weight: 800;
+                padding: 2px 8px;
+                border-radius: 10px;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
+            }
+            .badge-nocoin {
+                background: rgba(244, 63, 94, 0.18);
+                border: 1px solid rgba(244, 63, 94, 0.4);
+                color: #fb7185;
+            }
+            .badge-normal {
+                background: rgba(250, 204, 21, 0.15);
+                border: 1px solid rgba(250, 204, 21, 0.35);
+                color: #facc15;
+            }
+
             /* Direct Online Mode Button (Bottom-Left) */
             body.sw-in-run #btn-subway-online-lobby { display: none !important; }
             .btn-subway-online-lobby {
