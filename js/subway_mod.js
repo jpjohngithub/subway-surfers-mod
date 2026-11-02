@@ -1037,6 +1037,7 @@
             try { if (window.app && window.app.user) window.app.user.tutorial = true; } catch (e) {}
 
             try { window.app.nav.toGame(); } catch (e) {}
+            triggerSkyDrop();
 
             if (MP.isPartyLeader) hostStartBots();
         });
@@ -1234,11 +1235,18 @@
                 </div>
 
                 <div class="wait-actions">
+                    <button class="btn-wait-spectate" onclick="window.__startSpectatorMode()">
+                        <span class="wait-act-icon">👁️</span>
+                        <div class="wait-act-text">
+                            <span class="wait-act-main">MODO ESPECTADOR</span>
+                            <span class="wait-act-sub">Assista a tela dos outros corredores ao vivo</span>
+                        </div>
+                    </button>
                     <button class="btn-wait-practice" onclick="window.__startPracticeMode()">
-                        <span class="practice-icon">⚡</span>
-                        <div class="practice-text-wrap">
-                            <span class="practice-main">TREINAR ENQUANTO ESPERA</span>
-                            <span class="practice-sub">Jogue o modo normal até a próxima rodada começar</span>
+                        <span class="wait-act-icon">⚡</span>
+                        <div class="wait-act-text">
+                            <span class="wait-act-main">MODO TREINO</span>
+                            <span class="wait-act-sub">Jogue o modo normal até a próxima rodada começar</span>
                         </div>
                     </button>
                 </div>
@@ -1293,6 +1301,181 @@
         } catch (e) {}
     }
     window.restoreHeroMesh = restoreHeroMesh;
+
+    function triggerSkyDrop() {
+        setTimeout(() => {
+            try {
+                const game = window.app && window.app.game;
+                const hero = game && game.hero;
+                if (!hero || !hero.body) return;
+
+                if (game.run) {
+                    try { game.run(); } catch(e) {}
+                }
+
+                restoreHeroMesh();
+
+                const height = 45;
+                hero.body.bottom = height;
+                hero.body.y = height + 0.5 * hero.body.height;
+                hero.y = hero.body.y;
+                hero.body.ghost = true;
+                if (hero.anim) {
+                    hero.anim.play("hangtime2", { loop: true, sudden: true });
+                }
+
+                const startTime = performance.now();
+                const duration = 1100;
+
+                const dropInt = setInterval(() => {
+                    if (!MPX.roundActive || !hero.body) {
+                        clearInterval(dropInt);
+                        return;
+                    }
+                    const elapsed = performance.now() - startTime;
+                    const progress = Math.min(1, elapsed / duration);
+                    const easeIn = progress * progress;
+                    const curHeight = height * (1 - easeIn);
+
+                    if (progress >= 1 || curHeight <= 0) {
+                        clearInterval(dropInt);
+                        hero.body.bottom = 0;
+                        hero.body.y = 0.5 * hero.body.height;
+                        hero.y = hero.body.y;
+                        hero.body.ghost = false;
+                        hero.body.velocity.y = 0;
+
+                        try {
+                            if (hero.anim) hero.anim.play("landing", { sudden: true });
+                            if (hero.reviveSmoke && hero.reviveSmoke.spawn) hero.reviveSmoke.spawn(12);
+                        } catch(e) {}
+
+                        setTimeout(() => {
+                            if (hero.anim && hero.player && hero.player.running) {
+                                hero.anim.play("run3", { loop: true });
+                            }
+                        }, 220);
+                    } else {
+                        hero.body.bottom = curHeight;
+                        hero.body.y = curHeight + 0.5 * hero.body.height;
+                        hero.y = hero.body.y;
+                        hero.body.velocity.y = -15 * progress;
+                    }
+                }, 16);
+            } catch(e) {}
+        }, 120);
+    }
+    window.__triggerSkyDrop = triggerSkyDrop;
+
+    // ==========================================
+    // SPECTATOR ENGINE
+    // ==========================================
+    window.__startSpectatorMode = function() {
+        MPX.isSpectating = true;
+        MPX.isPracticing = false;
+        clearInterval(MPX.waitUpdateTimer);
+        removeEl('subway-wait-hud');
+
+        const alive = MP.party.filter(p => MPX.dead[p.id] === undefined && p.id !== myProfile.id);
+        if (!alive.length) {
+            showOnlineNotice('Nenhum corredor ativo no momento.');
+            showWaitHUD(MPX.dead[myProfile.id] || 0);
+            return;
+        }
+
+        if (!MPX.spectatingId || !alive.some(p => p.id === MPX.spectatingId)) {
+            MPX.spectatingId = alive[0].id;
+        }
+
+        showSpectatorHUD();
+    };
+
+    window.__stopSpectatorMode = function() {
+        MPX.isSpectating = false;
+        clearInterval(MPX.spectatorTimer);
+        removeEl('subway-spectator-hud');
+        if (MPX.roundActive && MP.inMatch) {
+            showWaitHUD(MPX.dead[myProfile.id] || 0);
+        }
+    };
+
+    window.__spectateCycle = function(dir) {
+        const alive = MP.party.filter(p => MPX.dead[p.id] === undefined && p.id !== myProfile.id);
+        if (!alive.length) {
+            window.__stopSpectatorMode();
+            return;
+        }
+        let idx = alive.findIndex(p => p.id === MPX.spectatingId);
+        if (idx === -1) idx = 0;
+        idx = (idx + dir + alive.length) % alive.length;
+        MPX.spectatingId = alive[idx].id;
+        updateSpectatorTargetUI();
+    };
+
+    function updateSpectatorTargetUI() {
+        const hud = document.getElementById('subway-spectator-hud');
+        if (!hud) return;
+        const target = MP.party.find(p => p.id === MPX.spectatingId);
+        if (!target) return;
+
+        const timeMs = MPX.live[target.id] || 0;
+        const isDead = MPX.dead[target.id] !== undefined;
+
+        hud.innerHTML = `
+            <div class="spec-bar-card">
+                <div class="spec-left-meta">
+                    <span class="spec-pulse-live"></span>
+                    <span class="spec-live-tag">AO VIVO</span>
+                    <span class="spec-divider">|</span>
+                    <img class="spec-target-avatar" src="${target.avatar}" alt="" />
+                    <div class="spec-name-box">
+                        <span class="spec-target-name">${target.nick}</span>
+                        <span class="spec-target-status ${isDead ? 'status-dead' : 'status-alive'}">${isDead ? 'ELIMINADO' : 'CORRENDO'}</span>
+                    </div>
+                </div>
+
+                <div class="spec-center-stat">
+                    <span class="spec-stat-lbl">TEMPO ATUAL</span>
+                    <span class="spec-stat-time">${fmtS(timeMs)}</span>
+                </div>
+
+                <div class="spec-right-controls">
+                    <button class="btn-spec-nav" onclick="window.__spectateCycle(-1)" title="Corredor Anterior">◀</button>
+                    <button class="btn-spec-nav" onclick="window.__spectateCycle(1)" title="Próximo Corredor">▶</button>
+                    <button class="btn-spec-practice" onclick="window.__stopSpectatorMode(); window.__startPracticeMode();">⚡ Treinar</button>
+                    <button class="btn-spec-exit" onclick="window.__stopSpectatorMode()" title="Voltar ao Painel">✕</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function showSpectatorHUD() {
+        removeEl('subway-spectator-hud');
+        const hud = document.createElement('div');
+        hud.id = 'subway-spectator-hud';
+        hud.className = 'subway-spectator-hud';
+        document.body.appendChild(hud);
+        updateSpectatorTargetUI();
+
+        clearInterval(MPX.spectatorTimer);
+        MPX.spectatorTimer = setInterval(() => {
+            if (!MPX.isSpectating || !MPX.roundActive) {
+                clearInterval(MPX.spectatorTimer);
+                removeEl('subway-spectator-hud');
+                return;
+            }
+            if (MPX.dead[MPX.spectatingId] !== undefined) {
+                const alive = MP.party.filter(p => MPX.dead[p.id] === undefined && p.id !== myProfile.id);
+                if (alive.length) {
+                    window.__spectateCycle(1);
+                } else {
+                    window.__stopSpectatorMode();
+                }
+            } else {
+                updateSpectatorTargetUI();
+            }
+        }, 200);
+    }
 
     window.__startPracticeMode = function() {
         MPX.isPracticing = true;
@@ -1547,6 +1730,9 @@
 
     function exitRunToTitle() {
         allowInternalNav = true;
+        MPX.isSpectating = false;
+        removeEl('subway-spectator-hud');
+        removeEl('subway-practice-hud');
         try {
             ['saveme', 'gameover'].forEach(k => { const s = window.app && window.app[k]; if (s && s.close) s.close(); });
         } catch (e) {}
@@ -3569,48 +3755,179 @@
             }
 
             .wait-actions {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
                 margin-top: 4px;
             }
-            .btn-wait-practice {
+            .btn-wait-spectate, .btn-wait-practice {
                 display: flex;
                 align-items: center;
-                gap: 12px;
-                background: linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(16, 185, 129, 0.25));
-                border: 1px solid rgba(56, 189, 248, 0.4);
+                gap: 10px;
                 border-radius: 10px;
-                padding: 12px 16px;
+                padding: 10px 14px;
                 cursor: pointer;
                 transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
                 color: #fff;
                 text-align: left;
             }
+            .btn-wait-spectate {
+                background: linear-gradient(135deg, rgba(225, 29, 72, 0.2), rgba(147, 51, 234, 0.2));
+                border: 1px solid rgba(244, 63, 94, 0.4);
+            }
+            .btn-wait-spectate:hover {
+                background: linear-gradient(135deg, rgba(225, 29, 72, 0.35), rgba(147, 51, 234, 0.35));
+                border-color: #f43f5e;
+                transform: translateY(-1px);
+                box-shadow: 0 8px 24px rgba(244, 63, 94, 0.3);
+            }
+            .btn-wait-practice {
+                background: linear-gradient(135deg, rgba(2, 132, 199, 0.2), rgba(16, 185, 129, 0.2));
+                border: 1px solid rgba(56, 189, 248, 0.4);
+            }
             .btn-wait-practice:hover {
-                background: linear-gradient(135deg, rgba(2, 132, 199, 0.4), rgba(16, 185, 129, 0.4));
+                background: linear-gradient(135deg, rgba(2, 132, 199, 0.35), rgba(16, 185, 129, 0.35));
                 border-color: #38bdf8;
                 transform: translateY(-1px);
-                box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
+                box-shadow: 0 8px 24px rgba(56, 189, 248, 0.3);
             }
-            .practice-icon {
-                font-size: 20px;
+            .wait-act-icon { font-size: 18px; flex-shrink: 0; }
+            .wait-act-text { display: flex; flex-direction: column; gap: 2px; }
+            .wait-act-main { font-size: 11px; font-weight: 800; letter-spacing: 0.6px; color: #f8fafc; }
+            .wait-act-sub { font-size: 9px; color: #94a3b8; line-height: 1.2; }
+
+            /* Esports Spectator HUD */
+            .subway-spectator-hud {
+                position: fixed;
+                top: 16px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 99999;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                animation: waitFadeIn 0.3s ease;
             }
-            .practice-text-wrap {
+            .spec-bar-card {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                background: rgba(15, 23, 42, 0.88);
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+                border: 1px solid rgba(244, 63, 94, 0.4);
+                border-radius: 9999px;
+                padding: 6px 16px;
+                color: #fff;
+                box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+            }
+            .spec-left-meta {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .spec-pulse-live {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #f43f5e;
+                box-shadow: 0 0 10px #f43f5e;
+                animation: blink 1s infinite;
+            }
+            .spec-live-tag {
+                color: #f43f5e;
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: 1px;
+            }
+            .spec-divider { color: rgba(255, 255, 255, 0.2); font-size: 11px; }
+            .spec-target-avatar {
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                border: 1.5px solid #38bdf8;
+                object-fit: cover;
+            }
+            .spec-name-box {
                 display: flex;
                 flex-direction: column;
-                gap: 2px;
+                gap: 1px;
             }
-            .practice-main {
-                font-size: 13px;
+            .spec-target-name {
+                font-size: 11px;
                 font-weight: 800;
-                letter-spacing: 0.8px;
-                color: #f8fafc;
+                color: #f1f5f9;
+                max-width: 90px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
-            .practice-sub {
-                font-size: 10px;
+            .spec-target-status {
+                font-size: 8px;
+                font-weight: 700;
+            }
+            .status-alive { color: #10b981; }
+            .status-dead { color: #ef4444; }
+            .spec-center-stat {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 0 8px;
+                border-left: 1px solid rgba(255, 255, 255, 0.1);
+                border-right: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .spec-stat-lbl {
+                font-size: 8px;
                 color: #94a3b8;
+                letter-spacing: 0.5px;
             }
+            .spec-stat-time {
+                font-size: 13px;
+                font-weight: 900;
+                font-family: monospace;
+                color: #38bdf8;
+            }
+            .spec-right-controls {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .btn-spec-nav {
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                color: #cbd5e1;
+                border-radius: 6px;
+                padding: 4px 8px;
+                font-size: 10px;
+                cursor: pointer;
+                transition: all 0.15s;
+            }
+            .btn-spec-nav:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+            .btn-spec-practice {
+                background: rgba(2, 132, 199, 0.25);
+                border: 1px solid rgba(56, 189, 248, 0.4);
+                color: #38bdf8;
+                border-radius: 6px;
+                padding: 4px 10px;
+                font-size: 10px;
+                font-weight: 800;
+                cursor: pointer;
+                transition: all 0.15s;
+            }
+            .btn-spec-practice:hover { background: rgba(2, 132, 199, 0.45); color: #fff; }
+            .btn-spec-exit {
+                background: rgba(255, 255, 255, 0.08);
+                border: none;
+                color: #94a3b8;
+                border-radius: 50%;
+                width: 20px;
+                height: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                font-size: 11px;
+                transition: all 0.15s;
+            }
+            .btn-spec-exit:hover { background: rgba(239, 68, 68, 0.3); color: #f87171; }
 
             /* Practice HUD during active training */
             .subway-practice-hud {
@@ -3671,19 +3988,7 @@
                 color: #f43f5e;
             }
 
-            /* Spectator HUD & Winner Celebration */
-            .subway-spectator-hud {
-                position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-                z-index: 99999; background: rgba(10, 16, 30, 0.9); border-radius: 20px;
-                padding: 8px 18px; display: flex; align-items: center; gap: 16px; color: #fff; font-size: 12px;
-                border: 1px solid #ff4b2b;
-            }
-            .spec-live-dot { color: #ff1744; font-size: 14px; animation: blink 1s infinite; }
-            @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-            .spec-controls button {
-                background: rgba(255,255,255,0.1); border: none; color: #fff;
-                padding: 4px 8px; border-radius: 6px; cursor: pointer;
-            }
+
 
             .subway-winner-banner {
                 position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -4407,7 +4712,15 @@
             }
         } catch (e) {}
     }
-    setInterval(hideHubButtons, 300);
+    let hubCheckCount = 0;
+    const hubTimer = setInterval(() => {
+        hideHubButtons();
+        hubCheckCount++;
+        if (hubCheckCount > 30) {
+            clearInterval(hubTimer);
+            setInterval(hideHubButtons, 2500);
+        }
+    }, 300);
 
     function init() {
         try {
