@@ -1039,25 +1039,50 @@
     function removeEl(id) { const e = document.getElementById(id); if (e) e.remove(); }
 
     function runCountdown(seconds, label, done) {
+        window.__runCountdown = runCountdown;
         removeEl('subway-cd-overlay');
         const ov = document.createElement('div');
         ov.className = 'subway-countdown-overlay';
         ov.id = 'subway-cd-overlay';
-        ov.innerHTML = `<div class="countdown-num" id="cd-num">${seconds}</div><div class="countdown-sub">${label}</div>`;
+        ov.innerHTML = `
+            <div class="cd-container">
+                <div class="cd-circle-glow"></div>
+                <div class="countdown-num pop" id="cd-num">${seconds}</div>
+                <div class="countdown-sub">${label}</div>
+            </div>
+        `;
         document.body.appendChild(ov);
         let c = seconds;
+        let finished = false;
         const tm = setInterval(() => {
+            if (finished) return;
             c--;
             const n = document.getElementById('cd-num');
             if (c > 0) {
-                if (n) { n.textContent = c; n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; }
-            } else {
+                if (n) {
+                    n.textContent = c;
+                    n.classList.remove('pop');
+                    void n.offsetWidth;
+                    n.classList.add('pop');
+                }
+            } else if (c === 0) {
+                finished = true;
                 clearInterval(tm);
-                ov.remove();
-                done();
+                if (n) {
+                    n.textContent = 'GO!';
+                    n.className = 'countdown-num go';
+                }
+                setTimeout(() => {
+                    ov.classList.add('fade-out');
+                    setTimeout(() => {
+                        ov.remove();
+                        done();
+                    }, 200);
+                }, 400);
             }
         }, 1000);
     }
+    window.__runCountdown = runCountdown;
 
     // Bots simulation for testing
     function hostStartBots() {
@@ -1240,14 +1265,103 @@
         }
     };
 
+    let allowInternalNav = false;
+
+    function showOnlineNotice(msg) {
+        let el = document.getElementById('subway-online-notice');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'subway-online-notice';
+            el.className = 'subway-online-notice';
+            document.body.appendChild(el);
+        }
+        el.textContent = msg;
+        el.classList.add('show');
+        clearTimeout(el.__timer);
+        el.__timer = setTimeout(() => {
+            el.classList.remove('show');
+        }, 2200);
+    }
+
+    function setupOnlineAntiPauseHooks() {
+        if (window.__antiPauseHooksInstalled) return;
+        window.__antiPauseHooksInstalled = true;
+
+        const checkHookGame = () => {
+            if (!window.app || !window.app.game || window.app.game.__hookedPause) return;
+            window.app.game.__hookedPause = true;
+            const origPause = window.app.game.pause;
+            window.app.game.pause = function(...args) {
+                if (MP.inMatch && MPX.roundActive && !MPX.isPracticing) {
+                    showOnlineNotice('⚠️ Pausa bloqueada na rodada online!');
+                    return;
+                }
+                return origPause.apply(this, args);
+            };
+        };
+
+        const checkHookSettings = () => {
+            if (!window.app || !window.app.settings || window.app.settings.__hookedOpen) return;
+            window.app.settings.__hookedOpen = true;
+            ['open', 'onOpen'].forEach(fn => {
+                if (typeof window.app.settings[fn] === 'function') {
+                    const orig = window.app.settings[fn];
+                    window.app.settings[fn] = function(...args) {
+                        if (MP.inMatch && MPX.roundActive && !MPX.isPracticing) {
+                            showOnlineNotice('⚠️ Pausa bloqueada na rodada online!');
+                            return;
+                        }
+                        return orig.apply(this, args);
+                    };
+                }
+            });
+        };
+
+        const checkHookNav = () => {
+            if (!window.app || !window.app.nav || window.app.nav.__hookedTitle) return;
+            window.app.nav.__hookedTitle = true;
+            ['toTitleScreen', 'toIdleScreen'].forEach(fn => {
+                if (typeof window.app.nav[fn] === 'function') {
+                    const orig = window.app.nav[fn];
+                    window.app.nav[fn] = function(...args) {
+                        if (MP.inMatch && MPX.roundActive && !MPX.isPracticing && !allowInternalNav) {
+                            showOnlineNotice('⚠️ Proibido sair durante a rodada online!');
+                            return;
+                        }
+                        return orig.apply(this, args);
+                    };
+                }
+            });
+        };
+
+        setInterval(() => {
+            checkHookGame();
+            checkHookSettings();
+            checkHookNav();
+        }, 1000);
+
+        window.addEventListener('keydown', (e) => {
+            if (MP.inMatch && MPX.roundActive && !MPX.isPracticing) {
+                if (e.key === 'Escape' || e.code === 'Escape' || e.key === 'p' || e.key === 'P' || e.code === 'KeyP') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    showOnlineNotice('⚠️ Pausa bloqueada na rodada online!');
+                }
+            }
+        }, true);
+    }
+
     window.__stopPracticeMode = function() {
         MPX.isPracticing = false;
         removeEl('subway-practice-hud');
         suppressRevive(true);
+        allowInternalNav = true;
         try {
             ['saveme', 'gameover'].forEach(k => { const s = window.app && window.app[k]; if (s && s.close) s.close(); });
             window.app.nav.toTitleScreen();
         } catch (e) {}
+        allowInternalNav = false;
         if (MPX.roundActive && MP.inMatch) {
             showWaitHUD(MPX.dead[myProfile.id] || 0);
         }
@@ -1372,11 +1486,13 @@
     }
 
     function exitRunToTitle() {
+        allowInternalNav = true;
         try {
             ['saveme', 'gameover'].forEach(k => { const s = window.app && window.app[k]; if (s && s.close) s.close(); });
         } catch (e) {}
         hideRunTimer();
         try { window.app.nav.toTitleScreen(); } catch (e) { try { window.app.nav.resetUi(); } catch (e2) {} }
+        allowInternalNav = false;
     }
 
     function showInterlude(msg) {
@@ -1495,6 +1611,7 @@
             else if (MP.isPartyLeader) hostBeginRound();
         }, 1000);
     }
+    window.__runCountdown = runCountdown;
     window.showInterlude = showInterlude;
 
     window.__endSeriesNow = function() {
@@ -3524,15 +3641,90 @@
                 font-weight: 800; border-radius: 8px; padding: 10px 20px; cursor: pointer;
             }
 
-            /* Countdown Overlay */
+            /* Ultra-Sleek Esports Countdown */
             .subway-countdown-overlay {
-                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-                background: rgba(0,0,0,0.7); z-index: 100004;
-                display: flex; flex-direction: column; align-items: center; justify-content: center;
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: radial-gradient(circle at center, rgba(15, 23, 42, 0.75) 0%, rgba(2, 6, 23, 0.92) 100%);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                z-index: 100004;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: opacity 0.2s ease-out;
             }
-            .countdown-num { font-size: 90px; font-weight: 900; color: #ff4b2b; animation: popNum 0.9s ease; }
-            @keyframes popNum { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
-            .countdown-sub { font-size: 14px; font-weight: 800; color: #fff; margin-top: 14px; text-transform: uppercase; }
+            .subway-countdown-overlay.fade-out {
+                opacity: 0;
+                pointer-events: none;
+            }
+            .cd-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+            }
+            .cd-circle-glow {
+                position: absolute;
+                width: 180px;
+                height: 180px;
+                border-radius: 50%;
+                border: 1.5px solid rgba(56, 189, 248, 0.25);
+                box-shadow: 0 0 50px rgba(56, 189, 248, 0.25), inset 0 0 30px rgba(56, 189, 248, 0.12);
+                animation: cdPulse 1s infinite alternate ease-in-out;
+            }
+            @keyframes cdPulse {
+                0% { transform: scale(0.94); opacity: 0.6; }
+                100% { transform: scale(1.06); opacity: 1; }
+            }
+            .countdown-num {
+                font-size: 96px;
+                font-weight: 900;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: linear-gradient(180deg, #ffffff 40%, #38bdf8 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                filter: drop-shadow(0 4px 20px rgba(56, 189, 248, 0.6));
+                line-height: 1;
+                margin: 0;
+                z-index: 1;
+            }
+            .countdown-num.pop {
+                animation: cdPop 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .countdown-num.go {
+                font-size: 80px;
+                background: linear-gradient(180deg, #ffffff 30%, #10b981 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                filter: drop-shadow(0 4px 24px rgba(16, 185, 129, 0.7));
+                animation: cdGo 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            @keyframes cdPop {
+                0% { transform: scale(1.4); opacity: 0; filter: blur(4px); }
+                50% { transform: scale(0.96); opacity: 1; filter: blur(0); }
+                100% { transform: scale(1); opacity: 1; }
+            }
+            @keyframes cdGo {
+                0% { transform: scale(0.7); opacity: 0; }
+                60% { transform: scale(1.15); opacity: 1; }
+                100% { transform: scale(1); opacity: 1; }
+            }
+            .countdown-sub {
+                margin-top: 20px;
+                padding: 5px 16px;
+                border-radius: 9999px;
+                background: rgba(56, 189, 248, 0.1);
+                border: 1px solid rgba(56, 189, 248, 0.3);
+                color: #38bdf8;
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                z-index: 1;
+            }
 
             
             /* Minimalist Live Race Standings (Top-Right) */
@@ -3883,25 +4075,245 @@
                 box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45);
             }
 
-            /* Mobile / small-screen adaptation */
-            @media (max-width: 760px), (max-height: 480px) {
-                .btn-subway-unified-menu { width: 34px; height: 34px; bottom: 8px; left: 8px; }
-                .btn-subway-online-lobby { height: 34px; padding: 0 10px; bottom: 8px; left: 48px; font-size: 11px; gap: 4px; border-radius: 17px; }
-                .btn-subway-unified-menu svg { width: 18px; height: 18px; }
-                .subway-top-timer-wrap { top: 6px; padding: 3px 9px; gap: 5px; }
-                .subway-top-timer-wrap .timer-value { font-size: 12px; }
-                .subway-top-timer-wrap .timer-icon { font-size: 11px; }
-                .subway-top-timer-wrap .timer-badge { font-size: 8px; padding: 1px 5px; }
-                .subway-tl-wrap { top: 34px; right: 4px; width: 150px; } .tl-track { height: 150px; min-height: 120px; } .tl-nick { max-width: 44px; } .tl-pill { font-size: 8px; height: 18px; right: 30px; top: 5px; padding: 0 5px; } .tl-dot { width: 24px; height: 24px; } .il-card { padding: 10px 12px; } .il-head, .il-row { font-size: 10px; padding: 3px 2px; }
-                .subway-live-rank { top: 44px; right: 6px; min-width: 120px; padding: 6px 8px; font-size: 9px; }
-                .subway-modal-box, .unified-box { width: 96vw !important; max-height: 94vh; }
-                .modal-header { padding: 8px 12px; }
-                .modal-header h2 { font-size: 13px; }
-                .countdown-num { font-size: 54px; }
-                .subway-spectator-hud { bottom: 6px; padding: 4px 10px; font-size: 10px; gap: 8px; }
-                .ghost-figure { width: 22px; height: 36px; }
-                .ghost-tag { font-size: 8px; padding: 1px 5px; }
-                .subway-invite-popup { bottom: 8px; right: 8px; padding: 8px; }
+            /* Floating Online Round Warning */
+            .subway-online-notice {
+                position: fixed;
+                top: 48px;
+                left: 50%;
+                transform: translateX(-50%) translateY(-12px);
+                background: rgba(15, 23, 42, 0.96);
+                border: 1px solid rgba(239, 68, 68, 0.6);
+                color: #fca5a5;
+                padding: 7px 16px;
+                border-radius: 9999px;
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 0.5px;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+                z-index: 100005;
+                opacity: 0;
+                pointer-events: none;
+                transition: all 0.22s ease-out;
+            }
+            .subway-online-notice.show {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+
+            /* Responsive Mobile & Small-Screen Adaptation */
+            @media (max-width: 768px) {
+                .subway-modal-backdrop {
+                    padding: 8px !important;
+                }
+                .subway-modal-box, .unified-box {
+                    width: 96vw !important;
+                    max-width: 96vw !important;
+                    max-height: 92vh !important;
+                    padding: 10px 12px !important;
+                    border-radius: 12px !important;
+                    box-sizing: border-box !important;
+                    overflow-y: auto !important;
+                    -webkit-overflow-scrolling: touch !important;
+                }
+                .modal-header {
+                    padding: 4px 2px 8px 2px !important;
+                    margin-bottom: 8px !important;
+                }
+                .modal-brand-title {
+                    font-size: 13px !important;
+                }
+                .unified-tabs {
+                    gap: 4px !important;
+                    margin-bottom: 10px !important;
+                }
+                .tab-btn {
+                    padding: 6px 4px !important;
+                    font-size: 10px !important;
+                    flex: 1 !important;
+                    text-align: center !important;
+                    white-space: nowrap !important;
+                }
+
+                /* Header Bar: Stack cleanly in rows */
+                .lobby-header-bar {
+                    flex-direction: column !important;
+                    align-items: stretch !important;
+                    gap: 8px !important;
+                    padding: 8px 10px !important;
+                    margin-bottom: 10px !important;
+                }
+                .lobby-room-badge {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: space-between !important;
+                    width: 100% !important;
+                }
+                .lobby-user-profile {
+                    display: flex !important;
+                    align-items: center !important;
+                    gap: 8px !important;
+                    width: 100% !important;
+                    box-sizing: border-box !important;
+                    padding: 8px !important;
+                }
+                .user-meta-wrap {
+                    flex: 1 !important;
+                    min-width: 0 !important;
+                    gap: 4px !important;
+                }
+                .user-fields-row {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 4px !important;
+                    width: 100% !important;
+                }
+                #input-my-nick {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    box-sizing: border-box !important;
+                    font-size: 12px !important;
+                }
+                #input-my-avatar-url {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    box-sizing: border-box !important;
+                    font-size: 11px !important;
+                }
+                .avatar-dots-bar {
+                    flex-wrap: wrap !important;
+                    gap: 4px !important;
+                }
+                .lobby-join-box {
+                    display: flex !important;
+                    width: 100% !important;
+                    gap: 6px !important;
+                    box-sizing: border-box !important;
+                }
+                .lobby-join-box input {
+                    flex: 1 !important;
+                    width: auto !important;
+                    min-width: 0 !important;
+                }
+                .btn-join-room {
+                    flex-shrink: 0 !important;
+                }
+
+                /* Grid Layout: Stack vertically to prevent horizontal overflow */
+                .lobby-grid {
+                    flex-direction: column !important;
+                    gap: 12px !important;
+                }
+                .lobby-column {
+                    width: 100% !important;
+                    box-sizing: border-box !important;
+                    padding: 10px !important;
+                }
+                .party-col {
+                    order: 1 !important;
+                }
+                .players-col {
+                    order: 2 !important;
+                    max-height: 240px !important;
+                    overflow-y: auto !important;
+                    -webkit-overflow-scrolling: touch !important;
+                }
+                .online-players-list {
+                    max-height: 180px !important;
+                    overflow-y: auto !important;
+                }
+
+                /* Party Slots */
+                .party-slot {
+                    padding: 0 8px !important;
+                    gap: 8px !important;
+                    height: 42px !important;
+                }
+                .slot-nick {
+                    max-width: 120px !important;
+                    font-size: 11px !important;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+                    white-space: nowrap !important;
+                }
+                .slot-badge {
+                    font-size: 8px !important;
+                    padding: 2px 6px !important;
+                    flex-shrink: 0 !important;
+                }
+                .party-actions-row {
+                    display: flex !important;
+                    gap: 6px !important;
+                    flex-wrap: wrap !important;
+                }
+                .party-actions-row button {
+                    flex: 1 !important;
+                    min-width: 80px !important;
+                    font-size: 10px !important;
+                    padding: 8px 4px !important;
+                }
+
+                /* Game Screen Floating Buttons & Timers */
+                .btn-subway-unified-menu { width: 34px !important; height: 34px !important; bottom: 8px !important; left: 8px !important; }
+                .btn-subway-online-lobby { height: 34px !important; padding: 0 10px !important; bottom: 8px !important; left: 48px !important; font-size: 11px !important; gap: 4px !important; border-radius: 17px !important; }
+                .btn-subway-unified-menu svg { width: 18px !important; height: 18px !important; }
+                .subway-top-timer-wrap { top: 6px !important; padding: 3px 9px !important; gap: 5px !important; }
+                .subway-top-timer-wrap .timer-value { font-size: 12px !important; }
+                .subway-top-timer-wrap .timer-icon { font-size: 11px !important; }
+                .subway-top-timer-wrap .timer-badge { font-size: 8px !important; padding: 1px 5px !important; }
+                .subway-tl-wrap { top: 34px !important; right: 4px !important; width: 150px !important; }
+                .tl-track { height: 150px !important; min-height: 120px !important; }
+                .tl-nick { max-width: 44px !important; }
+                .tl-pill { font-size: 8px !important; height: 18px !important; right: 30px !important; top: 5px !important; padding: 0 5px !important; }
+                .tl-dot { width: 24px !important; height: 24px !important; }
+                .il-card { padding: 10px 12px !important; }
+                .il-head, .il-row { font-size: 10px !important; padding: 3px 2px !important; }
+                .subway-live-rank { top: 44px !important; right: 6px !important; min-width: 120px !important; padding: 6px 8px !important; font-size: 9px !important; }
+                .countdown-num { font-size: 64px !important; }
+                .cd-circle-glow { width: 140px !important; height: 140px !important; }
+                .countdown-sub { font-size: 9px !important; padding: 3px 10px !important; }
+                .subway-spectator-hud { bottom: 6px !important; padding: 4px 10px !important; font-size: 10px !important; gap: 8px !important; }
+                .ghost-figure { width: 22px !important; height: 36px !important; }
+                .ghost-tag { font-size: 8px !important; padding: 1px 5px !important; }
+                .subway-invite-popup { bottom: 8px !important; right: 8px !important; padding: 8px !important; }
+            }
+
+            @media (max-height: 520px) {
+                .subway-modal-box, .unified-box {
+                    max-height: 96vh !important;
+                    padding: 6px 10px !important;
+                }
+                .modal-header {
+                    padding: 2px 2px 4px 2px !important;
+                    margin-bottom: 4px !important;
+                }
+                .unified-tabs {
+                    margin-bottom: 6px !important;
+                }
+                .tab-btn {
+                    padding: 4px 6px !important;
+                    font-size: 9px !important;
+                }
+                .lobby-header-bar {
+                    padding: 4px 8px !important;
+                    margin-bottom: 6px !important;
+                    gap: 6px !important;
+                }
+                .party-slot {
+                    height: 36px !important;
+                }
+                .slot-avatar {
+                    width: 24px !important;
+                    height: 24px !important;
+                }
+                .party-actions-row button {
+                    padding: 6px 4px !important;
+                    min-height: 32px !important;
+                }
+                .online-col {
+                    max-height: 160px !important;
+                }
+                .countdown-num { font-size: 54px !important; }
+                .cd-circle-glow { width: 120px !important; height: 120px !important; }
             }
             .subway-modal-box { overflow-y: auto; }
         `;
@@ -3960,6 +4372,7 @@
         injectModStyles();
         createUnifiedUI();
         initMultiplayerEngine();
+        setupOnlineAntiPauseHooks();
     }
 
     if (document.readyState === 'loading') {
