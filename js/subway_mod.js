@@ -272,6 +272,9 @@
 
     // Called on every coin spawn/awake from patched dependencies.bundle.js
     window.__activeCoins = new Set();
+    let nativeObstacleCounter = 0;
+    let lastObstacleSpawnZ = 0;
+
     window.__onCoinAwake = function(coin) {
         if (!coin) return;
         if (!window.__activeCoins) window.__activeCoins = new Set();
@@ -318,6 +321,51 @@
                 coin.body.depth = 0;
             }
             return;
+        }
+
+        // Dynamic Native Obstacle Replacement in No Coin Mode:
+        // Converts roughly 1 out of every 6 coins (only grounded ones, bottom <= 15) into an official native blocker or obstacle (Jump Blocker, Roll Blocker, Standard Barrier, or Dumpster)
+        if (isNoCoin && coin.body && coin.body.bottom <= 15 && Math.abs(coinZ - lastObstacleSpawnZ) > 85) {
+            nativeObstacleCounter++;
+            if (nativeObstacleCounter % 5 === 0 && window.game && window.game.pool) {
+                let obsClass = null;
+                const poolKey = nativeObstacleCounter % 4;
+                if (poolKey === 0 && window.SubwayBlockers && window.SubwayBlockers.jump) {
+                    obsClass = window.SubwayBlockers.jump;
+                } else if (poolKey === 1 && window.SubwayBlockers && window.SubwayBlockers.roll) {
+                    obsClass = window.SubwayBlockers.roll;
+                } else if (poolKey === 2 && window.SubwayBlockers && window.SubwayBlockers.standard) {
+                    obsClass = window.SubwayBlockers.standard;
+                } else if (window.SubwayObstacles && window.SubwayObstacles.length) {
+                    obsClass = window.SubwayObstacles[0];
+                }
+
+                if (obsClass) {
+                    try {
+                        const obs = window.game.pool.get(obsClass);
+                        if (obs) {
+                            obs.awake();
+                            if (obs.body) {
+                                obs.body.x = coinX;
+                                obs.body.z = coinZ;
+                                obs.body.bottom = 0;
+                            }
+                            window.game.addChild(obs);
+                            lastObstacleSpawnZ = coinZ;
+
+                            // Disable the coin so only the native obstacle stands on this lane
+                            coin.active = false;
+                            coin.visible = false;
+                            if (coin.body) {
+                                coin.body.width = 0;
+                                coin.body.height = 0;
+                                coin.body.depth = 0;
+                            }
+                            return;
+                        }
+                    } catch (e) {}
+                }
+            }
         }
 
         if (isNoCoin) {
