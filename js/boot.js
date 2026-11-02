@@ -47,8 +47,8 @@ function initApp()
         window.PokiSDK.setDebug(window.GAME_CONFIG.pokiSdkDebug);
     }
 
-    loadScript('./js/dependencies.bundle.js?v=7');
-    loadScript(window.MAIN ? window.MAIN : './js/index.js?v=7');
+    loadScript('./js/dependencies.bundle.js?v=11');
+    loadScript(window.MAIN ? window.MAIN : './js/index.js?v=11');
 }
 
 /** Prevent arrows and space from scrolling browser */
