@@ -699,15 +699,62 @@
         nextObstacleZ = (window.game && window.game.hero && window.game.hero.body ? window.game.hero.body.z : 0) - 350;
     }
 
+    // Prevents placing obstacle coins inside trains, barriers or on other coins
+    function isPositionBlocked(x, y, z, margin = 20) {
+        // 1. Existing native map coins
+        if (window.__activeCoins) {
+            for (const c of window.__activeCoins) {
+                if (c && c.active && c.body) {
+                    if (Math.abs(c.body.z - z) < 32 && Math.abs(c.body.x - x) < 12) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // 2. Trains, blockers and props in physics system
+        const phys = window.game && window.game.physics;
+        if (phys && Array.isArray(phys.entities)) {
+            for (let i = 0; i < phys.entities.length; i++) {
+                const ent = phys.entities[i];
+                const b = ent && ent.body;
+                if (b && !b.deco && !b.player) {
+                    const halfDepth = (b.depth || 14) / 2 + margin;
+                    const halfWidth = (b.width || 14) / 2 + 5;
+                    const bY = b.y !== undefined ? b.y : (b.bottom || 0);
+                    const bHeight = b.height || 22;
+                    if (Math.abs(b.z - z) < halfDepth && Math.abs(b.x - x) < halfWidth) {
+                        if (y >= bY - 4 && y <= bY + bHeight + 4) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Already placed custom obstacles
+        for (let i = 0; i < customObstacles.length; i++) {
+            const obs = customObstacles[i];
+            if (obs && !obs.destroyed) {
+                if (Math.abs(obs.z - z) < 25 && Math.abs(obs.x - x) < 10) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     function createRedCoin3D(x, y, z) {
         if (!window.__lib || !window.__lib.getEntity) return null;
+        if (isPositionBlocked(x, y, z)) return null;
+
         try {
             const mesh = window.__lib.getEntity('currency_coin');
             if (!mesh) return null;
             mesh.x = x;
             mesh.y = y;
             mesh.z = z;
-            if (mesh.scale) mesh.scale.set(1.4, 1.4, 1.4);
+            if (mesh.scale) mesh.scale.set(1.15, 1.15, 1.15);
             setEntityHexColor(mesh, 0xff1e1e);
             const hero = window.game && window.game.hero;
             if (hero && hero.parent) {
@@ -720,31 +767,38 @@
 
     function spawnNoCoinObstaclePattern(centerZ) {
         const lanes = [-20, 0, 20];
+        // Filter lanes that are free from trains/obstacles
+        const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 6, centerZ));
+        if (freeGroundLanes.length === 0) return;
+
         // 4 Obstacle Types:
-        // 0: Wall with 1 open escape lane (2 lanes blocked at ground)
-        // 1: Low hurdle across all 3 lanes (y = 5, must jump!)
-        // 2: High laser bar across all 3 lanes (y = 26, must roll/slide!)
-        // 3: Zig-zag weave (3 coins spaced 65 units apart, alternating lanes)
+        // 0: Wall with 1 open escape lane (blocks up to 2 free lanes, never all 3)
+        // 1: Low hurdle across free ground lanes (y = 5, must jump!)
+        // 2: High bar across free lanes (y = 26, must roll/slide!)
+        // 3: Zig-zag weave (3 coins spaced 65 units apart on alternating free lanes)
         const pattern = Math.floor(Math.random() * 4);
 
         if (pattern === 0) {
-            // Wall with 1 escape lane
-            const openLane = lanes[Math.floor(Math.random() * lanes.length)];
-            lanes.forEach(lx => {
-                if (lx !== openLane) {
-                    const c = createRedCoin3D(lx, 6, centerZ);
-                    if (c) customObstacles.push(c);
-                }
-            });
+            // Keep at least 1 free lane open
+            if (freeGroundLanes.length > 1) {
+                const openLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+                freeGroundLanes.forEach(lx => {
+                    if (lx !== openLane) {
+                        const c = createRedCoin3D(lx, 6, centerZ);
+                        if (c) customObstacles.push(c);
+                    }
+                });
+            }
         } else if (pattern === 1) {
             // Low hurdle - must JUMP over!
-            lanes.forEach(lx => {
+            freeGroundLanes.forEach(lx => {
                 const c = createRedCoin3D(lx, 5, centerZ);
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 2) {
             // High bar - must ROLL / SLIDE under!
-            lanes.forEach(lx => {
+            const freeHighLanes = lanes.filter(lx => !isPositionBlocked(lx, 26, centerZ));
+            freeHighLanes.forEach(lx => {
                 const c = createRedCoin3D(lx, 26, centerZ);
                 if (c) customObstacles.push(c);
             });
@@ -753,8 +807,11 @@
             const order = [-20, 0, 20];
             if (Math.random() > 0.5) order.reverse();
             order.forEach((lx, idx) => {
-                const c = createRedCoin3D(lx, 6, centerZ - (idx * 65));
-                if (c) customObstacles.push(c);
+                const pz = centerZ - (idx * 65);
+                if (!isPositionBlocked(lx, 6, pz)) {
+                    const c = createRedCoin3D(lx, 6, pz);
+                    if (c) customObstacles.push(c);
+                }
             });
         }
     }
@@ -769,7 +826,7 @@
         const heroBody = hero.body;
         const heroZ = heroBody.z;
         const heroX = heroBody.x;
-        const heroY = heroBody.y || 0;
+        const heroY = heroBody.y !== undefined ? heroBody.y : (heroBody.bottom || 0);
 
         if (window.isGamePaused) return;
 
@@ -799,8 +856,9 @@
             const dx = Math.abs(obs.x - heroX);
             const dy = Math.abs(obs.y - heroY);
 
-            // Accurate Hitbox check matching coin height
-            if (dz < 14 && dx < 8 && dy < 15) {
+            // Precise, fair hitbox matching standard coin size (scale 1.15)
+            // dz < 7.5, dx < 4.2, dy < 6.8
+            if (dz < 7.5 && dx < 4.2 && dy < 6.8) {
                 if (isDashing) {
                     obs.destroyed = true;
                     if (obs.mesh && obs.mesh.parent) {
