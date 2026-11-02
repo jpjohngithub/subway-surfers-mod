@@ -271,8 +271,11 @@
     }
 
     // Called on every coin spawn/awake from patched dependencies.bundle.js
+    window.__activeCoins = new Set();
     window.__onCoinAwake = function(coin) {
         if (!coin) return;
+        if (!window.__activeCoins) window.__activeCoins = new Set();
+        window.__activeCoins.add(coin);
         const isNoCoin = !!window.NO_COIN_MODE;
         coin._isDashItem = false;
         coin.visible = true;
@@ -693,8 +696,54 @@
         nextObstacleZ = (window.game && window.game.hero && window.game.hero.body ? window.game.hero.body.z : 0) - 350;
     }
 
-    function createRedCoin3D(x, y, z) {
+    // Prevents placing obstacle coins inside trains, obstacles or on other coins
+    function isPositionBlocked(x, y, z, margin = 16) {
+        // 1. Existing native map coins
+        if (window.__activeCoins) {
+            for (const c of window.__activeCoins) {
+                if (c && c.active && c.body) {
+                    if (Math.abs(c.body.z - z) < 30 && Math.abs(c.body.x - x) < 10) {
+                        return true;
+                    }
+                }
+            }
+        }
+        // 2. Trains, blockers, props in physics system
+        const phys = window.game && window.game.physics;
+        if (phys && Array.isArray(phys.entities)) {
+            for (let i = 0; i < phys.entities.length; i++) {
+                const ent = phys.entities[i];
+                const b = ent && ent.body;
+                if (b && !b.deco && !b.player) {
+                    const halfDepth = (b.depth || 14) / 2 + margin;
+                    const halfWidth = (b.width || 14) / 2 + 5;
+                    const bY = b.y || 0;
+                    const bHeight = b.height || 20;
+                    if (Math.abs(b.z - z) < halfDepth && Math.abs(b.x - x) < halfWidth) {
+                        // Check vertical collision
+                        if (y >= bY - 3 && y <= bY + bHeight + 4) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        // 3. Already placed custom obstacle coins
+        for (let i = 0; i < customObstacles.length; i++) {
+            const obs = customObstacles[i];
+            if (obs && !obs.destroyed) {
+                if (Math.abs(obs.z - z) < 22 && Math.abs(obs.x - x) < 8) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function createRedCoin3D(x, y, z, options = {}) {
         if (!window.__lib || !window.__lib.getEntity) return null;
+        if (isPositionBlocked(x, y, z)) return null;
+
         try {
             const mesh = window.__lib.getEntity('currency_coin');
             if (!mesh) return null;
@@ -706,7 +755,14 @@
             const hero = window.game && window.game.hero;
             if (hero && hero.parent) {
                 hero.parent.addChild(mesh);
-                return { x, y, z, mesh, destroyed: false };
+                return {
+                    x, y, z, mesh,
+                    destroyed: false,
+                    isOscillating: !!options.isOscillating,
+                    baseX: x,
+                    speed: options.speed || 1.8,
+                    phase: options.phase || 0
+                };
             }
         } catch(e) {}
         return null;
@@ -714,15 +770,17 @@
 
     function spawnNoCoinObstaclePattern(centerZ) {
         const lanes = [-20, 0, 20];
-        // 4 Obstacle Types:
-        // 0: Wall with 1 open escape lane (2 lanes blocked at ground)
-        // 1: Low hurdle across all 3 lanes (y = 5, must jump!)
-        // 2: High laser bar across all 3 lanes (y = 26, must roll/slide!)
-        // 3: Zig-zag weave (3 coins spaced 65 units apart, alternating lanes)
-        const pattern = Math.floor(Math.random() * 4);
+        // 6 Dynamic Obstacle Formations:
+        // 0: Paredão com Brecha (2 lanes blocked at y=6, 1 lane free)
+        // 1: Pulo Obrigatório (low coins across open lanes at y=5, requires jump)
+        // 2: Rolamento Obrigatório (high bar at y=26, requires roll/slide)
+        // 3: Ziguezague Slalom (3 coins staggered across alternate lanes)
+        // 4: Barreira Móvel Oscilante (coin sliding left and right)
+        // 5: Diamante Central (center lane cluster with side flares)
+        const pattern = Math.floor(Math.random() * 6);
 
         if (pattern === 0) {
-            // Wall with 1 escape lane
+            // Paredão com 1 brecha
             const openLane = lanes[Math.floor(Math.random() * lanes.length)];
             lanes.forEach(lx => {
                 if (lx !== openLane) {
@@ -731,25 +789,43 @@
                 }
             });
         } else if (pattern === 1) {
-            // Low hurdle - must JUMP over!
+            // Pulo Obrigatório: low hurdle
             lanes.forEach(lx => {
                 const c = createRedCoin3D(lx, 5, centerZ);
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 2) {
-            // High bar - must ROLL / SLIDE under!
+            // Rolamento Obrigatório: high bar
             lanes.forEach(lx => {
                 const c = createRedCoin3D(lx, 26, centerZ);
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 3) {
-            // Zig-zag weave
+            // Ziguezague Slalom
             const order = [-20, 0, 20];
             if (Math.random() > 0.5) order.reverse();
             order.forEach((lx, idx) => {
                 const c = createRedCoin3D(lx, 6, centerZ - (idx * 65));
                 if (c) customObstacles.push(c);
             });
+        } else if (pattern === 4) {
+            // Barreira Móvel Oscilante
+            const c = createRedCoin3D(0, 6, centerZ, {
+                isOscillating: true,
+                speed: 2.4,
+                phase: Math.random() * Math.PI
+            });
+            if (c) customObstacles.push(c);
+        } else if (pattern === 5) {
+            // Diamante / Cruz
+            const c1 = createRedCoin3D(0, 6, centerZ);
+            const c2 = createRedCoin3D(-20, 6, centerZ - 45);
+            const c3 = createRedCoin3D(20, 6, centerZ - 45);
+            const c4 = createRedCoin3D(0, 6, centerZ - 90);
+            if (c1) customObstacles.push(c1);
+            if (c2) customObstacles.push(c2);
+            if (c3) customObstacles.push(c3);
+            if (c4) customObstacles.push(c4);
         }
     }
 
@@ -770,7 +846,7 @@
         // Check spawn ahead of runner
         if (heroZ < nextObstacleZ) {
             spawnNoCoinObstaclePattern(heroZ - 420);
-            nextObstacleZ = heroZ - (340 + Math.random() * 180);
+            nextObstacleZ = heroZ - (320 + Math.random() * 180);
         }
 
         // Update active obstacles
@@ -782,6 +858,12 @@
             if (!obs || obs.destroyed) {
                 customObstacles.splice(i, 1);
                 continue;
+            }
+
+            // Oscillating dynamic movement
+            if (obs.isOscillating && obs.mesh) {
+                obs.x = Math.sin(now * 0.003 * obs.speed + obs.phase) * 20;
+                obs.mesh.x = obs.x;
             }
 
             // Spin 3D coin
