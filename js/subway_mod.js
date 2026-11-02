@@ -389,36 +389,8 @@
         } catch(e) {}
     };
 
-    function playCoinShatterAudio() {
-        try {
-            if (window.game && window.game.sfx && window.game.sfx.play) {
-                window.game.sfx.play('hero-hoverboard-crash', { volume: 0.28, rate: 1.85 });
-            }
-        } catch(e) {}
-        try {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            if (AudioCtx) {
-                if (!window.__shatterAudioCtx) window.__shatterAudioCtx = new AudioCtx();
-                const ctx = window.__shatterAudioCtx;
-                if (ctx.state === 'suspended') ctx.resume();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(950, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.11);
-                gain.gain.setValueAtTime(0.22, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.11);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.12);
-            }
-        } catch(e) {}
-    }
-
     function triggerCoinShatter(coin) {
         try { if (navigator.vibrate) navigator.vibrate(25); } catch(e) {}
-        playCoinShatterAudio();
 
         // Subtle micro-shake
         try {
