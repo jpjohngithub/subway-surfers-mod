@@ -532,7 +532,13 @@
                         if (MPX.isPracticing && MPX.roundActive) {
                             try {
                                 ['saveme', 'gameover'].forEach(k => { const s = window.app && window.app[k]; if (s && s.close) s.close(); });
-                                window.app.nav.toGame();
+                                if (window.app.game && typeof window.app.game.revive === 'function') {
+                                    window.app.game.revive(0, false);
+                                } else {
+                                    window.app.nav.toGame();
+                                }
+                                restoreHeroMesh();
+                                setTimeout(restoreHeroMesh, 300);
                             } catch (e) {}
                         }
                     }, 500);
@@ -1249,6 +1255,45 @@
     }
     window.showWaitHUD = showWaitHUD;
 
+    function restoreHeroMesh() {
+        try {
+            const hero = window.app && window.app.game && window.app.game.hero;
+            if (!hero) return;
+            if (hero.idleScene) {
+                hero.idleScene._active = false;
+                hero.idleScene._worldActive = false;
+            }
+            if (hero.sprayCan) {
+                hero.sprayCan._active = false;
+                hero.sprayCan._worldActive = false;
+            }
+            if (hero.gameScene) {
+                hero.gameScene._active = true;
+                hero.gameScene._worldActive = true;
+            }
+            if (hero.anim) {
+                if (hero.gameScene) hero.anim.currentScene = hero.gameScene;
+                if (hero.anim.updateCurrentAnimation) hero.anim.updateCurrentAnimation();
+            }
+            if (typeof hero.refreshScenes === 'function') {
+                hero.refreshScenes();
+            }
+            if (typeof hero.resetModel === 'function') {
+                hero.resetModel();
+            }
+            if (hero.body) {
+                hero.body.ghost = false;
+                hero.body.movable = true;
+            }
+            if (hero.model && hero.model.container) {
+                hero.model.container.visible = true;
+                hero.model.container.alpha = 1;
+                hero.model.container.renderable = true;
+            }
+        } catch (e) {}
+    }
+    window.restoreHeroMesh = restoreHeroMesh;
+
     window.__startPracticeMode = function() {
         MPX.isPracticing = true;
         clearInterval(MPX.waitUpdateTimer);
@@ -1260,6 +1305,8 @@
         try {
             if (window.app && window.app.user) window.app.user.tutorial = true;
             window.app.nav.toGame();
+            setTimeout(restoreHeroMesh, 300);
+            setTimeout(restoreHeroMesh, 800);
         } catch (e) {
             console.error('Error starting practice run:', e);
         }
@@ -1288,16 +1335,29 @@
         window.__antiPauseHooksInstalled = true;
 
         const checkHookGame = () => {
-            if (!window.app || !window.app.game || window.app.game.__hookedPause) return;
-            window.app.game.__hookedPause = true;
-            const origPause = window.app.game.pause;
-            window.app.game.pause = function(...args) {
-                if (MP.inMatch && MPX.roundActive && !MPX.isPracticing) {
-                    showOnlineNotice('⚠️ Pausa bloqueada na rodada online!');
-                    return;
-                }
-                return origPause.apply(this, args);
-            };
+            if (!window.app || !window.app.game) return;
+            if (!window.app.game.__hookedPause) {
+                window.app.game.__hookedPause = true;
+                const origPause = window.app.game.pause;
+                window.app.game.pause = function(...args) {
+                    if (MP.inMatch && MPX.roundActive && !MPX.isPracticing) {
+                        showOnlineNotice('⚠️ Pausa bloqueada na rodada online!');
+                        return;
+                    }
+                    return origPause.apply(this, args);
+                };
+            }
+            if (!window.app.game.__hookedRevive && typeof window.app.game.revive === 'function') {
+                window.app.game.__hookedRevive = true;
+                const origRevive = window.app.game.revive;
+                window.app.game.revive = function(...args) {
+                    const res = origRevive.apply(this, args);
+                    restoreHeroMesh();
+                    setTimeout(restoreHeroMesh, 100);
+                    setTimeout(restoreHeroMesh, 400);
+                    return res;
+                };
+            }
         };
 
         const checkHookSettings = () => {
