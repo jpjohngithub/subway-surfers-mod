@@ -272,8 +272,6 @@
 
     // Called on every coin spawn/awake from patched dependencies.bundle.js
     window.__activeCoins = new Set();
-    let nativeObstacleCounter = 0;
-    let lastObstacleSpawnZ = 0;
 
     window.__onCoinAwake = function(coin) {
         if (!coin) return;
@@ -323,50 +321,7 @@
             return;
         }
 
-        // Dynamic Native Obstacle Replacement in No Coin Mode:
-        // Converts roughly 1 out of every 6 coins (only grounded ones, bottom <= 15) into an official native blocker or obstacle (Jump Blocker, Roll Blocker, Standard Barrier, or Dumpster)
-        if (isNoCoin && coin.body && coin.body.bottom <= 15 && Math.abs(coinZ - lastObstacleSpawnZ) > 85) {
-            nativeObstacleCounter++;
-            if (nativeObstacleCounter % 5 === 0 && window.game && window.game.pool) {
-                let obsClass = null;
-                const poolKey = nativeObstacleCounter % 4;
-                if (poolKey === 0 && window.SubwayBlockers && window.SubwayBlockers.jump) {
-                    obsClass = window.SubwayBlockers.jump;
-                } else if (poolKey === 1 && window.SubwayBlockers && window.SubwayBlockers.roll) {
-                    obsClass = window.SubwayBlockers.roll;
-                } else if (poolKey === 2 && window.SubwayBlockers && window.SubwayBlockers.standard) {
-                    obsClass = window.SubwayBlockers.standard;
-                } else if (window.SubwayObstacles && window.SubwayObstacles.length) {
-                    obsClass = window.SubwayObstacles[0];
-                }
 
-                if (obsClass) {
-                    try {
-                        const obs = window.game.pool.get(obsClass);
-                        if (obs) {
-                            obs.awake();
-                            if (obs.body) {
-                                obs.body.x = coinX;
-                                obs.body.z = coinZ;
-                                obs.body.bottom = 0;
-                            }
-                            window.game.addChild(obs);
-                            lastObstacleSpawnZ = coinZ;
-
-                            // Disable the coin so only the native obstacle stands on this lane
-                            coin.active = false;
-                            coin.visible = false;
-                            if (coin.body) {
-                                coin.body.width = 0;
-                                coin.body.height = 0;
-                                coin.body.depth = 0;
-                            }
-                            return;
-                        }
-                    } catch (e) {}
-                }
-            }
-        }
 
         if (isNoCoin) {
             if (coin.attractable) {
@@ -727,11 +682,159 @@
             }
         } catch (e) {}
     };
+    // ==========================================
+    // NO COIN DYNAMIC RED COIN OBSTACLE ENGINE
+    // ==========================================
+    let customObstacles = [];
+    let nextObstacleZ = -300;
+
+    function cleanupCustomObstacles() {
+        for (let i = 0; i < customObstacles.length; i++) {
+            const obs = customObstacles[i];
+            if (obs && obs.mesh && obs.mesh.parent) {
+                try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+            }
+        }
+        customObstacles = [];
+        nextObstacleZ = (window.game && window.game.hero && window.game.hero.body ? window.game.hero.body.z : 0) - 350;
+    }
+
+    function createRedCoin3D(x, y, z) {
+        if (!window.__lib || !window.__lib.getEntity) return null;
+        try {
+            const mesh = window.__lib.getEntity('currency_coin');
+            if (!mesh) return null;
+            mesh.x = x;
+            mesh.y = y;
+            mesh.z = z;
+            if (mesh.scale) mesh.scale.set(1.4, 1.4, 1.4);
+            setEntityHexColor(mesh, 0xff1e1e);
+            const hero = window.game && window.game.hero;
+            if (hero && hero.parent) {
+                hero.parent.addChild(mesh);
+                return { x, y, z, mesh, destroyed: false };
+            }
+        } catch(e) {}
+        return null;
+    }
+
+    function spawnNoCoinObstaclePattern(centerZ) {
+        const lanes = [-20, 0, 20];
+        // 4 Obstacle Types:
+        // 0: Wall with 1 open escape lane (2 lanes blocked at ground)
+        // 1: Low hurdle across all 3 lanes (y = 5, must jump!)
+        // 2: High laser bar across all 3 lanes (y = 26, must roll/slide!)
+        // 3: Zig-zag weave (3 coins spaced 65 units apart, alternating lanes)
+        const pattern = Math.floor(Math.random() * 4);
+
+        if (pattern === 0) {
+            // Wall with 1 escape lane
+            const openLane = lanes[Math.floor(Math.random() * lanes.length)];
+            lanes.forEach(lx => {
+                if (lx !== openLane) {
+                    const c = createRedCoin3D(lx, 6, centerZ);
+                    if (c) customObstacles.push(c);
+                }
+            });
+        } else if (pattern === 1) {
+            // Low hurdle - must JUMP over!
+            lanes.forEach(lx => {
+                const c = createRedCoin3D(lx, 5, centerZ);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 2) {
+            // High bar - must ROLL / SLIDE under!
+            lanes.forEach(lx => {
+                const c = createRedCoin3D(lx, 26, centerZ);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 3) {
+            // Zig-zag weave
+            const order = [-20, 0, 20];
+            if (Math.random() > 0.5) order.reverse();
+            order.forEach((lx, idx) => {
+                const c = createRedCoin3D(lx, 6, centerZ - (idx * 65));
+                if (c) customObstacles.push(c);
+            });
+        }
+    }
+
+    function updateNoCoinObstacleEngine() {
+        if (!window.NO_COIN_MODE || !window.game || !window.game.hero || !window.game.hero.body) {
+            if (customObstacles.length) cleanupCustomObstacles();
+            return;
+        }
+
+        const hero = window.game.hero;
+        const heroBody = hero.body;
+        const heroZ = heroBody.z;
+        const heroX = heroBody.x;
+        const heroY = heroBody.y || 0;
+
+        if (window.isGamePaused) return;
+
+        // Check spawn ahead of runner
+        if (heroZ < nextObstacleZ) {
+            spawnNoCoinObstaclePattern(heroZ - 420);
+            nextObstacleZ = heroZ - (340 + Math.random() * 180);
+        }
+
+        // Update active obstacles
+        const now = Date.now();
+        const isDashing = now < dashInvulnUntil;
+
+        for (let i = customObstacles.length - 1; i >= 0; i--) {
+            const obs = customObstacles[i];
+            if (!obs || obs.destroyed) {
+                customObstacles.splice(i, 1);
+                continue;
+            }
+
+            // Spin 3D coin
+            if (obs.mesh && obs.mesh.rotation) {
+                obs.mesh.rotation.y += 0.09;
+            }
+
+            const dz = Math.abs(obs.z - heroZ);
+            const dx = Math.abs(obs.x - heroX);
+            const dy = Math.abs(obs.y - heroY);
+
+            // Accurate Hitbox check matching coin height
+            if (dz < 14 && dx < 8 && dy < 15) {
+                if (isDashing) {
+                    obs.destroyed = true;
+                    if (obs.mesh && obs.mesh.parent) {
+                        try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                    }
+                    customObstacles.splice(i, 1);
+                    triggerCoinShatter({ body: { x: obs.x, y: obs.y, z: obs.z } });
+                    continue;
+                } else {
+                    obs.destroyed = true;
+                    triggerNoCoinDeath(null);
+                    return;
+                }
+            }
+
+            // Passed behind player
+            if (obs.z > heroZ + 80) {
+                if (obs.mesh && obs.mesh.parent) {
+                    try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                }
+                customObstacles.splice(i, 1);
+            }
+        }
+    }
+
+    setInterval(updateNoCoinObstacleEngine, 30);
+
     window.__onGameOver = function() {
         stopRunTimer();
+        cleanupCustomObstacles();
     };
     window.__onGameReset = function() {
         hideRunTimer();
+        cleanupCustomObstacles();
     };
 
     // ==========================================
