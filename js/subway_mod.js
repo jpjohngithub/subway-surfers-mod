@@ -724,7 +724,37 @@
         setTimeout(() => { if (pop.parentNode) pop.remove(); }, 12000);
     }
 
-    const MPX = { round: 0, totalRounds: 3, totals: {}, live: {}, dead: {}, lastTick: {}, roundActive: false, lastSeen: {}, myRseq: 0, endedRound: 0, seen: new Set(), botTimer: null, botPlan: {}, suppressTimer: null, interTimer: null, autoTimer: null, lastTickSent: 0, lastHostMsg: Date.now(), goAt: 0 };
+        // ==========================================
+    // 7. MULTIPLAYER ELIMINATION TOURNAMENT ENGINE (MPX)
+    // ==========================================
+    const MPX = {
+        round: 0,
+        totalRounds: 3,
+        activeIds: [],       // Players currently racing in the round
+        eliminated: {},      // { [id]: { round: 1, rank: 4, label: '4º Lugar' } }
+        roundTimes: {},      // { [round]: { [id]: timeMs } }
+        totals: {},          // { [id]: totalTimeMs }
+        wins: {},            // { [id]: winCount } for 2p MD3
+        live: {},            // { [id]: liveMs }
+        dead: {},            // { [id]: deathMs }
+        lastTick: {},
+        roundActive: false,
+        lastSeen: {},
+        myRseq: 0,
+        endedRound: 0,
+        seen: new Set(),
+        botTimer: null,
+        botPlan: {},
+        suppressTimer: null,
+        interTimer: null,
+        autoTimer: null,
+        loneSurvivorTimer: null,
+        lastTickSent: 0,
+        lastHostMsg: Date.now(),
+        goAt: 0,
+        partySizeAtStart: 0
+    };
+
     const isBot = id => String(id).startsWith('bot_');
 
     function leaveToOwnRoom() {
@@ -737,6 +767,7 @@
         MPX.myRseq = 0;
         if (MP.mqtt && MP.mqtt.connected) MP.mqtt.subscribe(MP.currentRoomTopic);
         renderPartySlots();
+        updateRoomCodeUI();
     }
 
     function acceptInvite(host, roomId) {
@@ -760,6 +791,7 @@
 
         showHUDNotification('✅ Entrou no grupo de ' + host.nick + '!');
         renderPartySlots();
+        updateRoomCodeUI();
     }
 
     function handleInviteResponse(msg) {
@@ -832,8 +864,8 @@
     }
 
     window.__leaveParty = function() {
-        if (MP.isPartyLeader || MP.inMatch) return;
-        sendRoomMessage({ type: 'party_leave', sender: myProfile });
+        if (MP.inMatch) return;
+        if (!MP.isPartyLeader) sendRoomMessage({ type: 'party_leave', sender: myProfile });
         leaveToOwnRoom();
     };
 
@@ -868,33 +900,70 @@
     }
 
     function requestStartMatch() {
-        if (!MP.isPartyLeader) { alert('Apenas o líder do grupo pode iniciar. Dê PRONTO e aguarde!'); return; }
+        if (!MP.isPartyLeader) { alert('Apenas o líder da sala pode iniciar o torneio. Dê PRONTO e aguarde!'); return; }
         if (!checkCanStartMatch()) {
-            alert('Atenção: Todos os membros do grupo (2 a 4) devem dar PRONTO antes de iniciar!');
+            alert('Atenção: Todos os corredores (2 a 4) devem dar PRONTO antes de iniciar!');
             return;
         }
         startSeries();
     }
 
-    // ---------- Series / Rounds (host authoritative) ----------
+    // ==========================================
+    // TOURNAMENT PROGRESSION & ELIMINATIONS
+    // ==========================================
     function startSeries() {
         clearTimeout(MPX.autoTimer);
-        MPX.totals = {};
-        MP.party.forEach(p => { MPX.totals[p.id] = 0; });
         MPX.round = 0;
         MPX.endedRound = 0;
+        MPX.totals = {};
+        MPX.wins = {};
+        MPX.eliminated = {};
+        MPX.roundTimes = {};
+        MPX.partySizeAtStart = MP.party.length;
+
+        // Everyone in party starts as active competitor
+        MPX.activeIds = MP.party.map(p => p.id);
+        MP.party.forEach(p => {
+            MPX.totals[p.id] = 0;
+            MPX.wins[p.id] = 0;
+        });
+
+        if (MPX.activeIds.length >= 4) {
+            MPX.totalRounds = 3; // R1: 4->3, R2: 3->2, R3: Final 2->1
+        } else if (MPX.activeIds.length === 3) {
+            MPX.totalRounds = 2; // R1: 3->2, R2: Final 2->1
+        } else {
+            MPX.totalRounds = 3; // 2 players: Best of 3 (MD3)
+        }
+
         hostBeginRound();
     }
 
     function hostBeginRound() {
         MPX.round += 1;
+        clearTimeout(MPX.loneSurvivorTimer);
+        MPX.loneSurvivorTimer = null;
+
+        let roundLabel = '';
+        if (MPX.activeIds.length >= 4) {
+            roundLabel = 'QUARTAS DE FINAL — 1 SERÁ ELIMINADO';
+        } else if (MPX.activeIds.length === 3) {
+            roundLabel = 'SEMIFINAL — 1 SERÁ ELIMINADO';
+        } else if (MPX.activeIds.length === 2) {
+            roundLabel = (MPX.partySizeAtStart >= 3) ? 'GRANDE FINAL DO TORNEIO!' : `DUELO X1 (RODADA ${MPX.round}/${MPX.totalRounds})`;
+        }
+
         const msg = {
             type: 'round_start',
             sender: myProfile,
             party: MP.party,
             round: MPX.round,
             totalRounds: MPX.totalRounds,
+            activeIds: MPX.activeIds,
+            eliminated: MPX.eliminated,
+            roundLabel: roundLabel,
             totals: MPX.totals,
+            wins: MPX.wins,
             delay: 3
         };
         sendRoomMessage(msg);
@@ -905,12 +974,17 @@
         if (!MP.isPartyLeader && msg.party) MP.party = msg.party.map(p => ({ ...p }));
         MPX.round = msg.round;
         MPX.totalRounds = msg.totalRounds || 3;
-        MPX.totals = msg.totals || {};
+        MPX.activeIds = msg.activeIds || MP.party.map(p => p.id);
+        MPX.eliminated = msg.eliminated || {};
+        MPX.totals = msg.totals || MPX.totals;
+        MPX.wins = msg.wins || MPX.wins;
         MPX.live = {};
         MPX.dead = {};
         MPX.lastTick = {};
         MPX.roundActive = false;
         MPX.endedRound = MPX.round - 1;
+        clearTimeout(MPX.loneSurvivorTimer);
+        MPX.loneSurvivorTimer = null;
 
         window.GAME_MODE = 'nocoin';
         window.NO_COIN_MODE = true;
@@ -927,11 +1001,22 @@
         showTimeline();
         renderTimeline();
 
-        runCountdown(msg.delay || 3, 'RODADA ' + MPX.round + ' / ' + MPX.totalRounds + ' — VALENDO!', () => {
-            try { if (window.app && window.app.user) window.app.user.tutorial = true; } catch (e) {}
+        const isEliminatedAlready = !!MPX.eliminated[myProfile.id];
+
+        const titleText = msg.roundLabel || `RODADA ${MPX.round} / ${MPX.totalRounds}`;
+        runCountdown(msg.delay || 3, titleText, () => {
             MPX.roundActive = true;
             MPX.goAt = Date.now();
-            try { window.app.nav.toGame(); } catch (e) {}
+            try { if (window.app && window.app.user) window.app.user.tutorial = true; } catch (e) {}
+
+            if (isEliminatedAlready) {
+                // Local player is already eliminated -> Spectator mode only
+                showWaitHUD(0, true);
+            } else {
+                // Active competitor -> Launch game run
+                try { window.app.nav.toGame(); } catch (e) {}
+            }
+
             if (MP.isPartyLeader) hostStartBots();
         });
     }
@@ -959,13 +1044,19 @@
         }, 1000);
     }
 
-    // Bots (solo testing) simulated by the host
+    // Bots simulation for testing
     function hostStartBots() {
         clearInterval(MPX.botTimer);
         const t0 = performance.now();
         MPX.botPlan = {};
-        MP.party.forEach(p => { if (isBot(p.id)) MPX.botPlan[p.id] = 9000 + Math.random() * 30000; });
+        // Assign realistic survival time between 15s and 50s for each active bot
+        MPX.activeIds.forEach(id => {
+            if (isBot(id)) {
+                MPX.botPlan[id] = 16000 + Math.random() * 32000;
+            }
+        });
         if (!Object.keys(MPX.botPlan).length) return;
+
         MPX.botTimer = setInterval(() => {
             if (!MPX.roundActive) { clearInterval(MPX.botTimer); return; }
             const t = performance.now() - t0;
@@ -988,7 +1079,7 @@
         }, 250);
     }
 
-    // Tick sender (called from run timer interval)
+    // Live tick sender from active runner
     function sendMultiplayerRunnerSync() {
         if (!MP.inMatch || !MPX.roundActive || !isRunActive) return;
         const now = performance.now();
@@ -1001,7 +1092,7 @@
     }
 
     function handleTick(msg) {
-        if (!MP.inMatch || msg.round !== MPX.round) return;
+        if (!MP.inMatch || msg.round !== MPX.round || !msg.sender) return;
         const id = msg.sender.id;
         if (MPX.dead[id] !== undefined) return;
         MPX.live[id] = msg.t;
@@ -1009,15 +1100,18 @@
         renderTimeline();
     }
 
+    // Runner death handler (keeps surviving players running!)
     function handleLocalMultiplayerDeath(timeMs) {
         if (!MP.inMatch || !MPX.roundActive || MPX.dead[myProfile.id] !== undefined) return;
         MPX.dead[myProfile.id] = timeMs;
         MPX.live[myProfile.id] = timeMs;
+
         sendRoomMessage({ type: 'player_death', sender: myProfile, timeMs: timeMs, round: MPX.round });
         suppressRevive(true);
-        showWaitHUD();
+        showWaitHUD(timeMs, false);
         renderTimeline();
-        hostCheckRoundEnd();
+
+        if (MP.isPartyLeader) hostCheckRoundEnd();
     }
 
     function handlePlayerDeath(msg) {
@@ -1026,7 +1120,7 @@
         MPX.dead[msg.sender.id] = msg.timeMs;
         MPX.live[msg.sender.id] = msg.timeMs;
         renderTimeline();
-        hostCheckRoundEnd();
+        if (MP.isPartyLeader) hostCheckRoundEnd();
     }
 
     function suppressRevive(on) {
@@ -1042,30 +1136,57 @@
         }, 100);
     }
 
-    function showWaitHUD() {
-        if (document.getElementById('subway-wait-hud')) return;
+    function showWaitHUD(timeMs, wasAlreadyEliminated) {
+        removeEl('subway-wait-hud');
         const h = document.createElement('div');
         h.id = 'subway-wait-hud';
         h.className = 'subway-spectator-hud';
-        h.innerHTML = '<span class="spec-live-dot">●</span> Você caiu! Acompanhe a linha do tempo — aguardando os outros...';
+        if (wasAlreadyEliminated) {
+            h.innerHTML = '<span class="spec-live-dot" style="background:#eab308;"></span> <strong>MODO ESPECTADOR</strong> — Você foi eliminado. Acompanhe a decisão na linha do tempo!';
+        } else {
+            h.innerHTML = `<span class="spec-live-dot"></span> <strong>VOCÊ CAIU!</strong> Tempo: <strong>${fmtS(timeMs)}</strong> — Aguardando restantes finalizarem...`;
+        }
         document.body.appendChild(h);
     }
 
-    // Host: decide when a round is over (≤1 alive) and drop disconnected players
+    // Authoritative Host: only ends round when all active competitors have died
     function hostCheckRoundEnd() {
         if (!MP.isPartyLeader || !MP.inMatch || !MPX.roundActive || MPX.endedRound === MPX.round) return;
-        const alive = MP.party.filter(p => MPX.dead[p.id] === undefined);
-        if (alive.length <= 1) hostEndRound(alive[0]);
+
+        const alive = MPX.activeIds.filter(id => MPX.dead[id] === undefined);
+
+        // Case 1: All active runners in this round have died -> Round finished!
+        if (alive.length === 0) {
+            clearTimeout(MPX.loneSurvivorTimer);
+            MPX.loneSurvivorTimer = null;
+            hostEndRound();
+            return;
+        }
+
+        // Case 2: Only 1 survivor remains running -> Give them 10s victory lap or until they crash
+        if (alive.length === 1 && !MPX.loneSurvivorTimer) {
+            const survivorId = alive[0];
+            MPX.loneSurvivorTimer = setTimeout(() => {
+                if (MP.isPartyLeader && MPX.roundActive && MPX.endedRound !== MPX.round) {
+                    if (MPX.dead[survivorId] === undefined) {
+                        MPX.dead[survivorId] = (MPX.live[survivorId] || 0) + 1000;
+                    }
+                    hostEndRound();
+                }
+            }, 10000);
+        }
     }
 
     function hostWatchdog() {
         if (!MP.isPartyLeader || !MP.inMatch || !MPX.roundActive) return;
         const now = Date.now();
-        MP.party.forEach(p => {
-            if (MPX.dead[p.id] !== undefined || isBot(p.id) || p.id === myProfile.id) return;
-            const last = MPX.lastTick[p.id] || MPX.goAt + 15000;
-            if (now - last > 9000) {
-                const m = { type: 'player_death', sender: { id: p.id, nick: p.nick, avatar: p.avatar }, timeMs: MPX.live[p.id] || 0, round: MPX.round };
+        MPX.activeIds.forEach(id => {
+            if (MPX.dead[id] !== undefined || isBot(id) || id === myProfile.id) return;
+            const last = MPX.lastTick[id] || MPX.goAt + 15000;
+            if (now - last > 10000) {
+                const p = MP.party.find(x => x.id === id);
+                const sender = p ? { id: p.id, nick: p.nick, avatar: p.avatar } : { id };
+                const m = { type: 'player_death', sender, timeMs: MPX.live[id] || 0, round: MPX.round };
                 sendRoomMessage(m);
                 handlePlayerDeath(m);
             }
@@ -1073,21 +1194,79 @@
     }
     setInterval(hostWatchdog, 1500);
 
-    function hostEndRound(winnerP) {
+    function hostEndRound() {
         if (MPX.endedRound === MPX.round) return;
+        clearTimeout(MPX.loneSurvivorTimer);
+        MPX.loneSurvivorTimer = null;
+
         const results = {};
-        MP.party.forEach(p => { results[p.id] = MPX.dead[p.id] !== undefined ? MPX.dead[p.id] : (MPX.live[p.id] || 0); });
-        let winnerId = winnerP ? winnerP.id : null;
-        if (!winnerId) winnerId = Object.keys(results).sort((a, b) => results[b] - results[a])[0];
-        const maxT = Math.max.apply(null, Object.keys(results).map(k => results[k]));
-        if (winnerP) results[winnerP.id] = Math.max(results[winnerP.id], maxT);
-        const totals = { ...MPX.totals };
-        MP.party.forEach(p => { totals[p.id] = (totals[p.id] || 0) + results[p.id]; });
+        MPX.activeIds.forEach(id => {
+            results[id] = MPX.dead[id] !== undefined ? MPX.dead[id] : (MPX.live[id] || 0);
+        });
+
+        // Sort descending: greatest time = 1st place
+        const rankedIds = [...MPX.activeIds].sort((a, b) => results[b] - results[a]);
+        const roundWinnerId = rankedIds[0];
+        const roundLoserId = rankedIds[rankedIds.length - 1];
+
+        // Accumulate series totals
+        MPX.activeIds.forEach(id => {
+            MPX.totals[id] = (MPX.totals[id] || 0) + results[id];
+        });
+
+        let isTournamentOver = false;
+        let tournamentWinnerId = null;
+        let eliminatedThisRound = null;
+
+        // Knockout Elimination Rules
+        if (MPX.partySizeAtStart >= 3 || MP.party.length >= 3) {
+            if (MPX.activeIds.length === 2) {
+                // Final round between 2 finalists
+                isTournamentOver = true;
+                tournamentWinnerId = roundWinnerId;
+            } else {
+                // Eliminate the last place runner
+                eliminatedThisRound = roundLoserId;
+                const cutRank = MPX.activeIds.length;
+                MPX.eliminated[roundLoserId] = {
+                    round: MPX.round,
+                    rank: cutRank,
+                    label: `${cutRank}º Lugar (Eliminado)`
+                };
+                MPX.activeIds = MPX.activeIds.filter(id => id !== roundLoserId);
+                if (MPX.activeIds.length <= 1) {
+                    isTournamentOver = true;
+                    tournamentWinnerId = MPX.activeIds[0] || roundWinnerId;
+                }
+            }
+        } else {
+            // 2-Player Duel (MD3)
+            MPX.wins[roundWinnerId] = (MPX.wins[roundWinnerId] || 0) + 1;
+            if (MPX.wins[roundWinnerId] >= 2 || MPX.round >= MPX.totalRounds) {
+                isTournamentOver = true;
+                tournamentWinnerId = MPX.wins[rankedIds[0]] >= (MPX.wins[rankedIds[1]] || 0) ? rankedIds[0] : rankedIds[1];
+            }
+        }
+
         const msg = {
-            type: 'round_end', sender: myProfile, round: MPX.round, results, totals,
-            winnerId, final: MPX.round >= MPX.totalRounds, delay: MPX.round >= MPX.totalRounds ? 12 : 8,
-            party: MP.party
+            type: 'round_end',
+            sender: myProfile,
+            round: MPX.round,
+            totalRounds: MPX.totalRounds,
+            results: results,
+            rankedIds: rankedIds,
+            totals: MPX.totals,
+            wins: MPX.wins,
+            roundWinnerId: roundWinnerId,
+            eliminatedThisRound: eliminatedThisRound,
+            eliminated: MPX.eliminated,
+            activeIds: MPX.activeIds,
+            isTournamentOver: isTournamentOver,
+            tournamentWinnerId: tournamentWinnerId,
+            party: MP.party,
+            delay: isTournamentOver ? 12 : 8
         };
+
         sendRoomMessage(msg);
         handleRoundEnd(msg);
     }
@@ -1097,20 +1276,24 @@
         MPX.endedRound = msg.round;
         MPX.roundActive = false;
         MPX.totals = msg.totals || MPX.totals;
+        MPX.wins = msg.wins || MPX.wins;
+        MPX.eliminated = msg.eliminated || MPX.eliminated;
+        MPX.activeIds = msg.activeIds || MPX.activeIds;
         if (msg.party && !MP.isPartyLeader) MP.party = msg.party.map(p => ({ ...p }));
+
         clearInterval(MPX.botTimer);
         suppressRevive(false);
         removeEl('subway-wait-hud');
 
         const nameOf = id => { const p = MP.party.find(x => x.id === id); return p ? p.nick : id; };
-        const order = Object.keys(msg.results).sort((a, b) => msg.results[b] - msg.results[a]);
-        const line = order.map((id, i) => `${i + 1}º ${nameOf(id)}`).join(' ➔ ');
+
+        // Save round record
         saveRecord({
             date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5),
-            mode: 'No Coin (Online)',
+            mode: 'Torneio Eliminatório No Coin',
             timeMs: msg.results[myProfile.id] || 0,
             timeStr: formatTime(msg.results[myProfile.id] || 0),
-            nick: `R${msg.round}/${MPX.totalRounds} 🏆 ${nameOf(msg.winnerId)} (${line})`
+            nick: `R${msg.round}/${MPX.totalRounds} — 1º ${nameOf(msg.roundWinnerId)}`
         });
 
         exitRunToTitle();
@@ -1128,46 +1311,93 @@
 
     function showInterlude(msg) {
         removeEl('subway-interlude');
-        const nameOf = id => { const p = MP.party.find(x => x.id === id); return p || { nick: id, avatar: DEFAULT_AVATARS[0].url }; };
-        const ranked = Object.keys(msg.totals).sort((a, b) => msg.totals[b] - msg.totals[a]);
-        const rows = ranked.map((id, i) => {
+        const nameOf = id => {
+            const p = MP.party.find(x => x.id === id);
+            return p || { id, nick: id, avatar: DEFAULT_AVATARS[0].url };
+        };
+
+        const isOver = !!msg.isTournamentOver;
+        const champ = nameOf(msg.tournamentWinnerId || msg.roundWinnerId);
+
+        let roundTitle = '';
+        if (isOver) {
+            roundTitle = `🏆 GRANDE CAMPEÃO DO TORNEIO: ${champ.nick.toUpperCase()}!`;
+        } else if (msg.eliminatedThisRound) {
+            const elimName = nameOf(msg.eliminatedThisRound).nick;
+            roundTitle = `⚔️ RODADA ${msg.round}/${msg.totalRounds} CONCLUÍDA — ${elimName} FOI ELIMINADO!`;
+        } else {
+            roundTitle = `⚔️ RODADA ${msg.round}/${msg.totalRounds} CONCLUÍDA!`;
+        }
+
+        const rows = (msg.rankedIds || []).map((id, i) => {
             const p = nameOf(id);
-            return `<div class="il-row ${id === msg.winnerId ? 'il-win' : ''}">
-                <span class="il-pos">${i + 1}º</span>
-                <img class="il-av" src="${p.avatar}" />
-                <span class="il-nick">${p.nick}${id === myProfile.id ? ' (você)' : ''}</span>
-                <span class="il-r">${fmtS(msg.results[id] || 0)}${id === msg.winnerId ? ' 🏆' : ''}</span>
-                <span class="il-t">${fmtS(msg.totals[id] || 0)}</span>
-            </div>`;
+            const isWinner = id === msg.roundWinnerId;
+            const isElim = id === msg.eliminatedThisRound;
+            const wasElim = !!msg.eliminated[id];
+
+            let statusTag = '';
+            if (isOver) {
+                if (id === msg.tournamentWinnerId) statusTag = '<span class="il-badge il-champ">🏆 CAMPEÃO</span>';
+                else if (i === 1) statusTag = '<span class="il-badge il-silver">🥈 VICE-CAMPEÃO</span>';
+                else statusTag = `<span class="il-badge il-elim">${i + 1}º LUGAR</span>`;
+            } else {
+                if (isElim) statusTag = '<span class="il-badge il-elim">❌ ELIMINADO</span>';
+                else if (wasElim) statusTag = '<span class="il-badge il-elim">ESPECTADOR</span>';
+                else statusTag = '<span class="il-badge il-pass">✅ CLASSIFICADO</span>';
+            }
+
+            return `
+                <div class="il-row ${isWinner ? 'il-win' : ''} ${isElim ? 'il-cut' : ''}">
+                    <span class="il-pos">${i + 1}º</span>
+                    <img class="il-av" src="${p.avatar}" />
+                    <span class="il-nick">${p.nick}${id === myProfile.id ? ' (você)' : ''}</span>
+                    <span class="il-r">${fmtS(msg.results[id] || 0)}</span>
+                    <span class="il-status">${statusTag}</span>
+                </div>
+            `;
         }).join('');
-        const champ = nameOf(ranked[0]);
+
         const box = document.createElement('div');
         box.id = 'subway-interlude';
         box.className = 'subway-interlude';
         box.innerHTML = `
             <div class="il-card">
-                <div class="il-title">${msg.final ? '🏆 CAMPEÃO: ' + champ.nick : 'Rodada ' + msg.round + '/' + MPX.totalRounds + ' concluída'}</div>
-                <div class="il-head"><span>#</span><span></span><span>Jogador</span><span>Rodada</span><span>Total</span></div>
-                ${rows}
-                <div class="il-count" id="il-count"></div>
-            </div>`;
+                <div class="il-title ${isOver ? 'il-title-gold' : ''}">${roundTitle}</div>
+                <div class="il-subtitle">${isOver ? 'Parabéns a todos os corredores!' : 'Classificação e Eliminatórias da Partida:'}</div>
+                <div class="il-head">
+                    <span>#</span>
+                    <span></span>
+                    <span>Jogador</span>
+                    <span>Tempo</span>
+                    <span>Status</span>
+                </div>
+                <div class="il-rows">${rows}</div>
+                <div class="il-count" id="il-count">
+                    ${isOver ? 'Retornando ao lobby em' : 'Próxima rodada eliminatória em'} <span id="il-sec">${msg.delay}</span>s...
+                </div>
+                ${isOver ? '<button class="btn-il-back" onclick="window.__endSeriesNow()">Voltar ao Lobby</button>' : ''}
+            </div>
+        `;
         document.body.appendChild(box);
-        let left = msg.delay || 8;
-        const upd = () => {
-            const el = document.getElementById('il-count');
-            if (el) el.textContent = msg.final ? `Voltando ao lobby em ${left}s...` : `Próxima rodada (${msg.round + 1}/${MPX.totalRounds}) começa em ${left}s...`;
-        };
-        upd();
+
+        let left = msg.delay;
+        const upd = () => { const s = document.getElementById('il-sec'); if (s) s.textContent = left; };
         clearInterval(MPX.interTimer);
         MPX.interTimer = setInterval(() => {
             left--;
             if (left > 0) { upd(); return; }
             clearInterval(MPX.interTimer);
             removeEl('subway-interlude');
-            if (msg.final) endSeries();
+            if (isOver) endSeries();
             else if (MP.isPartyLeader) hostBeginRound();
         }, 1000);
     }
+
+    window.__endSeriesNow = function() {
+        clearInterval(MPX.interTimer);
+        removeEl('subway-interlude');
+        endSeries();
+    };
 
     function endSeries() {
         MP.inMatch = false;
@@ -1176,14 +1406,17 @@
         MP.isReady = false;
         MP.party.forEach(p => { p.ready = isBot(p.id); p.rseq = 0; });
         MPX.myRseq = 0;
+        MPX.eliminated = {};
         hideTimeline();
         removeEl('subway-final-banner');
         if (MP.isPartyLeader) syncPartyToAll();
-        showHUDNotification('Série finalizada! Veja o histórico em Recordes.');
+        showHUDNotification('Torneio Finalizado! Veja o histórico em Recordes.');
         openUnifiedModal('multiplayer');
     }
 
-    // ---------- Timeline UI ----------
+    // ==========================================
+    // VERTICAL TIMELINE WITH ELIMINATION DANGER ZONE
+    // ==========================================
     function fmtS(ms) { return (ms / 1000).toFixed(1) + 's'; }
 
     function showTimeline() {
@@ -1192,7 +1425,13 @@
             el = document.createElement('div');
             el.id = 'subway-timeline';
             el.className = 'subway-tl-wrap';
-            el.innerHTML = '<div class="tl-head" id="tl-head"></div><div class="tl-track" id="tl-track"><div class="tl-line"></div></div>';
+            el.innerHTML = `
+                <div class="tl-head" id="tl-head">TORNEIO NO COIN</div>
+                <div class="tl-track" id="tl-track">
+                    <div class="tl-line"></div>
+                    <div class="tl-danger-zone">⚠️ ZONA DE ELIMINAÇÃO</div>
+                </div>
+            `;
             document.body.appendChild(el);
         }
     }
@@ -1202,24 +1441,30 @@
     function renderTimeline() {
         const el = document.getElementById('subway-timeline');
         if (!el || !MP.inMatch || !MP.party.length) return;
-        const list = MP.party.map(p => {
-            const base = MPX.totals[p.id] || 0;
-            const isDead = MPX.dead[p.id] !== undefined;
-            const cur = isDead ? MPX.dead[p.id] : (MPX.live[p.id] || 0);
-            return { p, score: base + (MPX.roundActive || isDead ? cur : 0), dead: MPX.roundActive && isDead };
+
+        // Sort active competitors by live/dead survival time
+        const list = MPX.activeIds.map(id => {
+            const p = MP.party.find(x => x.id === id) || { id, nick: id, avatar: DEFAULT_AVATARS[0].url };
+            const isDead = MPX.dead[id] !== undefined;
+            const cur = isDead ? MPX.dead[id] : (MPX.live[id] || 0);
+            return { p, score: cur, dead: isDead };
         }).sort((a, b) => b.score - a.score);
 
         const head = el.querySelector('#tl-head');
-        if (head) head.textContent = 'RODADA ' + Math.max(1, MPX.round) + '/' + MPX.totalRounds;
+        if (head) {
+            const roundTxt = `RODADA ${Math.max(1, MPX.round)}/${MPX.totalRounds}`;
+            head.textContent = list.length === 2 ? `🏆 FINAL (${roundTxt})` : `⚔️ ${roundTxt}`;
+        }
 
         const track = el.querySelector('#tl-track');
+        if (!track) return;
         const H = track.clientHeight || 180;
         const NODE = 28;
-        const max = Math.max(30000, list[0].score * 1.12);
+        const max = Math.max(25000, (list[0]?.score || 10000) * 1.15);
         const gap = Math.min(NODE + 4, (H - NODE) / Math.max(1, list.length - 1));
         const ys = list.map(e => ({ e, y: (1 - e.score / max) * (H - NODE) }));
         for (let i = 1; i < ys.length; i++) if (ys[i].y < ys[i - 1].y + gap) ys[i].y = ys[i - 1].y + gap;
-        const over = ys[ys.length - 1].y - (H - NODE);
+        const over = ys[ys.length - 1] ? (ys[ys.length - 1].y - (H - NODE)) : 0;
         if (over > 0) ys.forEach(o => { o.y = Math.max(0, o.y - over); });
 
         const ids = list.map(e => String(e.p.id));
@@ -1238,16 +1483,17 @@
             n.style.top = o.y + 'px';
             n.classList.toggle('tl-dead', o.e.dead);
             n.classList.toggle('tl-me', o.e.p.id === myProfile.id);
+            n.classList.toggle('tl-danger', i === list.length - 1 && list.length > 2); // Bottom player is in elimination danger
             n.querySelector('.tl-rank').textContent = (i + 1) + 'º';
             n.querySelector('.tl-nick').textContent = o.e.p.nick;
-            n.querySelector('.tl-time').textContent = fmtS(o.e.score);
+            n.querySelector('.tl-time').textContent = o.e.dead ? `💀 ${fmtS(o.e.score)}` : `🏃 ${fmtS(o.e.score)}`;
             const img = n.querySelector('.tl-dot');
             if (img.getAttribute('src') !== o.e.p.avatar) img.setAttribute('src', o.e.p.avatar);
         });
     }
-    setInterval(() => { if (MP.inMatch) renderTimeline(); }, 500);
+    setInterval(() => { if (MP.inMatch) renderTimeline(); }, 400);
 
-    // Keep legacy names used elsewhere
+    // Keep legacy aliases
     function hideSpectatorHUD() { removeEl('subway-wait-hud'); }
     function hideLivePlacementHUD() { hideTimeline(); }
 
@@ -1283,6 +1529,17 @@
             document.body.appendChild(menuBtn);
         }
 
+        // Direct Online Mode Button
+        if (!document.getElementById('btn-subway-online-lobby')) {
+            const onlBtn = document.createElement('button');
+            onlBtn.id = 'btn-subway-online-lobby';
+            onlBtn.className = 'btn-subway-online-lobby';
+            onlBtn.title = 'Lobby Multiplayer Online';
+            onlBtn.innerHTML = '<span class="pulse-dot"></span><span>MODO ONLINE 🌐</span>';
+            onlBtn.onclick = () => openUnifiedModal('multiplayer');
+            document.body.appendChild(onlBtn);
+        }
+
         
     }
 
@@ -1296,6 +1553,67 @@
 
     
     
+
+    
+    // Hub Helpers: Copy Room Link, Join Room, Add Bot
+    window.__copyRoomLink = function() {
+        const code = (MP.roomId || '').replace('room_', '');
+        const url = window.location.origin + window.location.pathname + '?room=' + code;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(() => {
+                showHUDNotification('📋 Link da sala copiado! Envie para seus amigos.');
+            }).catch(() => {
+                prompt('Copie o link da sala:', url);
+            });
+        } else {
+            prompt('Copie o link da sala:', url);
+        }
+    };
+
+    window.__joinRoomByInput = function() {
+        const inp = document.getElementById('input-join-room');
+        if (!inp || !inp.value.trim()) return;
+        let clean = inp.value.trim().replace(/^#/, '').replace(/^room_/, '');
+        if (!clean) return;
+        const targetRoomId = 'room_' + clean;
+        MP.roomId = targetRoomId;
+        MP.currentRoomTopic = 'subwaysurf/room/' + targetRoomId;
+        MP.isPartyLeader = false;
+        MP.isReady = false;
+        MP.party = [{ ...myProfile, ready: false, isLeader: false, rseq: 0 }];
+        if (MP.mqtt && MP.mqtt.connected) MP.mqtt.subscribe(MP.currentRoomTopic);
+        sendRoomMessage({ type: 'party_sync_req', sender: myProfile });
+        showHUDNotification('Conectando à sala #' + clean + '...');
+        renderPartySlots();
+        updateRoomCodeUI();
+    };
+
+    window.__addTestBot = function() {
+        if (!MP.isPartyLeader) { showHUDNotification('Apenas o líder pode adicionar bots.'); return; }
+        if (MP.party.length >= 4) { showHUDNotification('Grupo cheio (máximo 4 corredores).'); return; }
+        const botNames = [
+            { id: 'bot_alex', nick: 'Alex_Pro', avatar: DEFAULT_AVATARS[1].url },
+            { id: 'bot_bia', nick: 'Bia_Surfer', avatar: DEFAULT_AVATARS[2].url },
+            { id: 'bot_carlos', nick: 'Carlos_Speed', avatar: DEFAULT_AVATARS[3].url }
+        ];
+        const nextBot = botNames.find(b => !MP.party.some(p => p.id === b.id));
+        if (!nextBot) { showHUDNotification('Limite de bots atingido.'); return; }
+        const botObj = { ...nextBot, ready: false, isLeader: false, rseq: 0 };
+        MP.party.push(botObj);
+        renderPartySlots();
+        setTimeout(() => {
+            botObj.ready = true;
+            syncPartyToAll();
+            renderPartySlots();
+            maybeAutoStart();
+        }, 800);
+        showHUDNotification('🤖 ' + nextBot.nick + ' adicionado ao grupo!');
+    };
+
+    function updateRoomCodeUI() {
+        const el = document.getElementById('lobby-room-code');
+        if (el) el.textContent = '#' + (MP.roomId || '').replace('room_', '').slice(0, 8);
+    }
 
     window.__openUnifiedMenu = function(tab) {
         openUnifiedModal(tab || 'modes');
@@ -1348,9 +1666,26 @@
                     </div>
                 </div>
 
-                <!-- Tab 2: Online Multiplayer -->
+                <!-- Tab 2: Online Multiplayer (Modern Elimination Hub) -->
                 <div class="tab-pane" id="pane-multiplayer">
-                    <!-- Profile Card -->
+                    <!-- Top Status Bar & Room Connect -->
+                    <div class="lobby-top-bar">
+                        <div class="server-status-pill">
+                            <span class="live-pulse-dot"></span>
+                            <span class="server-status-text">SERVIDOR GLOBAL ONLINE</span>
+                        </div>
+                        <div class="room-share-card">
+                            <span class="room-lbl">CÓDIGO DA SALA:</span>
+                            <span class="room-code-tag" id="lobby-room-code">#${(MP.roomId || '').replace('room_', '').slice(0, 8)}</span>
+                            <button class="btn-copy-link" onclick="window.__copyRoomLink()">📋 Copiar Link</button>
+                        </div>
+                        <div class="room-join-card">
+                            <input type="text" id="input-join-room" placeholder="Código da sala (#123)..." maxlength="15" />
+                            <button class="btn-join-room" onclick="window.__joinRoomByInput()">🚪 Entrar</button>
+                        </div>
+                    </div>
+
+                    <!-- Profile Quick Bar -->
                     <div class="lobby-profile-card">
                         <div class="profile-avatar-wrap">
                             <img id="lobby-my-avatar" src="${myProfile.avatar}" alt="Avatar" />
@@ -1361,7 +1696,7 @@
                                 <input type="text" id="input-my-nick" value="${myProfile.nick}" maxlength="15" />
                             </div>
                             <div class="profile-input-group">
-                                <label>URL da Foto (ou escolha uma padrão):</label>
+                                <label>Foto de Perfil:</label>
                                 <input type="text" id="input-my-avatar" value="${myProfile.avatar}" placeholder="https://..." />
                             </div>
                             <div class="avatar-presets">
@@ -1377,19 +1712,22 @@
                         <!-- Party Slots (2-4 players) -->
                         <div class="lobby-column party-col">
                             <div class="col-header">
-                                <h3>MEU GRUPO (${MP.party.length}/4)</h3>
-                                <span class="party-hint">Todos devem dar PRONTO para iniciar!</span>
+                                <div class="col-title-wrap">
+                                    <h3>🏆 SALA DO TORNEIO (${MP.party.length}/4)</h3>
+                                    <span class="party-hint">Modo Eliminatório No Coin — Quem cai por último avança!</span>
+                                </div>
+                                <button class="btn-add-bot" onclick="window.__addTestBot()" title="Adicionar bot para testar">🤖 + Bot</button>
                             </div>
                             <div class="party-slots-container" id="party-slots">
                                 <!-- Injected by renderPartySlots -->
                             </div>
                             <div class="party-bottom-actions">
                                 <button id="btn-toggle-ready" class="btn-ready ${MP.isReady ? 'ready-on' : 'ready-off'}">
-                                    ${MP.isReady ? '✅ PRONTO!' : '⏳ DAR PRONTO'}
+                                    ${MP.isReady ? '✅ PRONTO PARA A CORRIDA!' : '⏳ DAR PRONTO'}
                                 </button>
-                                <button id="btn-leave-party" class="btn-start-match" style="background:#37474f" onclick="window.__leaveParty()">↩ Sair do grupo</button>
+                                <button id="btn-leave-party" class="btn-leave-room" onclick="window.__leaveParty()">↩ Sair</button>
                                 <button id="btn-start-match" class="btn-start-match" ${checkCanStartMatch() ? '' : 'disabled'}>
-                                    🚀 INICIAR PARTIDA
+                                    ⚔️ INICIAR TORNEIO ELIMINATÓRIO 🚀
                                 </button>
                             </div>
                         </div>
@@ -1397,7 +1735,7 @@
                         <!-- Online Players List -->
                         <div class="lobby-column players-col">
                             <div class="col-header">
-                                <h3>JOGADORES ONLINE NO MUNDO</h3>
+                                <h3>🌐 JOGADORES DISPONÍVEIS</h3>
                                 <button class="btn-refresh-online" onclick="window.__refreshOnline()">🔄 Atualizar</button>
                             </div>
                             <div class="online-players-list" id="online-players-list">
@@ -1536,16 +1874,20 @@
             if (player) {
                 const isMe = player.id === myProfile.id;
                 const isReady = !!player.ready;
+                const isLeader = !!player.isLeader;
+                const isThisBot = isBot(player.id);
                 html += `
-                    <div class="party-slot slot-filled ${isReady ? 'slot-ready' : 'slot-waiting'}">
-                        <div class="slot-avatar" style="background-image: url('${player.avatar}')"></div>
+                    <div class="party-slot slot-filled ${isReady ? 'slot-ready' : 'slot-waiting'} ${isMe ? 'slot-me' : ''}">
+                        <div class="slot-avatar" style="background-image: url('${player.avatar}')">
+                            ${isLeader ? '<span class="crown-icon" title="Líder da Sala">👑</span>' : ''}
+                        </div>
                         <div class="slot-details">
-                            <span class="slot-nick">${player.nick} ${isMe ? '(Você)' : ''}</span>
+                            <span class="slot-nick">${player.nick} ${isMe ? '<span class="tag-you">(Você)</span>' : ''} ${isThisBot ? '<span class="tag-bot">BOT</span>' : ''}</span>
                             <span class="slot-status ${isReady ? 'st-ready' : 'st-waiting'}">
                                 ${isReady ? '✅ PRONTO' : '⏳ AGUARDANDO'}
                             </span>
                         </div>
-                        ${!isMe && MP.isPartyLeader ? `<button class="btn-kick" onclick="window.__kickPlayer('${player.id}')">✕</button>` : ''}
+                        ${!isMe && MP.isPartyLeader ? `<button class="btn-kick" title="Remover" onclick="window.__kickPlayer('${player.id}')">✕</button>` : ''}
                     </div>
                 `;
             } else {
@@ -1786,6 +2128,239 @@
             body[data-map-theme="paris"] canvas { filter: hue-rotate(275deg) saturate(1.15) brightness(1.03) !important; }
             body[data-map-theme="cairo"] canvas { filter: sepia(0.45) saturate(1.35) contrast(1.05) brightness(1.06) !important; }
             body[data-map-theme="las_vegas"] canvas { filter: none !important; }
+
+            
+            /* Direct Online Mode Button (Bottom-Left) */
+            body.sw-in-run #btn-subway-online-lobby { display: none !important; }
+            .btn-subway-online-lobby {
+                position: fixed;
+                bottom: 18px;
+                left: 74px;
+                z-index: 99998;
+                height: 48px;
+                padding: 0 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                background: linear-gradient(135deg, #10b981, #059669);
+                color: #fff;
+                border: 2px solid rgba(255, 255, 255, 0.4);
+                border-radius: 24px;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+                font-weight: 800;
+                font-size: 13px;
+                letter-spacing: 0.5px;
+                transition: transform 0.2s ease, filter 0.2s ease;
+                user-select: none;
+                -webkit-user-select: none;
+                font-family: inherit;
+            }
+            .btn-subway-online-lobby:hover {
+                transform: scale(1.05);
+                filter: brightness(1.15);
+            }
+            .pulse-dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: #6ee7b7;
+                box-shadow: 0 0 10px #34d399;
+                animation: pulseGlow 1.5s infinite;
+            }
+            @keyframes pulseGlow {
+                0% { transform: scale(0.9); opacity: 0.8; }
+                50% { transform: scale(1.3); opacity: 1; }
+                100% { transform: scale(0.9); opacity: 0.8; }
+            }
+
+            /* Modern Elimination Hub Header & Room Connect */
+            .lobby-top-bar {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 10px;
+                background: rgba(255, 255, 255, 0.04);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                padding: 10px 14px;
+                margin-bottom: 12px;
+            }
+            .server-status-pill {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                background: rgba(16, 185, 129, 0.15);
+                border: 1px solid rgba(16, 185, 129, 0.35);
+                border-radius: 16px;
+                padding: 4px 10px;
+                font-size: 10px;
+                font-weight: 800;
+                color: #6ee7b7;
+            }
+            .live-pulse-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #10b981;
+                box-shadow: 0 0 6px #10b981;
+            }
+            .room-share-card {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 11px;
+            }
+            .room-lbl { color: #94a3b8; font-weight: 700; }
+            .room-code-tag {
+                background: #1e293b;
+                border: 1px solid #38bdf8;
+                border-radius: 6px;
+                padding: 3px 8px;
+                color: #38bdf8;
+                font-weight: 900;
+                font-family: monospace;
+                letter-spacing: 1px;
+            }
+            .btn-copy-link {
+                background: #0284c7;
+                color: #fff;
+                border: none;
+                border-radius: 6px;
+                padding: 5px 10px;
+                font-size: 11px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .btn-copy-link:hover { background: #0369a1; }
+            .room-join-card {
+                margin-left: auto;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .room-join-card input {
+                background: #0f172a;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 6px;
+                padding: 5px 10px;
+                color: #fff;
+                font-size: 11px;
+                width: 130px;
+            }
+            .btn-join-room {
+                background: #3b82f6;
+                color: #fff;
+                border: none;
+                border-radius: 6px;
+                padding: 5px 10px;
+                font-size: 11px;
+                font-weight: 700;
+                cursor: pointer;
+            }
+            .btn-join-room:hover { background: #2563eb; }
+
+            /* Modern Party Card Details */
+            .col-title-wrap h3 { margin: 0; font-size: 13px; color: #fff; }
+            .btn-add-bot {
+                background: rgba(168, 85, 247, 0.2);
+                border: 1px solid rgba(168, 85, 247, 0.4);
+                color: #c084fc;
+                border-radius: 6px;
+                padding: 4px 10px;
+                font-size: 11px;
+                font-weight: 800;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            .btn-add-bot:hover {
+                background: rgba(168, 85, 247, 0.35);
+                color: #fff;
+            }
+            .crown-icon {
+                position: absolute;
+                top: -8px;
+                left: -6px;
+                font-size: 16px;
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+            }
+            .tag-you { color: #38bdf8; font-size: 10px; font-weight: 800; }
+            .tag-bot {
+                background: #a855f7;
+                color: #fff;
+                font-size: 9px;
+                font-weight: 800;
+                padding: 1px 4px;
+                border-radius: 4px;
+                margin-left: 4px;
+            }
+            .btn-leave-room {
+                background: #475569;
+                color: #fff;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 14px;
+                font-weight: 700;
+                font-size: 12px;
+                cursor: pointer;
+            }
+            .btn-leave-room:hover { background: #334155; }
+
+            /* Interlude Elimination Badges */
+            .il-title-gold {
+                color: #facc15 !important;
+                font-size: 18px !important;
+                text-shadow: 0 0 14px rgba(250, 204, 21, 0.6);
+            }
+            .il-subtitle {
+                font-size: 11px;
+                color: #94a3b8;
+                margin-top: -6px;
+                margin-bottom: 12px;
+            }
+            .il-badge {
+                font-size: 10px;
+                font-weight: 800;
+                padding: 2px 7px;
+                border-radius: 6px;
+                display: inline-block;
+            }
+            .il-pass { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+            .il-elim { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+            .il-champ { background: linear-gradient(135deg, #eab308, #ca8a04); color: #000; box-shadow: 0 0 10px rgba(234, 179, 8, 0.5); }
+            .il-silver { background: #94a3b8; color: #000; }
+            .il-cut { opacity: 0.65; border-left: 3px solid #ef4444 !important; }
+            .btn-il-back {
+                margin-top: 14px;
+                background: #2563eb;
+                color: #fff;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-weight: 800;
+                font-size: 13px;
+                cursor: pointer;
+            }
+
+            /* Timeline Danger Zone */
+            .tl-danger-zone {
+                position: absolute;
+                bottom: 2px;
+                left: 0;
+                right: 0;
+                font-size: 8px;
+                color: #ef4444;
+                font-weight: 800;
+                text-align: center;
+                letter-spacing: 0.5px;
+                opacity: 0.8;
+                pointer-events: none;
+            }
+            .tl-node.tl-danger .tl-pill {
+                border-color: #ef4444 !important;
+                background: rgba(239, 68, 68, 0.35) !important;
+            }
 
             /* Netlify Remover */
             [class*="netlify"], [id*="netlify"], [href*="netlify.com"], netlify-drawer, #netlify-drawer, .netlify-badge, #nl-badge-frame, iframe[title*="Netlify"], iframe[srcdoc*="Netlify"], script[src*=".netlify/scripts"], [data-netlify-site-id], [data-nf-variant] {
@@ -2235,6 +2810,7 @@
             /* Mobile / small-screen adaptation */
             @media (max-width: 760px), (max-height: 480px) {
                 .btn-subway-unified-menu { width: 34px; height: 34px; bottom: 8px; left: 8px; }
+                .btn-subway-online-lobby { height: 34px; padding: 0 10px; bottom: 8px; left: 48px; font-size: 11px; gap: 4px; border-radius: 17px; }
                 .btn-subway-unified-menu svg { width: 18px; height: 18px; }
                 .subway-top-timer-wrap { top: 6px; padding: 3px 9px; gap: 5px; }
                 .subway-top-timer-wrap .timer-value { font-size: 12px; }
@@ -2286,6 +2862,24 @@
     setInterval(hideHubButtons, 300);
 
     function init() {
+        try {
+            const urlRoom = new URLSearchParams(window.location.search).get('room');
+            if (urlRoom) {
+                const targetId = 'room_' + urlRoom.replace(/^#/, '').replace(/^room_/, '');
+                setTimeout(() => {
+                    MP.roomId = targetId;
+                    MP.currentRoomTopic = 'subwaysurf/room/' + targetId;
+                    MP.isPartyLeader = false;
+                    MP.isReady = false;
+                    MP.party = [{ ...myProfile, ready: false, isLeader: false, rseq: 0 }];
+                    if (MP.mqtt && MP.mqtt.connected) MP.mqtt.subscribe(MP.currentRoomTopic);
+                    renderPartySlots();
+                    updateRoomCodeUI();
+                    openUnifiedModal('multiplayer');
+                    showHUDNotification('Conectado à sala de convite #' + urlRoom + '!');
+                }, 1200);
+            }
+        } catch(e) {}
         try { document.body.removeAttribute("data-map-theme"); } catch(e){}
         injectModStyles();
         createUnifiedUI();
