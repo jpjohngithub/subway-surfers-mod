@@ -2462,13 +2462,16 @@
             let changed = false;
             ['btnMyTour', 'btnShop', 'btnTopRun', 'btnMe'].forEach(k => {
                 const b = t[k];
-                if (!b) return;
+                if (!b || b.__hiddenDone) return;
+                b.__hiddenDone = true;
                 try { if (b.parent) b.parent.removeChild(b); } catch (e) {}
                 b.interactive = false;
                 b.interactiveChildren = false;
+                b.alpha = 0;
+                b.x = -9999;
+                b.y = -9999;
                 try { Object.defineProperty(b, 'visible', { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
                 try { Object.defineProperty(b, 'renderable', { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
-                delete t[k];
                 changed = true;
             });
             if (changed && t.bottomMenu) {
