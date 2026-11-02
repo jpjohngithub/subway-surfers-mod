@@ -444,7 +444,10 @@
         document.body.classList.add('sw-in-run');
         
         if (timerWrap) timerWrap.style.display = 'flex';
-        if (timerVal) timerVal.textContent = '00:00.00';
+        if (timerVal) {
+            const prevTotal = (MP.inMatch && MPX.totals) ? (MPX.totals[myProfile.id] || 0) : 0;
+            timerVal.textContent = formatTime(prevTotal);
+        }
 
         clearInterval(runTimerInterval);
         runTimerInterval = setInterval(() => {
@@ -458,7 +461,8 @@
             }
             if (isRunActive && !deathFrozen) {
                 if (timerVal) {
-                    timerVal.textContent = formatTime(runElapsedTime);
+                    const prevTotal = (MP.inMatch && MPX.totals) ? (MPX.totals[myProfile.id] || 0) : 0;
+                    timerVal.textContent = formatTime(prevTotal + runElapsedTime);
                 }
             }
             if (MP.inMatch) {
@@ -1009,13 +1013,7 @@
             MPX.goAt = Date.now();
             try { if (window.app && window.app.user) window.app.user.tutorial = true; } catch (e) {}
 
-            if (isEliminatedAlready) {
-                // Local player is already eliminated -> Spectator mode only
-                showWaitHUD(0, true);
-            } else {
-                // Active competitor -> Launch game run
-                try { window.app.nav.toGame(); } catch (e) {}
-            }
+            try { window.app.nav.toGame(); } catch (e) {}
 
             if (MP.isPartyLeader) hostStartBots();
         });
@@ -1050,7 +1048,7 @@
         const t0 = performance.now();
         MPX.botPlan = {};
         // Assign realistic survival time between 15s and 50s for each active bot
-        MPX.activeIds.forEach(id => {
+        MP.party.forEach(p => { const id = p.id;
             if (isBot(id)) {
                 MPX.botPlan[id] = 16000 + Math.random() * 32000;
             }
@@ -1136,16 +1134,14 @@
         }, 100);
     }
 
-    function showWaitHUD(timeMs, wasAlreadyEliminated) {
+    function showWaitHUD(roundTimeMs) {
         removeEl('subway-wait-hud');
+        const prevTotal = MPX.totals[myProfile.id] || 0;
+        const totalNow = prevTotal + roundTimeMs;
         const h = document.createElement('div');
         h.id = 'subway-wait-hud';
         h.className = 'subway-spectator-hud';
-        if (wasAlreadyEliminated) {
-            h.innerHTML = '<span class="spec-live-dot" style="background:#eab308;"></span> <strong>MODO ESPECTADOR</strong> — Você foi eliminado. Acompanhe a decisão na linha do tempo!';
-        } else {
-            h.innerHTML = `<span class="spec-live-dot"></span> <strong>VOCÊ CAIU!</strong> Tempo: <strong>${fmtS(timeMs)}</strong> — Aguardando restantes finalizarem...`;
-        }
+        h.innerHTML = `<span class="spec-live-dot"></span> <strong>VOCÊ CAIU!</strong> Tempo desta rodada: <strong>${fmtS(roundTimeMs)}</strong> | Total Acumulado: <strong>${fmtS(totalNow)}</strong> — Aguardando a outra pessoa morrer...`;
         document.body.appendChild(h);
     }
 
@@ -1153,40 +1149,23 @@
     function hostCheckRoundEnd() {
         if (!MP.isPartyLeader || !MP.inMatch || !MPX.roundActive || MPX.endedRound === MPX.round) return;
 
-        const alive = MPX.activeIds.filter(id => MPX.dead[id] === undefined);
+        // O tempo depois que alguém morre NÃO acaba: só acaba quando TODOS os corredores morrerem!
+        const alive = MP.party.filter(p => MPX.dead[p.id] === undefined);
 
-        // Case 1: All active runners in this round have died -> Round finished!
         if (alive.length === 0) {
-            clearTimeout(MPX.loneSurvivorTimer);
-            MPX.loneSurvivorTimer = null;
             hostEndRound();
-            return;
-        }
-
-        // Case 2: Only 1 survivor remains running -> Give them 10s victory lap or until they crash
-        if (alive.length === 1 && !MPX.loneSurvivorTimer) {
-            const survivorId = alive[0];
-            MPX.loneSurvivorTimer = setTimeout(() => {
-                if (MP.isPartyLeader && MPX.roundActive && MPX.endedRound !== MPX.round) {
-                    if (MPX.dead[survivorId] === undefined) {
-                        MPX.dead[survivorId] = (MPX.live[survivorId] || 0) + 1000;
-                    }
-                    hostEndRound();
-                }
-            }, 10000);
         }
     }
 
     function hostWatchdog() {
         if (!MP.isPartyLeader || !MP.inMatch || !MPX.roundActive) return;
         const now = Date.now();
-        MPX.activeIds.forEach(id => {
-            if (MPX.dead[id] !== undefined || isBot(id) || id === myProfile.id) return;
-            const last = MPX.lastTick[id] || MPX.goAt + 15000;
-            if (now - last > 10000) {
-                const p = MP.party.find(x => x.id === id);
-                const sender = p ? { id: p.id, nick: p.nick, avatar: p.avatar } : { id };
-                const m = { type: 'player_death', sender, timeMs: MPX.live[id] || 0, round: MPX.round };
+        MP.party.forEach(p => {
+            if (MPX.dead[p.id] !== undefined || isBot(p.id) || p.id === myProfile.id) return;
+            const last = MPX.lastTick[p.id] || MPX.goAt + 15000;
+            if (now - last > 12000) {
+                const sender = { id: p.id, nick: p.nick, avatar: p.avatar };
+                const m = { type: 'player_death', sender, timeMs: MPX.live[p.id] || 0, round: MPX.round };
                 sendRoomMessage(m);
                 handlePlayerDeath(m);
             }
@@ -1196,57 +1175,21 @@
 
     function hostEndRound() {
         if (MPX.endedRound === MPX.round) return;
-        clearTimeout(MPX.loneSurvivorTimer);
-        MPX.loneSurvivorTimer = null;
 
         const results = {};
-        MPX.activeIds.forEach(id => {
-            results[id] = MPX.dead[id] !== undefined ? MPX.dead[id] : (MPX.live[id] || 0);
+        MP.party.forEach(p => {
+            const rTime = MPX.dead[p.id] !== undefined ? MPX.dead[p.id] : (MPX.live[p.id] || 0);
+            results[p.id] = rTime;
+            // Acumula o tempo de duração de todas as rodadas
+            MPX.totals[p.id] = (MPX.totals[p.id] || 0) + rTime;
         });
 
-        // Sort descending: greatest time = 1st place
-        const rankedIds = [...MPX.activeIds].sort((a, b) => results[b] - results[a]);
+        // O que tiver mais tempo total acumulado ganha!
+        const rankedIds = [...MP.party.map(p => p.id)].sort((a, b) => (MPX.totals[b] || 0) - (MPX.totals[a] || 0));
         const roundWinnerId = rankedIds[0];
-        const roundLoserId = rankedIds[rankedIds.length - 1];
 
-        // Accumulate series totals
-        MPX.activeIds.forEach(id => {
-            MPX.totals[id] = (MPX.totals[id] || 0) + results[id];
-        });
-
-        let isTournamentOver = false;
-        let tournamentWinnerId = null;
-        let eliminatedThisRound = null;
-
-        // Knockout Elimination Rules
-        if (MPX.partySizeAtStart >= 3 || MP.party.length >= 3) {
-            if (MPX.activeIds.length === 2) {
-                // Final round between 2 finalists
-                isTournamentOver = true;
-                tournamentWinnerId = roundWinnerId;
-            } else {
-                // Eliminate the last place runner
-                eliminatedThisRound = roundLoserId;
-                const cutRank = MPX.activeIds.length;
-                MPX.eliminated[roundLoserId] = {
-                    round: MPX.round,
-                    rank: cutRank,
-                    label: `${cutRank}º Lugar (Eliminado)`
-                };
-                MPX.activeIds = MPX.activeIds.filter(id => id !== roundLoserId);
-                if (MPX.activeIds.length <= 1) {
-                    isTournamentOver = true;
-                    tournamentWinnerId = MPX.activeIds[0] || roundWinnerId;
-                }
-            }
-        } else {
-            // 2-Player Duel (MD3)
-            MPX.wins[roundWinnerId] = (MPX.wins[roundWinnerId] || 0) + 1;
-            if (MPX.wins[roundWinnerId] >= 2 || MPX.round >= MPX.totalRounds) {
-                isTournamentOver = true;
-                tournamentWinnerId = MPX.wins[rankedIds[0]] >= (MPX.wins[rankedIds[1]] || 0) ? rankedIds[0] : rankedIds[1];
-            }
-        }
+        const isTournamentOver = MPX.round >= MPX.totalRounds;
+        const tournamentWinnerId = isTournamentOver ? rankedIds[0] : null;
 
         const msg = {
             type: 'round_end',
@@ -1256,11 +1199,7 @@
             results: results,
             rankedIds: rankedIds,
             totals: MPX.totals,
-            wins: MPX.wins,
             roundWinnerId: roundWinnerId,
-            eliminatedThisRound: eliminatedThisRound,
-            eliminated: MPX.eliminated,
-            activeIds: MPX.activeIds,
             isTournamentOver: isTournamentOver,
             tournamentWinnerId: tournamentWinnerId,
             party: MP.party,
@@ -1326,33 +1265,33 @@
             const elimName = nameOf(msg.eliminatedThisRound).nick;
             roundTitle = `⚔️ RODADA ${msg.round}/${msg.totalRounds} CONCLUÍDA — ${elimName} FOI ELIMINADO!`;
         } else {
-            roundTitle = `⚔️ RODADA ${msg.round}/${msg.totalRounds} CONCLUÍDA!`;
+            roundTitle = `⚔️ RODADA ${msg.round}/${msg.totalRounds} CONCLUÍDA — TEMPOS ACUMULADOS!`;
         }
 
         const rows = (msg.rankedIds || []).map((id, i) => {
             const p = nameOf(id);
-            const isWinner = id === msg.roundWinnerId;
-            const isElim = id === msg.eliminatedThisRound;
-            const wasElim = !!msg.eliminated[id];
+            const isChamp = isOver && id === msg.tournamentWinnerId;
+            const roundT = msg.results[id] || 0;
+            const totalT = msg.totals[id] || 0;
 
-            let statusTag = '';
+            let badgeHtml = '';
             if (isOver) {
-                if (id === msg.tournamentWinnerId) statusTag = '<span class="il-badge il-champ">🏆 CAMPEÃO</span>';
-                else if (i === 1) statusTag = '<span class="il-badge il-silver">🥈 VICE-CAMPEÃO</span>';
-                else statusTag = `<span class="il-badge il-elim">${i + 1}º LUGAR</span>`;
+                if (i === 0) badgeHtml = '<span class="il-badge il-champ">🏆 CAMPEÃO (MAIOR TEMPO!)</span>';
+                else if (i === 1) badgeHtml = '<span class="il-badge il-silver">🥈 2º LUGAR</span>';
+                else badgeHtml = `<span class="il-badge il-elim">${i + 1}º LUGAR</span>`;
             } else {
-                if (isElim) statusTag = '<span class="il-badge il-elim">❌ ELIMINADO</span>';
-                else if (wasElim) statusTag = '<span class="il-badge il-elim">ESPECTADOR</span>';
-                else statusTag = '<span class="il-badge il-pass">✅ CLASSIFICADO</span>';
+                if (i === 0) badgeHtml = '<span class="il-badge il-champ">👑 LÍDER GERAL</span>';
+                else badgeHtml = `<span class="il-badge il-pass">${i + 1}º GERAL</span>`;
             }
 
             return `
-                <div class="il-row ${isWinner ? 'il-win' : ''} ${isElim ? 'il-cut' : ''}">
+                <div class="il-row ${i === 0 ? 'il-win' : ''}">
                     <span class="il-pos">${i + 1}º</span>
                     <img class="il-av" src="${p.avatar}" />
                     <span class="il-nick">${p.nick}${id === myProfile.id ? ' (você)' : ''}</span>
-                    <span class="il-r">${fmtS(msg.results[id] || 0)}</span>
-                    <span class="il-status">${statusTag}</span>
+                    <span class="il-r" title="Tempo nesta rodada">+${fmtS(roundT)}</span>
+                    <span class="il-t" style="font-weight:900; color:#38bdf8;" title="Tempo acumulado total">${fmtS(totalT)}</span>
+                    <span class="il-status">${badgeHtml}</span>
                 </div>
             `;
         }).join('');
@@ -1368,8 +1307,9 @@
                     <span>#</span>
                     <span></span>
                     <span>Jogador</span>
-                    <span>Tempo</span>
-                    <span>Status</span>
+                    <span>Rodada</span>
+                    <span style="color:#38bdf8; font-weight:800;">Total Acumulado</span>
+                    <span>Classificação</span>
                 </div>
                 <div class="il-rows">${rows}</div>
                 <div class="il-count" id="il-count">
@@ -1443,11 +1383,12 @@
         if (!el || !MP.inMatch || !MP.party.length) return;
 
         // Sort active competitors by live/dead survival time
-        const list = MPX.activeIds.map(id => {
-            const p = MP.party.find(x => x.id === id) || { id, nick: id, avatar: DEFAULT_AVATARS[0].url };
-            const isDead = MPX.dead[id] !== undefined;
-            const cur = isDead ? MPX.dead[id] : (MPX.live[id] || 0);
-            return { p, score: cur, dead: isDead };
+        const list = MP.party.map(p => {
+            const base = MPX.totals[p.id] || 0;
+            const isDead = MPX.dead[p.id] !== undefined;
+            const roundCur = isDead ? (MPX.dead[p.id] || 0) : (MPX.live[p.id] || 0);
+            const totalScore = base + roundCur;
+            return { p, score: totalScore, roundCur, dead: isDead };
         }).sort((a, b) => b.score - a.score);
 
         const head = el.querySelector('#tl-head');
@@ -1486,7 +1427,7 @@
             n.classList.toggle('tl-danger', i === list.length - 1 && list.length > 2); // Bottom player is in elimination danger
             n.querySelector('.tl-rank').textContent = (i + 1) + 'º';
             n.querySelector('.tl-nick').textContent = o.e.p.nick;
-            n.querySelector('.tl-time').textContent = o.e.dead ? `💀 ${fmtS(o.e.score)}` : `🏃 ${fmtS(o.e.score)}`;
+            n.querySelector('.tl-time').textContent = o.e.dead ? `💀 Total: ${fmtS(o.e.score)}` : `🏃 Total: ${fmtS(o.e.score)}`;
             const img = n.querySelector('.tl-dot');
             if (img.getAttribute('src') !== o.e.p.avatar) img.setAttribute('src', o.e.p.avatar);
         });
