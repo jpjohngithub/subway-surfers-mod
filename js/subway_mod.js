@@ -1037,7 +1037,7 @@
             try { if (window.app && window.app.user) window.app.user.tutorial = true; } catch (e) {}
 
             try { window.app.nav.toGame(); } catch (e) {}
-            triggerSkyDrop();
+            setTimeout(restoreHeroMesh, 300);
 
             if (MP.isPartyLeader) hostStartBots();
         });
@@ -1302,70 +1302,7 @@
     }
     window.restoreHeroMesh = restoreHeroMesh;
 
-    function triggerSkyDrop() {
-        setTimeout(() => {
-            try {
-                const game = window.app && window.app.game;
-                const hero = game && game.hero;
-                if (!hero || !hero.body) return;
 
-                if (game.run) {
-                    try { game.run(); } catch(e) {}
-                }
-
-                restoreHeroMesh();
-
-                const height = 45;
-                hero.body.bottom = height;
-                hero.body.y = height + 0.5 * hero.body.height;
-                hero.y = hero.body.y;
-                hero.body.ghost = true;
-                if (hero.anim) {
-                    hero.anim.play("hangtime2", { loop: true, sudden: true });
-                }
-
-                const startTime = performance.now();
-                const duration = 1100;
-
-                const dropInt = setInterval(() => {
-                    if (!MPX.roundActive || !hero.body) {
-                        clearInterval(dropInt);
-                        return;
-                    }
-                    const elapsed = performance.now() - startTime;
-                    const progress = Math.min(1, elapsed / duration);
-                    const easeIn = progress * progress;
-                    const curHeight = height * (1 - easeIn);
-
-                    if (progress >= 1 || curHeight <= 0) {
-                        clearInterval(dropInt);
-                        hero.body.bottom = 0;
-                        hero.body.y = 0.5 * hero.body.height;
-                        hero.y = hero.body.y;
-                        hero.body.ghost = false;
-                        hero.body.velocity.y = 0;
-
-                        try {
-                            if (hero.anim) hero.anim.play("landing", { sudden: true });
-                            if (hero.reviveSmoke && hero.reviveSmoke.spawn) hero.reviveSmoke.spawn(12);
-                        } catch(e) {}
-
-                        setTimeout(() => {
-                            if (hero.anim && hero.player && hero.player.running) {
-                                hero.anim.play("run3", { loop: true });
-                            }
-                        }, 220);
-                    } else {
-                        hero.body.bottom = curHeight;
-                        hero.body.y = curHeight + 0.5 * hero.body.height;
-                        hero.y = hero.body.y;
-                        hero.body.velocity.y = -15 * progress;
-                    }
-                }, 16);
-            } catch(e) {}
-        }, 120);
-    }
-    window.__triggerSkyDrop = triggerSkyDrop;
 
     // ==========================================
     // SPECTATOR ENGINE
