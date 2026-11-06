@@ -1383,29 +1383,82 @@
             const hero = window.game && window.game.hero;
             if (!hero || !hero.parent) return null;
 
-            let mesh = null;
+            let charEntity = null;
+
+            // 1. Primary: Instantiate real 3D Character (Jake)
             if (typeof window.Character_Character === 'function') {
                 try {
-                    const c = new window.Character_Character();
-                    if (c) {
-                        if (c.body) { c.body.ghost = true; c.body.movable = false; }
-                        mesh = c;
+                    charEntity = new window.Character_Character();
+                    if (charEntity) {
+                        if (charEntity.idleScene) {
+                            charEntity.idleScene._active = false;
+                            charEntity.idleScene._worldActive = false;
+                            charEntity.idleScene.visible = false;
+                        }
+                        if (charEntity.sprayCan) {
+                            charEntity.sprayCan._active = false;
+                            charEntity.sprayCan._worldActive = false;
+                            charEntity.sprayCan.visible = false;
+                        }
+                        if (charEntity.gameScene) {
+                            charEntity.gameScene._active = true;
+                            charEntity.gameScene._worldActive = true;
+                            charEntity.gameScene.visible = true;
+                        }
+                        if (charEntity.anim) {
+                            if (charEntity.gameScene) charEntity.anim.currentScene = charEntity.gameScene;
+                            if (charEntity.anim.updateCurrentAnimation) charEntity.anim.updateCurrentAnimation();
+                            charEntity.anim.play('run3', { loop: true });
+                        }
+                        if (charEntity.body) {
+                            charEntity.body.ghost = true;
+                            charEntity.body.sensor = true;
+                            charEntity.body.movable = false;
+                        }
+                        if (charEntity.player) {
+                            charEntity.player.die = () => {};
+                        }
+                        hero.parent.addChild(charEntity);
+                        charEntity.x = tm.currentX;
+                        charEntity.y = tm.currentY;
+                        charEntity.z = tm.currentZ;
+                        charEntity.ry = Math.PI;
+                        return charEntity;
                     }
-                } catch(e) {}
+                } catch(e) {
+                    console.warn('Character_Character instantiate error:', e);
+                }
             }
 
-            if (!mesh && window.__lib && typeof window.__lib.getEntity === 'function') {
-                mesh = window.__lib.getEntity('sprayCan') || window.__lib.getEntity('currency_coin');
-                if (mesh && mesh.scale) mesh.scale.set(1.5, 1.5, 1.5);
-                if (mesh && typeof setEntityHexColor === 'function') setEntityHexColor(mesh, 0x00f0ff);
+            // 2. Direct Library Scene fallback: load jake-game directly from library
+            if (!charEntity && window.__lib && typeof window.__lib.getScene === 'function') {
+                try {
+                    const scene = window.__lib.getScene('jake-game', { map: 'jake-tex' });
+                    if (scene) {
+                        hero.parent.addChild(scene);
+                        scene.x = tm.currentX;
+                        scene.y = tm.currentY;
+                        scene.z = tm.currentZ;
+                        scene.ry = Math.PI;
+                        return scene;
+                    }
+                } catch(e) {
+                    console.warn('Library scene fallback error:', e);
+                }
             }
 
-            if (mesh) {
-                mesh.x = tm.currentX;
-                mesh.y = tm.currentY;
-                mesh.z = tm.currentZ;
-                hero.parent.addChild(mesh);
-                return mesh;
+            // 3. Ultra-safe 3D entity fallback from library
+            if (!charEntity && window.__lib && typeof window.__lib.getEntity === 'function') {
+                const fallback = window.__lib.getEntity('sprayCan') || window.__lib.getEntity('currency_coin');
+                if (fallback) {
+                    if (fallback.scale) fallback.scale.set(1.5, 1.5, 1.5);
+                    if (typeof setEntityHexColor === 'function') setEntityHexColor(fallback, 0x00f0ff);
+                    hero.parent.addChild(fallback);
+                    fallback.x = tm.currentX;
+                    fallback.y = tm.currentY;
+                    fallback.z = tm.currentZ;
+                    return fallback;
+                }
             }
         } catch(e) {}
         return null;
@@ -1474,6 +1527,28 @@
                 tm.mesh.x = tm.currentX;
                 tm.mesh.y = tm.currentY;
                 tm.mesh.z = tm.currentZ;
+                if (tm.mesh.model) {
+                    tm.mesh.model.x = tm.currentX;
+                    tm.mesh.model.y = tm.currentY;
+                    tm.mesh.model.z = tm.currentZ;
+                }
+
+                // Synchronize Jake's animations in real time
+                if (tm.mesh.anim) {
+                    const targetAnim = tm.alive ? (tm.anim || 'run3') : 'death_bounce';
+                    if (tm.mesh.anim.currentAnimationClipName !== targetAnim) {
+                        const isLoop = ['run3', 'superRun', 'paintIdle', 'Jetpack_forward'].includes(targetAnim);
+                        try {
+                            tm.mesh.anim.play(targetAnim, { loop: isLoop, sudden: false });
+                        } catch(e) {}
+                    }
+                    try {
+                        if (typeof tm.mesh.anim.update === 'function') {
+                            tm.mesh.anim.update({ frameTime: 0.016 });
+                        }
+                    } catch(e) {}
+                }
+
                 if (!tm.alive) {
                     tm.mesh.rx = Math.PI * 0.5;
                     tm.mesh.y = 1;
@@ -1914,13 +1989,19 @@
                         const idx = MP.party.findIndex(x => x.id === id);
                         const lane = (idx === 1 ? -20 : (idx === 2 ? 20 : 0));
                         const zOffset = (idx * 8) - 16;
+                        let botAnim = 'run3';
+                        const cycle = Math.floor(t / 1800) % 5;
+                        if (cycle === 2) botAnim = 'jump';
+                        else if (cycle === 4) botAnim = 'roll';
+
                         const botMsg = {
                             type: 'coop_pos',
                             sender,
                             x: lane,
-                            y: 0,
+                            y: botAnim === 'jump' ? 12 : 0,
                             z: heroZ + zOffset,
-                            anim: 'run',
+                            anim: botAnim,
+                            charId: 'jake',
                             alive: true,
                             round: MPX.round
                         };
@@ -1946,13 +2027,22 @@
             const hero = window.game && window.game.hero;
             const heroBody = hero && hero.body;
             if (heroBody) {
+                let currentAnim = 'run3';
+                if (hero.anim && hero.anim.currentAnimationClipName) {
+                    currentAnim = hero.anim.currentAnimationClipName;
+                } else if (heroBody.y > 2) {
+                    currentAnim = 'jump';
+                } else if (hero.roll && typeof hero.roll.isOn === 'function' && hero.roll.isOn()) {
+                    currentAnim = 'roll';
+                }
                 sendRoomMessage({
                     type: 'coop_pos',
                     sender: myProfile,
                     x: heroBody.x || 0,
                     y: heroBody.y !== undefined ? heroBody.y : 0,
                     z: heroBody.z || 0,
-                    anim: (hero.anim && hero.anim.currentAnimationName) || 'run',
+                    anim: currentAnim,
+                    charId: (hero.anim && hero.anim.character) || 'jake',
                     alive: true,
                     round: MPX.round
                 });
