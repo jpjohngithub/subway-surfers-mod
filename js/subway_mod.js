@@ -120,6 +120,7 @@
         isPartyLeader: true,
         isReady: false,
         inMatch: false,
+        matchType: 'coop', // 'coop' | 'tournament'
         onlinePlayers: new Map(), // id -> { profile, lastSeen }
         playersState: new Map(),  // id -> { x, y, z, anim, alive, score, time }
         placement: [],           // [{ id, nick, avatar, alive, time }]
@@ -1154,6 +1155,12 @@
             case 'player_death':
                 handlePlayerDeath(msg);
                 break;
+            case 'coop_pos':
+                handleCoopPos(msg);
+                break;
+            case 'mp_mode_change':
+                handleMPModeChange(msg);
+                break;
             case 'party_leave_ack':
                 if (msg.full) { showHUDNotification('Grupo cheio.'); leaveToOwnRoom(); }
                 break;
@@ -1243,6 +1250,307 @@
     window.__myProfile = myProfile;
 
     const isBot = id => String(id).startsWith('bot_');
+
+    // ==========================================
+    // 7.1 CO-OP MULTIPLAYER SYNCHRONIZED ENGINE
+    // ==========================================
+    const coopTeammates = {};
+    let coopRenderRaf = null;
+    let deterministicRandomSeed = null;
+
+    function setDeterministicRandom(seed) {
+        deterministicRandomSeed = (seed >>> 0) || 123456789;
+        if (!window.__origMathRandom) window.__origMathRandom = Math.random;
+        Math.random = function() {
+            deterministicRandomSeed = (deterministicRandomSeed + 0x6D2B79F5) | 0;
+            let t = Math.imul(deterministicRandomSeed ^ (deterministicRandomSeed >>> 15), 1 | deterministicRandomSeed);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+
+    function restoreNormalRandom() {
+        if (window.__origMathRandom) {
+            Math.random = window.__origMathRandom;
+        }
+    }
+
+    window.__setMPMatchType = function(type) {
+        if (!MP.isPartyLeader) {
+            showHUDNotification('Apenas o líder da sala pode alterar o modo de jogo.');
+            return;
+        }
+        MP.matchType = type;
+        sendRoomMessage({ type: 'mp_mode_change', mode: type });
+        updateLobbyHeaderTitles();
+        renderPartySlots();
+        showHUDNotification(type === 'coop' ? '🤝 Modo Co-op ativado!' : '🏆 Modo Torneio ativado!');
+    };
+
+    function handleMPModeChange(msg) {
+        if (!msg || !msg.mode) return;
+        MP.matchType = msg.mode;
+        updateLobbyHeaderTitles();
+        renderPartySlots();
+        showHUDNotification(msg.mode === 'coop' ? '🤝 Modo Co-op ativado pelo líder!' : '🏆 Modo Torneio ativado pelo líder!');
+    }
+
+    function updateLobbyHeaderTitles() {
+        const titleEl = document.getElementById('lobby-party-title');
+        const descEl = document.getElementById('lobby-party-desc');
+        const isCoop = MP.matchType === 'coop';
+        if (titleEl) {
+            titleEl.textContent = isCoop ? `SALA CO-OP (${MP.party.length}/4)` : `SALA DO TORNEIO (${MP.party.length}/4)`;
+        }
+        if (descEl) {
+            descEl.textContent = isCoop
+                ? 'Co-op Simultâneo · Todos correm juntos na mesma pista em tempo real!'
+                : 'Eliminatório No Coin · 3 Rodadas · Maior tempo acumulado vence';
+        }
+        const startBtn = document.getElementById('btn-start-match');
+        if (startBtn) {
+            startBtn.textContent = isCoop ? 'INICIAR CORRIDA CO-OP' : 'INICIAR TORNEIO';
+        }
+        const modeButtons = document.querySelectorAll('.btn-mp-mode');
+        modeButtons.forEach(btn => {
+            const m = btn.getAttribute('data-mode');
+            btn.classList.toggle('active', m === MP.matchType);
+        });
+    }
+
+    function handleCoopPos(msg) {
+        if (!MP.inMatch || !msg.sender || msg.sender.id === myProfile.id) return;
+        const id = msg.sender.id;
+        let tm = coopTeammates[id];
+        if (!tm) {
+            tm = {
+                id: id,
+                nick: msg.sender.nick || 'Corredor',
+                avatar: msg.sender.avatar || DEFAULT_AVATARS[0].url,
+                currentX: msg.x || 0,
+                currentY: msg.y || 0,
+                currentZ: msg.z || 0,
+                targetX: msg.x || 0,
+                targetY: msg.y || 0,
+                targetZ: msg.z || 0,
+                anim: msg.anim || 'run',
+                alive: msg.alive !== false,
+                lastSeen: Date.now(),
+                mesh: null,
+                tagEl: null
+            };
+            coopTeammates[id] = tm;
+        } else {
+            tm.targetX = msg.x || 0;
+            tm.targetY = msg.y || 0;
+            tm.targetZ = msg.z || 0;
+            tm.anim = msg.anim || 'run';
+            tm.alive = msg.alive !== false;
+            tm.lastSeen = Date.now();
+        }
+    }
+
+    function projectWorldToScreen(worldX, worldY, worldZ) {
+        const hero = window.game && window.game.hero;
+        const heroBody = hero && hero.body;
+        const heroX = heroBody ? heroBody.x : 0;
+        const heroY = heroBody ? (heroBody.y || 0) : 0;
+        const heroZ = heroBody ? heroBody.z : 0;
+
+        const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
+        const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+
+        const camX = heroX * 0.4;
+        const camY = heroY + 28;
+        const camZ = heroZ + 58;
+
+        const relX = worldX - camX;
+        const relY = (worldY + 14) - camY;
+        const relZ = worldZ - camZ;
+
+        if (relZ >= -6) return null; // Behind camera
+
+        const depth = -relZ;
+        const focal = (rect.height * 0.82) / depth;
+        const sx = rect.left + (rect.width * 0.5) + (relX * focal);
+        const sy = rect.top + (rect.height * 0.5) - (relY * focal);
+
+        return { x: sx, y: sy, depth: depth, scale: Math.max(0.4, Math.min(1.15, 50 / depth)) };
+    }
+
+    function spawnTeammateMesh(tm) {
+        try {
+            const hero = window.game && window.game.hero;
+            if (!hero || !hero.parent) return null;
+
+            let mesh = null;
+            if (typeof window.Character_Character === 'function') {
+                try {
+                    const c = new window.Character_Character();
+                    if (c) {
+                        if (c.body) { c.body.ghost = true; c.body.movable = false; }
+                        mesh = c;
+                    }
+                } catch(e) {}
+            }
+
+            if (!mesh && window.__lib && typeof window.__lib.getEntity === 'function') {
+                mesh = window.__lib.getEntity('sprayCan') || window.__lib.getEntity('currency_coin');
+                if (mesh && mesh.scale) mesh.scale.set(1.5, 1.5, 1.5);
+                if (mesh && typeof setEntityHexColor === 'function') setEntityHexColor(mesh, 0x00f0ff);
+            }
+
+            if (mesh) {
+                mesh.x = tm.currentX;
+                mesh.y = tm.currentY;
+                mesh.z = tm.currentZ;
+                hero.parent.addChild(mesh);
+                return mesh;
+            }
+        } catch(e) {}
+        return null;
+    }
+
+    function getOrCreateNametagEl(tm) {
+        let tag = document.getElementById(`coop-tag-${tm.id}`);
+        if (!tag) {
+            let overlay = document.getElementById('subway-coop-tags-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'subway-coop-tags-overlay';
+                overlay.className = 'subway-coop-tags-overlay';
+                document.body.appendChild(overlay);
+            }
+            tag = document.createElement('div');
+            tag.id = `coop-tag-${tm.id}`;
+            tag.className = 'coop-teammate-nametag';
+            tag.innerHTML = `
+                <div class="coop-tag-bubble">
+                    <img class="coop-tag-av" src="${tm.avatar}" alt="" />
+                    <div class="coop-tag-col">
+                        <span class="coop-tag-nick">${tm.nick}</span>
+                        <span class="coop-tag-dist">Sincronizando...</span>
+                    </div>
+                </div>
+                <div class="coop-tag-arrow"></div>
+            `;
+            overlay.appendChild(tag);
+        }
+        return tag;
+    }
+
+    function startCoopRenderLoop() {
+        cancelAnimationFrame(coopRenderRaf);
+        const loop = () => {
+            if (!MP.inMatch || MP.matchType !== 'coop' || !MPX.roundActive) {
+                cleanupCoopTeammates();
+                return;
+            }
+            updateCoopTeammates();
+            coopRenderRaf = requestAnimationFrame(loop);
+        };
+        coopRenderRaf = requestAnimationFrame(loop);
+    }
+
+    function updateCoopTeammates() {
+        const hero = window.game && window.game.hero;
+        const heroBody = hero && hero.body;
+        const heroZ = heroBody ? heroBody.z : 0;
+
+        Object.keys(coopTeammates).forEach(id => {
+            const tm = coopTeammates[id];
+            if (!tm) return;
+
+            // Smooth position interpolation
+            tm.currentX += (tm.targetX - tm.currentX) * 0.35;
+            tm.currentY += (tm.targetY - tm.currentY) * 0.35;
+            tm.currentZ += (tm.targetZ - tm.currentZ) * 0.35;
+
+            // Spawn or update 3D mesh
+            if (!tm.mesh || !tm.mesh.parent) {
+                tm.mesh = spawnTeammateMesh(tm);
+            }
+            if (tm.mesh) {
+                tm.mesh.x = tm.currentX;
+                tm.mesh.y = tm.currentY;
+                tm.mesh.z = tm.currentZ;
+                if (!tm.alive) {
+                    tm.mesh.rx = Math.PI * 0.5;
+                    tm.mesh.y = 1;
+                } else {
+                    tm.mesh.rx = 0;
+                    tm.mesh.ry = Math.PI;
+                }
+            }
+
+            // Project 2D Nametag Billboard
+            const proj = projectWorldToScreen(tm.currentX, tm.currentY, tm.currentZ);
+            const tag = getOrCreateNametagEl(tm);
+            if (tag) {
+                if (proj) {
+                    tag.style.display = 'flex';
+                    tag.style.transform = `translate(-50%, -100%) translate(${proj.x}px, ${proj.y}px) scale(${proj.scale})`;
+                    tag.style.zIndex = String(Math.floor(10000 - proj.depth));
+
+                    const distMeters = Math.round((tm.currentZ - heroZ) * 0.1);
+                    const distSpan = tag.querySelector('.coop-tag-dist');
+                    if (distSpan) {
+                        if (!tm.alive) {
+                            distSpan.innerHTML = '<b style="color:#ff4d4f;">💥 CAIU!</b>';
+                        } else if (distMeters < -2) {
+                            distSpan.innerHTML = `<span style="color:#00ffc2;">▲ ${Math.abs(distMeters)}m à frente</span>`;
+                        } else if (distMeters > 2) {
+                            distSpan.innerHTML = `<span style="color:#4dabf7;">▼ ${Math.abs(distMeters)}m atrás</span>`;
+                        } else {
+                            distSpan.innerHTML = '<span style="color:#ffd43b;">★ LADO A LADO</span>';
+                        }
+                    }
+                } else {
+                    tag.style.display = 'none';
+                }
+            }
+        });
+
+        updateCoopHUD();
+    }
+
+    function cleanupCoopTeammates() {
+        cancelAnimationFrame(coopRenderRaf);
+        Object.keys(coopTeammates).forEach(id => {
+            const tm = coopTeammates[id];
+            if (tm && tm.mesh && tm.mesh.parent) {
+                try { tm.mesh.parent.removeChild(tm.mesh); } catch(e) {}
+            }
+        });
+        for (const k in coopTeammates) delete coopTeammates[k];
+        removeEl('subway-coop-tags-overlay');
+        removeEl('subway-coop-hud');
+    }
+
+    function showCoopHUD() {
+        let hud = document.getElementById('subway-coop-hud');
+        if (!hud) {
+            hud = document.createElement('div');
+            hud.id = 'subway-coop-hud';
+            hud.className = 'subway-coop-hud';
+            hud.innerHTML = `
+                <div class="coop-hud-pill">
+                    <span class="coop-hud-badge">🤝 CO-OP JUNTOS</span>
+                    <span class="coop-hud-stat" id="coop-hud-team-score">EQUIPE: 0m</span>
+                </div>
+            `;
+            document.body.appendChild(hud);
+        }
+    }
+
+    function updateCoopHUD() {
+        const hudStat = document.getElementById('coop-hud-team-score');
+        if (!hudStat) return;
+        const hero = window.game && window.game.hero;
+        const heroZ = (hero && hero.body) ? Math.abs(hero.body.z) : 0;
+        const meters = Math.round(heroZ * 0.1);
+        hudStat.textContent = `EQUIPE: ${meters}m`;
+    }
 
     function leaveToOwnRoom() {
         MP.roomId = 'room_' + myProfile.id;
@@ -1415,7 +1723,9 @@
             MPX.wins[p.id] = 0;
         });
 
-        if (MPX.activeIds.length >= 4) {
+        if (MP.matchType === 'coop') {
+            MPX.totalRounds = 1;
+        } else if (MPX.activeIds.length >= 4) {
             MPX.totalRounds = 3; // R1: 4->3, R2: 3->2, R3: Final 2->1
         } else if (MPX.activeIds.length === 3) {
             MPX.totalRounds = 2; // R1: 3->2, R2: Final 2->1
@@ -1432,7 +1742,10 @@
         MPX.loneSurvivorTimer = null;
 
         let roundLabel = '';
-        if (MPX.activeIds.length >= 4) {
+        if (MP.matchType === 'coop') {
+            roundLabel = 'MISSÃO CO-OP: CORRAM JUNTOS!';
+            MPX.totalRounds = 1;
+        } else if (MPX.activeIds.length >= 4) {
             roundLabel = 'QUARTAS DE FINAL — 1 SERÁ ELIMINADO';
         } else if (MPX.activeIds.length === 3) {
             roundLabel = 'SEMIFINAL — 1 SERÁ ELIMINADO';
@@ -1451,7 +1764,9 @@
             roundLabel: roundLabel,
             totals: MPX.totals,
             wins: MPX.wins,
-            delay: 3
+            delay: 3,
+            matchType: MP.matchType,
+            seed: Math.floor(Math.random() * 10000000)
         };
         sendRoomMessage(msg);
         handleRoundStart(msg);
@@ -1459,6 +1774,13 @@
 
     function handleRoundStart(msg) {
         if (!MP.isPartyLeader && msg.party) MP.party = msg.party.map(p => ({ ...p }));
+        if (msg.matchType) MP.matchType = msg.matchType;
+        if (msg.seed) {
+            if (window.Chance) window.chance = new window.Chance(msg.seed);
+            setDeterministicRandom(msg.seed);
+        }
+        cleanupCoopTeammates();
+
         MPX.round = msg.round;
         MPX.totalRounds = msg.totalRounds || 3;
         MPX.activeIds = msg.activeIds || MP.party.map(p => p.id);
@@ -1498,6 +1820,11 @@
 
             try { window.app.nav.toGame(); } catch (e) {}
             setTimeout(restoreHeroMesh, 300);
+
+            if (MP.matchType === 'coop') {
+                startCoopRenderLoop();
+                showCoopHUD();
+            }
 
             if (MP.isPartyLeader) hostStartBots();
         });
@@ -1580,20 +1907,57 @@
                     MPX.live[id] = t;
                     MPX.lastTick[id] = Date.now();
                     sendRoomMessage({ type: 'tick', sender, t, round: MPX.round });
+
+                    if (MP.matchType === 'coop') {
+                        const hero = window.game && window.game.hero;
+                        const heroZ = (hero && hero.body) ? hero.body.z : -(t * 0.05);
+                        const idx = MP.party.findIndex(x => x.id === id);
+                        const lane = (idx === 1 ? -20 : (idx === 2 ? 20 : 0));
+                        const zOffset = (idx * 8) - 16;
+                        const botMsg = {
+                            type: 'coop_pos',
+                            sender,
+                            x: lane,
+                            y: 0,
+                            z: heroZ + zOffset,
+                            anim: 'run',
+                            alive: true,
+                            round: MPX.round
+                        };
+                        handleCoopPos(botMsg);
+                    }
                 }
             });
             renderTimeline();
-        }, 250);
+        }, 100);
     }
 
     // Live tick sender from active runner
     function sendMultiplayerRunnerSync() {
         if (!MP.inMatch || !MPX.roundActive || !isRunActive) return;
         const now = performance.now();
-        if (now - (MPX.lastTickSent || 0) < 250) return;
+        const minInterval = (MP.matchType === 'coop') ? 50 : 250;
+        if (now - (MPX.lastTickSent || 0) < minInterval) return;
         MPX.lastTickSent = now;
         if (MPX.dead[myProfile.id] !== undefined) return;
         MPX.live[myProfile.id] = runElapsedTime;
+
+        if (MP.matchType === 'coop') {
+            const hero = window.game && window.game.hero;
+            const heroBody = hero && hero.body;
+            if (heroBody) {
+                sendRoomMessage({
+                    type: 'coop_pos',
+                    sender: myProfile,
+                    x: heroBody.x || 0,
+                    y: heroBody.y !== undefined ? heroBody.y : 0,
+                    z: heroBody.z || 0,
+                    anim: (hero.anim && hero.anim.currentAnimationName) || 'run',
+                    alive: true,
+                    round: MPX.round
+                });
+            }
+        }
         sendRoomMessage({ type: 'tick', sender: myProfile, t: runElapsedTime, round: MPX.round });
         renderTimeline();
     }
@@ -1614,6 +1978,20 @@
         MPX.live[myProfile.id] = timeMs;
 
         sendRoomMessage({ type: 'player_death', sender: myProfile, timeMs: timeMs, round: MPX.round });
+        if (MP.matchType === 'coop') {
+            const hero = window.game && window.game.hero;
+            const heroBody = hero && hero.body;
+            sendRoomMessage({
+                type: 'coop_pos',
+                sender: myProfile,
+                x: heroBody ? heroBody.x : 0,
+                y: 0,
+                z: heroBody ? heroBody.z : 0,
+                anim: 'fall',
+                alive: false,
+                round: MPX.round
+            });
+        }
         suppressRevive(true);
         showWaitHUD(timeMs, false);
         renderTimeline();
@@ -2228,8 +2606,12 @@
 
         const head = el.querySelector('#tl-head');
         if (head) {
-            const roundTxt = `RODADA ${Math.max(1, MPX.round)}/${MPX.totalRounds}`;
-            head.textContent = list.length === 2 ? `FINAL · ${roundTxt}` : roundTxt;
+            if (MP.matchType === 'coop') {
+                head.textContent = '🤝 CO-OP JUNTOS';
+            } else {
+                const roundTxt = `RODADA ${Math.max(1, MPX.round)}/${MPX.totalRounds}`;
+                head.textContent = list.length === 2 ? `FINAL · ${roundTxt}` : roundTxt;
+            }
         }
 
         const listContainer = el.querySelector('#tl-runners-list');
@@ -2473,10 +2855,15 @@
                     <div class="lobby-grid">
                         <!-- Left: Party Roster (2-4 players) -->
                         <div class="lobby-column party-col">
+                            <div class="mp-mode-toggle-group">
+                                <button type="button" class="btn-mp-mode ${MP.matchType === 'coop' ? 'active' : ''}" data-mode="coop" onclick="window.__setMPMatchType('coop')">🤝 Co-op Juntos</button>
+                                <button type="button" class="btn-mp-mode ${MP.matchType === 'tournament' ? 'active' : ''}" data-mode="tournament" onclick="window.__setMPMatchType('tournament')">🏆 Torneio</button>
+                            </div>
+
                             <div class="col-header">
                                 <div class="col-title-wrap">
-                                    <h3>SALA DO TORNEIO (${MP.party.length}/4)</h3>
-                                    <span class="party-hint">Eliminatório No Coin · 3 Rodadas · Maior tempo acumulado vence</span>
+                                    <h3 id="lobby-party-title">${MP.matchType === 'coop' ? `SALA CO-OP (${MP.party.length}/4)` : `SALA DO TORNEIO (${MP.party.length}/4)`}</h3>
+                                    <span class="party-hint" id="lobby-party-desc">${MP.matchType === 'coop' ? 'Co-op Simultâneo · Todos correm juntos na mesma pista em tempo real!' : 'Eliminatório No Coin · 3 Rodadas · Maior tempo acumulado vence'}</span>
                                 </div>
                                 <button class="btn-add-bot" onclick="window.__addTestBot()" title="Adicionar bot para treinar">+ Bot</button>
                             </div>
@@ -2490,7 +2877,7 @@
                                     ${MP.isReady ? 'ESTOU PRONTO ✓' : 'DAR PRONTO'}
                                 </button>
                                 <button id="btn-start-match" class="btn-start-match" ${checkCanStartMatch() ? '' : 'disabled'}>
-                                    INICIAR TORNEIO
+                                    ${MP.matchType === 'coop' ? 'INICIAR CORRIDA CO-OP' : 'INICIAR TORNEIO'}
                                 </button>
                                 <button id="btn-leave-party" class="btn-leave-room" onclick="window.__leaveParty()" title="Sair da sala">Sair</button>
                             </div>
@@ -2723,6 +3110,7 @@
             }
         }
         container.innerHTML = html;
+        updateLobbyHeaderTitles();
 
         const startBtn = document.getElementById('btn-start-match');
         if (startBtn) {
@@ -5355,6 +5743,148 @@
                 .countdown-num { font-size: 54px !important; }
                 .cd-circle-glow { width: 120px !important; height: 120px !important; }
             }
+            /* Co-op Mode Switcher */
+            .mp-mode-toggle-group {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 12px;
+                background: rgba(0, 0, 0, 0.4);
+                padding: 4px;
+                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            .btn-mp-mode {
+                flex: 1;
+                padding: 8px 12px;
+                background: transparent;
+                border: 1px solid transparent;
+                border-radius: 8px;
+                color: #8fa0b5;
+                font-family: inherit;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
+                cursor: pointer;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .btn-mp-mode:hover {
+                color: #ffffff;
+                background: rgba(255, 255, 255, 0.05);
+            }
+            .btn-mp-mode.active {
+                background: linear-gradient(135deg, #00d2ff, #0066ff);
+                color: #ffffff;
+                border-color: rgba(0, 210, 255, 0.5);
+                box-shadow: 0 0 14px rgba(0, 210, 255, 0.4);
+            }
+
+            /* In-game Co-op HUD */
+            .subway-coop-hud {
+                position: fixed;
+                top: 14px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 99990;
+                pointer-events: none;
+                animation: coopHudDrop 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            @keyframes coopHudDrop {
+                0% { opacity: 0; transform: translate(-50%, -20px) scale(0.9); }
+                100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+            }
+            .coop-hud-pill {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                background: rgba(10, 15, 28, 0.88);
+                backdrop-filter: blur(12px);
+                border: 1px solid rgba(0, 229, 255, 0.5);
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 229, 255, 0.25);
+                padding: 6px 16px;
+                border-radius: 999px;
+            }
+            .coop-hud-badge {
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 1px;
+                background: linear-gradient(90deg, #00f0ff, #7000ff);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                text-transform: uppercase;
+            }
+            .coop-hud-stat {
+                font-size: 13px;
+                font-weight: 800;
+                color: #ffffff;
+                font-family: monospace;
+                letter-spacing: 0.5px;
+            }
+
+            /* Co-op 3D Nametag Billboards */
+            .subway-coop-tags-overlay {
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                z-index: 99980;
+                overflow: hidden;
+            }
+            .coop-teammate-nametag {
+                position: absolute;
+                top: 0;
+                left: 0;
+                display: none;
+                flex-direction: column;
+                align-items: center;
+                transform-origin: center bottom;
+                will-change: transform;
+                filter: drop-shadow(0 6px 12px rgba(0,0,0,0.6));
+            }
+            .coop-tag-bubble {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 4px 10px 4px 4px;
+                background: rgba(12, 18, 32, 0.92);
+                backdrop-filter: blur(8px);
+                border: 1.5px solid rgba(0, 240, 255, 0.7);
+                box-shadow: 0 0 16px rgba(0, 240, 255, 0.4);
+                border-radius: 999px;
+                white-space: nowrap;
+            }
+            .coop-tag-av {
+                width: 26px;
+                height: 26px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 1.5px solid #00f0ff;
+            }
+            .coop-tag-col {
+                display: flex;
+                flex-direction: column;
+                line-height: 1.15;
+            }
+            .coop-tag-nick {
+                font-size: 11px;
+                font-weight: 800;
+                color: #ffffff;
+                letter-spacing: 0.3px;
+            }
+            .coop-tag-dist {
+                font-size: 9px;
+                font-weight: 700;
+                letter-spacing: 0.2px;
+                font-family: monospace;
+            }
+            .coop-tag-arrow {
+                width: 0;
+                height: 0;
+                border-left: 6px solid transparent;
+                border-right: 6px solid transparent;
+                border-top: 6px solid rgba(0, 240, 255, 0.85);
+                margin-top: -1px;
+            }
+
             .subway-modal-box { overflow-y: auto; }
         `;
         document.head.appendChild(style);
