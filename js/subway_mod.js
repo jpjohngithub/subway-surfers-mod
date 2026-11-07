@@ -964,7 +964,9 @@
                     bounds,
                     destroyed: false,
                     isOscillating: !!options.isOscillating,
+                    isFloating: !!options.isFloating,
                     baseX: x,
+                    baseY: y,
                     speed: options.speed || 1.8,
                     phase: options.phase || 0
                 };
@@ -978,27 +980,134 @@
         const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 12));
         if (freeGroundLanes.length === 0) return;
 
-        // Rich Variety of Dynamic Obstacles (Bushes, Jump Barriers, Roll Barriers, Dumpsters, Signals)
-        const types = ['bush', 'blocker_jump', 'dumpster', 'blocker_roll', 'bush', 'lightSignal'];
+        // Pattern selector (10 rich, exciting patterns):
+        // 0: Moeda Móvel Oscilante (desliza de um lado pro outro continuamente)
+        // 1: Muro de Moedas (2 pistas bloqueadas com moedas no chão e no ar, 1 brecha)
+        // 2: Moedas Voando no Alto (teto flutuante y=18, proíbe pulo, exige rolamento)
+        // 3: Pulo Obrigatório de Moedas (barreira de chão y=5 nas pistas)
+        // 4: Slalom / Zig-Zag de Moedas (4 moedas em ziguezague ao longo da pista)
+        // 5: Torre Vertical de Moedas (3 moedas empilhadas y=5, y=12, y=19) + Mato/Caçamba
+        // 6: Moeda Voadora com Ondulação Vertical (sobe e desce em onda y=8 a y=20)
+        // 7: Dupla Moeda Móvel Cruzada (duas moedas deslizando em direções opostas)
+        // 8: Mato 3D (bush_1) + Moeda Flutuante no alto
+        // 9: Cavalete de Pulo (blocker_jump) ou Caçamba (dumpster)
+        const pattern = Math.floor(Math.random() * 10);
 
-        // Spawn 1 or 2 obstacles per wave for high frequency
-        const numToSpawn = (freeGroundLanes.length >= 2 && Math.random() > 0.45) ? 2 : 1;
-        const shuffled = freeGroundLanes.slice().sort(() => Math.random() - 0.5);
+        if (pattern === 0) {
+            // 1. MOEDA MÓVEL OSCILANTE: Desliza de -20 a +20 através das 3 pistas
+            const c = createObstacle3D('coin', 0, 6, centerZ, {
+                isOscillating: true,
+                speed: 2.2 + Math.random() * 0.8,
+                phase: Math.random() * Math.PI
+            });
+            if (c) customObstacles.push(c);
 
-        for (let i = 0; i < numToSpawn; i++) {
-            const lane = shuffled[i];
-            const type = types[Math.floor(Math.random() * types.length)];
-            const obs = createObstacle3D(type, lane, 0, centerZ - (i * 35));
-            if (obs) customObstacles.push(obs);
-        }
+            // Adiciona um mato ou caçamba na lateral para forçar o desvio
+            const sideLane = Math.random() > 0.5 ? -20 : 20;
+            if (!isPositionBlocked(sideLane, 0, centerZ - 50, 15)) {
+                const b = createObstacle3D(Math.random() > 0.4 ? 'bush' : 'dumpster', sideLane, 0, centerZ - 50);
+                if (b) customObstacles.push(b);
+            }
+        } else if (pattern === 1) {
+            // 2. MURO DE MOEDAS: Fecha 2 pistas com moedas no chão e no ar, deixando 1 brecha
+            if (freeGroundLanes.length >= 2) {
+                const openLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+                freeGroundLanes.forEach(lx => {
+                    if (lx !== openLane) {
+                        // Moeda no chão
+                        const c1 = createObstacle3D('coin', lx, 6, centerZ);
+                        if (c1) customObstacles.push(c1);
+                        // Moeda no ar (muro duplo)
+                        const c2 = createObstacle3D('coin', lx, 14, centerZ);
+                        if (c2) customObstacles.push(c2);
+                    }
+                });
+            }
+        } else if (pattern === 2) {
+            // 3. MOEDAS VOANDO NO ALTO: Teto flutuante a y=18 (força a correr por baixo ou rolar)
+            lanes.forEach(lx => {
+                if (!isPositionBlocked(lx, 18, centerZ, 12)) {
+                    const c = createObstacle3D('coin', lx, 18, centerZ);
+                    if (c) customObstacles.push(c);
+                }
+            });
+        } else if (pattern === 3) {
+            // 4. PULO OBRIGATÓRIO DE MOEDAS: Barreira rente ao chão (y=4.5) que exige pular
+            freeGroundLanes.forEach(lx => {
+                const c = createObstacle3D('coin', lx, 4.5, centerZ);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 4) {
+            // 5. SLALOM / ZIG-ZAG DE MOEDAS: Linha sinuosa de moedas alternadas
+            const order = [-20, 0, 20, 0];
+            if (Math.random() > 0.5) order.reverse();
+            order.forEach((lx, idx) => {
+                const pz = centerZ - (idx * 55);
+                if (!isPositionBlocked(lx, 6, pz, 15)) {
+                    const c = createObstacle3D('coin', lx, 6, pz);
+                    if (c) customObstacles.push(c);
+                }
+            });
+        } else if (pattern === 5) {
+            // 6. TORRE VERTICAL DE MOEDAS: Coluna de 3 moedas empilhadas em uma pista
+            const tLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            [5, 12, 19].forEach(yPos => {
+                const c = createObstacle3D('coin', tLane, yPos, centerZ);
+                if (c) customObstacles.push(c);
+            });
+            // Mato ou barreira na pista vizinha
+            const other = freeGroundLanes.filter(l => l !== tLane);
+            if (other.length > 0) {
+                const obs = createObstacle3D('bush', other[0], 0, centerZ - 40);
+                if (obs) customObstacles.push(obs);
+            }
+        } else if (pattern === 6) {
+            // 7. MOEDA VOADORA COM ONDULAÇÃO: Flutua subindo e descendo no ar
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const c = createObstacle3D('coin', lane, 12, centerZ, {
+                isFloating: true,
+                speed: 2.0,
+                phase: Math.random() * Math.PI
+            });
+            if (c) customObstacles.push(c);
+        } else if (pattern === 7) {
+            // 8. DUPLA MOEDA MÓVEL CRUZADA: Duas moedas cruzando a pista simultaneamente
+            const c1 = createObstacle3D('coin', -15, 6, centerZ, {
+                isOscillating: true,
+                speed: 2.4,
+                phase: 0
+            });
+            const c2 = createObstacle3D('coin', 15, 6, centerZ - 60, {
+                isOscillating: true,
+                speed: 2.4,
+                phase: Math.PI
+            });
+            if (c1) customObstacles.push(c1);
+            if (c2) customObstacles.push(c2);
+        } else if (pattern === 8) {
+            // 9. MATO 3D (bush_1) + ARCO DE MOEDAS NO ALTO
+            const bLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const b = createObstacle3D('bush', bLane, 0, centerZ);
+            if (b) customObstacles.push(b);
 
-        // No Coin Mode: also mix in elimination coins
-        if (window.NO_COIN_MODE) {
-            const remaining = freeGroundLanes.filter(l => !shuffled.slice(0, numToSpawn).includes(l));
-            if (remaining.length > 0 && Math.random() > 0.35) {
-                const c = createObstacle3D('coin', remaining[0], 6, centerZ);
+            const otherFree = freeGroundLanes.filter(l => l !== bLane);
+            if (otherFree.length > 0) {
+                const c = createObstacle3D('coin', otherFree[0], 15, centerZ);
                 if (c) customObstacles.push(c);
             }
+        } else {
+            // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const r = Math.random();
+            let obsType = 'bush';
+            if (r < 0.35) obsType = 'bush';
+            else if (r < 0.65) obsType = 'blocker_jump';
+            else if (r < 0.88) obsType = 'dumpster';
+            else if (r < 0.96) obsType = 'blocker_roll';
+            else obsType = 'lightSignal'; // Apenas 4% de chance para semáforo
+
+            const obs = createObstacle3D(obsType, lane, 0, centerZ);
+            if (obs) customObstacles.push(obs);
         }
     }
 
@@ -1019,7 +1128,7 @@
         // Check spawn ahead of runner (abundant, regular obstacles)
         if (heroZ < nextObstacleZ) {
             spawnNoCoinObstaclePattern(heroZ - 320);
-            nextObstacleZ = heroZ - (140 + Math.random() * 80);
+            nextObstacleZ = heroZ - (130 + Math.random() * 70);
         }
 
         // Update active obstacles
@@ -1033,10 +1142,16 @@
                 continue;
             }
 
-            // Oscillating dynamic movement across lanes
+            // Oscillating dynamic horizontal movement across lanes
             if (obs.isOscillating && obs.mesh) {
                 obs.x = Math.sin(now * 0.003 * obs.speed + obs.phase) * 20;
                 obs.mesh.x = obs.x;
+            }
+
+            // Vertical floating wave movement in air
+            if (obs.isFloating && obs.mesh) {
+                obs.y = (obs.baseY || 12) + Math.sin(now * 0.004 * obs.speed + obs.phase) * 7;
+                obs.mesh.y = obs.y;
             }
 
             // Spin coin
