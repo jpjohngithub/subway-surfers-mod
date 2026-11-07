@@ -113,6 +113,73 @@
     // ==========================================
     // GRAPHICS, ANTI-ALIASING, SATURATION & UNLIMITED FPS
     // ==========================================
+    
+    // ==========================================
+    // ZERO-DELAY INSTANT TOUCH & INPUT ENGINE
+    // ==========================================
+    window.__swipeT = 7; // Ultra-sensitive swipe threshold (7px instead of 22px)
+
+    (function setupZeroDelayInput() {
+        let startX = 0;
+        let startY = 0;
+        let dispatched = false;
+
+        function getControls() {
+            const g = window.game || (window.app && window.app.game);
+            return g && g.controls;
+        }
+
+        window.addEventListener('touchstart', function(e) {
+            if (!e.touches || !e.touches[0]) return;
+            const t = e.touches[0];
+            startX = t.clientX;
+            startY = t.clientY;
+            dispatched = false;
+        }, { passive: true });
+
+        window.addEventListener('touchmove', function(e) {
+            if (dispatched || !e.touches || !e.touches[0]) return;
+            const t = e.touches[0];
+            const dx = t.clientX - startX;
+            const dy = t.clientY - startY;
+            const absX = Math.abs(dx);
+            const absY = Math.abs(dy);
+            const threshold = 7; // Instant 7px flick response
+
+            if (absX >= threshold || absY >= threshold) {
+                const ctrl = getControls();
+                if (absX >= absY) {
+                    const dir = dx > 0 ? 1 : -1;
+                    if (ctrl && ctrl.onSwipeHorizontal) {
+                        ctrl.onSwipeHorizontal.dispatch(dir);
+                        dispatched = true;
+                    }
+                } else {
+                    const dir = dy < 0 ? 1 : -1; // up = jump (1), down = roll (-1)
+                    if (ctrl && ctrl.onSwipeVertical) {
+                        ctrl.onSwipeVertical.dispatch(dir);
+                        dispatched = true;
+                    }
+                }
+            }
+        }, { passive: true });
+
+        // Zero-delay keyboard response
+        window.addEventListener('keydown', function(e) {
+            const ctrl = getControls();
+            if (!ctrl) return;
+            if (e.key === 'ArrowLeft' || e.code === 'KeyA') {
+                if (ctrl.onSwipeHorizontal) ctrl.onSwipeHorizontal.dispatch(-1);
+            } else if (e.key === 'ArrowRight' || e.code === 'KeyD') {
+                if (ctrl.onSwipeHorizontal) ctrl.onSwipeHorizontal.dispatch(1);
+            } else if (e.key === 'ArrowUp' || e.code === 'KeyW' || e.key === ' ') {
+                if (ctrl.onSwipeVertical) ctrl.onSwipeVertical.dispatch(1);
+            } else if (e.key === 'ArrowDown' || e.code === 'KeyS') {
+                if (ctrl.onSwipeVertical) ctrl.onSwipeVertical.dispatch(-1);
+            }
+        }, true);
+    })();
+
     const GFX_SETTINGS = {
         fps: localStorage.getItem('sw_fps') || 'unlimited', // '60' | '120' | 'unlimited'
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 200
@@ -2048,18 +2115,20 @@
     function runCountdown(seconds, label, done) {
         window.__runCountdown = runCountdown;
         removeEl('subway-cd-overlay');
+        const countSec = Math.min(seconds || 2, 2); // Snappy 2s count for instant race start
         const ov = document.createElement('div');
         ov.className = 'subway-countdown-overlay';
         ov.id = 'subway-cd-overlay';
         ov.innerHTML = `
             <div class="cd-container">
-                <div class="countdown-num pop" id="cd-num">${seconds}</div>
+                <div class="countdown-num pop" id="cd-num">${countSec}</div>
                 <div class="countdown-sub">${label}</div>
             </div>
         `;
         document.body.appendChild(ov);
-        let c = seconds;
+        let c = countSec;
         let finished = false;
+
         const tm = setInterval(() => {
             if (finished) return;
             c--;
@@ -2083,11 +2152,12 @@
                     setTimeout(() => {
                         ov.remove();
                         done();
-                    }, 150);
-                }, 350);
+                    }, 80);
+                }, 220);
             }
-        }, 1000);
+        }, 650); // Snappy 650ms interval for zero-delay feel
     }
+
     window.__runCountdown = runCountdown;
 
     // Bots simulation for testing
@@ -3634,6 +3704,9 @@
             
             /* Canvas Saturation & Visual Fidelity */
             canvas {
+                touch-action: none !important;
+                -webkit-touch-callout: none !important;
+                user-select: none !important;
                 filter: saturate(var(--game-saturation, 100%)) !important;
             }
 
