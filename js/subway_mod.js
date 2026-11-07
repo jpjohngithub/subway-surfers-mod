@@ -856,30 +856,27 @@
     }
 
     // Prevents placing obstacle coins/dumpsters inside trains, barriers or native coins
-    function isPositionBlocked(x, y, z, margin = 25) {
+    function isPositionBlocked(x, y, z, margin = 12) {
         // 1. Existing native map coins
         if (window.__activeCoins) {
             for (const c of window.__activeCoins) {
                 if (c && c.active && c.body) {
-                    if (Math.abs(c.body.z - z) < 36 && Math.abs(c.body.x - x) < 12) {
+                    if (Math.abs(c.body.z - z) < 22 && Math.abs(c.body.x - x) < 8) {
                         return true;
                     }
                 }
             }
         }
 
-        // 2. Trains, ramps and blockers in physics system (ensure ample train clearance)
+        // 2. Trains, ramps and blockers in physics system (prevent spawning inside trains)
         const phys = window.game && window.game.physics;
         if (phys && Array.isArray(phys.entities)) {
             for (let i = 0; i < phys.entities.length; i++) {
                 const ent = phys.entities[i];
                 const b = ent && ent.body;
                 if (b && !b.deco && !b.player) {
-                    const entName = (ent.name || '').toLowerCase();
-                    const isTrain = entName.includes('train') || entName.includes('ramp') || (b.depth && b.depth > 30);
-                    const safeMarginZ = isTrain ? 120 : margin;
-                    const halfDepth = (b.depth || 14) / 2 + safeMarginZ;
-                    const halfWidth = (b.width || 14) / 2 + 6;
+                    const halfDepth = (b.depth || 14) / 2 + 15;
+                    const halfWidth = (b.width || 14) / 2 + 3;
                     if (Math.abs(b.x - x) < halfWidth && Math.abs(b.z - z) < halfDepth) {
                         return true;
                     }
@@ -891,7 +888,7 @@
         for (let i = 0; i < customObstacles.length; i++) {
             const obs = customObstacles[i];
             if (obs && !obs.destroyed) {
-                if (Math.abs(obs.z - z) < 32 && Math.abs(obs.x - x) < 12) {
+                if (Math.abs(obs.z - z) < 24 && Math.abs(obs.x - x) < 8) {
                     return true;
                 }
             }
@@ -978,83 +975,30 @@
 
     function spawnNoCoinObstaclePattern(centerZ) {
         const lanes = [-20, 0, 20];
-        const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 35));
+        const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 12));
         if (freeGroundLanes.length === 0) return;
 
-        // Rich Variety of Dynamic Obstacles:
-        // 'bush', 'dumpster', 'blocker_jump', 'blocker_roll', 'lightSignal'
-        const availableTypes = ['bush', 'blocker_jump', 'dumpster', 'blocker_roll', 'bush'];
+        // Rich Variety of Dynamic Obstacles (Bushes, Jump Barriers, Roll Barriers, Dumpsters, Signals)
+        const types = ['bush', 'blocker_jump', 'dumpster', 'blocker_roll', 'bush', 'lightSignal'];
 
-        if (!window.NO_COIN_MODE) {
-            // Normal & Multiplayer Mode: frequent dynamic obstacles
-            const lane1 = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const type1 = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-            const obs1 = createObstacle3D(type1, lane1, 0, centerZ);
-            if (obs1) customObstacles.push(obs1);
+        // Spawn 1 or 2 obstacles per wave for high frequency
+        const numToSpawn = (freeGroundLanes.length >= 2 && Math.random() > 0.45) ? 2 : 1;
+        const shuffled = freeGroundLanes.slice().sort(() => Math.random() - 0.5);
 
-            // Double obstacle pattern with one free lane
-            if (freeGroundLanes.length >= 2 && Math.random() > 0.45) {
-                const remaining = freeGroundLanes.filter(l => l !== lane1);
-                if (remaining.length > 0) {
-                    const lane2 = remaining[0];
-                    const type2 = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-                    const obs2 = createObstacle3D(type2, lane2, 0, centerZ - 50);
-                    if (obs2) customObstacles.push(obs2);
-                }
-            }
-            return;
+        for (let i = 0; i < numToSpawn; i++) {
+            const lane = shuffled[i];
+            const type = types[Math.floor(Math.random() * types.length)];
+            const obs = createObstacle3D(type, lane, 0, centerZ - (i * 35));
+            if (obs) customObstacles.push(obs);
         }
 
-        // No Coin Mode: Obstacles mixed with Red Elimination Coins
-        const pattern = Math.floor(Math.random() * 8);
-
-        if (pattern === 0 || pattern === 1) {
-            // Native Obstacle on ground + Red Coin on another lane
-            const dLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const obsType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-            const d = createObstacle3D(obsType, dLane, 0, centerZ);
-            if (d) customObstacles.push(d);
-
-            const otherFree = freeGroundLanes.filter(l => l !== dLane);
-            if (otherFree.length > 0) {
-                const cLane = otherFree[Math.floor(Math.random() * otherFree.length)];
-                const c = createObstacle3D('coin', cLane, 6, centerZ);
+        // No Coin Mode: also mix in elimination coins
+        if (window.NO_COIN_MODE) {
+            const remaining = freeGroundLanes.filter(l => !shuffled.slice(0, numToSpawn).includes(l));
+            if (remaining.length > 0 && Math.random() > 0.35) {
+                const c = createObstacle3D('coin', remaining[0], 6, centerZ);
                 if (c) customObstacles.push(c);
             }
-        } else if (pattern === 2 || pattern === 3) {
-            // Double native obstacles leaving center or side open
-            const lane1 = freeGroundLanes[0];
-            const type1 = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-            const obs1 = createObstacle3D(type1, lane1, 0, centerZ);
-            if (obs1) customObstacles.push(obs1);
-
-            if (freeGroundLanes.length > 1) {
-                const lane2 = freeGroundLanes[freeGroundLanes.length - 1];
-                const type2 = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-                const obs2 = createObstacle3D(type2, lane2, 0, centerZ);
-                if (obs2) customObstacles.push(obs2);
-            }
-        } else if (pattern === 4) {
-            // Jump or Roll Barrier Challenge
-            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const b = createObstacle3D(Math.random() > 0.5 ? 'blocker_jump' : 'blocker_roll', lane, 0, centerZ);
-            if (b) customObstacles.push(b);
-        } else if (pattern === 5) {
-            // Slalom coins
-            const order = [-20, 0, 20];
-            if (Math.random() > 0.5) order.reverse();
-            order.forEach((lx, idx) => {
-                const pz = centerZ - (idx * 60);
-                if (!isPositionBlocked(lx, 6, pz, 20)) {
-                    const c = createObstacle3D('coin', lx, 6, pz);
-                    if (c) customObstacles.push(c);
-                }
-            });
-        } else {
-            // Bush obstacle directly in lane
-            const bLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const b = createObstacle3D('bush', bLane, 0, centerZ);
-            if (b) customObstacles.push(b);
         }
     }
 
@@ -1072,10 +1016,10 @@
 
         if (window.isGamePaused) return;
 
-        // Check spawn ahead of runner
+        // Check spawn ahead of runner (abundant, regular obstacles)
         if (heroZ < nextObstacleZ) {
-            spawnNoCoinObstaclePattern(heroZ - 420);
-            nextObstacleZ = heroZ - (340 + Math.random() * 180);
+            spawnNoCoinObstaclePattern(heroZ - 320);
+            nextObstacleZ = heroZ - (140 + Math.random() * 80);
         }
 
         // Update active obstacles
