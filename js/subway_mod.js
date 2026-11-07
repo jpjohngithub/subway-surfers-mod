@@ -114,8 +114,6 @@
     // GRAPHICS, ANTI-ALIASING, SATURATION & UNLIMITED FPS
     // ==========================================
     const GFX_SETTINGS = {
-        graphics: localStorage.getItem('sw_graphics') || 'High', // 'Low' | 'Medium' | 'High' | 'Ultra'
-        antiAliasing: localStorage.getItem('sw_antialias') || '2x', // 'Off' | '2x' | '4x'
         fps: localStorage.getItem('sw_fps') || 'unlimited', // '60' | '120' | 'unlimited'
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 200
         smoothAnim: localStorage.getItem('sw_smooth_anim') !== 'false'
@@ -123,87 +121,34 @@
 
     function applyGraphicsSettings() {
         const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
-        if (!canvas) return;
 
-        // 1. Resolution / Quality mapping
-        let targetRes = 1.0;
-        let contrastBoost = '1.0';
-
-        if (GFX_SETTINGS.graphics === 'Low') {
-            targetRes = 0.5; // Visibly retro / low-res for max FPS
-            contrastBoost = '0.92';
-        } else if (GFX_SETTINGS.graphics === 'Medium') {
-            targetRes = 0.85; // Standard 720p
-            contrastBoost = '1.0';
-        } else if (GFX_SETTINGS.graphics === 'High') {
-            targetRes = 1.35; // Native sharp 1080p
-            contrastBoost = '1.05';
-        } else if (GFX_SETTINGS.graphics === 'Ultra') {
-            targetRes = 2.0; // Ultra sharp 4K supersampling
-            contrastBoost = '1.12';
+        // 1. Color Saturation (Fast CSS filter, no canvas buffer manipulation)
+        if (canvas) {
+            const satVal = GFX_SETTINGS.saturation || 100;
+            canvas.style.filter = `saturate(${satVal}%)`;
+            document.documentElement.style.setProperty('--game-saturation', satVal + '%');
         }
 
-        // Apply resolution to renderer & canvas buffer
-        if (window.app && window.app.renderer) {
-            window.app.renderer.resolution = targetRes;
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            try {
-                window.app.renderer.resize(w, h);
-            } catch(e) {}
-            // Directly scale canvas drawing buffer for visible instant graphical change
-            try {
-                canvas.width = Math.round(w * targetRes);
-                canvas.height = Math.round(h * targetRes);
-                canvas.style.width = w + 'px';
-                canvas.style.height = h + 'px';
-                const gl = window.app.renderer.gl;
-                if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
-            } catch(e) {}
-        }
-
-        // 2. Anti-Aliasing Setting
-        if (GFX_SETTINGS.antiAliasing === 'Off') {
-            canvas.style.imageRendering = 'pixelated';
-        } else if (GFX_SETTINGS.antiAliasing === '2x') {
-            canvas.style.imageRendering = 'auto';
-        } else if (GFX_SETTINGS.antiAliasing === '4x') {
-            canvas.style.imageRendering = 'smooth';
-        }
-
-        // 3. Saturation & Visual Grading
-        const satVal = GFX_SETTINGS.saturation || 100;
-        canvas.style.filter = `saturate(${satVal}%) contrast(${contrastBoost})`;
-        document.documentElement.style.setProperty('--game-saturation', satVal + '%');
-
-        // 4. Unlimited FPS on Pixi Ticker
+        // 2. Ultra-Fluid Framerate (Unlock Pixi Ticker FPS for 120Hz / 144Hz screens)
         if (window.app && window.app.ticker) {
             if (GFX_SETTINGS.fps === 'unlimited') {
-                window.app.ticker.maxFPS = 0; // 0 = unlimited FPS (120Hz/144Hz+)
+                window.app.ticker.maxFPS = 0; // 0 = unlimited FPS in Pixi Ticker
             } else {
                 window.app.ticker.maxFPS = parseInt(GFX_SETTINGS.fps, 10) || 60;
             }
             window.app.ticker.minFPS = 10;
         }
 
-        // 5. Camera Far Clip (View Distance) based on Graphics Quality
-        try {
-            const cam = (window.game && window.game.camera) || (window.app && window.app.camera);
-            if (cam && cam.camera) {
-                if (GFX_SETTINGS.graphics === 'Low') cam.camera.far = 500;
-                else if (GFX_SETTINGS.graphics === 'Medium') cam.camera.far = 850;
-                else if (GFX_SETTINGS.graphics === 'High') cam.camera.far = 1200;
-                else if (GFX_SETTINGS.graphics === 'Ultra') cam.camera.far = 1800;
-            }
-        } catch(e) {}
+        // 3. Smooth Hero Character Skeletal Animation & Scene Clock
+        optimizeHeroAnimAndFluidity();
     }
 
     function optimizeHeroAnimAndFluidity() {
         try {
-            const hero = window.game && window.game.hero;
+            const hero = (window.game && window.game.hero) || (window.app && window.app.game && window.app.game.hero);
             if (hero && hero.character && hero.character.anim) {
                 if (GFX_SETTINGS.smoothAnim) {
-                    hero.character.anim.mixRatio = 0.15; // smooth transitions
+                    hero.character.anim.mixRatio = 0.15; // Silky smooth transitions
                     if (hero.character.anim.currentController) {
                         hero.character.anim.currentController.allowMixing = true;
                     }
@@ -211,32 +156,10 @@
             }
             const scene = (window.game && window.game.scene) || (window.app && window.app.scene);
             if (scene && scene.time) {
-                scene.time.maxDeltaTime = 33; // prevents frame hitching spikes
+                scene.time.maxDeltaTime = 30; // Prevents frame hitching spikes
             }
         } catch(e) {}
     }
-
-    window.__cycleGraphicsSetting = function() {
-        const order = ['Low', 'Medium', 'High', 'Ultra'];
-        const curIdx = order.indexOf(GFX_SETTINGS.graphics);
-        GFX_SETTINGS.graphics = order[(curIdx + 1) % order.length];
-        localStorage.setItem('sw_graphics', GFX_SETTINGS.graphics);
-        applyGraphicsSettings();
-        const el = document.getElementById('val-gfx-graphics');
-        if (el) el.textContent = GFX_SETTINGS.graphics;
-        showHUDNotification('Resolução Gráfica: ' + GFX_SETTINGS.graphics);
-    };
-
-    window.__cycleAntiAliasing = function() {
-        const order = ['Off', '2x', '4x'];
-        const curIdx = order.indexOf(GFX_SETTINGS.antiAliasing);
-        GFX_SETTINGS.antiAliasing = order[(curIdx + 1) % order.length];
-        localStorage.setItem('sw_antialias', GFX_SETTINGS.antiAliasing);
-        applyGraphicsSettings();
-        const el = document.getElementById('val-gfx-antialias');
-        if (el) el.textContent = GFX_SETTINGS.antiAliasing;
-        showHUDNotification('Anti-Aliasing: ' + GFX_SETTINGS.antiAliasing);
-    };
 
     window.__cycleFPS = function() {
         const order = ['unlimited', '60', '120'];
@@ -866,33 +789,32 @@
     }
 
     // Prevents placing obstacle coins/dumpsters inside trains, barriers or native coins
-    function isPositionBlocked(x, y, z, margin = 20) {
+    function isPositionBlocked(x, y, z, margin = 25) {
         // 1. Existing native map coins
         if (window.__activeCoins) {
             for (const c of window.__activeCoins) {
                 if (c && c.active && c.body) {
-                    if (Math.abs(c.body.z - z) < 32 && Math.abs(c.body.x - x) < 12) {
+                    if (Math.abs(c.body.z - z) < 36 && Math.abs(c.body.x - x) < 12) {
                         return true;
                     }
                 }
             }
         }
 
-        // 2. Trains, blockers and props in physics system
+        // 2. Trains, ramps and blockers in physics system (ensure ample train clearance)
         const phys = window.game && window.game.physics;
         if (phys && Array.isArray(phys.entities)) {
             for (let i = 0; i < phys.entities.length; i++) {
                 const ent = phys.entities[i];
                 const b = ent && ent.body;
                 if (b && !b.deco && !b.player) {
-                    const halfDepth = (b.depth || 14) / 2 + margin;
-                    const halfWidth = (b.width || 14) / 2 + 5;
-                    const bY = b.y !== undefined ? b.y : (b.bottom || 0);
-                    const bHeight = b.height || 22;
-                    if (Math.abs(b.z - z) < halfDepth && Math.abs(b.x - x) < halfWidth) {
-                        if (y >= bY - 4 && y <= bY + bHeight + 4) {
-                            return true;
-                        }
+                    const entName = (ent.name || '').toLowerCase();
+                    const isTrain = entName.includes('train') || entName.includes('ramp') || (b.depth && b.depth > 30);
+                    const safeMarginZ = isTrain ? 120 : margin;
+                    const halfDepth = (b.depth || 14) / 2 + safeMarginZ;
+                    const halfWidth = (b.width || 14) / 2 + 6;
+                    if (Math.abs(b.x - x) < halfWidth && Math.abs(b.z - z) < halfDepth) {
+                        return true;
                     }
                 }
             }
@@ -902,7 +824,7 @@
         for (let i = 0; i < customObstacles.length; i++) {
             const obs = customObstacles[i];
             if (obs && !obs.destroyed) {
-                if (Math.abs(obs.z - z) < 25 && Math.abs(obs.x - x) < 10) {
+                if (Math.abs(obs.z - z) < 32 && Math.abs(obs.x - x) < 12) {
                     return true;
                 }
             }
@@ -912,26 +834,47 @@
 
     function createObstacle3D(type, x, y, z, options = {}) {
         if (!window.__lib || !window.__lib.getEntity) return null;
-        const margin = (type === 'dumpster' || type === 'bush') ? 24 : 18;
+        const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20;
         if (isPositionBlocked(x, y, z, margin)) return null;
 
         try {
             let mesh = null;
-            let bounds = { depth: 5, width: 4, height: 6 };
+            let bounds = { depth: 6, width: 14, height: 8 };
 
             if (type === 'dumpster') {
                 mesh = window.__lib.getEntity('dumpster');
                 if (mesh) {
-                    mesh.ry = Math.PI;
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI; // Perfectly parallel to rails
                     if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
-                    bounds = { depth: 10, width: 18, height: 14 };
+                    bounds = { depth: 10, width: 16, height: 12 };
                 }
             } else if (type === 'bush') {
                 mesh = window.__lib.getEntity('bush_1');
                 if (mesh) {
-                    mesh.ry = Math.PI;
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI; // Perfectly centered on track
                     if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
-                    bounds = { depth: 8, width: 16, height: 12 };
+                    bounds = { depth: 8, width: 15, height: 10 };
+                }
+            } else if (type === 'blocker_jump') {
+                mesh = window.__lib.getEntity('blocker_jump');
+                if (mesh) {
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
+                    if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
+                    bounds = { depth: 6, width: 16, height: 8, jumpable: true };
+                }
+            } else if (type === 'blocker_roll') {
+                mesh = window.__lib.getEntity('blocker_roll');
+                if (mesh) {
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
+                    if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
+                    bounds = { depth: 6, width: 16, height: 18, rollable: true };
+                }
+            } else if (type === 'lightSignal') {
+                mesh = window.__lib.getEntity('lightSignal');
+                if (mesh) {
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
+                    if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
+                    bounds = { depth: 8, width: 10, height: 20 };
                 }
             } else {
                 mesh = window.__lib.getEntity('currency_coin');
@@ -968,43 +911,40 @@
 
     function spawnNoCoinObstaclePattern(centerZ) {
         const lanes = [-20, 0, 20];
-        const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 26));
+        const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 35));
         if (freeGroundLanes.length === 0) return;
 
-        // Formações de Obstáculos Dinâmicos (Caçamba, Arbusto/Mato bush_1 e Moedas Vermelhas):
-        // 0, 1: Caçamba 3D individual (y=0) + moeda vermelha
-        // 2, 7: Arbusto / Mato 3D nativo (bush_1 no solo y=0)
-        // 3: Dupla Caçamba / Mato nos cantos (-20 e 20) com centro livre
-        // 4: Paredão de moedas com 1 brecha
-        // 5: Pulo Obrigatório (low coin barrier, must jump)
-        // 6: Rolamento Obrigatório (high bar, must roll)
-        // 8: Zig-zag Slalom (3 moedas alternadas)
-        // 9: Moeda Móvel Oscilante (desliza de um lado pro outro)
-        const pattern = Math.floor(Math.random() * 10);
+        // Rich Variety of Dynamic Obstacles:
+        // 'bush', 'dumpster', 'blocker_jump', 'blocker_roll', 'lightSignal'
+        const availableTypes = ['bush', 'blocker_jump', 'dumpster', 'blocker_roll', 'bush'];
 
-        // In normal / multiplayer mode (without No Coin), spawn lots of bush_1 and dumpsters!
         if (!window.NO_COIN_MODE) {
-            // Spawn Native 3D Bush (bush_1) frequently
-            const bLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const obsType = Math.random() > 0.35 ? 'bush' : 'dumpster';
-            const obs = createObstacle3D(obsType, bLane, 0, centerZ);
-            if (obs) customObstacles.push(obs);
+            // Normal & Multiplayer Mode: frequent dynamic obstacles
+            const lane1 = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const type1 = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+            const obs1 = createObstacle3D(type1, lane1, 0, centerZ);
+            if (obs1) customObstacles.push(obs1);
 
-            // Double bush on side lanes occasionally
-            if (Math.random() > 0.5 && freeGroundLanes.length >= 2) {
-                const other = freeGroundLanes.filter(l => l !== bLane);
-                if (other.length > 0) {
-                    const b2 = createObstacle3D('bush', other[0], 0, centerZ - 60);
-                    if (b2) customObstacles.push(b2);
+            // Double obstacle pattern with one free lane
+            if (freeGroundLanes.length >= 2 && Math.random() > 0.45) {
+                const remaining = freeGroundLanes.filter(l => l !== lane1);
+                if (remaining.length > 0) {
+                    const lane2 = remaining[0];
+                    const type2 = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+                    const obs2 = createObstacle3D(type2, lane2, 0, centerZ - 50);
+                    if (obs2) customObstacles.push(obs2);
                 }
             }
             return;
         }
 
+        // No Coin Mode: Obstacles mixed with Red Elimination Coins
+        const pattern = Math.floor(Math.random() * 8);
+
         if (pattern === 0 || pattern === 1) {
-            // Caçamba 3D ou Arbusto 3D no chão (y = 0)
-            const obsType = Math.random() > 0.4 ? 'bush' : 'dumpster';
+            // Native Obstacle on ground + Red Coin on another lane
             const dLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const obsType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
             const d = createObstacle3D(obsType, dLane, 0, centerZ);
             if (d) customObstacles.push(d);
 
@@ -1014,71 +954,40 @@
                 const c = createObstacle3D('coin', cLane, 6, centerZ);
                 if (c) customObstacles.push(c);
             }
-        } else if (pattern === 2 || pattern === 7) {
-            // Arbusto / Mato 3D nativo (bush_1 no solo y = 0)
-            const bLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const b = createObstacle3D('bush', bLane, 0, centerZ);
-            if (b) customObstacles.push(b);
+        } else if (pattern === 2 || pattern === 3) {
+            // Double native obstacles leaving center or side open
+            const lane1 = freeGroundLanes[0];
+            const type1 = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+            const obs1 = createObstacle3D(type1, lane1, 0, centerZ);
+            if (obs1) customObstacles.push(obs1);
 
-            const otherFree = freeGroundLanes.filter(l => l !== bLane);
-            if (otherFree.length > 0) {
-                const cLane = otherFree[Math.floor(Math.random() * otherFree.length)];
-                const c = createObstacle3D('coin', cLane, 6, centerZ);
-                if (c) customObstacles.push(c);
-            }
-        } else if (pattern === 3) {
-            // Dupla nos cantos (-20 e 20) deixando centro livre
-            if (!isPositionBlocked(-20, 0, centerZ, 26) && !isPositionBlocked(20, 0, centerZ, 26) && !isPositionBlocked(0, 0, centerZ, 26)) {
-                const t1 = Math.random() > 0.5 ? 'dumpster' : 'bush';
-                const t2 = Math.random() > 0.5 ? 'bush' : 'dumpster';
-                const o1 = createObstacle3D(t1, -20, 0, centerZ);
-                const o2 = createObstacle3D(t2, 20, 0, centerZ);
-                if (o1) customObstacles.push(o1);
-                if (o2) customObstacles.push(o2);
+            if (freeGroundLanes.length > 1) {
+                const lane2 = freeGroundLanes[freeGroundLanes.length - 1];
+                const type2 = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+                const obs2 = createObstacle3D(type2, lane2, 0, centerZ);
+                if (obs2) customObstacles.push(obs2);
             }
         } else if (pattern === 4) {
-            // Paredão com 1 brecha
-            if (freeGroundLanes.length > 1) {
-                const openLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-                freeGroundLanes.forEach(lx => {
-                    if (lx !== openLane) {
-                        const c = createObstacle3D('coin', lx, 6, centerZ);
-                        if (c) customObstacles.push(c);
-                    }
-                });
-            }
+            // Jump or Roll Barrier Challenge
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const b = createObstacle3D(Math.random() > 0.5 ? 'blocker_jump' : 'blocker_roll', lane, 0, centerZ);
+            if (b) customObstacles.push(b);
         } else if (pattern === 5) {
-            // Pulo Obrigatório
-            freeGroundLanes.forEach(lx => {
-                const c = createObstacle3D('coin', lx, 5, centerZ);
-                if (c) customObstacles.push(c);
-            });
-        } else if (pattern === 6) {
-            // Rolamento Obrigatório
-            const freeHigh = lanes.filter(lx => !isPositionBlocked(lx, 26, centerZ));
-            freeHigh.forEach(lx => {
-                const c = createObstacle3D('coin', lx, 26, centerZ);
-                if (c) customObstacles.push(c);
-            });
-        } else if (pattern === 8) {
-            // Zig-zag Slalom
+            // Slalom coins
             const order = [-20, 0, 20];
             if (Math.random() > 0.5) order.reverse();
             order.forEach((lx, idx) => {
-                const pz = centerZ - (idx * 65);
-                if (!isPositionBlocked(lx, 6, pz)) {
+                const pz = centerZ - (idx * 60);
+                if (!isPositionBlocked(lx, 6, pz, 20)) {
                     const c = createObstacle3D('coin', lx, 6, pz);
                     if (c) customObstacles.push(c);
                 }
             });
-        } else if (pattern === 9) {
-            // Moeda Móvel Oscilante (vai de -20 a +20 continuamente)
-            const c = createObstacle3D('coin', 0, 6, centerZ, {
-                isOscillating: true,
-                speed: 2.2,
-                phase: Math.random() * Math.PI
-            });
-            if (c) customObstacles.push(c);
+        } else {
+            // Bush obstacle directly in lane
+            const bLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const b = createObstacle3D('bush', bLane, 0, centerZ);
+            if (b) customObstacles.push(b);
         }
     }
 
@@ -1143,18 +1052,30 @@
                     triggerCoinShatter({ body: { x: obs.x, y: obs.y, z: obs.z } });
                     continue;
                 } else {
+                    // Check if player cleared obstacle cleanly:
+                    const isJumping = heroY >= 7.5;
+                    const isRolling = hero && hero.character && (
+                        (hero.character.roll && hero.character.roll.active) ||
+                        (hero.anim && hero.anim.currentAnimationClipName === 'roll')
+                    );
+
+                    if (obs.type === 'blocker_jump' && isJumping) {
+                        continue; // Cleared jump barrier
+                    }
+                    if (obs.type === 'blocker_roll' && isRolling) {
+                        continue; // Cleared roll barrier
+                    }
+                    if (obs.type === 'bush' && isJumping) {
+                        continue; // Cleared bush jump
+                    }
+
                     obs.destroyed = true;
                     if (window.NO_COIN_MODE) {
                         triggerNoCoinDeath(null);
                         return;
-                    } else if (obs.type === 'bush' || obs.type === 'dumpster') {
-                        // Hero jumped over bush? (bush height is 12)
-                        if (heroY >= 10) {
-                            // Successfully jumped over bush
-                            continue;
-                        }
+                    } else {
                         if (hero && hero.player) {
-                            if (typeof hero.player.stumble === 'function') {
+                            if (obs.type === 'bush' && typeof hero.player.stumble === 'function') {
                                 hero.player.stumble('bush');
                             } else if (typeof hero.player.die === 'function') {
                                 hero.player.die('train');
@@ -2132,7 +2053,6 @@
         ov.id = 'subway-cd-overlay';
         ov.innerHTML = `
             <div class="cd-container">
-                <div class="cd-circle-glow"></div>
                 <div class="countdown-num pop" id="cd-num">${seconds}</div>
                 <div class="countdown-sub">${label}</div>
             </div>
@@ -2155,7 +2075,7 @@
                 finished = true;
                 clearInterval(tm);
                 if (n) {
-                    n.textContent = 'GO!';
+                    n.textContent = 'VAI!';
                     n.className = 'countdown-num go';
                 }
                 setTimeout(() => {
@@ -2163,8 +2083,8 @@
                     setTimeout(() => {
                         ov.remove();
                         done();
-                    }, 200);
-                }, 400);
+                    }, 150);
+                }, 350);
             }
         }, 1000);
     }
@@ -3078,7 +2998,7 @@
                 <!-- Tabs Navigation -->
                 <div class="unified-tabs">
                     <button class="tab-btn" data-tab="modes" id="tab-btn-modes">MODOS DE JOGO</button>
-                    <button class="tab-btn" data-tab="graphics" id="tab-btn-graphics">GRÁFICOS</button>
+                    <button class="tab-btn" data-tab="graphics" id="tab-btn-graphics">FLUIDEZ & VÍDEO</button>
                     <button class="tab-btn" data-tab="multiplayer" id="tab-btn-multiplayer">MULTIPLAYER</button>
                     <button class="tab-btn" data-tab="records" id="tab-btn-records">RECORDES</button>
                 </div>
@@ -3110,34 +3030,8 @@
 
                 <!-- Tab 2: Graphics, Display & Fluidity (Native Subway Surfers Aesthetic) -->
                 <div class="tab-pane" id="pane-graphics">
-                    <!-- Graphics Setting -->
-                    <div class="subway-setting-row" onclick="window.__cycleGraphicsSetting()" title="Toque para alternar qualidade gráfica">
-                        <div class="btn-subway-glossy-box">
-                            <svg class="glossy-icon" viewBox="0 0 24 24" width="28" height="28" fill="#ffffff">
-                                <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"/>
-                            </svg>
-                        </div>
-                        <div class="setting-text-col">
-                            <span class="setting-title">Graphics</span>
-                            <span class="setting-value" id="val-gfx-graphics">${GFX_SETTINGS.graphics}</span>
-                        </div>
-                    </div>
-
-                    <!-- Anti-Aliasing Setting -->
-                    <div class="subway-setting-row" onclick="window.__cycleAntiAliasing()" title="Toque para alternar Anti-Aliasing">
-                        <div class="btn-subway-glossy-box">
-                            <svg class="glossy-icon" viewBox="0 0 24 24" width="26" height="26" fill="#ffffff">
-                                <path d="M4 20h2.5v-2.5H4V20zm3.5-3.5H10V14H7.5v2.5zm3.5-3.5h2.5v-2.5H11V13zm3.5-3.5H17V7h-2.5v2.5zm3.5-3.5H21V3.5h-2.5V6zM2 22h2.5v-2.5H2V22zm17-17h2.5V2.5H19V5z"/>
-                            </svg>
-                        </div>
-                        <div class="setting-text-col">
-                            <span class="setting-title">Anti-Aliasing</span>
-                            <span class="setting-value" id="val-gfx-antialias">${GFX_SETTINGS.antiAliasing}</span>
-                        </div>
-                    </div>
-
                     <!-- Unlimited FPS Setting -->
-                    <div class="subway-setting-row" onclick="window.__cycleFPS()" title="Toque para alternar limite de FPS">
+                    <div class="subway-setting-row" onclick="window.__cycleFPS()" title="Toque para alternar taxa de quadros">
                         <div class="btn-subway-glossy-box">
                             <svg class="glossy-icon" viewBox="0 0 24 24" width="26" height="26" fill="#ffffff">
                                 <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
@@ -3146,6 +3040,19 @@
                         <div class="setting-text-col">
                             <span class="setting-title">Taxa de Quadros (FPS)</span>
                             <span class="setting-value" id="val-gfx-fps">${GFX_SETTINGS.fps === 'unlimited' ? 'Ilimitado (120Hz+)' : (GFX_SETTINGS.fps + ' FPS')}</span>
+                        </div>
+                    </div>
+
+                    <!-- Fluid Animation Optimizer -->
+                    <div class="subway-setting-row" onclick="window.__toggleSmoothAnim()" title="Toque para alternar fluidez de animação">
+                        <div class="btn-subway-glossy-box">
+                            <svg class="glossy-icon" viewBox="0 0 24 24" width="26" height="26" fill="#ffffff">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
+                            </svg>
+                        </div>
+                        <div class="setting-text-col">
+                            <span class="setting-title">Fluidez das Animações</span>
+                            <span class="setting-value" id="val-gfx-smooth">${GFX_SETTINGS.smoothAnim ? 'Ultra Fluido (120Hz Interpolação)' : 'Padrão (60Hz)'}</span>
                         </div>
                     </div>
 
@@ -3158,31 +3065,18 @@
                                 </svg>
                             </div>
                             <div class="setting-text-col">
-                                <span class="setting-title">Saturação</span>
+                                <span class="setting-title">Saturação de Cores</span>
                                 <span class="setting-value" id="val-gfx-saturation">${GFX_SETTINGS.saturation}%</span>
                             </div>
                         </div>
                         <div class="sat-slider-wrap">
                             <input type="range" id="slider-saturation" min="50" max="200" step="5" value="${GFX_SETTINGS.saturation}" oninput="window.__setSaturation(this.value)" />
                             <div class="sat-presets-row">
-                                <button class="btn-sat-chip" onclick="window.__setSaturation(70)">70%</button>
-                                <button class="btn-sat-chip" onclick="window.__setSaturation(100)">100% (Padrão)</button>
+                                <button class="btn-sat-chip" onclick="window.__setSaturation(70)">70% Suave</button>
+                                <button class="btn-sat-chip" onclick="window.__setSaturation(100)">100% Padrão</button>
                                 <button class="btn-sat-chip" onclick="window.__setSaturation(135)">135% Vívido</button>
                                 <button class="btn-sat-chip" onclick="window.__setSaturation(170)">170% Intenso</button>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Fluid Animation Setting -->
-                    <div class="subway-setting-row" onclick="window.__toggleSmoothAnim()" title="Toque para alternar otimização de animação">
-                        <div class="btn-subway-glossy-box">
-                            <svg class="glossy-icon" viewBox="0 0 24 24" width="26" height="26" fill="#ffffff">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
-                            </svg>
-                        </div>
-                        <div class="setting-text-col">
-                            <span class="setting-title">Fluidez da Animação</span>
-                            <span class="setting-value" id="val-gfx-smooth">${GFX_SETTINGS.smoothAnim ? 'Ativada (120Hz Interpolação)' : 'Padrão (60Hz)'}</span>
                         </div>
                     </div>
                 </div>
@@ -3920,22 +3814,23 @@
                 color: #cbd5e1;
             }
 
-            /* Professional Punchy Arcade Countdown */
+                        /* Minimalist & Professional Clean Countdown */
             .subway-countdown-overlay {
                 position: fixed;
                 top: 0; left: 0; right: 0; bottom: 0;
-                background: rgba(5, 10, 20, 0.75);
-                backdrop-filter: blur(8px);
-                -webkit-backdrop-filter: blur(8px);
+                background: rgba(2, 6, 23, 0.55);
+                backdrop-filter: blur(6px);
+                -webkit-backdrop-filter: blur(6px);
                 z-index: 100004;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                transition: opacity 0.2s ease-out;
+                transition: opacity 0.15s ease-out;
+                user-select: none;
+                pointer-events: none;
             }
             .subway-countdown-overlay.fade-out {
                 opacity: 0;
-                pointer-events: none;
             }
             .cd-container {
                 display: flex;
@@ -3945,49 +3840,43 @@
                 text-align: center;
             }
             .countdown-num {
-                font-size: 130px;
-                font-weight: 900;
-                font-family: 'Titan One', 'Impact', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-size: 76px;
+                font-weight: 800;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                 color: #ffffff;
                 line-height: 1;
                 margin: 0;
-                letter-spacing: -2px;
-                text-shadow: 0 6px 0 #0f172a, 0 12px 28px rgba(0, 0, 0, 0.75);
+                letter-spacing: -1.5px;
+                text-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
             }
             .countdown-num.pop {
-                animation: cdPunch 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                animation: cdSubtlePop 0.22s ease-out;
             }
             .countdown-num.go {
-                font-size: 110px;
-                color: #facc15;
-                text-shadow: 0 6px 0 #854d0e, 0 12px 32px rgba(250, 204, 21, 0.6);
-                animation: cdGoPunch 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                font-size: 58px;
+                font-weight: 800;
+                color: #10b981;
+                letter-spacing: 2px;
+                text-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+                animation: cdSubtlePop 0.2s ease-out;
             }
-            @keyframes cdPunch {
-                0% { transform: scale(1.6); opacity: 0; }
-                40% { transform: scale(0.95); opacity: 1; }
-                100% { transform: scale(1); opacity: 1; }
-            }
-            @keyframes cdGoPunch {
-                0% { transform: scale(0.6); opacity: 0; }
-                50% { transform: scale(1.2); opacity: 1; }
+            @keyframes cdSubtlePop {
+                0% { transform: scale(1.18); opacity: 0.7; }
                 100% { transform: scale(1); opacity: 1; }
             }
             .countdown-sub {
-                margin-top: 18px;
-                padding: 8px 24px;
+                margin-top: 14px;
+                padding: 4px 16px;
                 border-radius: 9999px;
-                background: rgba(15, 23, 42, 0.9);
-                border: 2px solid #38bdf8;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.35);
-                color: #ffffff;
-                font-size: 13px;
-                font-weight: 900;
-                letter-spacing: 1.5px;
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                color: #cbd5e1;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 1.2px;
                 text-transform: uppercase;
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             }
-
             /* Map Filter Grading */
             body[data-map-theme="tokyo"] canvas { filter: contrast(1.18) hue-rotate(25deg) saturate(1.35) !important; }
             body[data-map-theme="rio"] canvas { filter: brightness(1.08) saturate(1.4) hue-rotate(-15deg) !important; }
@@ -6663,4 +6552,4 @@
     }
 })();
 
-applyGraphicsSettings(); setInterval(applyGraphicsSettings, 2000);
+applyGraphicsSettings(); 
