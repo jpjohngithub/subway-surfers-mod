@@ -119,66 +119,24 @@
     // ==========================================
     window.__swipeT = 7; // Ultra-sensitive swipe threshold (7px instead of 22px)
 
-    (function setupZeroDelayInput() {
-        let startX = 0;
-        let startY = 0;
-        let dispatched = false;
+    // Ultra-responsive native swipe threshold
+    window.__swipeT = 9;
 
-        function getControls() {
-            const g = window.game || (window.app && window.app.game);
-            return g && g.controls;
+    // Zero-delay keyboard response (WASD & Arrows) without hijacking touch
+    window.addEventListener('keydown', function(e) {
+        const g = window.game || (window.app && window.app.game);
+        const ctrl = g && g.controls;
+        if (!ctrl) return;
+        if (e.key === 'ArrowLeft' || e.code === 'KeyA') {
+            if (ctrl.onSwipeHorizontal) ctrl.onSwipeHorizontal.dispatch(-1);
+        } else if (e.key === 'ArrowRight' || e.code === 'KeyD') {
+            if (ctrl.onSwipeHorizontal) ctrl.onSwipeHorizontal.dispatch(1);
+        } else if (e.key === 'ArrowUp' || e.code === 'KeyW' || e.key === ' ') {
+            if (ctrl.onSwipeVertical) ctrl.onSwipeVertical.dispatch(1);
+        } else if (e.key === 'ArrowDown' || e.code === 'KeyS') {
+            if (ctrl.onSwipeVertical) ctrl.onSwipeVertical.dispatch(-1);
         }
-
-        window.addEventListener('touchstart', function(e) {
-            if (!e.touches || !e.touches[0]) return;
-            const t = e.touches[0];
-            startX = t.clientX;
-            startY = t.clientY;
-            dispatched = false;
-        }, { passive: true });
-
-        window.addEventListener('touchmove', function(e) {
-            if (dispatched || !e.touches || !e.touches[0]) return;
-            const t = e.touches[0];
-            const dx = t.clientX - startX;
-            const dy = t.clientY - startY;
-            const absX = Math.abs(dx);
-            const absY = Math.abs(dy);
-            const threshold = 7; // Instant 7px flick response
-
-            if (absX >= threshold || absY >= threshold) {
-                const ctrl = getControls();
-                if (absX >= absY) {
-                    const dir = dx > 0 ? 1 : -1;
-                    if (ctrl && ctrl.onSwipeHorizontal) {
-                        ctrl.onSwipeHorizontal.dispatch(dir);
-                        dispatched = true;
-                    }
-                } else {
-                    const dir = dy < 0 ? 1 : -1; // up = jump (1), down = roll (-1)
-                    if (ctrl && ctrl.onSwipeVertical) {
-                        ctrl.onSwipeVertical.dispatch(dir);
-                        dispatched = true;
-                    }
-                }
-            }
-        }, { passive: true });
-
-        // Zero-delay keyboard response
-        window.addEventListener('keydown', function(e) {
-            const ctrl = getControls();
-            if (!ctrl) return;
-            if (e.key === 'ArrowLeft' || e.code === 'KeyA') {
-                if (ctrl.onSwipeHorizontal) ctrl.onSwipeHorizontal.dispatch(-1);
-            } else if (e.key === 'ArrowRight' || e.code === 'KeyD') {
-                if (ctrl.onSwipeHorizontal) ctrl.onSwipeHorizontal.dispatch(1);
-            } else if (e.key === 'ArrowUp' || e.code === 'KeyW' || e.key === ' ') {
-                if (ctrl.onSwipeVertical) ctrl.onSwipeVertical.dispatch(1);
-            } else if (e.key === 'ArrowDown' || e.code === 'KeyS') {
-                if (ctrl.onSwipeVertical) ctrl.onSwipeVertical.dispatch(-1);
-            }
-        }, true);
-    })();
+    }, true);
 
     const GFX_SETTINGS = {
         fps: localStorage.getItem('sw_fps') || 'unlimited', // '60' | '120' | 'unlimited'
@@ -1154,6 +1112,19 @@
                 continue;
             }
 
+            // Passed behind player: remove immediately
+            if (obs.z > heroZ + 50) {
+                if (obs.mesh && obs.mesh.parent) {
+                    try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                }
+                customObstacles.splice(i, 1);
+                continue;
+            }
+
+            // High-performance distance culling: skip heavy math for far obstacles
+            const dz = Math.abs(obs.z - heroZ);
+            if (dz > 180) continue;
+
             // Oscillating dynamic horizontal movement across lanes
             if (obs.isOscillating && obs.mesh) {
                 obs.x = Math.sin(now * 0.003 * obs.speed + obs.phase) * 20;
@@ -1170,8 +1141,6 @@
             if (obs.type === 'coin' && obs.mesh && obs.mesh.rotation) {
                 obs.mesh.rotation.y += 0.09;
             }
-
-            const dz = Math.abs(obs.z - heroZ);
             const dx = Math.abs(obs.x - heroX);
             const dy = Math.abs(obs.y - heroY);
 
@@ -3775,7 +3744,7 @@
             
             /* Canvas Saturation & Visual Fidelity */
             canvas {
-                touch-action: none !important;
+                touch-action: manipulation !important;
                 -webkit-touch-callout: none !important;
                 user-select: none !important;
                 filter: saturate(var(--game-saturation, 100%)) !important;
@@ -4147,8 +4116,9 @@
             body.sw-in-run #btn-subway-online-lobby { display: none !important; }
             .btn-subway-online-lobby {
                 position: fixed;
-                bottom: 20px;
-                left: 66px;
+                top: max(14px, env(safe-area-inset-top, 14px));
+                left: 58px;
+                bottom: auto;
                 z-index: 99998;
                 height: 36px;
                 padding: 0 14px 0 10px;
@@ -4203,8 +4173,9 @@
             body.sw-in-run #btn-subway-unified-menu { display: none !important; }
             .btn-subway-unified-menu {
                 position: fixed;
-                bottom: 20px;
-                left: 20px;
+                top: max(14px, env(safe-area-inset-top, 14px));
+                left: 14px;
+                bottom: auto;
                 z-index: 99998;
                 width: 36px;
                 height: 36px;
@@ -5941,62 +5912,72 @@
 
             /* Responsive Mobile & Small-Screen Adaptation */
             @media (max-width: 768px) {
+                * {
+                    -webkit-tap-highlight-color: transparent !important;
+                }
                 .subway-modal-backdrop {
-                    padding: 8px !important;
-                    align-items: flex-end !important;
+                    padding: 12px !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    backdrop-filter: none !important;
+                    -webkit-backdrop-filter: none !important;
+                    background: rgba(2, 6, 23, 0.92) !important;
                 }
                 .subway-modal-box, .unified-box {
-                    width: 100vw !important;
-                    max-width: 100vw !important;
-                    height: 94vh !important;
-                    max-height: 94vh !important;
-                    padding: 0 !important;
-                    border-radius: 18px 18px 0 0 !important;
+                    width: 94vw !important;
+                    max-width: 420px !important;
+                    height: auto !important;
+                    max-height: 84vh !important;
+                    margin: auto !important;
+                    border-radius: 16px !important;
+                    border: 1px solid rgba(255, 255, 255, 0.12) !important;
                     box-sizing: border-box !important;
                     overflow: hidden !important;
                     display: flex !important;
                     flex-direction: column !important;
-                    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.9) !important;
+                    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9) !important;
+                    backdrop-filter: none !important;
+                    -webkit-backdrop-filter: none !important;
+                    background: #090e1a !important;
                 }
                 .modal-header {
                     padding: 12px 16px !important;
-                    margin-bottom: 0 !important;
                     flex-shrink: 0 !important;
-                    background: rgba(15, 23, 42, 0.8) !important;
+                    background: #0f172a !important;
                 }
                 .modal-brand-title {
-                    font-size: 14px !important;
+                    font-size: 13px !important;
                 }
                 .btn-modal-close {
                     font-size: 20px !important;
-                    padding: 6px 12px !important;
+                    padding: 4px 10px !important;
                 }
 
                 /* Tabs: Touch-Friendly Segmented Control */
                 .unified-tabs {
                     display: flex !important;
                     gap: 6px !important;
-                    padding: 6px 12px !important;
-                    margin-bottom: 0 !important;
+                    padding: 8px 12px !important;
                     flex-shrink: 0 !important;
-                    background: rgba(10, 15, 29, 0.95) !important;
+                    background: #0b1120 !important;
                 }
                 .tab-btn {
-                    padding: 10px 6px !important;
+                    padding: 8px 6px !important;
                     font-size: 11px !important;
                     font-weight: 800 !important;
                     flex: 1 !important;
-                    height: 40px !important;
+                    height: 38px !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
                     text-align: center !important;
                     border-radius: 8px !important;
-                    background: rgba(255, 255, 255, 0.04) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+                    background: rgba(255, 255, 255, 0.05) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                    touch-action: manipulation !important;
                 }
                 .tab-btn.active {
-                    background: rgba(56, 189, 248, 0.18) !important;
+                    background: rgba(56, 189, 248, 0.22) !important;
                     border-color: #38bdf8 !important;
                     color: #fff !important;
                 }
@@ -6006,306 +5987,32 @@
                     flex: 1 !important;
                     overflow-y: auto !important;
                     -webkit-overflow-scrolling: touch !important;
-                    padding: 14px 16px 24px 16px !important;
+                    padding: 12px 14px 20px 14px !important;
                     box-sizing: border-box !important;
                 }
 
-                /* Header Bar: Stack cleanly in mobile */
-                .lobby-header-bar {
-                    flex-direction: column !important;
-                    align-items: stretch !important;
-                    gap: 10px !important;
-                    padding: 12px !important;
-                    margin-bottom: 12px !important;
-                    background: rgba(255, 255, 255, 0.03) !important;
-                    border-radius: 12px !important;
-                }
-                .lobby-room-badge {
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: space-between !important;
-                    width: 100% !important;
-                    padding: 4px 0 !important;
-                }
-                .room-code-tag {
-                    font-size: 13px !important;
-                }
-                .btn-copy-code {
-                    padding: 6px 14px !important;
-                    font-size: 12px !important;
-                    height: 34px !important;
-                }
-
-                /* User Profile in Mobile */
-                .lobby-user-profile {
-                    display: flex !important;
-                    flex-direction: column !important;
-                    align-items: stretch !important;
-                    gap: 8px !important;
-                    width: 100% !important;
-                    box-sizing: border-box !important;
-                    padding: 0 !important;
-                }
-                .user-avatar-wrap {
-                    width: 44px !important;
-                    height: 44px !important;
-                    align-self: center !important;
-                }
-                .user-meta-wrap {
-                    width: 100% !important;
-                    gap: 8px !important;
-                }
-                .user-fields-row {
-                    display: flex !important;
-                    flex-direction: column !important;
-                    gap: 8px !important;
-                    width: 100% !important;
-                }
-                #input-my-nick {
-                    width: 100% !important;
-                    max-width: 100% !important;
-                    box-sizing: border-box !important;
-                    height: 42px !important;
-                    font-size: 15px !important;
-                    padding: 8px 12px !important;
-                    border-radius: 8px !important;
-                }
-                #input-my-avatar-url {
-                    width: 100% !important;
-                    max-width: 100% !important;
-                    box-sizing: border-box !important;
-                    height: 38px !important;
-                    font-size: 14px !important;
-                    padding: 6px 10px !important;
-                    border-radius: 8px !important;
-                }
-                .avatar-dots-bar {
-                    display: flex !important;
-                    flex-wrap: nowrap !important;
-                    overflow-x: auto !important;
-                    -webkit-overflow-scrolling: touch !important;
-                    gap: 8px !important;
-                    padding: 4px 2px 8px 2px !important;
-                }
-                .avatar-dot-chip {
-                    width: 32px !important;
-                    height: 32px !important;
-                    flex-shrink: 0 !important;
-                }
-                .btn-avatar-url-chip {
-                    height: 32px !important;
-                    padding: 0 10px !important;
-                    font-size: 11px !important;
-                    flex-shrink: 0 !important;
-                }
-
-                /* Join Room Box */
-                .lobby-join-box {
-                    display: flex !important;
-                    width: 100% !important;
-                    gap: 8px !important;
-                    box-sizing: border-box !important;
-                }
-                #input-join-room {
-                    flex: 1 !important;
-                    height: 42px !important;
-                    font-size: 15px !important;
-                    padding: 8px 12px !important;
-                    border-radius: 8px !important;
-                }
-                .btn-join-room {
-                    height: 42px !important;
-                    padding: 0 16px !important;
-                    font-size: 13px !important;
-                    font-weight: 800 !important;
-                    border-radius: 8px !important;
-                    flex-shrink: 0 !important;
-                }
-
-                /* Lobby Grid */
-                .lobby-grid {
-                    flex-direction: column !important;
-                    gap: 14px !important;
-                }
-                .lobby-column {
-                    width: 100% !important;
-                    box-sizing: border-box !important;
-                    padding: 12px !important;
-                    border-radius: 12px !important;
-                }
-                .col-header {
-                    margin-bottom: 10px !important;
-                }
-                .col-title-wrap h3 {
-                    font-size: 13px !important;
-                }
-                .party-hint {
-                    font-size: 10px !important;
-                }
-                .btn-add-bot {
-                    height: 32px !important;
-                    padding: 0 10px !important;
-                    font-size: 11px !important;
-                }
-                .btn-refresh-online {
-                    height: 32px !important;
-                    padding: 0 10px !important;
-                    font-size: 11px !important;
-                }
-
-                /* Party Slots */
-                .party-slots-container {
-                    display: flex !important;
-                    flex-direction: column !important;
-                    gap: 8px !important;
-                    margin-bottom: 14px !important;
-                }
-                .party-slot {
-                    padding: 8px 12px !important;
-                    gap: 10px !important;
-                    height: 48px !important;
-                    box-sizing: border-box !important;
-                    border-radius: 10px !important;
-                }
-                .slot-avatar {
-                    width: 32px !important;
-                    height: 32px !important;
-                }
-                .slot-nick {
-                    max-width: 130px !important;
-                    font-size: 13px !important;
-                    overflow: hidden !important;
-                    text-overflow: ellipsis !important;
-                    white-space: nowrap !important;
-                }
-                .slot-status-pill {
-                    font-size: 10px !important;
-                    padding: 4px 8px !important;
-                }
-
-                /* Party Bottom Actions: Big Thumb Buttons */
-                .party-bottom-actions {
-                    display: grid !important;
-                    grid-template-columns: 1fr 1fr !important;
-                    gap: 10px !important;
-                    margin-top: 10px !important;
-                }
-                .btn-ready {
-                    height: 46px !important;
-                    font-size: 13px !important;
-                    font-weight: 800 !important;
-                    border-radius: 10px !important;
-                    grid-column: 1 / 2 !important;
-                }
-                .btn-leave-room {
-                    height: 46px !important;
-                    font-size: 13px !important;
-                    font-weight: 700 !important;
-                    border-radius: 10px !important;
-                    grid-column: 2 / 3 !important;
-                }
-                .btn-start-match {
-                    height: 48px !important;
-                    font-size: 14px !important;
-                    font-weight: 900 !important;
-                    letter-spacing: 0.5px !important;
-                    border-radius: 10px !important;
-                    grid-column: 1 / -1 !important;
-                }
-
-                /* Online Players List */
-                .players-col {
-                    max-height: 220px !important;
-                    overflow-y: auto !important;
-                    -webkit-overflow-scrolling: touch !important;
-                }
-                .online-player-item {
-                    height: 44px !important;
-                    padding: 6px 8px !important;
-                }
-                .btn-invite-player {
-                    height: 32px !important;
-                    padding: 0 10px !important;
-                    font-size: 11px !important;
-                }
-
-                /* Mod Cards in Modes Tab */
-                .mod-card {
-                    padding: 12px 14px !important;
-                    gap: 12px !important;
-                    margin-bottom: 8px !important;
-                }
-                .mod-title {
-                    font-size: 14px !important;
-                }
-                .mod-desc {
-                    font-size: 11px !important;
-                }
-                .btn-clean-toggle {
-                    height: 38px !important;
-                    padding: 0 12px !important;
-                    font-size: 11px !important;
-                    border-radius: 19px !important;
-                    flex-shrink: 0 !important;
-                }
-
-                /* Records Filters */
-                .records-filter-bar {
-                    display: flex !important;
-                    flex-wrap: wrap !important;
-                    gap: 6px !important;
-                    margin-bottom: 10px !important;
-                }
-                .btn-filter-record, .btn-clear-records {
-                    height: 34px !important;
-                    padding: 0 10px !important;
-                    font-size: 11px !important;
-                }
-
-                /* Game Screen Floating Buttons & Timers */
+                /* Buttons at Top-Left (Never overlap bottom Home / Back to start) */
                 .btn-subway-unified-menu {
-                    width: 44px !important;
-                    height: 44px !important;
-                    bottom: max(14px, env(safe-area-inset-bottom, 14px)) !important;
+                    width: 38px !important;
+                    height: 38px !important;
+                    top: max(12px, env(safe-area-inset-top, 12px)) !important;
+                    bottom: auto !important;
                     left: 12px !important;
-                    border-radius: 22px !important;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.6) !important;
-                }
-                .btn-subway-unified-menu svg {
-                    width: 22px !important;
-                    height: 22px !important;
+                    border-radius: 19px !important;
+                    z-index: 99998 !important;
                 }
                 .btn-subway-online-lobby {
-                    height: 44px !important;
-                    padding: 0 14px !important;
-                    bottom: max(14px, env(safe-area-inset-bottom, 14px)) !important;
-                    left: 64px !important;
-                    font-size: 13px !important;
-                    font-weight: 800 !important;
-                    gap: 6px !important;
-                    border-radius: 22px !important;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.6) !important;
-                }
-                .subway-top-timer-wrap {
+                    height: 38px !important;
+                    padding: 0 12px !important;
                     top: max(12px, env(safe-area-inset-top, 12px)) !important;
-                    padding: 6px 14px !important;
-                    gap: 8px !important;
-                    pointer-events: none !important;
-                    box-shadow: 0 4px 18px rgba(0,0,0,0.6) !important;
-                }
-                .subway-top-timer-wrap .timer-value {
-                    font-size: 15px !important;
+                    bottom: auto !important;
+                    left: 56px !important;
+                    font-size: 11px !important;
                     font-weight: 800 !important;
+                    border-radius: 19px !important;
+                    z-index: 99998 !important;
                 }
-                .subway-top-timer-wrap .timer-icon {
-                    font-size: 13px !important;
-                }
-                .subway-top-timer-wrap .timer-badge {
-                    font-size: 9px !important;
-                    padding: 2px 7px !important;
-                }
-
-                /* Scoreboards & Overlays: No Overlap & Pass Through Touches */
+                
                 .subway-live-rank {
                     top: max(54px, env(safe-area-inset-top, 54px)) !important;
                     right: 8px !important;
@@ -6699,13 +6406,5 @@
 applyGraphicsSettings(); 
 
 
-    // Permanently maintain user saturation across canvas creation and F5 reload
-    setInterval(() => {
-        const sat = GFX_SETTINGS.saturation || parseInt(localStorage.getItem('sw_saturation') || '100', 10);
-        document.documentElement.style.setProperty('--game-saturation', sat + '%');
-        const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
-        if (canvas && (!canvas.style.filter || !canvas.style.filter.includes('saturate'))) {
-            canvas.style.filter = `saturate(${sat}%)`;
-        }
-    }, 400);
+
 
