@@ -186,14 +186,20 @@
         smoothAnim: localStorage.getItem('sw_smooth_anim') !== 'false'
     };
 
-    function applyGraphicsSettings() {
-        const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
+    // IMMEDIATELY apply stored saturation to root on script load so F5 NEVER resets!
+    try {
+        document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
+    } catch(e) {}
 
-        // 1. Color Saturation (Fast CSS filter, no canvas buffer manipulation)
+    function applyGraphicsSettings() {
+        const satVal = GFX_SETTINGS.saturation || 100;
+        // Unconditionally set CSS custom property on root
+        document.documentElement.style.setProperty('--game-saturation', satVal + '%');
+
+        // If canvas is already mounted, apply filter directly as well
+        const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
         if (canvas) {
-            const satVal = GFX_SETTINGS.saturation || 100;
             canvas.style.filter = `saturate(${satVal}%)`;
-            document.documentElement.style.setProperty('--game-saturation', satVal + '%');
         }
 
         // 2. Ultra-Fluid Framerate (Unlock Pixi Ticker FPS for 120Hz / 144Hz screens)
@@ -241,8 +247,14 @@
 
     window.__setSaturation = function(val) {
         GFX_SETTINGS.saturation = Math.max(50, Math.min(200, parseInt(val, 10) || 100));
-        localStorage.setItem('sw_saturation', GFX_SETTINGS.saturation);
+        localStorage.setItem('sw_saturation', String(GFX_SETTINGS.saturation));
         document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
+
+        const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
+        if (canvas) {
+            canvas.style.filter = `saturate(${GFX_SETTINGS.saturation}%)`;
+        }
+
         const el = document.getElementById('val-gfx-saturation');
         if (el) {
             let desc = GFX_SETTINGS.saturation + '%';
@@ -6685,3 +6697,15 @@
 })();
 
 applyGraphicsSettings(); 
+
+
+    // Permanently maintain user saturation across canvas creation and F5 reload
+    setInterval(() => {
+        const sat = GFX_SETTINGS.saturation || parseInt(localStorage.getItem('sw_saturation') || '100', 10);
+        document.documentElement.style.setProperty('--game-saturation', sat + '%');
+        const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
+        if (canvas && (!canvas.style.filter || !canvas.style.filter.includes('saturate'))) {
+            canvas.style.filter = `saturate(${sat}%)`;
+        }
+    }, 400);
+
