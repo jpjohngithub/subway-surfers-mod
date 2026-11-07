@@ -122,53 +122,80 @@
     };
 
     function applyGraphicsSettings() {
-        // 1. Unlimited / Dynamic FPS on Game Ticker
+        const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
+        if (!canvas) return;
+
+        // 1. Resolution / Quality mapping
+        let targetRes = 1.0;
+        let contrastBoost = '1.0';
+
+        if (GFX_SETTINGS.graphics === 'Low') {
+            targetRes = 0.5; // Visibly retro / low-res for max FPS
+            contrastBoost = '0.92';
+        } else if (GFX_SETTINGS.graphics === 'Medium') {
+            targetRes = 0.85; // Standard 720p
+            contrastBoost = '1.0';
+        } else if (GFX_SETTINGS.graphics === 'High') {
+            targetRes = 1.35; // Native sharp 1080p
+            contrastBoost = '1.05';
+        } else if (GFX_SETTINGS.graphics === 'Ultra') {
+            targetRes = 2.0; // Ultra sharp 4K supersampling
+            contrastBoost = '1.12';
+        }
+
+        // Apply resolution to renderer & canvas buffer
+        if (window.app && window.app.renderer) {
+            window.app.renderer.resolution = targetRes;
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            try {
+                window.app.renderer.resize(w, h);
+            } catch(e) {}
+            // Directly scale canvas drawing buffer for visible instant graphical change
+            try {
+                canvas.width = Math.round(w * targetRes);
+                canvas.height = Math.round(h * targetRes);
+                canvas.style.width = w + 'px';
+                canvas.style.height = h + 'px';
+                const gl = window.app.renderer.gl;
+                if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
+            } catch(e) {}
+        }
+
+        // 2. Anti-Aliasing Setting
+        if (GFX_SETTINGS.antiAliasing === 'Off') {
+            canvas.style.imageRendering = 'pixelated';
+        } else if (GFX_SETTINGS.antiAliasing === '2x') {
+            canvas.style.imageRendering = 'auto';
+        } else if (GFX_SETTINGS.antiAliasing === '4x') {
+            canvas.style.imageRendering = 'smooth';
+        }
+
+        // 3. Saturation & Visual Grading
+        const satVal = GFX_SETTINGS.saturation || 100;
+        canvas.style.filter = `saturate(${satVal}%) contrast(${contrastBoost})`;
+        document.documentElement.style.setProperty('--game-saturation', satVal + '%');
+
+        // 4. Unlimited FPS on Pixi Ticker
         if (window.app && window.app.ticker) {
             if (GFX_SETTINGS.fps === 'unlimited') {
-                window.app.ticker.maxFPS = 0; // 0 = unlimited FPS in Pixi Ticker (120Hz / 144Hz / 240Hz)
+                window.app.ticker.maxFPS = 0; // 0 = unlimited FPS (120Hz/144Hz+)
             } else {
                 window.app.ticker.maxFPS = parseInt(GFX_SETTINGS.fps, 10) || 60;
             }
             window.app.ticker.minFPS = 10;
         }
 
-        // 2. Resolution Scaling (Graphics Quality)
-        if (window.app && window.app.renderer) {
-            const dpr = window.devicePixelRatio || 1;
-            let targetRes = 1;
-            if (GFX_SETTINGS.graphics === 'Low') targetRes = 0.75;
-            else if (GFX_SETTINGS.graphics === 'Medium') targetRes = 1.0;
-            else if (GFX_SETTINGS.graphics === 'High') targetRes = Math.min(Math.max(dpr, 1.25), 1.75);
-            else if (GFX_SETTINGS.graphics === 'Ultra') targetRes = Math.max(dpr, 2.0);
-
-            if (window.app.renderer.resolution !== targetRes) {
-                window.app.renderer.resolution = targetRes;
-                if (window.app.renderer.plugins && window.app.renderer.plugins.interaction) {
-                    window.app.renderer.plugins.interaction.resolution = targetRes;
-                }
-                if (typeof window.app.renderer.resize === 'function') {
-                    window.app.renderer.resize(window.innerWidth, window.innerHeight);
-                }
+        // 5. Camera Far Clip (View Distance) based on Graphics Quality
+        try {
+            const cam = (window.game && window.game.camera) || (window.app && window.app.camera);
+            if (cam && cam.camera) {
+                if (GFX_SETTINGS.graphics === 'Low') cam.camera.far = 500;
+                else if (GFX_SETTINGS.graphics === 'Medium') cam.camera.far = 850;
+                else if (GFX_SETTINGS.graphics === 'High') cam.camera.far = 1200;
+                else if (GFX_SETTINGS.graphics === 'Ultra') cam.camera.far = 1800;
             }
-        }
-
-        // 3. Anti-Aliasing on Canvas
-        const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
-        if (canvas) {
-            if (GFX_SETTINGS.antiAliasing === 'Off') {
-                canvas.style.imageRendering = 'pixelated';
-            } else if (GFX_SETTINGS.antiAliasing === '2x') {
-                canvas.style.imageRendering = 'auto';
-            } else if (GFX_SETTINGS.antiAliasing === '4x') {
-                canvas.style.imageRendering = 'smooth';
-            }
-        }
-
-        // 4. Color Saturation
-        document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
-
-        // 5. Hero Character Smooth Animation & Clock Pacing
-        optimizeHeroAnimAndFluidity();
+        } catch(e) {}
     }
 
     function optimizeHeroAnimAndFluidity() {
@@ -1560,7 +1587,8 @@
         return { x: sx, y: sy, depth: depth, scale: Math.max(0.4, Math.min(1.15, 50 / depth)) };
     }
 
-    function spawnTeammateMesh(tm) {
+    function spawnTeammateMesh(tm) { return null; /* Disabled: Solo clean runner view */
+
         try {
             const hero = window.game && window.game.hero;
             if (!hero || !hero.parent) return null;
@@ -1646,7 +1674,8 @@
         return null;
     }
 
-    function getOrCreateNametagEl(tm) {
+    function getOrCreateNametagEl(tm) { return null; /* Disabled: No tags over runners */
+
         let tag = document.getElementById(`coop-tag-${tm.id}`);
         if (!tag) {
             let overlay = document.getElementById('subway-coop-tags-overlay');
@@ -1780,7 +1809,7 @@
             }
         });
         for (const k in coopTeammates) delete coopTeammates[k];
-        removeEl('subway-coop-tags-overlay');
+        removeEl('subway-coop-tags-overlay'); document.querySelectorAll('.coop-teammate-nametag, #subway-coop-tags-overlay').forEach(e => e.remove());
         removeEl('subway-coop-hud');
     }
 
@@ -2372,38 +2401,21 @@
 
     function restoreHeroMesh() {
         try {
-            const hero = window.app && window.app.game && window.app.game.hero;
+            const hero = (window.game && window.game.hero) || (window.app && window.app.game && window.app.game.hero);
             if (!hero) return;
-            if (hero.idleScene) {
-                hero.idleScene._active = false;
-                hero.idleScene._worldActive = false;
-            }
-            if (hero.sprayCan) {
-                hero.sprayCan._active = false;
-                hero.sprayCan._worldActive = false;
-            }
-            if (hero.gameScene) {
-                hero.gameScene._active = true;
-                hero.gameScene._worldActive = true;
-            }
-            if (hero.anim) {
-                if (hero.gameScene) hero.anim.currentScene = hero.gameScene;
-                if (hero.anim.updateCurrentAnimation) hero.anim.updateCurrentAnimation();
-            }
-            if (typeof hero.refreshScenes === 'function') {
-                hero.refreshScenes();
-            }
-            if (typeof hero.resetModel === 'function') {
-                hero.resetModel();
-            }
-            if (hero.body) {
-                hero.body.ghost = false;
-                hero.body.movable = true;
-            }
             if (hero.model && hero.model.container) {
                 hero.model.container.visible = true;
                 hero.model.container.alpha = 1;
                 hero.model.container.renderable = true;
+            }
+            // Ensure running animation is playing smoothly
+            if (hero.anim && hero.character) {
+                if (hero.anim.currentAnimationClipName !== 'run3' && hero.anim.currentAnimationClipName !== 'jump' && hero.anim.currentAnimationClipName !== 'roll') {
+                    try { hero.anim.play('run3', { loop: true }); } catch(e) {}
+                }
+            }
+            if (hero.body) {
+                hero.body.movable = true;
             }
         } catch (e) {}
     }
@@ -3908,13 +3920,13 @@
                 color: #cbd5e1;
             }
 
-            /* Clean Non-AI Countdown Overlay */
+            /* Professional Punchy Arcade Countdown */
             .subway-countdown-overlay {
                 position: fixed;
                 top: 0; left: 0; right: 0; bottom: 0;
-                background: rgba(0, 0, 0, 0.65);
-                backdrop-filter: blur(5px);
-                -webkit-backdrop-filter: blur(5px);
+                background: rgba(5, 10, 20, 0.75);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
                 z-index: 100004;
                 display: flex;
                 align-items: center;
@@ -3930,39 +3942,53 @@
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
+                text-align: center;
             }
             .countdown-num {
-                font-size: 92px;
+                font-size: 130px;
                 font-weight: 900;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-family: 'Titan One', 'Impact', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 color: #ffffff;
                 line-height: 1;
                 margin: 0;
-                text-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+                letter-spacing: -2px;
+                text-shadow: 0 6px 0 #0f172a, 0 12px 28px rgba(0, 0, 0, 0.75);
             }
             .countdown-num.pop {
-                animation: cdPop 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+                animation: cdPunch 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             }
             .countdown-num.go {
-                font-size: 80px;
-                color: #22c55e;
-                text-shadow: 0 4px 20px rgba(34, 197, 94, 0.5);
-                animation: cdGo 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                font-size: 110px;
+                color: #facc15;
+                text-shadow: 0 6px 0 #854d0e, 0 12px 32px rgba(250, 204, 21, 0.6);
+                animation: cdGoPunch 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+            @keyframes cdPunch {
+                0% { transform: scale(1.6); opacity: 0; }
+                40% { transform: scale(0.95); opacity: 1; }
+                100% { transform: scale(1); opacity: 1; }
+            }
+            @keyframes cdGoPunch {
+                0% { transform: scale(0.6); opacity: 0; }
+                50% { transform: scale(1.2); opacity: 1; }
+                100% { transform: scale(1); opacity: 1; }
             }
             .countdown-sub {
-                margin-top: 16px;
-                padding: 5px 16px;
+                margin-top: 18px;
+                padding: 8px 24px;
                 border-radius: 9999px;
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.15);
-                color: #cbd5e1;
-                font-size: 11px;
-                font-weight: 700;
-                letter-spacing: 1px;
+                background: rgba(15, 23, 42, 0.9);
+                border: 2px solid #38bdf8;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.35);
+                color: #ffffff;
+                font-size: 13px;
+                font-weight: 900;
+                letter-spacing: 1.5px;
                 text-transform: uppercase;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             }
 
-/* Map Filter Grading */
+            /* Map Filter Grading */
             body[data-map-theme="tokyo"] canvas { filter: contrast(1.18) hue-rotate(25deg) saturate(1.35) !important; }
             body[data-map-theme="rio"] canvas { filter: brightness(1.08) saturate(1.4) hue-rotate(-15deg) !important; }
             body[data-map-theme="hawaii"] canvas { filter: saturate(1.45) sepia(0.22) hue-rotate(-25deg) brightness(1.05) !important; }
