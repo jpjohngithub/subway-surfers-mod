@@ -109,7 +109,145 @@
         localStorage.setItem('subway_surfers_profile', JSON.stringify(myProfile));
     }
 
-    // Multiplayer State
+    
+    // ==========================================
+    // GRAPHICS, ANTI-ALIASING, SATURATION & UNLIMITED FPS
+    // ==========================================
+    const GFX_SETTINGS = {
+        graphics: localStorage.getItem('sw_graphics') || 'High', // 'Low' | 'Medium' | 'High' | 'Ultra'
+        antiAliasing: localStorage.getItem('sw_antialias') || '2x', // 'Off' | '2x' | '4x'
+        fps: localStorage.getItem('sw_fps') || 'unlimited', // '60' | '120' | 'unlimited'
+        saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 200
+        smoothAnim: localStorage.getItem('sw_smooth_anim') !== 'false'
+    };
+
+    function applyGraphicsSettings() {
+        // 1. Unlimited / Dynamic FPS on Game Ticker
+        if (window.app && window.app.ticker) {
+            if (GFX_SETTINGS.fps === 'unlimited') {
+                window.app.ticker.maxFPS = 0; // 0 = unlimited FPS in Pixi Ticker (120Hz / 144Hz / 240Hz)
+            } else {
+                window.app.ticker.maxFPS = parseInt(GFX_SETTINGS.fps, 10) || 60;
+            }
+            window.app.ticker.minFPS = 10;
+        }
+
+        // 2. Resolution Scaling (Graphics Quality)
+        if (window.app && window.app.renderer) {
+            const dpr = window.devicePixelRatio || 1;
+            let targetRes = 1;
+            if (GFX_SETTINGS.graphics === 'Low') targetRes = 0.75;
+            else if (GFX_SETTINGS.graphics === 'Medium') targetRes = 1.0;
+            else if (GFX_SETTINGS.graphics === 'High') targetRes = Math.min(Math.max(dpr, 1.25), 1.75);
+            else if (GFX_SETTINGS.graphics === 'Ultra') targetRes = Math.max(dpr, 2.0);
+
+            if (window.app.renderer.resolution !== targetRes) {
+                window.app.renderer.resolution = targetRes;
+                if (window.app.renderer.plugins && window.app.renderer.plugins.interaction) {
+                    window.app.renderer.plugins.interaction.resolution = targetRes;
+                }
+                if (typeof window.app.renderer.resize === 'function') {
+                    window.app.renderer.resize(window.innerWidth, window.innerHeight);
+                }
+            }
+        }
+
+        // 3. Anti-Aliasing on Canvas
+        const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
+        if (canvas) {
+            if (GFX_SETTINGS.antiAliasing === 'Off') {
+                canvas.style.imageRendering = 'pixelated';
+            } else if (GFX_SETTINGS.antiAliasing === '2x') {
+                canvas.style.imageRendering = 'auto';
+            } else if (GFX_SETTINGS.antiAliasing === '4x') {
+                canvas.style.imageRendering = 'smooth';
+            }
+        }
+
+        // 4. Color Saturation
+        document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
+
+        // 5. Hero Character Smooth Animation & Clock Pacing
+        optimizeHeroAnimAndFluidity();
+    }
+
+    function optimizeHeroAnimAndFluidity() {
+        try {
+            const hero = window.game && window.game.hero;
+            if (hero && hero.character && hero.character.anim) {
+                if (GFX_SETTINGS.smoothAnim) {
+                    hero.character.anim.mixRatio = 0.15; // smooth transitions
+                    if (hero.character.anim.currentController) {
+                        hero.character.anim.currentController.allowMixing = true;
+                    }
+                }
+            }
+            const scene = (window.game && window.game.scene) || (window.app && window.app.scene);
+            if (scene && scene.time) {
+                scene.time.maxDeltaTime = 33; // prevents frame hitching spikes
+            }
+        } catch(e) {}
+    }
+
+    window.__cycleGraphicsSetting = function() {
+        const order = ['Low', 'Medium', 'High', 'Ultra'];
+        const curIdx = order.indexOf(GFX_SETTINGS.graphics);
+        GFX_SETTINGS.graphics = order[(curIdx + 1) % order.length];
+        localStorage.setItem('sw_graphics', GFX_SETTINGS.graphics);
+        applyGraphicsSettings();
+        const el = document.getElementById('val-gfx-graphics');
+        if (el) el.textContent = GFX_SETTINGS.graphics;
+        showHUDNotification('Resolução Gráfica: ' + GFX_SETTINGS.graphics);
+    };
+
+    window.__cycleAntiAliasing = function() {
+        const order = ['Off', '2x', '4x'];
+        const curIdx = order.indexOf(GFX_SETTINGS.antiAliasing);
+        GFX_SETTINGS.antiAliasing = order[(curIdx + 1) % order.length];
+        localStorage.setItem('sw_antialias', GFX_SETTINGS.antiAliasing);
+        applyGraphicsSettings();
+        const el = document.getElementById('val-gfx-antialias');
+        if (el) el.textContent = GFX_SETTINGS.antiAliasing;
+        showHUDNotification('Anti-Aliasing: ' + GFX_SETTINGS.antiAliasing);
+    };
+
+    window.__cycleFPS = function() {
+        const order = ['unlimited', '60', '120'];
+        const curIdx = order.indexOf(GFX_SETTINGS.fps);
+        GFX_SETTINGS.fps = order[(curIdx + 1) % order.length];
+        localStorage.setItem('sw_fps', GFX_SETTINGS.fps);
+        applyGraphicsSettings();
+        const el = document.getElementById('val-gfx-fps');
+        if (el) el.textContent = GFX_SETTINGS.fps === 'unlimited' ? 'Ilimitado (120Hz+)' : (GFX_SETTINGS.fps + ' FPS');
+        showHUDNotification('Taxa de FPS: ' + (GFX_SETTINGS.fps === 'unlimited' ? 'Ilimitado' : GFX_SETTINGS.fps + ' FPS'));
+    };
+
+    window.__setSaturation = function(val) {
+        GFX_SETTINGS.saturation = Math.max(50, Math.min(200, parseInt(val, 10) || 100));
+        localStorage.setItem('sw_saturation', GFX_SETTINGS.saturation);
+        document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
+        const el = document.getElementById('val-gfx-saturation');
+        if (el) {
+            let desc = GFX_SETTINGS.saturation + '%';
+            if (GFX_SETTINGS.saturation === 100) desc += ' (Padrão)';
+            else if (GFX_SETTINGS.saturation >= 150) desc += ' (Intenso)';
+            else if (GFX_SETTINGS.saturation <= 75) desc += ' (Suave)';
+            el.textContent = desc;
+        }
+        const s = document.getElementById('slider-saturation');
+        if (s && s.value != GFX_SETTINGS.saturation) s.value = GFX_SETTINGS.saturation;
+    };
+
+    window.__toggleSmoothAnim = function() {
+        GFX_SETTINGS.smoothAnim = !GFX_SETTINGS.smoothAnim;
+        localStorage.setItem('sw_smooth_anim', GFX_SETTINGS.smoothAnim);
+        optimizeHeroAnimAndFluidity();
+        const el = document.getElementById('val-gfx-smooth');
+        if (el) el.textContent = GFX_SETTINGS.smoothAnim ? 'Ativada (120Hz Interpolação)' : 'Padrão (60Hz)';
+        showHUDNotification('Fluidez da Animação: ' + (GFX_SETTINGS.smoothAnim ? 'Ativada' : 'Desativada'));
+    };
+
+// Multiplayer State
     const MP = {
         active: false,
         mqtt: null,
@@ -120,7 +258,7 @@
         isPartyLeader: true,
         isReady: false,
         inMatch: false,
-        matchType: 'coop', // 'coop' | 'tournament'
+        matchType: '1v1', // '1v1' | 'tournament'
         onlinePlayers: new Map(), // id -> { profile, lastSeen }
         playersState: new Map(),  // id -> { x, y, z, anim, alive, score, time }
         placement: [],           // [{ id, nick, avatar, alive, time }]
@@ -817,10 +955,30 @@
         // 9: Moeda Móvel Oscilante (desliza de um lado pro outro)
         const pattern = Math.floor(Math.random() * 10);
 
+        // In normal / multiplayer mode (without No Coin), spawn lots of bush_1 and dumpsters!
+        if (!window.NO_COIN_MODE) {
+            // Spawn Native 3D Bush (bush_1) frequently
+            const bLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const obsType = Math.random() > 0.35 ? 'bush' : 'dumpster';
+            const obs = createObstacle3D(obsType, bLane, 0, centerZ);
+            if (obs) customObstacles.push(obs);
+
+            // Double bush on side lanes occasionally
+            if (Math.random() > 0.5 && freeGroundLanes.length >= 2) {
+                const other = freeGroundLanes.filter(l => l !== bLane);
+                if (other.length > 0) {
+                    const b2 = createObstacle3D('bush', other[0], 0, centerZ - 60);
+                    if (b2) customObstacles.push(b2);
+                }
+            }
+            return;
+        }
+
         if (pattern === 0 || pattern === 1) {
-            // Caçamba 3D no chão (y = 0)
+            // Caçamba 3D ou Arbusto 3D no chão (y = 0)
+            const obsType = Math.random() > 0.4 ? 'bush' : 'dumpster';
             const dLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const d = createObstacle3D('dumpster', dLane, 0, centerZ);
+            const d = createObstacle3D(obsType, dLane, 0, centerZ);
             if (d) customObstacles.push(d);
 
             const otherFree = freeGroundLanes.filter(l => l !== dLane);
@@ -898,7 +1056,7 @@
     }
 
     function updateNoCoinObstacleEngine() {
-        if (!window.NO_COIN_MODE || !window.game || !window.game.hero || !window.game.hero.body) {
+        if (!window.game || !window.game.hero || !window.game.hero.body) {
             if (customObstacles.length) cleanupCustomObstacles();
             return;
         }
@@ -959,8 +1117,24 @@
                     continue;
                 } else {
                     obs.destroyed = true;
-                    triggerNoCoinDeath(null);
-                    return;
+                    if (window.NO_COIN_MODE) {
+                        triggerNoCoinDeath(null);
+                        return;
+                    } else if (obs.type === 'bush' || obs.type === 'dumpster') {
+                        // Hero jumped over bush? (bush height is 12)
+                        if (heroY >= 10) {
+                            // Successfully jumped over bush
+                            continue;
+                        }
+                        if (hero && hero.player) {
+                            if (typeof hero.player.stumble === 'function') {
+                                hero.player.stumble('bush');
+                            } else if (typeof hero.player.die === 'function') {
+                                hero.player.die('train');
+                            }
+                        }
+                        return;
+                    }
                 }
             }
 
@@ -1275,16 +1449,24 @@
         }
     }
 
+    function getMaxPartySize() {
+        return MP.matchType === '1v1' ? 2 : 5;
+    }
+
     window.__setMPMatchType = function(type) {
         if (!MP.isPartyLeader) {
             showHUDNotification('Apenas o líder da sala pode alterar o modo de jogo.');
             return;
         }
         MP.matchType = type;
+        if (type === '1v1' && MP.party.length > 2) {
+            MP.party = MP.party.slice(0, 2);
+            syncPartyToAll();
+        }
         sendRoomMessage({ type: 'mp_mode_change', mode: type });
         updateLobbyHeaderTitles();
         renderPartySlots();
-        showHUDNotification(type === 'coop' ? '🤝 Modo Co-op ativado!' : '🏆 Modo Torneio ativado!');
+        showHUDNotification(type === '1v1' ? '⚔️ Modo Duelo 1v1 ativado (2 jogadores, 1 rodada)!' : '🏆 Modo Torneio ativado (até 5 jogadores, 3 rodadas)!');
     };
 
     function handleMPModeChange(msg) {
@@ -1292,24 +1474,24 @@
         MP.matchType = msg.mode;
         updateLobbyHeaderTitles();
         renderPartySlots();
-        showHUDNotification(msg.mode === 'coop' ? '🤝 Modo Co-op ativado pelo líder!' : '🏆 Modo Torneio ativado pelo líder!');
+        showHUDNotification(msg.mode === '1v1' ? '⚔️ Modo Duelo 1v1 ativado pelo líder!' : '🏆 Modo Torneio ativado pelo líder!');
     }
 
     function updateLobbyHeaderTitles() {
         const titleEl = document.getElementById('lobby-party-title');
         const descEl = document.getElementById('lobby-party-desc');
-        const isCoop = MP.matchType === 'coop';
+        const is1v1 = MP.matchType === '1v1';
         if (titleEl) {
-            titleEl.textContent = isCoop ? `SALA CO-OP (${MP.party.length}/4)` : `SALA DO TORNEIO (${MP.party.length}/4)`;
+            titleEl.textContent = is1v1 ? `DUELO 1V1 (${MP.party.length}/2)` : `TORNEIO (${MP.party.length}/5)`;
         }
         if (descEl) {
-            descEl.textContent = isCoop
-                ? 'Co-op Simultâneo · Todos correm juntos na mesma pista em tempo real!'
-                : 'Eliminatório No Coin · 3 Rodadas · Maior tempo acumulado vence';
+            descEl.textContent = is1v1
+                ? 'Duelo Direto 1v1 · 1 Rodada Única · Maior sobrevivência vence'
+                : 'Torneio Competitivo · 3 Rodadas · Até 5 Jogadores · 5s entre rodadas';
         }
         const startBtn = document.getElementById('btn-start-match');
         if (startBtn) {
-            startBtn.textContent = isCoop ? 'INICIAR CORRIDA CO-OP' : 'INICIAR TORNEIO';
+            startBtn.textContent = is1v1 ? 'INICIAR DUELO 1V1' : 'INICIAR TORNEIO';
         }
         const modeButtons = document.querySelectorAll('.btn-mp-mode');
         modeButtons.forEach(btn => {
@@ -1495,7 +1677,7 @@
     function startCoopRenderLoop() {
         cancelAnimationFrame(coopRenderRaf);
         const loop = () => {
-            if (!MP.inMatch || MP.matchType !== 'coop' || !MPX.roundActive) {
+            if (!MP.inMatch || !MPX.roundActive) {
                 cleanupCoopTeammates();
                 return;
             }
@@ -1544,7 +1726,7 @@
                     }
                     try {
                         if (typeof tm.mesh.anim.update === 'function') {
-                            tm.mesh.anim.update({ frameTime: 0.016 });
+                            const dtFrames = Math.min((Date.now() - (tm._lastAnimTick || Date.now())) / 16.666, 2.5) || 1.0; tm._lastAnimTick = Date.now(); tm.mesh.anim.update({ frameTime: dtFrames });
                         }
                     } catch(e) {}
                 }
@@ -1608,10 +1790,11 @@
             hud = document.createElement('div');
             hud.id = 'subway-coop-hud';
             hud.className = 'subway-coop-hud';
+            const is1v1 = MP.matchType === '1v1';
             hud.innerHTML = `
                 <div class="coop-hud-pill">
-                    <span class="coop-hud-badge">🤝 CO-OP JUNTOS</span>
-                    <span class="coop-hud-stat" id="coop-hud-team-score">EQUIPE: 0m</span>
+                    <span class="coop-hud-badge">${is1v1 ? '⚔️ DUELO 1V1' : '🏆 TORNEIO ONLINE'}</span>
+                    <span class="coop-hud-stat" id="coop-hud-team-score">${is1v1 ? 'RODADA ÚNICA' : `RODADA ${MPX.round}/3`}</span>
                 </div>
             `;
             document.body.appendChild(hud);
@@ -1624,7 +1807,11 @@
         const hero = window.game && window.game.hero;
         const heroZ = (hero && hero.body) ? Math.abs(hero.body.z) : 0;
         const meters = Math.round(heroZ * 0.1);
-        hudStat.textContent = `EQUIPE: ${meters}m`;
+        if (MP.matchType === '1v1') {
+            hudStat.textContent = `${meters}m · 1V1`;
+        } else {
+            hudStat.textContent = `${meters}m · R${MPX.round}/3`;
+        }
     }
 
     function leaveToOwnRoom() {
@@ -1668,12 +1855,13 @@
         if (!MP.isPartyLeader) return;
         const player = msg.sender;
         if (msg.accepted) {
-            if (!MP.inMatch && MP.party.length < 4 && !MP.party.some(p => p.id === player.id)) {
+            const maxParty = getMaxPartySize();
+            if (!MP.inMatch && MP.party.length < maxParty && !MP.party.some(p => p.id === player.id)) {
                 MP.party.push({ id: player.id, nick: player.nick, avatar: player.avatar, ready: false, isLeader: false, rseq: 0 });
                 MPX.lastSeen[player.id] = Date.now();
                 syncPartyToAll();
                 showHUDNotification('🎉 ' + player.nick + ' entrou no grupo!');
-            } else if (MP.party.length >= 4) {
+            } else if (MP.party.length >= maxParty) {
                 sendGlobalMessage('subwaysurf/player/' + player.id, { type: 'party_leave_ack', sender: myProfile, full: true });
             }
         } else {
@@ -1759,6 +1947,7 @@
 
     function checkCanStartMatch() {
         if (MP.party.length < 2) return false;
+        if (MP.matchType === '1v1' && MP.party.length !== 2) return false;
         return MP.party.every(p => p.ready === true);
     }
 
@@ -1770,9 +1959,13 @@
     }
 
     function requestStartMatch() {
-        if (!MP.isPartyLeader) { alert('Apenas o líder da sala pode iniciar o torneio. Dê PRONTO e aguarde!'); return; }
+        if (!MP.isPartyLeader) { alert('Apenas o líder da sala pode iniciar a partida.'); return; }
         if (!checkCanStartMatch()) {
-            alert('Atenção: Todos os corredores (2 a 4) devem dar PRONTO antes de iniciar!');
+            if (MP.matchType === '1v1' && MP.party.length !== 2) {
+                alert('No modo Duelo 1v1 são necessários exatamente 2 jogadores prontos!');
+                return;
+            }
+            alert('Atenção: Todos os corredores devem dar PRONTO antes de iniciar!');
             return;
         }
         startSeries();
@@ -1798,14 +1991,10 @@
             MPX.wins[p.id] = 0;
         });
 
-        if (MP.matchType === 'coop') {
+        if (MP.matchType === '1v1') {
             MPX.totalRounds = 1;
-        } else if (MPX.activeIds.length >= 4) {
-            MPX.totalRounds = 3; // R1: 4->3, R2: 3->2, R3: Final 2->1
-        } else if (MPX.activeIds.length === 3) {
-            MPX.totalRounds = 2; // R1: 3->2, R2: Final 2->1
         } else {
-            MPX.totalRounds = 3; // 2 players: Best of 3 (MD3)
+            MPX.totalRounds = 3;
         }
 
         hostBeginRound();
@@ -1817,15 +2006,16 @@
         MPX.loneSurvivorTimer = null;
 
         let roundLabel = '';
-        if (MP.matchType === 'coop') {
-            roundLabel = 'MISSÃO CO-OP: CORRAM JUNTOS!';
+        if (MP.matchType === '1v1') {
+            roundLabel = 'DUELO 1V1 — RODADA DECISIVA';
             MPX.totalRounds = 1;
-        } else if (MPX.activeIds.length >= 4) {
-            roundLabel = 'QUARTAS DE FINAL — 1 SERÁ ELIMINADO';
-        } else if (MPX.activeIds.length === 3) {
-            roundLabel = 'SEMIFINAL — 1 SERÁ ELIMINADO';
-        } else if (MPX.activeIds.length === 2) {
-            roundLabel = (MPX.partySizeAtStart >= 3) ? 'GRANDE FINAL DO TORNEIO!' : `DUELO X1 (RODADA ${MPX.round}/${MPX.totalRounds})`;
+        } else {
+            MPX.totalRounds = 3;
+            if (MPX.round === 3) {
+                roundLabel = 'GRANDE FINAL DO TORNEIO (RODADA 3/3)';
+            } else {
+                roundLabel = `RODADA ${MPX.round}/3 DO TORNEIO`;
+            }
         }
 
         const msg = {
@@ -1896,10 +2086,8 @@
             try { window.app.nav.toGame(); } catch (e) {}
             setTimeout(restoreHeroMesh, 300);
 
-            if (MP.matchType === 'coop') {
-                startCoopRenderLoop();
-                showCoopHUD();
-            }
+            startCoopRenderLoop();
+            showCoopHUD();
 
             if (MP.isPartyLeader) hostStartBots();
         });
@@ -1983,7 +2171,7 @@
                     MPX.lastTick[id] = Date.now();
                     sendRoomMessage({ type: 'tick', sender, t, round: MPX.round });
 
-                    if (MP.matchType === 'coop') {
+                    if (MP.inMatch) {
                         const hero = window.game && window.game.hero;
                         const heroZ = (hero && hero.body) ? hero.body.z : -(t * 0.05);
                         const idx = MP.party.findIndex(x => x.id === id);
@@ -2017,36 +2205,34 @@
     function sendMultiplayerRunnerSync() {
         if (!MP.inMatch || !MPX.roundActive || !isRunActive) return;
         const now = performance.now();
-        const minInterval = (MP.matchType === 'coop') ? 50 : 250;
+        const minInterval = 50;
         if (now - (MPX.lastTickSent || 0) < minInterval) return;
         MPX.lastTickSent = now;
         if (MPX.dead[myProfile.id] !== undefined) return;
         MPX.live[myProfile.id] = runElapsedTime;
 
-        if (MP.matchType === 'coop') {
-            const hero = window.game && window.game.hero;
-            const heroBody = hero && hero.body;
-            if (heroBody) {
-                let currentAnim = 'run3';
-                if (hero.anim && hero.anim.currentAnimationClipName) {
-                    currentAnim = hero.anim.currentAnimationClipName;
-                } else if (heroBody.y > 2) {
-                    currentAnim = 'jump';
-                } else if (hero.roll && typeof hero.roll.isOn === 'function' && hero.roll.isOn()) {
-                    currentAnim = 'roll';
-                }
-                sendRoomMessage({
-                    type: 'coop_pos',
-                    sender: myProfile,
-                    x: heroBody.x || 0,
-                    y: heroBody.y !== undefined ? heroBody.y : 0,
-                    z: heroBody.z || 0,
-                    anim: currentAnim,
-                    charId: (hero.anim && hero.anim.character) || 'jake',
-                    alive: true,
-                    round: MPX.round
-                });
+        const hero = window.game && window.game.hero;
+        const heroBody = hero && hero.body;
+        if (heroBody) {
+            let currentAnim = 'run3';
+            if (hero.anim && hero.anim.currentAnimationClipName) {
+                currentAnim = hero.anim.currentAnimationClipName;
+            } else if (heroBody.y > 2) {
+                currentAnim = 'jump';
+            } else if (hero.roll && typeof hero.roll.isOn === 'function' && hero.roll.isOn()) {
+                currentAnim = 'roll';
             }
+            sendRoomMessage({
+                type: 'coop_pos',
+                sender: myProfile,
+                x: heroBody.x || 0,
+                y: heroBody.y !== undefined ? heroBody.y : 0,
+                z: heroBody.z || 0,
+                anim: currentAnim,
+                charId: (hero.anim && hero.anim.character) || 'jake',
+                alive: true,
+                round: MPX.round
+            });
         }
         sendRoomMessage({ type: 'tick', sender: myProfile, t: runElapsedTime, round: MPX.round });
         renderTimeline();
@@ -2068,7 +2254,7 @@
         MPX.live[myProfile.id] = timeMs;
 
         sendRoomMessage({ type: 'player_death', sender: myProfile, timeMs: timeMs, round: MPX.round });
-        if (MP.matchType === 'coop') {
+        if (MP.inMatch) {
             const hero = window.game && window.game.hero;
             const heroBody = hero && hero.body;
             sendRoomMessage({
@@ -2455,7 +2641,7 @@
             isTournamentOver: isTournamentOver,
             tournamentWinnerId: tournamentWinnerId,
             party: MP.party,
-            delay: isTournamentOver ? 12 : 8
+            delay: isTournamentOver ? 10 : 5 // Exatamente 5s entre uma rodada e outra
         };
 
         sendRoomMessage(msg);
@@ -2696,11 +2882,10 @@
 
         const head = el.querySelector('#tl-head');
         if (head) {
-            if (MP.matchType === 'coop') {
-                head.textContent = '🤝 CO-OP JUNTOS';
+            if (MP.matchType === '1v1') {
+                head.textContent = '⚔️ DUELO 1V1';
             } else {
-                const roundTxt = `RODADA ${Math.max(1, MPX.round)}/${MPX.totalRounds}`;
-                head.textContent = list.length === 2 ? `FINAL · ${roundTxt}` : roundTxt;
+                head.textContent = `🏆 TORNEIO · RODADA ${Math.max(1, MPX.round)}/3`;
             }
         }
 
@@ -2742,10 +2927,9 @@
             timer.className = 'subway-top-timer-wrap';
             timer.style.display = 'none';
             timer.innerHTML = `
-                <span class="timer-icon">⏱️</span>
                 <span id="subway-top-timer-val" class="timer-value">00:00.00</span>
                 <span id="subway-mode-indicator" class="timer-badge ${window.NO_COIN_MODE ? 'badge-nocoin' : 'badge-normal'}">
-                    ${window.NO_COIN_MODE ? 'NO COIN 🔴' : 'NORMAL 🟡'}
+                    ${window.NO_COIN_MODE ? 'NO COIN' : 'NORMAL'}
                 </span>
             `;
             document.body.appendChild(timer);
@@ -2780,7 +2964,7 @@
         const badge = document.getElementById('subway-mode-indicator');
         if (badge) {
             badge.className = `timer-badge ${window.NO_COIN_MODE ? 'badge-nocoin' : 'badge-normal'}`;
-            badge.textContent = window.NO_COIN_MODE ? 'NO COIN 🔴' : 'NORMAL 🟡';
+            badge.textContent = window.NO_COIN_MODE ? 'NO COIN' : 'NORMAL';
         }
     }
 
@@ -2823,11 +3007,17 @@
 
     window.__addTestBot = function() {
         if (!MP.isPartyLeader) { showHUDNotification('Apenas o líder pode adicionar bots.'); return; }
-        if (MP.party.length >= 4) { showHUDNotification('Grupo cheio (máximo 4 corredores).'); return; }
+        const maxSlots = getMaxPartySize();
+        if (MP.party.length >= maxSlots) {
+            showHUDNotification(`Grupo cheio (máximo ${maxSlots} jogadores no modo ${MP.matchType === '1v1' ? 'Duelo 1v1' : 'Torneio'}).`);
+            return;
+        }
         const botNames = [
             { id: 'bot_alex', nick: 'Alex_Pro', avatar: DEFAULT_AVATARS[1].url },
             { id: 'bot_bia', nick: 'Bia_Surfer', avatar: DEFAULT_AVATARS[2].url },
-            { id: 'bot_carlos', nick: 'Carlos_Speed', avatar: DEFAULT_AVATARS[3].url }
+            { id: 'bot_carlos', nick: 'Carlos_Speed', avatar: DEFAULT_AVATARS[3].url },
+            { id: 'bot_dani', nick: 'Dani_Dash', avatar: DEFAULT_AVATARS[0].url },
+            { id: 'bot_enzo', nick: 'Enzo_Runner', avatar: DEFAULT_AVATARS[1].url }
         ];
         const nextBot = botNames.find(b => !MP.party.some(p => p.id === b.id));
         if (!nextBot) { showHUDNotification('Limite de bots atingido.'); return; }
@@ -2876,6 +3066,7 @@
                 <!-- Tabs Navigation -->
                 <div class="unified-tabs">
                     <button class="tab-btn" data-tab="modes" id="tab-btn-modes">MODOS DE JOGO</button>
+                    <button class="tab-btn" data-tab="graphics" id="tab-btn-graphics">GRÁFICOS</button>
                     <button class="tab-btn" data-tab="multiplayer" id="tab-btn-multiplayer">MULTIPLAYER</button>
                     <button class="tab-btn" data-tab="records" id="tab-btn-records">RECORDES</button>
                 </div>
@@ -2902,6 +3093,85 @@
                             <span class="toggle-indicator"></span>
                             <span class="toggle-label">${window.NO_COIN_MODE ? 'ATIVADO' : 'DESATIVADO'}</span>
                         </button>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Graphics, Display & Fluidity (Native Subway Surfers Aesthetic) -->
+                <div class="tab-pane" id="pane-graphics">
+                    <!-- Graphics Setting -->
+                    <div class="subway-setting-row" onclick="window.__cycleGraphicsSetting()" title="Toque para alternar qualidade gráfica">
+                        <div class="btn-subway-glossy-box">
+                            <svg class="glossy-icon" viewBox="0 0 24 24" width="28" height="28" fill="#ffffff">
+                                <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"/>
+                            </svg>
+                        </div>
+                        <div class="setting-text-col">
+                            <span class="setting-title">Graphics</span>
+                            <span class="setting-value" id="val-gfx-graphics">${GFX_SETTINGS.graphics}</span>
+                        </div>
+                    </div>
+
+                    <!-- Anti-Aliasing Setting -->
+                    <div class="subway-setting-row" onclick="window.__cycleAntiAliasing()" title="Toque para alternar Anti-Aliasing">
+                        <div class="btn-subway-glossy-box">
+                            <svg class="glossy-icon" viewBox="0 0 24 24" width="26" height="26" fill="#ffffff">
+                                <path d="M4 20h2.5v-2.5H4V20zm3.5-3.5H10V14H7.5v2.5zm3.5-3.5h2.5v-2.5H11V13zm3.5-3.5H17V7h-2.5v2.5zm3.5-3.5H21V3.5h-2.5V6zM2 22h2.5v-2.5H2V22zm17-17h2.5V2.5H19V5z"/>
+                            </svg>
+                        </div>
+                        <div class="setting-text-col">
+                            <span class="setting-title">Anti-Aliasing</span>
+                            <span class="setting-value" id="val-gfx-antialias">${GFX_SETTINGS.antiAliasing}</span>
+                        </div>
+                    </div>
+
+                    <!-- Unlimited FPS Setting -->
+                    <div class="subway-setting-row" onclick="window.__cycleFPS()" title="Toque para alternar limite de FPS">
+                        <div class="btn-subway-glossy-box">
+                            <svg class="glossy-icon" viewBox="0 0 24 24" width="26" height="26" fill="#ffffff">
+                                <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
+                            </svg>
+                        </div>
+                        <div class="setting-text-col">
+                            <span class="setting-title">Taxa de Quadros (FPS)</span>
+                            <span class="setting-value" id="val-gfx-fps">${GFX_SETTINGS.fps === 'unlimited' ? 'Ilimitado (120Hz+)' : (GFX_SETTINGS.fps + ' FPS')}</span>
+                        </div>
+                    </div>
+
+                    <!-- Saturation Slider Card -->
+                    <div class="subway-setting-card">
+                        <div class="setting-card-header">
+                            <div class="btn-subway-glossy-box small">
+                                <svg class="glossy-icon" viewBox="0 0 24 24" width="20" height="20" fill="#ffffff">
+                                    <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.22 19.64 10.56 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
+                                </svg>
+                            </div>
+                            <div class="setting-text-col">
+                                <span class="setting-title">Saturação</span>
+                                <span class="setting-value" id="val-gfx-saturation">${GFX_SETTINGS.saturation}%</span>
+                            </div>
+                        </div>
+                        <div class="sat-slider-wrap">
+                            <input type="range" id="slider-saturation" min="50" max="200" step="5" value="${GFX_SETTINGS.saturation}" oninput="window.__setSaturation(this.value)" />
+                            <div class="sat-presets-row">
+                                <button class="btn-sat-chip" onclick="window.__setSaturation(70)">70%</button>
+                                <button class="btn-sat-chip" onclick="window.__setSaturation(100)">100% (Padrão)</button>
+                                <button class="btn-sat-chip" onclick="window.__setSaturation(135)">135% Vívido</button>
+                                <button class="btn-sat-chip" onclick="window.__setSaturation(170)">170% Intenso</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fluid Animation Setting -->
+                    <div class="subway-setting-row" onclick="window.__toggleSmoothAnim()" title="Toque para alternar otimização de animação">
+                        <div class="btn-subway-glossy-box">
+                            <svg class="glossy-icon" viewBox="0 0 24 24" width="26" height="26" fill="#ffffff">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
+                            </svg>
+                        </div>
+                        <div class="setting-text-col">
+                            <span class="setting-title">Fluidez da Animação</span>
+                            <span class="setting-value" id="val-gfx-smooth">${GFX_SETTINGS.smoothAnim ? 'Ativada (120Hz Interpolação)' : 'Padrão (60Hz)'}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -2946,14 +3216,14 @@
                         <!-- Left: Party Roster (2-4 players) -->
                         <div class="lobby-column party-col">
                             <div class="mp-mode-toggle-group">
-                                <button type="button" class="btn-mp-mode ${MP.matchType === 'coop' ? 'active' : ''}" data-mode="coop" onclick="window.__setMPMatchType('coop')">🤝 Co-op Juntos</button>
-                                <button type="button" class="btn-mp-mode ${MP.matchType === 'tournament' ? 'active' : ''}" data-mode="tournament" onclick="window.__setMPMatchType('tournament')">🏆 Torneio</button>
+                                <button type="button" class="btn-mp-mode ${MP.matchType === '1v1' ? 'active' : ''}" data-mode="1v1" onclick="window.__setMPMatchType('1v1')">⚔️ Duelo 1v1</button>
+                                <button type="button" class="btn-mp-mode ${MP.matchType === 'tournament' ? 'active' : ''}" data-mode="tournament" onclick="window.__setMPMatchType('tournament')">🏆 Torneio (5P)</button>
                             </div>
 
                             <div class="col-header">
                                 <div class="col-title-wrap">
-                                    <h3 id="lobby-party-title">${MP.matchType === 'coop' ? `SALA CO-OP (${MP.party.length}/4)` : `SALA DO TORNEIO (${MP.party.length}/4)`}</h3>
-                                    <span class="party-hint" id="lobby-party-desc">${MP.matchType === 'coop' ? 'Co-op Simultâneo · Todos correm juntos na mesma pista em tempo real!' : 'Eliminatório No Coin · 3 Rodadas · Maior tempo acumulado vence'}</span>
+                                    <h3 id="lobby-party-title">${MP.matchType === '1v1' ? `DUELO 1V1 (${MP.party.length}/2)` : `TORNEIO (${MP.party.length}/5)`}</h3>
+                                    <span class="party-hint" id="lobby-party-desc">${MP.matchType === '1v1' ? 'Duelo Direto 1v1 · 1 Rodada Única · Maior sobrevivência vence' : 'Torneio Competitivo · 3 Rodadas · Até 5 Jogadores · 5s entre rodadas'}</span>
                                 </div>
                                 <button class="btn-add-bot" onclick="window.__addTestBot()" title="Adicionar bot para treinar">+ Bot</button>
                             </div>
@@ -2967,7 +3237,7 @@
                                     ${MP.isReady ? 'ESTOU PRONTO ✓' : 'DAR PRONTO'}
                                 </button>
                                 <button id="btn-start-match" class="btn-start-match" ${checkCanStartMatch() ? '' : 'disabled'}>
-                                    ${MP.matchType === 'coop' ? 'INICIAR CORRIDA CO-OP' : 'INICIAR TORNEIO'}
+                                    ${MP.matchType === '1v1' ? 'INICIAR DUELO 1V1' : 'INICIAR TORNEIO'}
                                 </button>
                                 <button id="btn-leave-party" class="btn-leave-room" onclick="window.__leaveParty()" title="Sair da sala">Sair</button>
                             </div>
@@ -3161,7 +3431,8 @@
         if (!container) return;
 
         let html = '';
-        for (let i = 0; i < 4; i++) {
+        const maxSlots = getMaxPartySize();
+        for (let i = 0; i < maxSlots; i++) {
             const player = MP.party[i];
             if (player) {
                 const isMe = player.id === myProfile.id;
@@ -3270,7 +3541,7 @@
         const target = { id, nick, avatar, rseq: 0, isLeader: false };
         // Bot auto join for testing
         if (id.startsWith('bot_')) {
-            if (MP.party.length < 4) {
+            if (MP.party.length < getMaxPartySize()) {
                 target.ready = false;
                 MP.party.push(target);
                 renderPartySlots();
@@ -3454,7 +3725,244 @@
             .world-tour-banner .wt-label { font-size: 9px; letter-spacing: 2px; color: #38bdf8; font-weight: 800; }
             .world-tour-banner .wt-city { font-size: 14px; font-weight: 900; letter-spacing: 1px; color: #fff; }
 
-            /* Map Filter Grading */
+            
+            /* Canvas Saturation & Visual Fidelity */
+            canvas {
+                filter: saturate(var(--game-saturation, 100%)) !important;
+            }
+
+            /* Native Subway Surfers Glossy Blue Button System */
+            .subway-setting-row {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                padding: 12px 16px;
+                margin-bottom: 12px;
+                background: rgba(15, 23, 42, 0.65);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 16px;
+                cursor: pointer;
+                user-select: none;
+                transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+                touch-action: manipulation;
+            }
+            .subway-setting-row:hover {
+                background: rgba(30, 41, 59, 0.85);
+                border-color: rgba(56, 189, 248, 0.3);
+            }
+            .subway-setting-row:active {
+                transform: scale(0.98);
+            }
+
+            /* Exact Subway Surfers Blue Glossy Square Icon Button */
+            .btn-subway-glossy-box {
+                width: 56px;
+                height: 56px;
+                min-width: 56px;
+                border-radius: 14px;
+                background: linear-gradient(180deg, #44a2e8 0%, #1c7cd6 50%, #1562b5 100%);
+                border: 2px solid #ffffff;
+                outline: 3px solid #94b8d7;
+                outline-offset: 0;
+                box-shadow: 0 4px 0 #0d437a, 0 6px 12px rgba(0, 0, 0, 0.35), inset 0 2px 2px rgba(255, 255, 255, 0.65);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+                flex-shrink: 0;
+                transition: transform 0.1s ease, box-shadow 0.1s ease;
+            }
+            .btn-subway-glossy-box.small {
+                width: 44px;
+                height: 44px;
+                min-width: 44px;
+                border-radius: 11px;
+                outline-width: 2.5px;
+            }
+            .subway-setting-row:active .btn-subway-glossy-box {
+                transform: translateY(2px);
+                box-shadow: 0 2px 0 #0d437a, 0 3px 6px rgba(0, 0, 0, 0.3), inset 0 2px 2px rgba(255, 255, 255, 0.65);
+            }
+            .btn-subway-glossy-box .glossy-icon {
+                filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+                pointer-events: none;
+            }
+
+            /* Setting Text Column */
+            .setting-text-col {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                flex: 1;
+            }
+            .setting-title {
+                font-size: 17px;
+                font-weight: 900;
+                color: #ffffff;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                letter-spacing: -0.2px;
+                line-height: 1.2;
+            }
+            .setting-value {
+                font-size: 14px;
+                font-weight: 800;
+                color: #38bdf8;
+                margin-top: 3px;
+                letter-spacing: 0.2px;
+            }
+
+            /* Saturation Slider Card */
+            .subway-setting-card {
+                padding: 14px 16px;
+                margin-bottom: 12px;
+                background: rgba(15, 23, 42, 0.65);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 16px;
+            }
+            .setting-card-header {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                margin-bottom: 12px;
+            }
+            .sat-slider-wrap {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                padding: 0 4px;
+            }
+            .sat-slider-wrap input[type="range"] {
+                width: 100%;
+                height: 8px;
+                border-radius: 4px;
+                background: #1e293b;
+                outline: none;
+                accent-color: #38bdf8;
+                cursor: pointer;
+            }
+            .sat-presets-row {
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+            .btn-sat-chip {
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                color: #cbd5e1;
+                font-size: 11px;
+                font-weight: 700;
+                padding: 5px 10px;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                font-family: inherit;
+            }
+            .btn-sat-chip:hover {
+                background: #38bdf8;
+                color: #0f172a;
+                border-color: #38bdf8;
+            }
+
+            /* Clean Non-AI Stopwatch HUD */
+            .subway-top-timer-wrap {
+                position: fixed;
+                top: 14px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 99999;
+                display: none;
+                align-items: center;
+                gap: 10px;
+                padding: 5px 14px;
+                background: rgba(15, 23, 42, 0.85);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 9999px;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+                user-select: none;
+                pointer-events: none;
+            }
+            .subway-top-timer-wrap .timer-value {
+                font-size: 15px;
+                font-weight: 800;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                font-variant-numeric: tabular-nums;
+                color: #ffffff;
+                letter-spacing: 0.5px;
+            }
+            .subway-top-timer-wrap .timer-badge {
+                font-size: 10px;
+                font-weight: 800;
+                padding: 2px 7px;
+                border-radius: 6px;
+                letter-spacing: 0.6px;
+                text-transform: uppercase;
+            }
+            .badge-nocoin {
+                background: #e11d48;
+                color: #ffffff;
+            }
+            .badge-normal {
+                background: rgba(255, 255, 255, 0.12);
+                color: #cbd5e1;
+            }
+
+            /* Clean Non-AI Countdown Overlay */
+            .subway-countdown-overlay {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0, 0, 0, 0.65);
+                backdrop-filter: blur(5px);
+                -webkit-backdrop-filter: blur(5px);
+                z-index: 100004;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: opacity 0.2s ease-out;
+            }
+            .subway-countdown-overlay.fade-out {
+                opacity: 0;
+                pointer-events: none;
+            }
+            .cd-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            .countdown-num {
+                font-size: 92px;
+                font-weight: 900;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                color: #ffffff;
+                line-height: 1;
+                margin: 0;
+                text-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+            }
+            .countdown-num.pop {
+                animation: cdPop 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .countdown-num.go {
+                font-size: 80px;
+                color: #22c55e;
+                text-shadow: 0 4px 20px rgba(34, 197, 94, 0.5);
+                animation: cdGo 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .countdown-sub {
+                margin-top: 16px;
+                padding: 5px 16px;
+                border-radius: 9999px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                color: #cbd5e1;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 1px;
+                text-transform: uppercase;
+            }
+
+/* Map Filter Grading */
             body[data-map-theme="tokyo"] canvas { filter: contrast(1.18) hue-rotate(25deg) saturate(1.35) !important; }
             body[data-map-theme="rio"] canvas { filter: brightness(1.08) saturate(1.4) hue-rotate(-15deg) !important; }
             body[data-map-theme="hawaii"] canvas { filter: saturate(1.45) sepia(0.22) hue-rotate(-25deg) brightness(1.05) !important; }
@@ -5833,74 +6341,76 @@
                 .countdown-num { font-size: 54px !important; }
                 .cd-circle-glow { width: 120px !important; height: 120px !important; }
             }
-            /* Co-op Mode Switcher */
+            /* Mode Switcher: 1v1 vs Torneio (Professional Esports Design) */
             .mp-mode-toggle-group {
                 display: flex;
-                gap: 8px;
+                gap: 6px;
                 margin-bottom: 12px;
-                background: rgba(0, 0, 0, 0.4);
+                background: #090d14;
                 padding: 4px;
-                border-radius: 12px;
+                border-radius: 10px;
                 border: 1px solid rgba(255, 255, 255, 0.08);
             }
             .btn-mp-mode {
                 flex: 1;
-                padding: 8px 12px;
+                padding: 10px 14px;
                 background: transparent;
                 border: 1px solid transparent;
                 border-radius: 8px;
-                color: #8fa0b5;
+                color: #7b8c9d;
                 font-family: inherit;
                 font-size: 11px;
-                font-weight: 700;
-                letter-spacing: 0.5px;
+                font-weight: 800;
+                letter-spacing: 0.8px;
                 text-transform: uppercase;
                 cursor: pointer;
-                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                touch-action: manipulation;
+                transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
             }
             .btn-mp-mode:hover {
-                color: #ffffff;
-                background: rgba(255, 255, 255, 0.05);
+                color: #e2e8f0;
+                background: rgba(255, 255, 255, 0.04);
+            }
+            .btn-mp-mode:active {
+                transform: scale(0.97);
             }
             .btn-mp-mode.active {
-                background: linear-gradient(135deg, #00d2ff, #0066ff);
+                background: linear-gradient(135deg, #00d2ff, #0055ff);
                 color: #ffffff;
-                border-color: rgba(0, 210, 255, 0.5);
-                box-shadow: 0 0 14px rgba(0, 210, 255, 0.4);
+                border-color: rgba(0, 210, 255, 0.6);
+                box-shadow: 0 2px 12px rgba(0, 210, 255, 0.35);
             }
 
-            /* In-game Co-op HUD */
+            /* Professional In-game Match HUD */
             .subway-coop-hud {
                 position: fixed;
-                top: 14px;
+                top: 12px;
                 left: 50%;
                 transform: translateX(-50%);
                 z-index: 99990;
                 pointer-events: none;
-                animation: coopHudDrop 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                animation: coopHudDrop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             }
             @keyframes coopHudDrop {
-                0% { opacity: 0; transform: translate(-50%, -20px) scale(0.9); }
-                100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+                0% { opacity: 0; transform: translate(-50%, -15px); }
+                100% { opacity: 1; transform: translate(-50%, 0); }
             }
             .coop-hud-pill {
                 display: flex;
                 align-items: center;
-                gap: 10px;
-                background: rgba(10, 15, 28, 0.88);
-                backdrop-filter: blur(12px);
-                border: 1px solid rgba(0, 229, 255, 0.5);
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 229, 255, 0.25);
-                padding: 6px 16px;
+                gap: 12px;
+                background: rgba(11, 16, 26, 0.92);
+                backdrop-filter: blur(14px);
+                border: 1px solid rgba(0, 229, 255, 0.4);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 229, 255, 0.2);
+                padding: 6px 18px;
                 border-radius: 999px;
             }
             .coop-hud-badge {
                 font-size: 11px;
                 font-weight: 800;
-                letter-spacing: 1px;
-                background: linear-gradient(90deg, #00f0ff, #7000ff);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
+                letter-spacing: 0.8px;
+                color: #00e5ff;
                 text-transform: uppercase;
             }
             .coop-hud-stat {
@@ -5911,7 +6421,7 @@
                 letter-spacing: 0.5px;
             }
 
-            /* Co-op 3D Nametag Billboards */
+            /* Clean Overhead Nametags */
             .subway-coop-tags-overlay {
                 position: fixed;
                 inset: 0;
@@ -5928,26 +6438,25 @@
                 align-items: center;
                 transform-origin: center bottom;
                 will-change: transform;
-                filter: drop-shadow(0 6px 12px rgba(0,0,0,0.6));
+                filter: drop-shadow(0 4px 8px rgba(0,0,0,0.7));
             }
             .coop-tag-bubble {
                 display: flex;
                 align-items: center;
                 gap: 8px;
-                padding: 4px 10px 4px 4px;
-                background: rgba(12, 18, 32, 0.92);
+                padding: 3px 10px 3px 4px;
+                background: rgba(15, 20, 30, 0.94);
                 backdrop-filter: blur(8px);
-                border: 1.5px solid rgba(0, 240, 255, 0.7);
-                box-shadow: 0 0 16px rgba(0, 240, 255, 0.4);
+                border: 1.5px solid rgba(0, 229, 255, 0.7);
                 border-radius: 999px;
                 white-space: nowrap;
             }
             .coop-tag-av {
-                width: 26px;
-                height: 26px;
+                width: 24px;
+                height: 24px;
                 border-radius: 50%;
                 object-fit: cover;
-                border: 1.5px solid #00f0ff;
+                border: 1.5px solid #00e5ff;
             }
             .coop-tag-col {
                 display: flex;
@@ -5963,16 +6472,78 @@
             .coop-tag-dist {
                 font-size: 9px;
                 font-weight: 700;
-                letter-spacing: 0.2px;
                 font-family: monospace;
             }
             .coop-tag-arrow {
                 width: 0;
                 height: 0;
-                border-left: 6px solid transparent;
-                border-right: 6px solid transparent;
-                border-top: 6px solid rgba(0, 240, 255, 0.85);
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid rgba(0, 229, 255, 0.8);
                 margin-top: -1px;
+            }
+
+            /* Professional Mobile First Responsiveness & Instant Touch */
+            @media (max-width: 680px) {
+                .subway-modal-box, .unified-box {
+                    width: 95vw !important;
+                    max-width: 95vw !important;
+                    max-height: 92dvh !important;
+                    border-radius: 12px !important;
+                }
+                .lobby-grid {
+                    flex-direction: column !important;
+                    gap: 10px !important;
+                }
+                .lobby-column {
+                    width: 100% !important;
+                }
+                .lobby-header-bar {
+                    flex-wrap: wrap !important;
+                    gap: 8px !important;
+                    padding: 8px 10px !important;
+                }
+                .lobby-room-badge {
+                    flex: 1 1 auto !important;
+                }
+                .lobby-user-profile {
+                    width: 100% !important;
+                    justify-content: flex-start !important;
+                }
+                .lobby-join-box {
+                    width: 100% !important;
+                }
+                .lobby-join-box input {
+                    flex: 1 !important;
+                }
+                .party-slot {
+                    height: 42px !important;
+                    padding: 0 8px !important;
+                }
+                .slot-avatar {
+                    width: 26px !important;
+                    height: 26px !important;
+                }
+                .btn-ready, .btn-start-match, .btn-leave-room {
+                    min-height: 44px !important;
+                    font-size: 11px !important;
+                    touch-action: manipulation !important;
+                }
+                .party-bottom-actions {
+                    gap: 6px !important;
+                }
+                .online-players-list {
+                    max-height: 140px !important;
+                }
+            }
+
+            /* Global touch instant optimization */
+            button, input, .party-slot, .avatar-dot-chip, .btn-mp-mode, .tab-btn {
+                touch-action: manipulation !important;
+                -webkit-tap-highlight-color: transparent !important;
+            }
+            button:active {
+                transform: scale(0.97) !important;
             }
 
             .subway-modal-box { overflow-y: auto; }
@@ -6065,3 +6636,5 @@
         init();
     }
 })();
+
+applyGraphicsSettings(); setInterval(applyGraphicsSettings, 2000);
