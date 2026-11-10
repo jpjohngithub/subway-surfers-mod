@@ -935,6 +935,21 @@
         setTimeout(() => burst.remove(), 900);
     }
 
+    function playEnergyPickupEffect(source) {
+        // A compact 3D burst keeps the feedback attached to the world coin
+        // instead of flashing over the whole screen.
+        const firstFragment = coinShatterFragments.length;
+        spawnCoinWorldFragments(source, 0x23caff, 10, 0.82);
+        for (let i = firstFragment; i < coinShatterFragments.length; i++) {
+            const fragment = coinShatterFragments[i];
+            fragment.vx *= 0.72;
+            fragment.vz *= 0.72;
+            fragment.vy += 0.018;
+            fragment.life = 720 + Math.random() * 160;
+        }
+        showEnergyToast('+1 ENERGIA');
+    }
+
     function updateCoinShatterFragments(now) {
         for (let i = coinShatterFragments.length - 1; i >= 0; i--) {
             const fragment = coinShatterFragments[i];
@@ -1920,10 +1935,13 @@
 
             if (dz < hitDepth && dx < hitWidth && dy < hitHeight) {
                 if (isDashing) {
-                    if (obs.type === 'energyCoin') grantEnergy(1);
+                    if (obs.type === 'energyCoin') {
+                        grantEnergy(1);
+                        playEnergyPickupEffect(obs);
+                    }
                     else if (obs.type === 'coin' && !window.NO_COIN_MODE) collectGeneratedCoin(hero);
-                    if (obs.type === 'coin' || obs.type === 'energyCoin') {
-                        const shardColor = obs.type === 'energyCoin' ? 0x26c9ff : (window.NO_COIN_MODE ? 0xff394f : 0xffd84a);
+                    if (obs.type === 'coin') {
+                        const shardColor = window.NO_COIN_MODE ? 0xff394f : 0xffd84a;
                         playCoinShatterEffect(obs, shardColor, 1.15);
                     }
                     obs.destroyed = true;
@@ -1934,7 +1952,7 @@
                 } else {
                     if (obs.type === 'energyCoin') {
                         grantEnergy(1);
-                        showEnergyToast('+1 ENERGIA');
+                        playEnergyPickupEffect(obs);
                         try { if (window.game && window.game.sfx) window.game.sfx.play('pickup-coin', { volume: 0.8 }); } catch(e) {}
                         obs.destroyed = true;
                         removeObstacleViews(obs);
