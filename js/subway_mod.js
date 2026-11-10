@@ -991,6 +991,7 @@
     let customObstacles = [];
     let nextObstacleZ = -300;
     let obstacleChunkCount = 0;
+    let trampolineCameraUntil = 0;
 
     function cleanupCustomObstacles() {
         for (let i = 0; i < customObstacles.length; i++) {
@@ -1001,6 +1002,7 @@
         }
         customObstacles = [];
         obstacleChunkCount = 0;
+        trampolineCameraUntil = 0;
         nextObstacleZ = (window.game && window.game.hero && window.game.hero.body ? window.game.hero.body.z : 0) - 350;
     }
 
@@ -1205,7 +1207,7 @@
                 }
             }
             if (safeSpot && customObstacles.some(obs => obs && obs.type === 'energyCoin' && Math.abs(obs.z - safeSpot.z) < 90)) return;
-        } else if (obstacleChunkCount % 4 === 3) {
+        } else if (obstacleChunkCount % 8 === 3) {
             const safeSpot = findSafeSpecialPosition(0, centerZ);
             const pad = safeSpot && createObstacle3D('trampoline', safeSpot.lane, 0, safeSpot.z);
             if (pad) customObstacles.push(pad);
@@ -1404,6 +1406,11 @@
 
         if (window.isGamePaused) return;
 
+        if (Date.now() < trampolineCameraUntil && hero.player) {
+            const feetY = Number.isFinite(heroBody.bottom) ? heroBody.bottom : heroY;
+            hero.player.cameraTargetY = feetY;
+        }
+
         // Check spawn ahead of runner (abundant, regular obstacles)
         if (heroZ < nextObstacleZ) {
             spawnNoCoinObstaclePattern(heroZ - 320);
@@ -1523,15 +1530,24 @@
 
                     if (obs.type === 'trampoline') {
                         const verticalSpeed = heroBody.velocity ? heroBody.velocity.y : 0;
-                        if (heroY > 6.5) continue; // Clear the pad cleanly when jumping over it.
-                        if (heroY >= 2.5 && verticalSpeed <= 1 && now - (obs.lastBounceAt || 0) > 700) {
+                        const isAirborne = heroBody.landed === false;
+                        const isDescending = heroBody.descending === true || (isAirborne && verticalSpeed <= 0);
+                        if (heroY > 6.5 || !isAirborne || !isDescending) continue;
+                        if (heroY >= 2.5 && now - (obs.lastBounceAt || 0) > 700) {
                             obs.lastBounceAt = now;
                             try {
                                 if (hero.jump && hero.jump.perform) hero.jump.perform(48, true);
                                 else if (heroBody.velocity) heroBody.velocity.y = 45;
-                                // One-time forward displacement creates launch impulse
-                                // without changing the runner's sustained speed.
+                                // Keep body and camera travel in sync without changing
+                                // the runner's sustained speed.
                                 heroBody.z -= 55;
+                                const game = window.game;
+                                if (game && game.stats && Number.isFinite(game.stats.z)) game.stats.z -= 55;
+                                trampolineCameraUntil = now + 2400;
+                                if (hero.player) {
+                                    hero.player.cameraTargetY = Number.isFinite(heroBody.bottom) ? heroBody.bottom : heroY;
+                                    hero.player.cameraY = hero.player.cameraTargetY;
+                                }
                                 if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('pickup-super-sneakers');
                             } catch(e) {}
                             showEnergyToast('MEGA PULÃO!');
