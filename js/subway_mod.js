@@ -465,6 +465,16 @@
             }
             return originalTurnOn.apply(this, arguments);
         };
+        if (typeof board.onDoubleTap === 'function' && !board.__energyDoubleTapGate) {
+            const originalDoubleTap = board.onDoubleTap;
+            board.onDoubleTap = function() {
+                if (this.__energyPermit) return originalDoubleTap.apply(this, arguments);
+                if (this.isOn && this.isOn()) return;
+                if (skateEnergy >= ENERGY_MAX) activateBoard();
+                else showEnergyToast(`ENERGIA ${skateEnergy}/${ENERGY_MAX}`);
+            };
+            board.__energyDoubleTapGate = true;
+        }
         board.__energyGate = true;
         energyGateInstalled = true;
     }
@@ -473,7 +483,10 @@
         const game = window.game;
         const hero = game && game.hero;
         const board = hero && hero.hoverboard;
-        if (!game || !hero || !board || game.state !== 1) return;
+        // Let the game's own turnOn() validate its current state. State enum
+        // values differ between game builds, so hard-coding a number can
+        // silently make the standard mobile button appear unresponsive.
+        if (!game || !hero || !board) return;
         if (board.isOn && board.isOn()) return;
         if (skateEnergy < ENERGY_MAX) {
             showEnergyToast(`${skateEnergy}/${ENERGY_MAX} CARGAS`);
@@ -727,7 +740,9 @@
 
         try {
             if (window.game && window.game.hero && window.game.hero.player) {
-                window.game.hero.player.hoverboardLocked = !!window.NO_COIN_MODE;
+                // The standard touch button must remain dispatchable in both modes;
+                // the energy gate decides whether its tap can activate the board.
+                window.game.hero.player.hoverboardLocked = false;
             }
         } catch(e) {}
 
@@ -1020,18 +1035,18 @@
             }
 
             if (type === 'trampoline') {
-                mesh = window.__lib.getEntity('blocker_jump');
+                mesh = window.__lib.getEntity('train_standardWagon_low') || window.__lib.getEntity('train_cargo');
                 if (mesh) {
                     mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
-                    if (mesh.scale) mesh.scale.set(0.9, 0.28, 1.1);
-                    setEntityHexColor(mesh, 0x7839cc);
+                    if (mesh.scale) mesh.scale.set(0.72, 0.22, 0.34);
+                    setEntityHexColor(mesh, 0x08090c);
                     const pad = window.__lib.getEntity('currency_coin');
                     if (pad) {
                         pad.rx = Math.PI / 2;
-                        pad.y = 1.3;
+                        pad.y = 1.1;
                         pad.ry = 0;
                         if (pad.scale) pad.scale.set(1.55, 1.55, 0.18);
-                        setEntityHexColor(pad, 0x25d8f2);
+                        setEntityHexColor(pad, 0x9b39ff);
                         if (mesh.addChild) mesh.addChild(pad);
                     }
                     bounds = { depth: 14, width: 18, height: 5, isTrampoline: true };
