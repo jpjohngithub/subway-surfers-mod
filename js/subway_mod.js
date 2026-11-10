@@ -1544,14 +1544,20 @@
         overlay.id = 'subway-clean-results';
         overlay.innerHTML = `
             <div class="clean-results-actions">
-                <button class="clean-results-menu" type="button" aria-label="Menu"><span aria-hidden="true">⌂</span><b>MENU</b></button>
-                <button class="clean-results-play" type="button" aria-label="Play"><span aria-hidden="true">▶</span><b>PLAY</b></button>
+                <button class="clean-results-menu" type="button" aria-label="Menu">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10.5 9-7 9 7M5.5 9.5V21h13V9.5M9.5 21v-7h5v7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <b>MENU</b>
+                </button>
+                <button class="clean-results-play" type="button" aria-label="Play">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.8c0-.8.9-1.3 1.6-.9l11 7.1a1.2 1.2 0 0 1 0 2L8.6 20.1c-.7.4-1.6-.1-1.6-.9z" fill="currentColor"/></svg>
+                    <b>PLAY</b>
+                </button>
             </div>
         `;
         Object.assign(overlay.style, {
-            position: 'fixed', inset: '0', zIndex: '1000000', display: 'grid', placeItems: 'center',
-            background: 'linear-gradient(160deg,rgba(7,18,30,.97),rgba(10,33,48,.97))',
-            fontFamily: 'Arial,sans-serif'
+            position: 'fixed', inset: '0', zIndex: '2147483647', isolation: 'isolate', display: 'grid', placeItems: 'center',
+            background: 'linear-gradient(160deg,#0a1521 0%,#10283a 100%)', opacity: '1', pointerEvents: 'auto',
+            fontFamily: 'Arial,sans-serif', color: '#fff'
         });
         const actions = overlay.querySelector('.clean-results-actions');
         Object.assign(actions.style, { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'clamp(14px,4vw,34px)', width: '100%', padding: '20px', boxSizing: 'border-box' });
@@ -1567,8 +1573,10 @@
             background: 'linear-gradient(#23c42f,#079317)', color: '#fff', boxShadow: '0 7px 0 #075d12,0 12px 24px #0007',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: 'pointer', fontSize: 'clamp(24px,5vw,38px)', fontWeight: '900'
         });
-        const icon = menu.querySelector('span');
-        Object.assign(icon.style, { fontSize: 'clamp(26px,5vw,38px)', lineHeight: '1' });
+        const menuIcon = menu.querySelector('svg');
+        const playIcon = play.querySelector('svg');
+        Object.assign(menuIcon.style, { width: 'clamp(27px,5vw,38px)', height: 'clamp(27px,5vw,38px)' });
+        Object.assign(playIcon.style, { width: 'clamp(25px,4.5vw,34px)', height: 'clamp(25px,4.5vw,34px)' });
         menu.querySelector('b').style.fontSize = 'clamp(13px,2.7vw,19px)';
         menu.addEventListener('click', () => { hideCleanResultsOverlay(); dispatchNativeResultsButton('menu'); });
         play.addEventListener('click', () => { hideCleanResultsOverlay(); dispatchNativeResultsButton('play'); });
