@@ -424,14 +424,17 @@
         const fill = document.getElementById('subway-energy-fill');
         const val = document.getElementById('subway-energy-value');
         const widget = document.getElementById('subway-energy-widget');
-        if (fill) fill.style.height = `${(skateEnergy / ENERGY_MAX) * 100}%`;
+        const btnLabel = document.getElementById('subway-board-btn-label');
+        if (fill) fill.style.width = `${(skateEnergy / ENERGY_MAX) * 100}%`;
         if (val) val.textContent = `${skateEnergy}/${ENERGY_MAX}`;
         const hero = window.game && window.game.hero;
         const active = !!(hero && hero.hoverboard && hero.hoverboard.isOn && hero.hoverboard.isOn());
         if (widget) {
-            widget.classList.toggle('ready', skateEnergy >= ENERGY_MAX);
-            widget.classList.toggle('active', active);
-            widget.title = active ? 'Prancha ativa' : skateEnergy >= ENERGY_MAX ? 'Prancha pronta — toque ou aperte B' : `Energia da prancha: ${skateEnergy}/${ENERGY_MAX}`;
+            widget.classList.toggle('is-ready', skateEnergy >= ENERGY_MAX);
+            widget.classList.toggle('is-active', active);
+        }
+        if (btnLabel) {
+            btnLabel.textContent = active ? 'ATIVA (+1.2s)' : (skateEnergy >= ENERGY_MAX ? 'ATIVAR (B)' : 'PRANCHA · B');
         }
     }
 
@@ -439,18 +442,14 @@
         const hero = window.game && window.game.hero;
         const board = hero && hero.hoverboard;
         if (board && board.isOn && board.isOn()) {
-            if (skateEnergy < ENERGY_MAX) {
-                skateEnergy = Math.min(ENERGY_MAX, skateEnergy + amount);
-                board.count = Math.min((board.count || 0) + 1.2, (board.duration || 30) + 12);
-                storeEnergy();
-                showEnergyToast('🛹 +1.2s de prancha!');
-            }
+            board.count = Math.min((board.count || 0) + 1.2, (board.duration || 30) + 12);
+            showEnergyToast('🛹 +1.2S');
             return;
         }
         if (skateEnergy >= ENERGY_MAX) return;
         skateEnergy = Math.min(ENERGY_MAX, skateEnergy + amount);
         storeEnergy();
-        if (skateEnergy === ENERGY_MAX) showEnergyToast('⚡ PRANCHA PRONTA! Toque ou aperte B');
+        if (skateEnergy === ENERGY_MAX) showEnergyToast('🛹 PRANCHA PRONTA!');
     }
 
     function activateBoard() {
@@ -458,15 +457,14 @@
         const hero = game && game.hero;
         const board = hero && hero.hoverboard;
         if (!game || !hero || game.state !== 1) {
-            showEnergyToast('A prancha pode ser usada durante a corrida');
+            showEnergyToast('USE DURANTE A CORRIDA');
             return;
         }
         if (board && board.isOn && board.isOn()) return;
         if (skateEnergy < ENERGY_MAX) {
-            showEnergyToast(`⚡ Faltam ${ENERGY_MAX - skateEnergy} cargas`);
+            showEnergyToast(`⚡ FALTAM ${ENERGY_MAX - skateEnergy} CARGAS`);
             return;
         }
-        patchHoverboardEnergyGate();
         skateEnergy = 0;
         storeEnergy();
         try {
@@ -481,43 +479,17 @@
             board.locked = false;
             board.hasHoverboards = () => true;
             board.spendHoverboard = () => {};
-            board.__johnEnergyPermit = true;
             board.turnOn();
-            board.__johnEnergyPermit = false;
-            if (!board.isOn || !board.isOn()) {
-                skateEnergy = ENERGY_MAX; storeEnergy();
-                window.NO_COIN_MODE = oldNoCoin; board.locked = oldLocked;
-                if (oldHas) board.hasHoverboards = oldHas; else delete board.hasHoverboards;
-                if (oldSpend) board.spendHoverboard = oldSpend; else delete board.spendHoverboard;
-                showEnergyToast('A prancha não pôde ser ativada');
-                return;
-            }
             window.NO_COIN_MODE = oldNoCoin;
             board.locked = oldLocked;
             if (oldHas) board.hasHoverboards = oldHas; else delete board.hasHoverboards;
             if (oldSpend) board.spendHoverboard = oldSpend; else delete board.spendHoverboard;
             showEnergyToast('🛹 PRANCHA ATIVADA!');
         } catch(e) {
-            try { board.__johnEnergyPermit = false; window.NO_COIN_MODE = window.GAME_MODE === 'nocoin'; } catch(_) {}
             skateEnergy = ENERGY_MAX;
             storeEnergy();
         }
         updateEnergyHud();
-    }
-
-    function patchHoverboardEnergyGate() {
-        const hero = window.game && window.game.hero;
-        const board = hero && hero.hoverboard;
-        if (!board || board.__johnEnergyGate || typeof board.turnOn !== 'function') return;
-        const originalTurnOn = board.turnOn;
-        board.turnOn = function() {
-            if (!this.__johnEnergyPermit) {
-                showEnergyToast(skateEnergy >= ENERGY_MAX ? '🛹 Use o botão da prancha para ativar' : `⚡ Faltam ${ENERGY_MAX - skateEnergy} cargas`);
-                return;
-            }
-            return originalTurnOn.apply(this, arguments);
-        };
-        board.__johnEnergyGate = true;
     }
 
     window.addEventListener('keydown', function(event) {
@@ -544,7 +516,36 @@
         const coinX = coin.body ? coin.body.x : (coin.x || 0);
         coinSpawnCounter++;
 
-        // In No Coin Mode, EVERY coin must be 100% RED with exact zero-magnetism hitbox
+        // Spawn collectible GREEN Dash Boost Coin on the map lanes every ~18 coins
+        if (coinSpawnCounter % 18 === 0 && Math.abs(coinZ - lastDashZ) > 160) {
+            coin._isDashItem = true;
+            lastDashZ = coinZ;
+            lastDashLaneX = coinX;
+            if (coin.body) {
+                coin.body.width = 6.2;
+                coin.body.height = 6.2;
+                coin.body.depth = 6.2;
+            }
+            if (coin.model) {
+                setEntityHexColor(coin.model, 0x00ff66); // Pure vibrant neon green!
+                if (coin.model.scale && coin.model.scale.set) coin.model.scale.set(1.45, 1.45, 1.45);
+            }
+            if (coin.shine) {
+                coin.shine.active = true;
+                if (coin.shine.view) setEntityHexColor(coin.shine.view, 0x00ff66);
+            }
+            if (!coin._dashHookAttached) {
+                coin._dashHookAttached = true;
+                const origCollect = coin.onCollect;
+                coin.onCollect = function() {
+                    window.__onDashCollect(this);
+                    if (origCollect) return origCollect.apply(this, arguments);
+                };
+            }
+            return;
+        }
+
+        // In No Coin Mode, regular coins are 100% RED with exact zero-magnetism hitbox
         if (isNoCoin) {
             if (coin.attractable) {
                 coin.attractable.active = false;
@@ -566,7 +567,7 @@
             return;
         }
 
-        // Normal Mode: standard golden coins
+        // Normal Mode: standard native golden coins
         if (coin.body) {
             coin.body.width = 5.0;
             coin.body.height = 5.0;
@@ -579,29 +580,9 @@
             coin.shine.active = true;
             if (coin.shine.view) setEntityHexColor(coin.shine.view, 0xffffff);
         }
-
-        // Spawn collectible Dash Item on the map lanes every ~24 coins (Normal Mode only)
-        if (coinSpawnCounter % 24 === 0 && Math.abs(coinZ - lastDashZ) > 180) {
-            coin._isDashItem = true;
-            lastDashZ = coinZ;
-            lastDashLaneX = coinX;
-            if (coin.body) {
-                coin.body.width = 6.2;
-                coin.body.height = 6.2;
-                coin.body.depth = 6.2;
-            }
-            if (coin.model) {
-                setEntityHexColor(coin.model, 0x00e5ff);
-                if (coin.model.scale) coin.model.scale.set(1.45, 1.45, 1.45);
-            }
-            if (coin.shine) {
-                coin.shine.active = true;
-                if (coin.shine.view) setEntityHexColor(coin.shine.view, 0x00e5ff);
-            }
-        }
     };
 
-        // Called when player collects a Dash boost item on the map
+    // Called when player collects a Dash boost item on the map
     window.__onDashCollect = function(coin) {
         dashInvulnUntil = Date.now() + 750;
         window.__dashSpeedMult = Math.min((window.__dashSpeedMult || 1.0) + 0.14, 1.95);
@@ -618,7 +599,7 @@
             try {
                 const pop = document.createElement('div');
                 pop.className = 'subway-boost-time-pop';
-                pop.innerHTML = '+5.0s ⚡';
+                pop.innerHTML = '+5.0s ⚡'; showEnergyToast('🚀 DASH BOOST!');
                 document.body.appendChild(pop);
                 setTimeout(() => pop.remove(), 700);
             } catch(e) {}
@@ -943,144 +924,15 @@
     // ==========================================
     let customObstacles = [];
     let nextObstacleZ = -300;
-    let setPieceSerial = 0;
-    let activeSetPiece = null;
-    let proceduralCanvas = null;
-    let proceduralCtx = null;
-    const staleProceduralCanvas = document.getElementById('subway-procedural-world');
-    if (staleProceduralCanvas) staleProceduralCanvas.remove();
-
-    // Procedural low-poly models are drawn in a perspective overlay using new geometry,
-    // rather than borrowing the game's obstacle meshes. Their collision volumes remain
-    // in world coordinates and are evaluated by the game loop below.
-    function ensureProceduralCanvas() {
-        if (proceduralCanvas && proceduralCanvas.isConnected) return;
-        proceduralCanvas = document.getElementById('subway-procedural-world');
-        if (!proceduralCanvas) {
-            proceduralCanvas = document.createElement('canvas');
-            proceduralCanvas.id = 'subway-procedural-world';
-            proceduralCanvas.setAttribute('aria-hidden', 'true');
-            Object.assign(proceduralCanvas.style, {
-                position: 'fixed', inset: '0', width: '100vw', height: '100vh',
-                zIndex: '4', pointerEvents: 'none', touchAction: 'none'
-            });
-            document.body.appendChild(proceduralCanvas);
-        }
-        proceduralCtx = proceduralCanvas.getContext('2d', { alpha: true });
-    }
-
-    function projPoint(x, y, z, hero, width, height) {
-        const depth = Math.max(3, hero.body.z - z);
-        const scale = Math.min(26, (height * 0.92) / (depth + 64));
-        const horizon = height * 0.28;
-        const groundY = horizon + (height * 0.42) * (1 - 64 / (depth + 64));
-        return { x: width * 0.5 + (x - hero.body.x) * scale, y: groundY - y * scale, scale, depth };
-    }
-
-    function poly(ctx, points, color, stroke) {
-        if (!points.length) return;
-        ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
-        for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
-        ctx.closePath(); ctx.fillStyle = color; ctx.fill();
-        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
-    }
-
-    function drawPrism(ctx, p, w, h, d, colors, lift) {
-        const dx = d * p.scale * 0.48, dy = d * p.scale * 0.24;
-        const left = p.x - w * p.scale * 0.5, right = p.x + w * p.scale * 0.5;
-        const top = p.y - h * p.scale - (lift || 0), bottom = p.y - (lift || 0);
-        const backL = { x: left + dx, y: top - dy }, backR = { x: right + dx, y: top - dy };
-        poly(ctx, [{x:left,y:top},{x:right,y:top},backR,backL], colors[0], '#ffffff30');
-        poly(ctx, [{x:right,y:top},backR,{x:backR.x,y:bottom-dy},{x:right,y:bottom}], colors[1], '#00000030');
-        poly(ctx, [{x:left,y:top},{x:right,y:top},{x:right,y:bottom},{x:left,y:bottom}], colors[2], '#00000055');
-        return { left, right, top, bottom, backL, backR };
-    }
-
-    function drawCoinModel(ctx, p, radius, energy) {
-        const r = Math.max(3, radius * p.scale);
-        ctx.save(); ctx.translate(p.x, p.y - r); ctx.rotate(Math.sin(performance.now() * 0.002 + p.depth) * 0.18);
-        ctx.shadowColor = energy ? '#25e9ff' : '#ffbb38'; ctx.shadowBlur = r * 0.8;
-        const grad = ctx.createLinearGradient(-r, -r, r, r);
-        grad.addColorStop(0, energy ? '#c9ffff' : '#fff2a4');
-        grad.addColorStop(0.42, energy ? '#08c9f4' : '#ffb000');
-        grad.addColorStop(1, energy ? '#0755cb' : '#e85d00');
-        ctx.fillStyle = grad; ctx.strokeStyle = energy ? '#d5ffff' : '#fff0a5'; ctx.lineWidth = Math.max(1, r * 0.12);
-        ctx.beginPath(); ctx.ellipse(0, 0, r * 0.72, r, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = `900 ${Math.max(8, r * 1.12)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(energy ? 'ϟ' : '$', 0, 1); ctx.restore();
-    }
-
-    function drawProceduralObstacle(ctx, obs, hero, width, height, time) {
-        const p = projPoint(obs.x, obs.y, obs.z, hero, width, height);
-        if (p.depth > 300 || p.depth < 0) return;
-        const pulse = 0.5 + Math.sin(time * 0.006 + obs.phase) * 0.5;
-        const b = obs.bounds || { width: 14, height: 9, depth: 8 };
-        if (obs.type === 'water') {
-            const w = Math.min(width * 1.4, b.width * p.scale), d = b.depth * p.scale * 0.45;
-            const x = p.x, y = p.y;
-            poly(ctx, [{x:x-w/2,y:y-d/3},{x:x+w/2,y:y-d/3},{x:x+w/2+d/2,y:y+d/3},{x:x-w/2+d/2,y:y+d/3}], '#5427c8e8', '#b48dff');
-            ctx.save(); ctx.globalAlpha = 0.6; ctx.strokeStyle = '#d2c1ff'; ctx.lineWidth = Math.max(1, p.scale * 0.22);
-            for (let i=0;i<7;i++){const xx=x-w/2+(w/7)*i+((time*0.025)%Math.max(2,w/7));ctx.beginPath();ctx.moveTo(xx,y-d/7);ctx.quadraticCurveTo(xx+5,y-d/3,xx+10,y-d/7);ctx.stroke();} ctx.restore();
-            return;
-        }
-        if (obs.type === 'coin' || obs.type === 'energyCoin' || obs.type === 'plankCoin') { drawCoinModel(ctx,p,obs.type==='energyCoin'?5:4,obs.type==='energyCoin'); return; }
-        if (obs.type === 'container' || obs.type === 'platform' || obs.type === 'halfTrain' || obs.type === 'bounceTrain') {
-            let colors, w=b.width, h=b.height, d=b.depth;
-            if (obs.type === 'container') colors=['#ff8150','#d64925','#a82b20'];
-            else if (obs.type === 'platform') colors=['#ff9a4e','#dc4d25','#a93224'];
-            else if (obs.type === 'halfTrain') colors=['#b9ccd5','#667c89','#3d4b5a'];
-            else colors=['#f1dcff','#8225d1','#4d0a87'];
-            const face=drawPrism(ctx,p,w,h,d,colors,0);
-            if (obs.type==='container' || obs.type==='platform') {
-                ctx.strokeStyle='#ffd0a070';ctx.lineWidth=Math.max(1,p.scale*0.28);
-                for(let i=1;i<7;i++){const xx=face.left+(face.right-face.left)*i/7;ctx.beginPath();ctx.moveTo(xx,face.top+2);ctx.lineTo(xx,face.bottom-1);ctx.stroke();}
-                ctx.fillStyle='#ffe0a0';ctx.fillRect(face.left+3,face.top+3,Math.max(2,(face.right-face.left)*0.08),Math.max(2,p.scale*0.45));
-            } else if (obs.type==='halfTrain') {
-                ctx.fillStyle='#4f1822';ctx.fillRect(face.left+face.right*0.02,face.top+p.scale*1.3,Math.max(2,(face.right-face.left)*0.22),Math.max(2,p.scale*1.5));
-                ctx.fillStyle='#e9faff'; for(let i=0;i<3;i++)ctx.fillRect(face.left+(face.right-face.left)*(0.12+i*0.28),face.top+p.scale*1.2,Math.max(2,p.scale*1.25),Math.max(2,p.scale*1.25));
-            } else {
-                ctx.save();ctx.shadowColor='#cc39ff';ctx.shadowBlur=8+pulse*18;ctx.strokeStyle=`rgba(225,116,255,${0.6+pulse*0.4})`;ctx.lineWidth=Math.max(2,p.scale*0.32);ctx.strokeRect(face.left-2,face.top-2,face.right-face.left+4,face.bottom-face.top+4);ctx.restore();
-                ctx.fillStyle='#fff';ctx.font=`900 ${Math.max(14,p.scale*3)}px Arial`;ctx.textAlign='center';ctx.fillText('⬇',p.x,face.top-p.scale*1.5);
-            }
-            return;
-        }
-        if (obs.type === 'plank') {
-            const boards=5;
-            for(let i=0;i<boards;i++){const dz=(i-(boards-1)/2)*2.2;const pp=projPoint(obs.x,obs.y+0.2,obs.z+dz,hero,width,height);const face=drawPrism(ctx,pp,b.width,1.1,2.1,['#bb8a55','#714426','#4b2c20'],0);ctx.strokeStyle='#e1b678';ctx.lineWidth=Math.max(1,pp.scale*0.12);ctx.beginPath();ctx.moveTo(face.left+2,face.top+pp.scale*.6);ctx.lineTo(face.right-2,face.top+pp.scale*.6);ctx.stroke();}
-            return;
-        }
-        if (obs.type === 'wall') {
-            const face=drawPrism(ctx,p,b.width,b.height,b.depth,['#ffd772','#c77d28','#87401e'],0);
-            ctx.fillStyle='#2d1d24';ctx.fillRect(face.left,face.bottom-p.scale*2.3,face.right-face.left,p.scale*2.3);
-            for(let i=0;i<6;i++){ctx.fillStyle=i%2?'#171c2a':'#f4bd46';ctx.beginPath();ctx.moveTo(face.left+i*(face.right-face.left)/6,face.top);ctx.lineTo(face.left+(i+1)*(face.right-face.left)/6,face.top);ctx.lineTo(face.left+(i+1)*(face.right-face.left)/6-p.scale,face.top+p.scale*.75);ctx.lineTo(face.left+i*(face.right-face.left)/6-p.scale,face.top+p.scale*.75);ctx.fill();}
-            return;
-        }
-        if (obs.type === 'drone') {
-            const body=drawPrism(ctx,p,b.width*0.62,b.height*0.34,b.depth*0.55,['#b6fbff','#1b9ad1','#07527f'],0);
-            ctx.save();ctx.strokeStyle='#c8fbff';ctx.lineWidth=Math.max(1,p.scale*.24);
-            for(let i=0;i<4;i++){const sign=i%2?1:-1;const rx=p.x+sign*p.scale*b.width*.54;const ry=p.y-p.scale*b.height*.2;const spin=time*.025+(i*1.57);ctx.beginPath();ctx.ellipse(rx,ry,p.scale*2.8,p.scale*.42,spin,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(rx-p.scale*1.8,ry);ctx.lineTo(rx+p.scale*1.8,ry);ctx.stroke();}
-            ctx.restore();ctx.fillStyle='#eeffff';ctx.beginPath();ctx.arc((body.left+body.right)/2,body.top+p.scale,Math.max(2,p.scale*.65),0,Math.PI*2);ctx.fill();return;
-        }
-    }
-
-    function renderProceduralWorld() {
-        // The game camera uses its own 3D projection. A screen-space approximation
-        // makes world objects drift/jump, so keep this legacy canvas fully cleared.
-        if (!proceduralCanvas || !proceduralCtx) return;
-        proceduralCtx.clearRect(0, 0, proceduralCanvas.width, proceduralCanvas.height);
-        proceduralCanvas.style.display = 'none';
-    }
 
     function cleanupCustomObstacles() {
         for (let i = 0; i < customObstacles.length; i++) {
             const obs = customObstacles[i];
-            if (obs && obs.mesh && obs.mesh.procedural) { obs.destroyed = true; continue; }
             if (obs && obs.mesh && obs.mesh.parent) {
                 try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
             }
         }
         customObstacles = [];
-        activeSetPiece = null;
         nextObstacleZ = (window.game && window.game.hero && window.game.hero.body ? window.game.hero.body.z : 0) - 350;
     }
 
@@ -1126,46 +978,9 @@
     }
 
     function createObstacle3D(type, x, y, z, options = {}) {
-        const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20;
-        if (!options.ignoreBlocked && isPositionBlocked(x, y, z, margin)) return null;
-
-        // Collectible / obstacle coins: Pure RED in No Coin mode, standard GOLD in Normal mode
-        if (type === 'energyCoin' || type === 'coin') {
-            if (!window.__lib || !window.__lib.getEntity) return null;
-            try {
-                const mesh = window.__lib.getEntity('currency_coin');
-                const hero = window.game && window.game.hero;
-                if (!mesh || !hero || !hero.parent) return null;
-                mesh.x = x; mesh.y = y; mesh.z = z;
-                mesh.rx = 0; mesh.rz = 0;
-                const isNoCoin = !!window.NO_COIN_MODE;
-                if (mesh.scale && mesh.scale.set) mesh.scale.set(1.15, 1.15, 1.15);
-                setEntityHexColor(mesh, isNoCoin ? 0xff1e1e : 0xffffff);
-                hero.parent.addChild(mesh);
-                return { type: 'coin', x, y, z, mesh, bounds: { depth: 5, width: 6, height: 7 }, destroyed: false,
-                    baseX: x, baseY: y, speed: options.speed || 1.5, phase: options.phase || 0,
-                    isOscillating: !!options.isOscillating, isFloating: !!options.isFloating,
-                    moving: !!options.moving, options, setPiece: options.setPiece || 0 };
-            } catch(e) { return null; }
-        }
-
-        const proceduralTypes = ['halfTrain', 'bounceTrain', 'plank', 'wall', 'water', 'container', 'platform', 'drone'];
-        if (proceduralTypes.includes(type)) {
-            const dims = {
-                halfTrain: { width: 20, height: 12, depth: 14 }, bounceTrain: { width: 21, height: 9, depth: 16 },
-                plank: { width: 18, height: 4, depth: 15 }, wall: { width: 62, height: 12, depth: 8 },
-                water: { width: 76, height: 1, depth: 46 }, container: { width: 19, height: 11, depth: 17 },
-                platform: { width: 18, height: 8, depth: 17 }, drone: { width: 15, height: 8, depth: 12 },
-                energyCoin: { width: 6, height: 7, depth: 4 }, coin: { width: 5, height: 6, depth: 4 }
-            }[type];
-            const mesh = { x, y, z, procedural: true, parent: null };
-            return { type, x, y, z, mesh, bounds: { depth: dims.depth, width: dims.width, height: dims.height },
-                destroyed: false, baseX: x, baseY: y, speed: options.speed || 1.5,
-                phase: options.phase === undefined ? Math.random() * Math.PI * 2 : options.phase,
-                isOscillating: !!options.isOscillating, isFloating: !!options.isFloating,
-                moving: !!options.moving, options, setPiece: options.setPiece || 0 };
-        }
         if (!window.__lib || !window.__lib.getEntity) return null;
+        const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20;
+        if (isPositionBlocked(x, y, z, margin)) return null;
 
         try {
             let mesh = null;
@@ -1199,6 +1014,30 @@
                     if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
                     bounds = { depth: 6, width: 16, height: 18, rollable: true };
                 }
+            } else if (type === 'bounceTrain') {
+                mesh = window.__lib.getEntity('train_standardWagon_low') || window.__lib.getEntity('blocker_jump');
+                if (mesh) {
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
+                    if (mesh.scale) mesh.scale.set(0.72, 0.46, 0.28);
+                    setEntityHexColor(mesh, 0x9e36ff);
+                    bounds = { depth: 16, width: 14, height: 10, isBounce: true };
+                }
+            } else if (type === 'plank') {
+                mesh = window.__lib.getEntity('blocker_jump') || window.__lib.getEntity('dumpster');
+                if (mesh) {
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
+                    if (mesh.scale) mesh.scale.set(1.4, 0.55, 1.6);
+                    setEntityHexColor(mesh, 0x8a5a36);
+                    bounds = { depth: 14, width: 15, height: 6, isPlank: true };
+                }
+            } else if (type === 'wall') {
+                mesh = window.__lib.getEntity('blocker_roll');
+                if (mesh) {
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
+                    if (mesh.scale) mesh.scale.set(3.2, 0.65, 1.1);
+                    setEntityHexColor(mesh, 0xdda435);
+                    bounds = { depth: 8, width: 16, height: 12, isWall: true };
+                }
             } else if (type === 'lightSignal') {
                 mesh = window.__lib.getEntity('lightSignal');
                 if (mesh) {
@@ -1210,7 +1049,8 @@
                 mesh = window.__lib.getEntity('currency_coin');
                 if (mesh) {
                     if (mesh.scale) mesh.scale.set(1.15, 1.15, 1.15);
-                    setEntityHexColor(mesh, 0xff1e1e);
+                    const isNoCoin = !!window.NO_COIN_MODE;
+                    setEntityHexColor(mesh, isNoCoin ? 0xff1e1e : 0xffffff);
                     bounds = { depth: 5, width: 4, height: 6 };
                 }
             }
@@ -1241,52 +1081,6 @@
         return null;
     }
 
-    function addCourseObstacle(type, x, y, z, options) {
-        const obs = createObstacle3D(type, x, y, z, { ...(options || {}), ignoreBlocked: true });
-        if (obs) { customObstacles.push(obs); return obs; }
-        return null;
-    }
-
-    function spawnOceanCourse(startZ) {
-        if (activeSetPiece) return;
-        const id = ++setPieceSerial;
-        const lanes = [-20, 0, 20];
-        const course = { id, kind: 'ocean', from: startZ + 18, to: startZ - 145, supports: [] };
-        for (let i = 0; i < 6; i++) {
-            const z = startZ + 12 - i * 29;
-            addCourseObstacle('water', 0, -1, z, { setPiece: id });
-            const lane = lanes[(i + (i > 2 ? 1 : 0)) % lanes.length];
-            const type = i === 0 || i === 5 ? 'platform' : 'container';
-            const support = addCourseObstacle(type, lane, 5, z - 8, { setPiece: id, moving: i > 0 && i < 5, speed: 0.7 + i * 0.08 });
-            if (support) course.supports.push(support);
-            if (i === 1 || i === 4) {
-                for (let n = 0; n < 3; n++) addCourseObstacle('energyCoin', lane, 13 + n * 4, z - 10 - n * 9, { setPiece: id });
-            }
-        }
-        addCourseObstacle('halfTrain', 0, 0, startZ + 24, { setPiece: id, ramp: true });
-        activeSetPiece = course;
-        showEnergyToast('🌊 ROTA DO PORTO · pule entre os contêineres');
-    }
-
-    function spawnDroneCourse(startZ, entryLane) {
-        if (activeSetPiece) return;
-        const id = ++setPieceSerial;
-        const lanes = [-20, 0, 20];
-        const startIndex = Math.max(0, lanes.indexOf(entryLane));
-        const course = { id, kind: 'air', from: startZ + 10, to: startZ - 188, supports: [], phase: 'ground' };
-        addCourseObstacle('drone', entryLane, 2, startZ + 6, { setPiece: id, takeoff: true });
-        for (let i = 0; i < 6; i++) {
-            const lane = lanes[(startIndex + i + 1) % lanes.length];
-            const z = startZ - 22 - i * 25;
-            const platform = addCourseObstacle('platform', lane, 16, z, { setPiece: id, aerial: true, moving: i > 1 && i < 5, speed: 0.55 });
-            if (platform) course.supports.push(platform);
-            if (i === 1 || i === 3) addCourseObstacle('energyCoin', lane, 24, z - 4, { setPiece: id });
-        }
-        addCourseObstacle('drone', lanes[(startIndex + 1) % lanes.length], 16, startZ - 176, { setPiece: id, landing: true });
-        activeSetPiece = course;
-        showEnergyToast('🚁 DRONE DE LANÇAMENTO · use pulo e siga as bases');
-    }
-
     function spawnNoCoinObstaclePattern(centerZ) {
         const lanes = [-20, 0, 20];
         const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 12));
@@ -1303,7 +1097,7 @@
         // 7: Dupla Moeda Móvel Cruzada (duas moedas deslizando em direções opostas)
         // 8: Mato 3D (bush_1) + Moeda Flutuante no alto
         // 9: Cavalete de Pulo (blocker_jump) ou Caçamba (dumpster)
-        const pattern = Math.floor(Math.random() * 16);
+        const pattern = Math.floor(Math.random() * 12);
 
         if (pattern === 0) {
             // 1. MOEDA MÓVEL OSCILANTE: Desliza de -20 a +20 através das 3 pistas
@@ -1424,27 +1218,9 @@
             });
         } else if (pattern === 11) {
             // 12. MURO ALTO (WALL): Exige deslizar / rolar por baixo
-            if (!lanes.some(lx => isPositionBlocked(lx, 0, centerZ, 12))) {
-                const w = createObstacle3D('wall', 0, 0, centerZ);
-                if (w) customObstacles.push(w);
-            }
-        } else if (pattern === 12) {
-            spawnOceanCourse(centerZ);
-        } else if (pattern === 13) {
-            spawnDroneCourse(centerZ, freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)]);
-        } else if (pattern === 14) {
-            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const train = createObstacle3D('halfTrain', lane, 0, centerZ);
-            if (train) customObstacles.push(train);
-            const cargoLane = freeGroundLanes.find(lx => lx !== lane);
-            if (cargoLane !== undefined) {
-                const cargo = createObstacle3D('container', cargoLane, 0, centerZ - 55, { moving: true });
-                if (cargo) customObstacles.push(cargo);
-            }
-        } else if (pattern === 15) {
-            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const drone = createObstacle3D('drone', lane, 6, centerZ, { takeoff: true });
-            if (drone) customObstacles.push(drone);
+            const wLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const w = createObstacle3D('wall', wLane, 0, centerZ);
+            if (w) customObstacles.push(w);
         } else {
             // 13. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
@@ -1461,94 +1237,17 @@
         }
     }
 
-    function removeProceduralObstacle(obs) {
-        if (obs && obs.mesh && obs.mesh.procedural) obs.destroyed = true;
-        else if (obs && obs.mesh && obs.mesh.parent) { try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {} }
-    }
-
-    function endSetPiece(hero) {
-        if (!activeSetPiece) return;
-        const body = hero && hero.body;
-        if (body && (activeSetPiece.kind === 'ocean' || activeSetPiece.phase === 'air' || activeSetPiece.phase === 'descending')) {
-            try { body.ground = 0; } catch(e) {}
-        }
-        activeSetPiece = null;
-    }
-
-    function updateSetPieceState(hero, heroZ, heroX, heroY, now) {
-        const course = activeSetPiece;
-        if (!course) return;
-        const body = hero.body;
-        if (heroZ < course.to - 24) { endSetPiece(hero); return; }
-
-        if (course.currentSupport && (Math.abs(course.currentSupport.z - heroZ) >= 12 || Math.abs(course.currentSupport.x - heroX) >= 11)) {
-            try { body.ground = 0; } catch(e) {}
-            course.currentSupport = null;
-        }
-
-        course.supports.forEach(support => {
-            if (!support || support.destroyed || !support.mesh) return;
-            if (support.moving) {
-                support.x = support.baseX + Math.sin(now * 0.001 * support.speed + support.phase) * 2.8;
-                support.mesh.x = support.x;
-            }
-            const dz = Math.abs(support.z - heroZ), dx = Math.abs(support.x - heroX);
-            if (dz < 11 && dx < 10 && heroY > 2.2 && heroY < support.y + 8) {
-                try {
-                    if (hero.jump && hero.jump.cancel) hero.jump.cancel();
-                    body.ground = support.y; body.bottom = support.y; body.y = support.y; body.velocity.y = 0;
-                    support.occupiedAt = now; course.currentSupport = support;
-                } catch(e) {}
-            }
-        });
-
-        if (course.kind === 'ocean') {
-            const onSupport = course.supports.some(s => s && !s.destroyed && Math.abs(s.z - heroZ) < 12 && Math.abs(s.x - heroX) < 11 && Math.abs(heroY - s.y) < 9);
-            const overWater = customObstacles.some(o => o.type === 'water' && o.setPiece === course.id && Math.abs(o.z - heroZ) < 26);
-            if (overWater && !onSupport && heroY < 2.2) {
-                showEnergyToast('🌊 Você caiu no mar!');
-                triggerNoCoinDeath(null);
-                endSetPiece(hero);
-            }
-        } else if (course.kind === 'air' && course.phase === 'air') {
-            const onSupport = course.supports.some(s => s && !s.destroyed && Math.abs(s.z - heroZ) < 12 && Math.abs(s.x - heroX) < 11 && Math.abs(heroY - s.y) < 9);
-            if (!onSupport && heroY < 2.2) {
-                // The runner falls back to the original rails when a floating platform is missed.
-                try { body.ground = 0; body.bottom = 0; body.y = Math.max(0, body.y); body.velocity.y = Math.min(0, body.velocity.y); } catch(e) {}
-                course.phase = 'ground';
-                showEnergyToast('⬇️ Queda para os trilhos inferiores');
-            }
-            if (heroZ < course.to + 8 && course.phase === 'air') {
-                course.phase = 'descending'; course.descendingAt = now; course.descendingFrom = Math.max(12, heroY);
-                showEnergyToast('🚁 Drone de descida · pouso');
-            }
-        } else if (course.kind === 'air' && course.phase === 'descending') {
-            const t = Math.min(1, (now - course.descendingAt) / 560);
-            const fromY = course.descendingFrom || 16;
-            try { body.ground = 0; body.bottom = fromY * (1 - t); body.y = body.bottom; body.velocity.y = 0; } catch(e) {}
-            if (t >= 1) { course.phase = 'ground'; showEnergyToast('🛬 Pouso nos trilhos'); }
-        }
-    }
-
     function updateNoCoinObstacleEngine() {
         if (!window.game || !window.game.hero || !window.game.hero.body) {
             if (customObstacles.length) cleanupCustomObstacles();
-            if (proceduralCtx && proceduralCanvas) proceduralCtx.clearRect(0, 0, proceduralCanvas.width, proceduralCanvas.height);
             return;
         }
 
         const hero = window.game.hero;
-        const runIsActive = window.game.state === 1;
-        if (runIsActive && !energyRunActive) {
-            skateEnergy = 0;
-            updateEnergyHud();
-        }
-        energyRunActive = runIsActive;
-        patchHoverboardEnergyGate();
         const heroBody = hero.body;
         const heroZ = heroBody.z;
         const heroX = heroBody.x;
-        let heroY = heroBody.y !== undefined ? heroBody.y : (heroBody.bottom || 0);
+        const heroY = heroBody.y !== undefined ? heroBody.y : (heroBody.bottom || 0);
 
         if (window.isGamePaused) return;
 
@@ -1561,8 +1260,6 @@
         // Update active obstacles
         const now = Date.now();
         const isDashing = now < dashInvulnUntil;
-        updateSetPieceState(hero, heroZ, heroX, heroY, now);
-        heroY = heroBody.y !== undefined ? heroBody.y : (heroBody.bottom || 0);
 
         for (let i = customObstacles.length - 1; i >= 0; i--) {
             const obs = customObstacles[i];
@@ -1595,16 +1292,6 @@
                 obs.y = (obs.baseY || 12) + Math.sin(now * 0.004 * obs.speed + obs.phase) * 7;
                 obs.mesh.y = obs.y;
             }
-            if (obs.moving && obs.mesh) {
-                obs.x = obs.baseX + Math.sin(now * 0.001 * obs.speed + obs.phase) * 2.8;
-                obs.mesh.x = obs.x;
-            }
-            if (obs.type === 'bounceTrain' && obs.mesh && obs.bounced) {
-                const age = now - obs.bounceAt;
-                obs.mesh.y = obs.baseY + Math.sin(Math.min(1, age / 520) * Math.PI) * 4;
-                obs.mesh.ry = Math.sin(age * 0.012) * 0.12;
-                if (age > 600) { removeProceduralObstacle(obs); customObstacles.splice(i, 1); continue; }
-            }
 
             // Spin coin
             if (obs.type === 'coin' && obs.mesh && obs.mesh.rotation) {
@@ -1619,19 +1306,21 @@
             const hitHeight = (obs.bounds ? obs.bounds.height : 6) + 2.0;
 
             if (dz < hitDepth && dx < hitWidth && dy < hitHeight) {
-                if (obs.type === 'water') continue;
                 if (isDashing) {
-                    removeProceduralObstacle(obs);
+                    obs.destroyed = true;
+                    if (obs.mesh && obs.mesh.parent) {
+                        try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                    }
                     customObstacles.splice(i, 1);
                     triggerCoinShatter({ body: { x: obs.x, y: obs.y, z: obs.z } });
                     continue;
                 } else {
                     // Check if player cleared obstacle cleanly:
                     const isJumping = heroY >= 7.5;
-                    const isRolling = !!(hero && ((hero.character && (
+                    const isRolling = hero && hero.character && (
                         (hero.character.roll && hero.character.roll.active) ||
                         (hero.anim && hero.anim.currentAnimationClipName === 'roll')
-                    )) || (hero.roll && hero.roll.isOn && hero.roll.isOn())));
+                    );
 
                     const boardActive = !!(hero && hero.hoverboard && hero.hoverboard.isOn && hero.hoverboard.isOn());
 
@@ -1639,7 +1328,6 @@
                     if (obs.type === 'bounceTrain') {
                         if (heroY > 2.5 && !obs.bounced) {
                             obs.bounced = true;
-                            obs.bounceAt = now;
                             try {
                                 if (hero.jump && hero.jump.perform) hero.jump.perform(38, true);
                                 else if (hero.body) hero.body.velocity.y = 35;
@@ -1651,45 +1339,16 @@
                         if (obs.bounced) continue;
                     }
 
-                    if (obs.type === 'drone' && obs.options && obs.options.takeoff && heroY > 2.2 && !obs.used) {
-                        obs.used = true;
-                        if (activeSetPiece && activeSetPiece.kind === 'air') {
-                            activeSetPiece.phase = 'air';
-                            activeSetPiece.startedAt = now;
-                            try { if (hero.jump && hero.jump.perform) hero.jump.perform(30, true); } catch(e) {}
-                        }
-                        showEnergyToast('🚁 LANÇAMENTO! Siga as plataformas suspensas');
-                        removeProceduralObstacle(obs); customObstacles.splice(i, 1); continue;
-                    }
-                    if (obs.type === 'drone' && obs.options && obs.options.landing && activeSetPiece && activeSetPiece.kind === 'air' && activeSetPiece.phase === 'air' && !obs.used) {
-                        obs.used = true;
-                        activeSetPiece.phase = 'descending'; activeSetPiece.descendingAt = now; activeSetPiece.descendingFrom = Math.max(12, heroY);
-                        removeProceduralObstacle(obs); customObstacles.splice(i, 1); continue;
-                    }
-                    if (obs.type === 'energyCoin' || obs.type === 'coin') {
-                        if (window.NO_COIN_MODE) { triggerNoCoinDeath(null); return; }
-                        if (obs.type === 'coin') {
-                            try { if (window.game.stats) window.game.stats.coins += 1; if (window.game.missions) window.game.missions.addStat(1, 'mission-pickup-coins'); } catch(e) {}
-                        } else {
-                            grantEnergy(1);
-                        }
-                        removeProceduralObstacle(obs); customObstacles.splice(i, 1);
-                        try { if (window.game.sfx && window.game.sfx.play) window.game.sfx.play(obs.type === 'coin' ? 'pickup-coin' : 'pickup-powerup'); } catch(e) {}
-                        continue;
-                    }
-
-                    // Break the new timber deck only by jumping onto it; the dropped coins keep their real pickup rules.
+                    // Plank: breakable wood barrier (jump over, roll, or crash with board)
                     if (obs.type === 'plank') {
-                        if (heroY > 2.5) {
-                            if (window.NO_COIN_MODE) { triggerNoCoinDeath(null); return; }
+                        if (heroY > 2.5 || isRolling || boardActive) {
                             obs.destroyed = true;
-                            removeProceduralObstacle(obs);
-                            customObstacles.splice(i, 1);
-                            for (let n = -1; n <= 1; n++) {
-                                const drop = createObstacle3D('coin', obs.x + n * 5, 6, obs.z - Math.abs(n) * 4);
-                                if (drop) customObstacles.push(drop);
+                            if (obs.mesh && obs.mesh.parent) {
+                                try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
                             }
-                            showEnergyToast('🪵 Tábuas quebradas · moedas liberadas');
+                            customObstacles.splice(i, 1);
+                            grantEnergy(1);
+                            showEnergyDropPop('+1 ⚡');
                             try { if (navigator.vibrate) navigator.vibrate(18); } catch(e) {}
                             continue;
                         }
@@ -1697,16 +1356,8 @@
 
                     // Wall: must roll underneath
                     if (obs.type === 'wall' && isRolling) {
-                        removeProceduralObstacle(obs); customObstacles.splice(i, 1); continue;
+                        continue;
                     }
-
-                    // Containers and floating decks are safe only when landed on from above.
-                    if ((obs.type === 'container' || obs.type === 'platform') && heroY > 2.2) continue;
-                    if (obs.type === 'halfTrain' && obs.options && obs.options.ramp && heroY > 2) {
-                        try { heroBody.ground = 5; heroBody.bottom = 5; heroBody.y = 5; heroBody.velocity.y = 0; } catch(e) {}
-                        removeProceduralObstacle(obs); customObstacles.splice(i, 1); continue;
-                    }
-                    if (obs.type === 'halfTrain' && heroY > 8) continue;
 
                     if (obs.type === 'blocker_jump' && isJumping) {
                         continue; // Cleared jump barrier
@@ -1746,12 +1397,12 @@
 
             // Passed behind player
             if (obs.z > heroZ + 80) {
-                removeProceduralObstacle(obs);
+                if (obs.mesh && obs.mesh.parent) {
+                    try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                }
                 customObstacles.splice(i, 1);
             }
         }
-        updateEnergyHud();
-        renderProceduralWorld();
     }
 
     setInterval(updateNoCoinObstacleEngine, 30);
@@ -3514,12 +3165,32 @@
     // ==========================================
     function createUnifiedUI() {
         // Vertical skate energy meter; click the meter or press B when full.
+        // Integrated Cyber Skate Energy Widget
         if (!document.getElementById('subway-energy-widget')) {
             const ew = document.createElement('div');
             ew.id = 'subway-energy-widget';
-            ew.innerHTML = '<div class="se-label">⚡</div><div class="se-track"><div id="subway-energy-fill" class="se-fill"></div><div class="se-ticks"></div></div><div id="subway-energy-value" class="se-value">0/8</div>';
-            ew.addEventListener('click', activateBoard);
+            ew.innerHTML = `
+                <div class="se-header">
+                    <span class="se-icon">⚡</span>
+                    <span class="se-title">SKATE</span>
+                    <span id="subway-energy-value" class="se-count">0/8</span>
+                </div>
+                <div class="se-bar">
+                    <div id="subway-energy-fill" class="se-fill"></div>
+                    <div class="se-segments">
+                        <span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span>
+                    </div>
+                </div>
+                <button id="subway-board-button" type="button" class="se-btn">
+                    <span class="se-btn-icon">🛹</span>
+                    <span id="subway-board-btn-label" class="se-btn-text">PRANCHA · B</span>
+                </button>
+            `;
             document.body.appendChild(ew);
+
+            const btn = document.getElementById('subway-board-button');
+            if (btn) btn.addEventListener('click', activateBoard);
 
             const toast = document.createElement('div');
             toast.id = 'subway-expansion-toast';
@@ -4257,97 +3928,162 @@
         style.textContent = `
             
             /* Vertical skate energy meter */
+                        /* Cyber Skate Energy Widget & Button */
             #subway-energy-widget {
                 position: fixed;
-                right: 14px;
-                top: 92px;
+                right: 18px;
+                top: 195px;
                 z-index: 99990;
-                width: 34px;
-                height: 142px;
-                padding: 7px 5px;
-                border-radius: 18px;
-                background: linear-gradient(180deg, rgba(9, 20, 35, .92), rgba(3, 40, 61, .88));
-                border: 1px solid rgba(76, 220, 255, 0.72);
+                width: 112px;
+                padding: 8px 10px;
+                border-radius: 14px;
+                background: linear-gradient(180deg, rgba(8, 20, 36, 0.94), rgba(4, 12, 22, 0.92));
+                border: 1.5px solid rgba(0, 229, 255, 0.45);
                 color: #fff;
-                font: 800 10px Arial, sans-serif;
-                box-shadow: 0 4px 18px rgba(0, 19, 30, .5), inset 0 0 12px rgba(0, 202, 255, .12);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 4px;
-                cursor: pointer;
-                user-select: none;
-                -webkit-tap-highlight-color: transparent;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                box-shadow: 0 8px 24px rgba(0, 10, 20, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.12);
                 box-sizing: border-box;
-                transition: border-color .2s, box-shadow .2s;
+                user-select: none;
+                transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
             }
-            #subway-energy-widget .se-label {
-                color: #c7fbff;
-                font-size: 17px;
-                line-height: 18px;
-                text-shadow: 0 0 8px #00d9ff;
+            #subway-energy-widget:hover {
+                transform: translateY(-1px);
+                border-color: rgba(0, 229, 255, 0.75);
             }
-            #subway-energy-widget .se-track {
+            #subway-energy-widget .se-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 6px;
+            }
+            #subway-energy-widget .se-icon {
+                color: #00e5ff;
+                font-size: 13px;
+                filter: drop-shadow(0 0 5px #00e5ff);
+            }
+            #subway-energy-widget .se-title {
+                color: #b9f4ff;
+                font-size: 11px;
+                font-weight: 900;
+                letter-spacing: 0.8px;
+            }
+            #subway-energy-widget .se-count {
+                color: #7dd3fc;
+                font-size: 11px;
+                font-weight: 800;
+            }
+            #subway-energy-widget .se-bar {
                 position: relative;
-                flex: 1;
-                width: 15px;
-                border: 1px solid rgba(167, 235, 255, .65);
-                border-radius: 9px;
-                background: linear-gradient(90deg, #10283a, #1c4055);
+                width: 100%;
+                height: 8px;
+                border-radius: 4px;
+                background: rgba(0, 0, 0, 0.65);
                 overflow: hidden;
-                box-shadow: inset 0 1px 5px rgba(0, 0, 0, .65);
+                border: 1px solid rgba(0, 229, 255, 0.25);
+                box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
             }
             #subway-energy-widget .se-fill {
                 position: absolute;
-                left: 0; right: 0; bottom: 0;
-                height: 0%;
-                background: linear-gradient(0deg, #008fe8, #28dbff 65%, #bdffff);
-                border-radius: 0 0 8px 8px;
-                box-shadow: 0 0 10px #00d9ff;
-                transition: height .2s ease;
+                left: 0; top: 0; bottom: 0;
+                width: 0%;
+                background: linear-gradient(90deg, #0284c7, #00e5ff 70%, #a5f3fc);
+                border-radius: 4px;
+                box-shadow: 0 0 10px #00e5ff;
+                transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             }
-            #subway-energy-widget .se-ticks {
+            #subway-energy-widget .se-segments {
                 position: absolute;
                 inset: 0;
-                background: repeating-linear-gradient(to top, transparent 0, transparent calc(12.5% - 1px), rgba(3, 18, 31, .9) calc(12.5% - 1px), rgba(3, 18, 31, .9) 12.5%);
+                display: flex;
                 pointer-events: none;
             }
-            #subway-energy-widget .se-value {
-                color: #d5fbff;
-                font-size: 9px;
-                line-height: 12px;
-                text-shadow: 0 1px 3px #00131f;
+            #subway-energy-widget .se-segments span {
+                flex: 1;
+                border-right: 1px solid rgba(0, 0, 0, 0.45);
             }
-            #subway-energy-widget.ready {
-                border-color: #adffff;
-                box-shadow: 0 0 16px rgba(0, 229, 255, .8), inset 0 0 12px rgba(0, 202, 255, .24);
+            #subway-energy-widget .se-segments span:last-child {
+                border-right: none;
             }
-            #subway-energy-widget.active {
-                border-color: #ffe68a;
-                box-shadow: 0 0 16px rgba(255, 208, 68, .65);
+            #subway-board-button {
+                width: 100%;
+                margin-top: 7px;
+                padding: 6px 0;
+                border: 1px solid rgba(0, 229, 255, 0.3);
+                border-radius: 8px;
+                background: rgba(14, 32, 52, 0.9);
+                color: #bae6fd;
+                font: 800 10px 'Arial', sans-serif;
+                letter-spacing: 0.4px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 4px;
+                transition: all 0.2s ease;
+                touch-action: manipulation;
+                outline: none;
             }
+            #subway-board-button:hover {
+                background: rgba(22, 48, 76, 0.95);
+                border-color: rgba(0, 229, 255, 0.6);
+                color: #ffffff;
+            }
+            #subway-board-button:active {
+                transform: scale(0.96);
+            }
+            #subway-energy-widget.is-ready {
+                border-color: #00e5ff;
+                box-shadow: 0 0 18px rgba(0, 229, 255, 0.7), inset 0 0 12px rgba(0, 229, 255, 0.2);
+            }
+            #subway-energy-widget.is-ready #subway-board-button {
+                background: linear-gradient(135deg, #0284c7, #00e5ff);
+                color: #ffffff;
+                border-color: #a5f3fc;
+                box-shadow: 0 0 14px rgba(0, 229, 255, 0.85);
+                animation: seBtnPulse 1.2s infinite alternate;
+            }
+            #subway-energy-widget.is-active {
+                border-color: #fbbf24;
+                box-shadow: 0 0 16px rgba(251, 191, 36, 0.6);
+            }
+            #subway-energy-widget.is-active #subway-board-button {
+                background: linear-gradient(135deg, #d97706, #f59e0b);
+                color: #ffffff;
+                border-color: #fde68a;
+                box-shadow: 0 0 12px rgba(245, 158, 11, 0.7);
+            }
+            @keyframes seBtnPulse {
+                0% { box-shadow: 0 0 8px rgba(0, 229, 255, 0.6); }
+                100% { box-shadow: 0 0 18px rgba(0, 229, 255, 0.95); }
+            }
+
+            /* Minimalist Bottom Toast Notification */
             #subway-expansion-toast {
                 position: fixed;
                 left: 50%;
-                top: 22%;
-                transform: translate(-50%, -10px);
+                bottom: 74px;
+                transform: translate(-50%, 15px);
                 opacity: 0;
                 z-index: 100000;
-                padding: 8px 14px;
-                border-radius: 10px;
-                background: rgba(9, 21, 35, 0.92);
-                color: #fff;
-                border: 1px solid #38bdf8;
+                padding: 6px 16px;
+                border-radius: 20px;
+                background: rgba(8, 18, 30, 0.94);
+                color: #ffffff;
+                border: 1px solid rgba(0, 229, 255, 0.6);
                 font: 800 12px Arial, sans-serif;
+                letter-spacing: 0.5px;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65), 0 0 10px rgba(0, 229, 255, 0.3);
                 pointer-events: none;
-                transition: opacity 0.18s, transform 0.18s;
+                transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
             }
             #subway-expansion-toast.show {
                 opacity: 1;
                 transform: translate(-50%, 0);
             }
             @media (max-width: 600px) {
-                #subway-energy-widget { top: 78px; right: 8px; width: 32px; height: 126px; }
+                #subway-energy-widget { top: 155px; right: 10px; width: 98px; padding: 7px 8px; }
+                #subway-board-button { padding: 5px 0; font-size: 9px; }
+                #subway-expansion-toast { bottom: 60px; font-size: 11px; padding: 5px 12px; }
             }
 
             /* Map Themes */
