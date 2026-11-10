@@ -995,6 +995,12 @@
             fragment.vy += 0.018;
             fragment.life = 720 + Math.random() * 160;
         }
+        const starBurst = document.createElement('div');
+        starBurst.className = 'subway-energy-star-burst';
+        starBurst.setAttribute('aria-hidden', 'true');
+        starBurst.innerHTML = '<span class="energy-pickup-star">✦</span><span class="energy-pickup-star-glint">✦</span>';
+        document.body.appendChild(starBurst);
+        setTimeout(() => starBurst.remove(), 680);
         showEnergyToast('+1 ENERGIA');
     }
 
@@ -5745,6 +5751,26 @@
                 pointer-events: none;
                 animation: dashBurstAnim 0.45s ease-out forwards;
             }
+            .subway-energy-star-burst {
+                position: fixed; inset: 0; z-index: 100001; overflow: hidden;
+                pointer-events: none;
+                background: radial-gradient(circle at 50% 55%, rgba(20,184,255,.26), rgba(0,116,255,.12) 28%, transparent 58%);
+                box-shadow: inset 0 0 110px rgba(0,153,255,.72);
+                animation: energyStarScreenFlash .62s ease-out forwards;
+            }
+            .energy-pickup-star, .energy-pickup-star-glint {
+                position: absolute; left: 50%; top: 54%; display: block;
+                transform: translate(-50%,-50%); color: #dffaff;
+                font: 900 clamp(110px, 27vw, 260px)/1 Arial,sans-serif;
+                -webkit-text-stroke: 3px #36c8ff;
+                text-shadow: 0 0 14px #fff, 0 0 38px #18aaff, 0 0 86px #087bff;
+                animation: energyPickupStar .62s cubic-bezier(.14,.78,.22,1) forwards;
+            }
+            .energy-pickup-star-glint {
+                color: #fff; font-size: clamp(42px, 10vw, 96px);
+                -webkit-text-stroke: 1px #a5f3ff;
+                animation: energyPickupGlint .62s cubic-bezier(.15,.8,.2,1) forwards;
+            }
             .subway-coin-shatter {
                 position: fixed; inset: 0; z-index: 100002; pointer-events: none;
                 color: var(--coin-burst-color, #ffd84a);
@@ -5831,6 +5857,22 @@
             @keyframes dashBurstAnim {
                 0% { opacity: 1; transform: scale(1.04); }
                 100% { opacity: 0; transform: scale(1); }
+            }
+            @keyframes energyStarScreenFlash {
+                0% { opacity: 0; }
+                16% { opacity: 1; }
+                100% { opacity: 0; }
+            }
+            @keyframes energyPickupStar {
+                0% { opacity: 0; transform: translate(-50%,-50%) scale(.12) rotate(-35deg); }
+                26% { opacity: 1; transform: translate(-50%,-50%) scale(1.08) rotate(9deg); }
+                52% { opacity: .96; transform: translate(-50%,-50%) scale(.9) rotate(-5deg); }
+                100% { opacity: 0; transform: translate(-50%,-50%) scale(1.35) rotate(18deg); }
+            }
+            @keyframes energyPickupGlint {
+                0% { opacity: 0; transform: translate(-50%,-50%) scale(.2) rotate(0deg); }
+                32% { opacity: 1; transform: translate(-50%,-50%) scale(1.5) rotate(45deg); }
+                100% { opacity: 0; transform: translate(-50%,-50%) scale(.2) rotate(115deg); }
             }
             @keyframes flashFade { 0% { opacity: 1; } 100% { opacity: 0; } }
             .subway-hud-alert {
