@@ -411,7 +411,7 @@
             const originalMap = window.__lib.getMap('props-tex');
             const TextureClass = originalMap && originalMap.constructor;
             if (!energyCoinBlueTexture && TextureClass && typeof TextureClass.from === 'function') {
-                energyCoinBlueTexture = TextureClass.from(new URL('assets/energy-coin-blue.png', window.location.href).href);
+                energyCoinBlueTexture = TextureClass.from(new URL('assets/energy-coin-blue.svg', window.location.href).href);
             }
             if (!energyCoinBlueTexture) return false;
             const materials = Array.isArray(mesh.view3d.material) ? mesh.view3d.material : [mesh.view3d.material];
@@ -1048,7 +1048,7 @@
     function createObstacle3D(type, x, y, z, options = {}) {
         if (!window.__lib || !window.__lib.getEntity) return null;
         const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20;
-        if (!options.ignoreBlockCheck && isPositionBlocked(x, y, z, margin)) return null;
+        if (isPositionBlocked(x, y, z, margin)) return null;
 
         try {
             let mesh = null;
@@ -1105,7 +1105,15 @@
             }
 
             if (type === 'trampoline') {
-                mesh = window.__lib.getEntity('train_standardWagon_low') || window.__lib.getEntity('train_cargo');
+                // These are the model IDs present in the base game's library.
+                // Keep each lookup isolated so a missing optional model cannot
+                // abort construction before the known cargo fallback is tried.
+                for (const modelName of ['train_standardwagon', 'train_cargo']) {
+                    try {
+                        mesh = window.__lib.getEntity(modelName);
+                        if (mesh) break;
+                    } catch(e) {}
+                }
                 if (mesh) {
                     mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
                     if (mesh.scale) mesh.scale.set(0.72, 0.22, 0.34);
@@ -1166,29 +1174,44 @@
         applyMaterialGlow(mesh);
     }
 
+    function findSafeSpecialPosition(y, startZ) {
+        const lanes = [-20, 0, 20];
+        const zOffsets = [0, -34, 34, -68, 68, -102, 102];
+        const laneStart = obstacleChunkCount % lanes.length;
+        for (const zOffset of zOffsets) {
+            for (let i = 0; i < lanes.length; i++) {
+                const lane = lanes[(i + laneStart) % lanes.length];
+                const z = startZ + zOffset;
+                if (!isPositionBlocked(lane, y, z, 12)) return { lane, z };
+            }
+        }
+        return null;
+    }
+
     function spawnNoCoinObstaclePattern(centerZ) {
         const lanes = [-20, 0, 20];
         obstacleChunkCount++;
         const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 12));
-        const candidateLanes = freeGroundLanes.length ? freeGroundLanes : lanes;
 
         // Put blue energy coins and the spring into a predictable rotation so
         // players can actually encounter both during an ordinary run.
         if (obstacleChunkCount % 4 === 1) {
-            const lane = candidateLanes[Math.floor(Math.random() * candidateLanes.length)];
+            const safeSpot = findSafeSpecialPosition(7, centerZ);
             const count = 1 + Math.floor(Math.random() * 3);
-            for (let i = 0; i < count; i++) {
-                const coin = createObstacle3D('energyCoin', lane, 7, centerZ - i * 28, { ignoreBlockCheck: true });
-                if (coin) customObstacles.push(coin);
+            if (safeSpot) {
+                for (let i = 0; i < count; i++) {
+                    const coin = createObstacle3D('energyCoin', safeSpot.lane, 7, safeSpot.z - i * 28);
+                    if (coin) customObstacles.push(coin);
+                }
             }
-            if (customObstacles.some(obs => obs && obs.type === 'energyCoin' && Math.abs(obs.z - centerZ) < 90)) return;
+            if (safeSpot && customObstacles.some(obs => obs && obs.type === 'energyCoin' && Math.abs(obs.z - safeSpot.z) < 90)) return;
         } else if (obstacleChunkCount % 4 === 3) {
-            const lane = candidateLanes[Math.floor(Math.random() * candidateLanes.length)];
-            const pad = createObstacle3D('trampoline', lane, 0, centerZ, { ignoreBlockCheck: true });
+            const safeSpot = findSafeSpecialPosition(0, centerZ);
+            const pad = safeSpot && createObstacle3D('trampoline', safeSpot.lane, 0, safeSpot.z);
             if (pad) customObstacles.push(pad);
             if (pad) {
                 for (let i = 1; i <= 3; i++) {
-                    const coin = createObstacle3D('coin', lane, 14 + (i % 2) * 4, centerZ - i * 30, { ignoreBlockCheck: true });
+                    const coin = createObstacle3D('coin', safeSpot.lane, 14 + (i % 2) * 4, safeSpot.z - i * 30);
                     if (coin) customObstacles.push(coin);
                 }
                 return;
