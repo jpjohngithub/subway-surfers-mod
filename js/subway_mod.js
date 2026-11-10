@@ -1523,15 +1523,10 @@
                     );
 
                     if (obs.type === 'trampoline') {
-                        const verticalSpeed = heroBody.velocity ? heroBody.velocity.y : 0;
-                        const jump = hero.jump;
-                        const isJumpLanding = !!(jump && jump.isJumping && (
-                            jump.goingUpwards === false || heroBody.descending === true ||
-                            (heroBody.landed === false && verticalSpeed <= 0)
-                        ));
-                        if (!isJumpLanding) continue;
-                        if (now - (obs.lastBounceAt || 0) > 700) {
-                            obs.lastBounceAt = now;
+                        // Any contact activates the spring; it is consumed once
+                        // so the same wagon cannot retrigger during the launch.
+                        if (!obs.used) {
+                            obs.used = true;
                             try {
                                 if (hero.jump && hero.jump.perform) hero.jump.perform(48, true);
                                 else if (heroBody.velocity) heroBody.velocity.y = 45;
@@ -1548,8 +1543,13 @@
                                 if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('pickup-super-sneakers');
                             } catch(e) {}
                             showEnergyToast('MEGA PULÃO!');
+                            if (obs.mesh && obs.mesh.parent) {
+                                try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                            }
+                            customObstacles.splice(i, 1);
                             continue;
                         }
+                        continue;
                     }
 
                     if (obs.type === 'blocker_jump' && isJumping) {
