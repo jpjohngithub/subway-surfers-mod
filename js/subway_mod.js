@@ -512,6 +512,10 @@
         window.__activeCoins.add(coin);
         const isNoCoin = !!window.NO_COIN_MODE;
         coin._isDashItem = false;
+        if (coin.hasOwnProperty('onCollect')) {
+            delete coin.onCollect;
+        }
+        delete coin._dashHookAttached;
         coin.visible = true;
         if (coin.model && coin.model.scale) {
             coin.model.scale.set(1, 1, 1);
@@ -538,14 +542,6 @@
             if (coin.shine) {
                 coin.shine.active = true;
                 if (coin.shine.view) setEntityHexColor(coin.shine.view, 0x00ff66);
-            }
-            if (!coin._dashHookAttached) {
-                coin._dashHookAttached = true;
-                const origCollect = coin.onCollect;
-                coin.onCollect = function() {
-                    window.__onDashCollect(this);
-                    if (origCollect) return origCollect.apply(this, arguments);
-                };
             }
             return;
         }
@@ -3667,6 +3663,7 @@
         }
         if (window.__activeCoins) {
             for (const coin of window.__activeCoins) {
+                if (coin && coin._isDashItem) continue; // NEVER recolor green dash coins
                 if (coin && coin.model) {
                     setEntityHexColor(coin.model, window.NO_COIN_MODE ? 0xff1e1e : 0xffffff);
                 }
