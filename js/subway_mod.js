@@ -387,6 +387,10 @@
             if (obj.material) {
                 obj.material.color = hexColor;
             }
+            if (obj.parts) {
+                const partsArr = Array.isArray(obj.parts) ? obj.parts : Object.values(obj.parts);
+                for (let i = 0; i < partsArr.length; i++) setEntityHexColor(partsArr[i], hexColor);
+            }
             const children = obj.children || (obj.container && obj.container.children);
             if (children && children.length) {
                 for (let i = 0; i < children.length; i++) {
@@ -939,8 +943,8 @@
 
     // Prevents placing obstacle coins/dumpsters inside trains, barriers or native coins
     function isPositionBlocked(x, y, z, margin = 12) {
-        // 1. Existing native map coins
-        if (window.__activeCoins) {
+        const isAir = (y >= 6.5);
+        if (window.__activeCoins && !isAir) {
             for (const c of window.__activeCoins) {
                 if (c && c.active && c.body) {
                     if (Math.abs(c.body.z - z) < 22 && Math.abs(c.body.x - x) < 8) {
@@ -949,8 +953,6 @@
                 }
             }
         }
-
-        // 2. Trains, ramps and blockers in physics system (prevent spawning inside trains)
         const phys = window.game && window.game.physics;
         if (phys && Array.isArray(phys.entities)) {
             for (let i = 0; i < phys.entities.length; i++) {
@@ -965,12 +967,11 @@
                 }
             }
         }
-
-        // 3. Already placed custom obstacles
         for (let i = 0; i < customObstacles.length; i++) {
             const obs = customObstacles[i];
             if (obs && !obs.destroyed) {
                 if (Math.abs(obs.z - z) < 24 && Math.abs(obs.x - x) < 8) {
+                    if (isAir && (obs.y || 0) < 6.0) continue;
                     return true;
                 }
             }
@@ -982,7 +983,7 @@
 
     function createObstacle3D(type, x, y, z, options = {}) {
         if (!window.__lib || !window.__lib.getEntity) return null;
-        const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'bounceTrain' || type === 'subwagon' || type === 'wall') ? 30 : 16;
+        const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'bounceTrain' || type === 'subwagon' || type === 'wall') ? 28 : 15;
         if (isPositionBlocked(x, y, z, margin)) return null;
 
         try {
@@ -1035,15 +1036,14 @@
                     bounds = { depth: 12, width: 15, height: 6, isPlank: true };
                 }
             } else if (type === 'wall') {
-                // 3D industrial container bridge spanning across all 3 tracks (-28 to +28)!
+                // Natural proportionate container (one per lane, no texture stretching!)
                 mesh = window.__lib.getEntity('train_cargo');
                 if (mesh) {
                     mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
-                    if (mesh.scale) mesh.scale.set(3.2, 0.45, 0.35);
+                    if (mesh.scale) mesh.scale.set(0.95, 0.45, 0.35);
                     setEntityHexColor(mesh, 0xd84925);
-                    y = 7.5;
-                    x = 0;
-                    bounds = { depth: 14, width: 68, height: 10, isWall: true, minClearY: 6.0 };
+                    y = 7.2;
+                    bounds = { depth: 14, width: 14, height: 10, isWall: true, minClearY: 6.0 };
                 }
             } else if (type === 'energy') {
                 mesh = window.__lib.getEntity('currency_coin');
@@ -1059,7 +1059,7 @@
                     mesh.rx = 0; mesh.rz = 0; mesh.ry = 0;
                     if (mesh.scale) mesh.scale.set(1.5, 0.6, 1.5);
                     setEntityHexColor(mesh, 0x00e5ff);
-                    y = 5.5;
+                    y = 5.0;
                     bounds = { depth: 10, width: 12, height: 8, isDrone: true };
                 }
             } else if (type === 'ocean_container') {
@@ -1114,9 +1114,9 @@
 
         const isNoCoin = !!window.NO_COIN_MODE;
 
-        // If in No Coin mode, 50% spawn lethal coin traps, 50% City mechanics
-        if (isNoCoin && Math.random() < 0.5) {
-            const coinPattern = Math.floor(Math.random() * 6);
+        // If in No Coin mode, 45% spawn coin traps
+        if (isNoCoin && Math.random() < 0.45) {
+            const coinPattern = Math.floor(Math.random() * 5);
             if (coinPattern === 0) {
                 const c = createObstacle3D('coin', 0, 6, centerZ, { isOscillating: true, speed: 2.2, phase: Math.random() * Math.PI });
                 if (c) customObstacles.push(c);
@@ -1140,28 +1140,27 @@
                     const c = createObstacle3D('coin', lx, 6, centerZ - (idx * 50));
                     if (c) customObstacles.push(c);
                 });
-            } else if (coinPattern === 4) {
+            } else {
                 const tLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
                 [5, 12, 19].forEach(yPos => {
                     const c = createObstacle3D('coin', tLane, yPos, centerZ);
                     if (c) customObstacles.push(c);
                 });
-            } else {
-                const c = createObstacle3D('coin', freeGroundLanes[0], 12, centerZ, { isFloating: true, speed: 2.0 });
-                if (c) customObstacles.push(c);
             }
             return;
         }
 
-        // SUBWAY SURFERS CITY SUITE (Image-based authentic mechanics)
+        // SUBWAY SURFERS CITY SUITE
         const cityPattern = Math.floor(Math.random() * 8);
 
         if (cityPattern === 0) {
-            // 1. MURO 3 TRILHOS (CONTAINER SUSPENSO GANTREE): Ocupa as 3 pistas, SÓ PASSA ROLANDO!
-            const w = createObstacle3D('wall', 0, 7.5, centerZ);
-            if (w) customObstacles.push(w);
+            // 1. MURO 3 TRILHOS (CONTAINERS SUSPENSOS): 3 containers individuais nos 3 trilhos, SÓ PASSA ROLANDO!
+            [-20, 0, 20].forEach(lx => {
+                const w = createObstacle3D('wall', lx, 7.2, centerZ);
+                if (w) customObstacles.push(w);
+            });
         } else if (cityPattern === 1) {
-            // 2. TREM BOUNCE (PULA-PULA COM AURA ROXA): Pular em cima arremessa alto com moedas no céu!
+            // 2. TREM BOUNCE (PULA-PULA COM AURA ROXA): Pular em cima arremessa alto com moedas/tokens no céu!
             const bLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const bt = createObstacle3D('bounceTrain', bLane, 0, centerZ);
             if (bt) customObstacles.push(bt);
@@ -1170,51 +1169,49 @@
                 if (c) customObstacles.push(c);
             }
         } else if (cityPattern === 2) {
-            // 3. TREM PELA METADE / VAGÃO ABERTO: Vagão baixo com tábuas de carga ao lado de trem normal
+            // 3. TREM PELA METADE / VAGÃO ABERTO: Vagão baixo transitável ao lado de trem normal
             const sLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const sw = createObstacle3D('subwagon', sLane, 0, centerZ);
             if (sw) customObstacles.push(sw);
             const e = createObstacle3D('energy', sLane, 5.0, centerZ - 10);
             if (e) customObstacles.push(e);
         } else if (cityPattern === 3) {
-            // 4. TÁBUAS DE MADEIRA QUEBRÁVEIS: Quebra ao pisar/rolar e dropa moedas (no-coin = morte se pegar!)
+            // 4. TÁBUAS DE MADEIRA QUEBRÁVEIS: Quebra ao pisar/rolar e dropa 3 moedas
             freeGroundLanes.forEach(lx => {
                 const p = createObstacle3D('plank', lx, 0.5, centerZ);
                 if (p) customObstacles.push(p);
             });
         } else if (cityPattern === 4) {
-            // 5. TRILHA DE CÁPSULAS DE ENERGIA AZUIS (Com raio ⚡, como na imagem 7 e 8)
+            // 5. TRILHA DE CÁPSULAS DE ENERGIA AZUIS (⚡)
             const eLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             for (let k = 0; k < 3; k++) {
                 const e = createObstacle3D('energy', eLane, 5.0, centerZ - (k * 22));
                 if (e) customObstacles.push(e);
             }
         } else if (cityPattern === 5) {
-            // 6. PARKOUR NO OCEANO / TRILHO AQUÁTICO (Imagem 1): Containers flutuantes na água
-            const oceanLength = 220;
-            activeOceanZones.push({ startZ: centerZ, endZ: centerZ - oceanLength });
+            // 6. PARKOUR DE CONTAINERS FLUTUANTES (Água)
             const seqLanes = [-20, 0, 20];
             seqLanes.forEach((lx, idx) => {
-                const oc = createObstacle3D('ocean_container', lx, 1.0, centerZ - 30 - (idx * 55), {
+                const oc = createObstacle3D('ocean_container', lx, 1.2, centerZ - (idx * 45), {
                     isFloating: true,
                     speed: 1.5,
-                    phase: idx * 1.2
+                    phase: idx * 1.5
                 });
                 if (oc) customObstacles.push(oc);
+                const coin = createObstacle3D('energy', lx, 6.0, centerZ - (idx * 45));
+                if (coin) customObstacles.push(coin);
             });
         } else if (cityPattern === 6) {
-            // 7. DRONE VOADOR E TRILHAS NO AR (Imagem 5): Lança o jogador para a passarela aérea!
+            // 7. DRONE VOADOR: Lança o jogador para o alto com trilha aérea de moedas/tokens!
             const dLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const dr = createObstacle3D('drone', dLane, 5.5, centerZ);
+            const dr = createObstacle3D('drone', dLane, 5.0, centerZ);
             if (dr) customObstacles.push(dr);
-            for (let k = 1; k <= 3; k++) {
-                const platform = createObstacle3D('wall', dLane, 14.5, centerZ - (k * 45));
-                if (platform) customObstacles.push(platform);
-                const skyCoin = createObstacle3D('energy', dLane, 18.0, centerZ - (k * 45));
+            for (let k = 1; k <= 4; k++) {
+                const skyCoin = createObstacle3D(k % 2 === 0 ? 'energy' : 'coin', dLane, 16.0, centerZ - (k * 28));
                 if (skyCoin) customObstacles.push(skyCoin);
             }
         } else {
-            // 8. OBSTÁCULOS NATIVOS: Caçamba ou Mato 3D
+            // 8. OBSTÁCULOS NATIVOS
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const obs = createObstacle3D(Math.random() > 0.5 ? 'bush' : 'dumpster', lane, 0, centerZ);
             if (obs) customObstacles.push(obs);
@@ -1235,7 +1232,7 @@
 
         if (window.isGamePaused) return;
 
-        // Check spawn ahead of runner (abundant, regular obstacles)
+        // Check spawn ahead of runner
         if (heroZ < nextObstacleZ) {
             spawnCityObstaclePattern(heroZ - 320);
             nextObstacleZ = heroZ - (130 + Math.random() * 70);
@@ -1243,42 +1240,14 @@
 
         const now = Date.now();
         const isDashing = now < dashInvulnUntil;
-        const isJumping = heroY >= 6.5;
-        const isRolling = !!(hero && hero.character && (
-            (hero.character.roll && hero.character.roll.active) ||
-            (hero.anim && hero.anim.currentAnimationClipName === 'roll')
-        ));
+        const isJumping = heroY >= 6.0;
+        const isRolling = !!(
+            (hero && hero.roll && (hero.roll.isRolling || hero.roll._isOn)) ||
+            (heroBody && heroBody.height <= 6.5) ||
+            (hero && hero.character && hero.character.roll && hero.character.roll.active) ||
+            (hero && hero.anim && hero.anim.currentAnimationClipName === 'roll')
+        );
         const boardActive = !!(hero && hero.hoverboard && hero.hoverboard.isOn && hero.hoverboard.isOn());
-
-        // Check Ocean Parkour Water Hazard: falling off containers into water is lethal!
-        for (let j = activeOceanZones.length - 1; j >= 0; j--) {
-            const oz = activeOceanZones[j];
-            if (heroZ > oz.startZ + 50) {
-                activeOceanZones.splice(j, 1);
-                continue;
-            }
-            if (heroZ <= oz.startZ && heroZ >= oz.endZ) {
-                let onContainer = false;
-                for (let k = 0; k < customObstacles.length; k++) {
-                    const cObs = customObstacles[k];
-                    if (cObs && cObs.type === 'ocean_container' && !cObs.destroyed) {
-                        if (Math.abs(cObs.z - heroZ) < 16 && Math.abs(cObs.x - heroX) < 9 && heroY >= 0.8) {
-                            onContainer = true;
-                            break;
-                        }
-                    }
-                }
-                if (!onContainer && heroY < 0.9 && !isDashing && !boardActive) {
-                    showEnergyToast('🌊 CAIU NA ÁGUA');
-                    if (hero.player && hero.player.die) {
-                        hero.player.die('train');
-                    } else if (window.game.gameover) {
-                        window.game.gameover();
-                    }
-                    return;
-                }
-            }
-        }
 
         for (let i = customObstacles.length - 1; i >= 0; i--) {
             const obs = customObstacles[i];
@@ -1304,7 +1273,7 @@
             }
 
             if (obs.isFloating && obs.mesh) {
-                obs.y = (obs.baseY || 12) + Math.sin(now * 0.004 * obs.speed + obs.phase) * 2.5;
+                obs.y = (obs.baseY || 1.2) + Math.sin(now * 0.004 * obs.speed + obs.phase) * 1.8;
                 obs.mesh.y = obs.y;
             }
 
@@ -1315,7 +1284,7 @@
             const dx = Math.abs(obs.x - heroX);
             const dy = Math.abs(obs.y - heroY);
 
-            // 1. Blue Energy Capsule
+            // 1. Blue Energy Capsule (⚡)
             if (obs.type === 'energy') {
                 if (dz < 8 && dx < 6 && dy < 8) {
                     obs.destroyed = true;
@@ -1361,8 +1330,8 @@
                     }
                     customObstacles.splice(i, 1);
                     try {
-                        if (hero.jump && hero.jump.perform) hero.jump.perform(32, true);
-                        else if (heroBody) heroBody.velocity.y = 30;
+                        if (hero.jump && hero.jump.perform) hero.jump.perform(34, true);
+                        else if (heroBody) heroBody.velocity.y = 32;
                         if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('pickup-jetpack');
                     } catch(e) {}
                     showEnergyToast('🛸 DRONE AÉREO');
@@ -1373,7 +1342,7 @@
             // 4. Trem Bounce (Pula-Pula)
             if (obs.type === 'bounceTrain') {
                 if (dz < 16 && dx < 8) {
-                    if (heroY >= 2.5 && !obs.bounced) {
+                    if (heroY >= 2.0 && !obs.bounced) {
                         obs.bounced = true;
                         try {
                             if (hero.jump && hero.jump.perform) hero.jump.perform(38, true);
@@ -1383,6 +1352,9 @@
                         showEnergyToast('⬆️ BOUNCE');
                         continue;
                     }
+                }
+                if (obs.bounced || heroY >= 2.0) {
+                    continue;
                 }
             }
 
@@ -1402,15 +1374,26 @@
                         }
                         try { if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('wood-break'); } catch(e) {}
                         continue;
+                    } else {
+                        // Tripping upright
+                        if (hero && hero.player && typeof hero.player.stumble === 'function') {
+                            hero.player.stumble('bush');
+                        }
+                        obs.destroyed = true;
+                        if (obs.mesh && obs.mesh.parent) {
+                            try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                        }
+                        customObstacles.splice(i, 1);
+                        continue;
                     }
                 }
             }
 
-            // 6. Muro 3 Trilhos (Wall): Spans all 3 tracks! SÓ PASSA ROLANDO!
+            // 6. Muro 3 Trilhos (Wall): SÓ PASSA ROLANDO!
             if (obs.type === 'wall') {
                 const hitDepth = 8;
-                const hitWidth = 34;
-                if (dz < hitDepth && Math.abs(heroX) < hitWidth) {
+                const hitWidth = 8;
+                if (dz < hitDepth && dx < hitWidth) {
                     if (isRolling) {
                         continue;
                     }
@@ -1456,8 +1439,9 @@
 
                 if (obs.type === 'blocker_jump' && isJumping) continue;
                 if (obs.type === 'bush' && isJumping) continue;
-                if (obs.type === 'subwagon' && heroY >= 2.5) continue;
+                if (obs.type === 'subwagon' && heroY >= 2.0) continue;
                 if (obs.type === 'ocean_container' && heroY >= 0.8) continue;
+                if (obs.type === 'bounceTrain' && (obs.bounced || heroY >= 2.0)) continue;
 
                 obs.destroyed = true;
                 if (boardActive) {
@@ -1492,12 +1476,10 @@
     window.__onGameOver = function() {
         stopRunTimer();
         cleanupCustomObstacles();
-        activeOceanZones = [];
     };
     window.__onGameReset = function() {
         hideRunTimer();
         cleanupCustomObstacles();
-        activeOceanZones = [];
     };
 
     // ==========================================
