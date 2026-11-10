@@ -1213,6 +1213,22 @@
             if (pad) customObstacles.push(pad);
             if (pad) return;
         }
+
+        // Add a separate red-coin route in No Coin mode. This runs independently
+        // of trampoline spawning, so its coins never form a trail in front of a pad.
+        if (window.NO_COIN_MODE && obstacleChunkCount % 3 === 2) {
+            const safeSpot = findSafeSpecialPosition(7, centerZ);
+            const nearTrampoline = safeSpot && customObstacles.some(obs => obs && obs.type === 'trampoline' &&
+                Math.abs(obs.x - safeSpot.lane) < 8 && Math.abs(obs.z - safeSpot.z) < 170);
+            if (safeSpot && !nearTrampoline) {
+                const previousCount = customObstacles.length;
+                for (let i = 0; i < 4; i++) {
+                    const coin = createObstacle3D('coin', safeSpot.lane, 7, safeSpot.z - i * 26);
+                    if (coin) customObstacles.push(coin);
+                }
+                if (customObstacles.length > previousCount) return;
+            }
+        }
         if (freeGroundLanes.length === 0) return;
 
         // Pattern selector: familiar hazards plus fresh, readable coin routes.
