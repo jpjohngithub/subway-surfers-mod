@@ -1211,13 +1211,7 @@
             const safeSpot = findSafeSpecialPosition(0, centerZ);
             const pad = safeSpot && createObstacle3D('trampoline', safeSpot.lane, 0, safeSpot.z);
             if (pad) customObstacles.push(pad);
-            if (pad) {
-                for (let i = 1; i <= 3; i++) {
-                    const coin = createObstacle3D('coin', safeSpot.lane, 14 + (i % 2) * 4, safeSpot.z - i * 30);
-                    if (coin) customObstacles.push(coin);
-                }
-                return;
-            }
+            if (pad) return;
         }
         if (freeGroundLanes.length === 0) return;
 
