@@ -1107,20 +1107,10 @@
             }
 
             if (type === 'trampoline') {
-                // These are the model IDs present in the base game's library.
-                // Keep each lookup isolated so a missing optional model cannot
-                // abort construction before the known cargo fallback is tried.
-                for (const modelName of ['train_standardwagon', 'train_cargo']) {
-                    try {
-                        mesh = window.__lib.getEntity(modelName);
-                        if (mesh) break;
-                    } catch(e) {}
-                }
+                mesh = buildTrampolineCushionMesh();
                 if (mesh) {
-                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
-                    if (mesh.scale) mesh.scale.set(0.72, 0.22, 0.34);
                     applyTrampolineGlow(mesh, 1);
-                    bounds = { depth: 14, width: 18, height: 8, isTrampoline: true };
+                    bounds = { depth: 18, width: 20, height: 8, isTrampoline: true };
                 }
             }
 
@@ -1152,20 +1142,21 @@
 
     function applyTrampolineGlow(mesh, pulse = 1) {
         if (!mesh) return;
-        const r = Math.round(205 + 50 * pulse);
-        const g = Math.round(12 + 20 * pulse);
-        const b = Math.round(132 + 123 * pulse);
-        const pink = (r << 16) | (g << 8) | b;
-        setEntityHexColor(mesh, pink);
+        const r = Math.round(174 + 81 * pulse);
+        const g = Math.round(8 + 23 * pulse);
+        const b = Math.round(24 + 42 * pulse);
+        const red = (r << 16) | (g << 8) | b;
         const applyMaterialGlow = obj => {
+            if (!obj || obj.__trampolineTarget) return;
             const view = obj && obj.view3d;
             const materialList = view && view.material ? (Array.isArray(view.material) ? view.material : [view.material]) : [];
             for (const material of materialList) {
                 if (!material) continue;
                 try {
-                    material.emissive = pink;
-                    material.emissiveColor = pink;
-                    material.emissionColor = pink;
+                    material.color = red;
+                    material.emissive = red;
+                    material.emissiveColor = red;
+                    material.emissionColor = red;
                     material.emission = 0.8 + pulse * 0.7;
                     material.emissiveIntensity = 0.8 + pulse * 0.7;
                 } catch(e) {}
@@ -1174,6 +1165,51 @@
             if (children) for (let i = 0; i < children.length; i++) applyMaterialGlow(children[i]);
         };
         applyMaterialGlow(mesh);
+    }
+
+    function buildTrampolineCushionMesh() {
+        if (!window.__lib || !window.__lib.getEntity) return null;
+        let cushion;
+        try { cushion = window.__lib.getEntity('currency_coin'); } catch(e) { return null; }
+        if (!cushion) return null;
+
+        // Flattened, overlapping 3D coin forms create a new puffy square pad.
+        // The layered white/red discs on top form a readable bullseye target.
+        cushion.rx = Math.PI / 2;
+        cushion.ry = 0;
+        cushion.rz = 0;
+        cushion.__trampolinePadPart = true;
+        if (cushion.scale) cushion.scale.set(1.55, 1.55, 0.2);
+        setEntityHexColor(cushion, 0xe51d36);
+
+        const getPiece = (x, z, size, height, color, target = false) => {
+            let part;
+            try { part = window.__lib.getEntity('currency_coin'); } catch(e) { return null; }
+            if (!part) return null;
+            part.x = x;
+            part.y = z;
+            part.z = -height;
+            part.rx = 0;
+            part.ry = 0;
+            part.rz = 0;
+            part.__trampolineTarget = target;
+            part.__trampolinePadPart = !target;
+            if (part.scale) part.scale.set(size, size, 0.16);
+            setEntityHexColor(part, color);
+            try { cushion.addChild(part); } catch(e) { return null; }
+            return part;
+        };
+
+        for (const x of [-3.8, 0, 3.8]) {
+            for (const z of [-3.8, 0, 3.8]) {
+                if (x === 0 && z === 0) continue;
+                getPiece(x, z, 1.08, 0.03, 0xe51d36);
+            }
+        }
+        getPiece(0, 0, 0.86, 0.2, 0xffffff, true);
+        getPiece(0, 0, 0.59, 0.3, 0xd71932, true);
+        getPiece(0, 0, 0.29, 0.4, 0xffffff, true);
+        return cushion;
     }
 
     function findSafeSpecialPosition(y, startZ) {
@@ -1438,6 +1474,34 @@
                 continue;
             }
 
+            if (obs.type === 'trampoline' && obs.bounceStartedAt) {
+                const elapsed = now - obs.bounceStartedAt;
+                if (elapsed >= 560) {
+                    if (obs.mesh && obs.mesh.parent) {
+                        try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                    }
+                    customObstacles.splice(i, 1);
+                    continue;
+                }
+                const base = obs.baseScale || { x: 1, y: 1, z: 1 };
+                let squash;
+                if (elapsed < 90) {
+                    const t = elapsed / 90;
+                    squash = t * t * (3 - 2 * t);
+                } else if (elapsed < 190) {
+                    squash = 1 - 1.18 * ((elapsed - 90) / 100);
+                } else {
+                    squash = -0.18 * (1 - (elapsed - 190) / 370);
+                }
+                if (obs.mesh && obs.mesh.scale) {
+                    const bulge = 1 + squash * 0.08;
+                    obs.mesh.scale.set(base.x * bulge, base.y * bulge, base.z * (1 - squash * 0.55));
+                    obs.mesh.y = obs.baseY - squash * 0.35;
+                    applyTrampolineGlow(obs.mesh, 0.65 + Math.max(0, squash) * 0.35);
+                }
+                continue;
+            }
+
             // Passed behind player: remove immediately
             if (obs.z > heroZ + 50) {
                 if (obs.mesh && obs.mesh.parent) {
@@ -1540,9 +1604,16 @@
 
                     if (obs.type === 'trampoline') {
                         // Any contact activates the spring; it is consumed once
-                        // so the same wagon cannot retrigger during the launch.
+                        // so the same cushion cannot retrigger during the launch.
                         if (!obs.used) {
                             obs.used = true;
+                            obs.bounceStartedAt = now;
+                            obs.baseY = obs.mesh ? obs.mesh.y : obs.y;
+                            obs.baseScale = obs.mesh && obs.mesh.scale ? {
+                                x: obs.mesh.scale.x,
+                                y: obs.mesh.scale.y,
+                                z: obs.mesh.scale.z
+                            } : { x: 1, y: 1, z: 1 };
                             try {
                                 if (hero.jump && hero.jump.perform) hero.jump.perform(48, true);
                                 else if (heroBody.velocity) heroBody.velocity.y = 45;
@@ -1559,10 +1630,6 @@
                                 if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('pickup-super-sneakers');
                             } catch(e) {}
                             showEnergyToast('MEGA PULÃO!');
-                            if (obs.mesh && obs.mesh.parent) {
-                                try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                            }
-                            customObstacles.splice(i, 1);
                             continue;
                         }
                         continue;
