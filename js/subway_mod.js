@@ -382,12 +382,10 @@
     function setEntityHexColor(obj, hexColor) {
         if (!obj) return;
         try {
-            if (obj.view3d && obj.view3d.material) {
-                obj.view3d.material.color = hexColor;
-            }
-            if (obj.material) {
-                obj.material.color = hexColor;
-            }
+            const view = obj.view3d || obj;
+            const source = view && view.material;
+            const materials = Array.isArray(source) ? source : (source ? [source] : []);
+            for (const material of materials) if (material) material.color = hexColor;
             const children = obj.children || (obj.container && obj.container.children);
             if (children && children.length) {
                 for (let i = 0; i < children.length; i++) {
@@ -1256,14 +1254,29 @@
         let cushion;
         try { cushion = window.__lib.getEntity('currency_coin'); } catch(e) { return null; }
         if (!cushion) return null;
-        // Use one wide, flattened model with a square cushion texture across
-        // every material in the model (the coin asset has nested render parts).
-        // This prevents its original gold surfaces from showing through.
+        // A wider, thicker body gives the pad visible side walls and depth.
         cushion.rx = Math.PI / 2;
         cushion.ry = 0;
         cushion.rz = 0;
-        if (cushion.scale) cushion.scale.set(3.1, 3.1, 0.24);
+        if (cushion.scale) cushion.scale.set(3.0, 3.0, 0.62);
         if (!applyTrampolinePadTexture(cushion)) setEntityHexColor(cushion, 0xe51d36);
+
+        // Build a raised white bullseye from thin nested 3D discs so it stays
+        // clearly visible even if the renderer cannot load the SVG map.
+        const addTargetDisc = (size, lift, color) => {
+            let disc;
+            try { disc = window.__lib.getEntity('currency_coin'); } catch(e) { return; }
+            if (!disc) return;
+            disc.rx = 0; disc.ry = 0; disc.rz = 0;
+            disc.x = 0; disc.y = 0; disc.z = -lift;
+            if (disc.scale) disc.scale.set(size, size, 0.055);
+            setEntityHexColor(disc, color);
+            try { cushion.addChild(disc); } catch(e) {}
+        };
+        addTargetDisc(0.78, 0.47, 0xffffff);
+        addTargetDisc(0.58, 0.53, 0xd71932);
+        addTargetDisc(0.31, 0.59, 0xffffff);
+        addTargetDisc(0.12, 0.64, 0xd71932);
         return cushion;
     }
 
@@ -1643,7 +1656,7 @@
 
             if (obs.type === 'trampoline' && obs.bounceStartedAt) {
                 const elapsed = now - obs.bounceStartedAt;
-                if (elapsed >= 560) {
+                if (elapsed >= 620) {
                     if (obs.mesh && obs.mesh.parent) {
                         try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
                     }
@@ -1652,18 +1665,20 @@
                 }
                 const base = obs.baseScale || { x: 1, y: 1, z: 1 };
                 let squash;
-                if (elapsed < 90) {
-                    const t = elapsed / 90;
+                if (elapsed < 120) {
+                    const t = elapsed / 120;
                     squash = t * t * (3 - 2 * t);
-                } else if (elapsed < 190) {
-                    squash = 1 - 1.18 * ((elapsed - 90) / 100);
+                } else if (elapsed < 245) {
+                    const t = (elapsed - 120) / 125;
+                    squash = 1 - 1.34 * (t * t * (3 - 2 * t));
                 } else {
-                    squash = -0.18 * (1 - (elapsed - 190) / 370);
+                    const t = Math.min(1, (elapsed - 245) / 375);
+                    squash = -0.34 * (1 - t) * Math.sin(t * Math.PI * 2.15);
                 }
                 if (obs.mesh && obs.mesh.scale) {
-                    const bulge = 1 + squash * 0.08;
-                    obs.mesh.scale.set(base.x * bulge, base.y * bulge, base.z * (1 - squash * 0.55));
-                    obs.mesh.y = obs.baseY - squash * 0.35;
+                    const bulge = 1 + Math.max(0, -squash) * 0.13;
+                    obs.mesh.scale.set(base.x * bulge, base.y * bulge, base.z * (1 - squash * 0.68));
+                    obs.mesh.y = obs.baseY - squash * 0.58;
                     applyTrampolineGlow(obs.mesh, 0.65 + Math.max(0, squash) * 0.35);
                 }
                 continue;
