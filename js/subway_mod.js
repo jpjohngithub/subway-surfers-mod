@@ -1524,10 +1524,13 @@
 
                     if (obs.type === 'trampoline') {
                         const verticalSpeed = heroBody.velocity ? heroBody.velocity.y : 0;
-                        const isAirborne = heroBody.landed === false;
-                        const isDescending = heroBody.descending === true || (isAirborne && verticalSpeed <= 0);
-                        if (heroY > 6.5 || !isAirborne || !isDescending) continue;
-                        if (heroY >= 2.5 && now - (obs.lastBounceAt || 0) > 700) {
+                        const jump = hero.jump;
+                        const isJumpLanding = !!(jump && jump.isJumping && (
+                            jump.goingUpwards === false || heroBody.descending === true ||
+                            (heroBody.landed === false && verticalSpeed <= 0)
+                        ));
+                        if (!isJumpLanding) continue;
+                        if (now - (obs.lastBounceAt || 0) > 700) {
                             obs.lastBounceAt = now;
                             try {
                                 if (hero.jump && hero.jump.perform) hero.jump.perform(48, true);
