@@ -553,22 +553,80 @@
 
     function applyEnergyCoinTexture(mesh) {
         try {
-            if (!mesh || !mesh.view3d || !mesh.view3d.material || !window.__lib || !window.__lib.getMap) return false;
+            if (!mesh || !window.__lib || !window.__lib.getMap) return false;
             const originalMap = window.__lib.getMap('props-tex');
             const TextureClass = originalMap && originalMap.constructor;
             if (!energyCoinBlueTexture && TextureClass && typeof TextureClass.from === 'function') {
                 energyCoinBlueTexture = TextureClass.from(new URL('assets/energy-coin-blue.svg', window.location.href).href);
             }
             if (!energyCoinBlueTexture) return false;
-            const materials = Array.isArray(mesh.view3d.material) ? mesh.view3d.material : [mesh.view3d.material];
-            materials.forEach(material => {
-                if (!material) return;
-                material.diffuseMap = energyCoinBlueTexture;
-                if ('map' in material) material.map = energyCoinBlueTexture;
-                material.color = 0xffffff;
-            });
-            return true;
+            let applied = false;
+            const visit = obj => {
+                if (!obj) return;
+                const view = obj.view3d || obj;
+                const source = view && view.material;
+                const materials = Array.isArray(source) ? source : (source ? [source] : []);
+                materials.forEach(material => {
+                    if (!material) return;
+                    material.diffuseMap = energyCoinBlueTexture;
+                    if ('map' in material) material.map = energyCoinBlueTexture;
+                    material.color = 0xffffff;
+                    applied = true;
+                });
+                const children = obj.children || (obj.container && obj.container.children);
+                if (children) for (let i = 0; i < children.length; i++) visit(children[i]);
+            };
+            visit(mesh);
+            return applied;
         } catch(e) { return false; }
+    }
+
+    function buildEnergyCoinModel() {
+        if (!window.__lib || !window.__lib.getEntity) return null;
+        let face, rim, back;
+        try {
+            face = window.__lib.getEntity('currency_coin');
+            rim = window.__lib.getEntity('currency_coin');
+            back = window.__lib.getEntity('currency_coin');
+        } catch(e) { return face || null; }
+        if (!face) return null;
+        const orientCoin = coin => { coin.rx = 0; coin.ry = 0; coin.rz = 0; };
+        orientCoin(face);
+        if (face.scale) face.scale.set(1.36, 1.36, 1.2);
+        applyEnergyCoinTexture(face);
+
+        const parts = [];
+        if (rim) {
+            orientCoin(rim);
+            if (rim.scale) rim.scale.set(1.51, 1.51, 1.55);
+            const tintRim = obj => {
+                if (!obj) return;
+                const view = obj.view3d || obj;
+                const source = view && view.material;
+                const materials = Array.isArray(source) ? source : (source ? [source] : []);
+                for (const material of materials) if (material) {
+                    material.diffuseMap = null;
+                    if ('map' in material) material.map = null;
+                    material.color = 0x087bdc;
+                }
+                const children = obj.children || (obj.container && obj.container.children);
+                if (children) for (let i = 0; i < children.length; i++) tintRim(children[i]);
+            };
+            tintRim(rim);
+            rim._energyCoinDepthOffset = -0.12;
+            parts.push(rim);
+        }
+        if (back) {
+            orientCoin(back);
+            if (back.scale) back.scale.set(1.33, 1.33, 1.18);
+            applyEnergyCoinTexture(back);
+            back.ry = Math.PI;
+            back._energyCoinDepthOffset = -0.23;
+            back._energyCoinRotationOffset = Math.PI;
+            parts.push(back);
+        }
+        face._energyCoinParts = parts;
+        return face;
     }
 
     function applyTrampolinePadTexture(mesh) {
@@ -1347,14 +1405,11 @@
                     bounds = { depth: 8, width: 10, height: 20 };
                 }
             } else if (type === 'coin' || type === 'energyCoin') {
-                mesh = window.__lib.getEntity('currency_coin');
+                const energyCoin = type === 'energyCoin';
+                mesh = energyCoin ? buildEnergyCoinModel() : window.__lib.getEntity('currency_coin');
                 if (mesh) {
-                    const energyCoin = type === 'energyCoin';
-                    if (mesh.scale) mesh.scale.set(energyCoin ? 1.35 : 1.15, energyCoin ? 1.35 : 1.15, energyCoin ? 1.35 : 1.15);
-                    if (energyCoin) {
-                        const hasDedicatedTexture = applyEnergyCoinTexture(mesh);
-                        setEntityHexColor(mesh, hasDedicatedTexture ? 0xffffff : 0x087bff);
-                    } else {
+                    if (!energyCoin && mesh.scale) mesh.scale.set(1.15, 1.15, 1.15);
+                    if (!energyCoin) {
                         setEntityHexColor(mesh, window.NO_COIN_MODE ? 0xff1e1e : 0xffc928);
                     }
                     bounds = { depth: 5, width: 4, height: 6 };
@@ -1373,11 +1428,16 @@
             mesh.x = x;
             mesh.y = y;
             mesh.z = z;
+            const parts = mesh._energyCoinParts || mesh._trampolineTargetParts || [];
+            for (const part of parts) {
+                part.x = x;
+                part.y = y;
+                part.z = z + (part._energyCoinDepthOffset || 0);
+            }
 
             const hero = window.game && window.game.hero;
             if (hero && hero.parent) {
                 hero.parent.addChild(mesh);
-                const parts = mesh._trampolineTargetParts || [];
                 for (const part of parts) {
                     try { hero.parent.addChild(part); } catch(e) {}
                 }
@@ -1924,6 +1984,13 @@
             // Spin coin
             if ((obs.type === 'coin' || obs.type === 'energyCoin') && obs.mesh && obs.mesh.rotation) {
                 obs.mesh.rotation.y += 0.09;
+                if (obs.type === 'energyCoin') {
+                    for (const part of (obs.parts || [])) {
+                        const rotationY = obs.mesh.rotation.y + (part._energyCoinRotationOffset || 0);
+                        if (part.rotation) part.rotation.y = rotationY;
+                        else part.ry = rotationY;
+                    }
+                }
             }
             const dx = Math.abs(obs.x - heroX);
             const dy = Math.abs(obs.y - heroY);
