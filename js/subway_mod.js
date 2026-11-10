@@ -1337,24 +1337,117 @@
 
             // 4. Trem Bounce (Pula-Pula)
             if (obs.type === 'bounceTrain') {
-                if (dz < 16 && dx < 8) {
-                    if (heroY >= 2.0 && !obs.bounced) {
-                        obs.bounced = true;
-                        try {
-                            if (hero.jump && hero.jump.perform) hero.jump.perform(38, true);
-                            else if (heroBody) heroBody.velocity.y = 35;
-                            if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('pickup-super-sneakers');
-                        } catch(e) {}
-                        showEnergyToast('⬆️ BOUNCE');
+                const halfDepth = 14;
+                const halfWidth = 7.5;
+                if (dz < halfDepth && dx < halfWidth) {
+                    if (heroY >= 2.0) {
+                        if (!obs.bounced) {
+                            obs.bounced = true;
+                            try {
+                                if (hero.jump && hero.jump.perform) hero.jump.perform(38, true);
+                                else if (heroBody) heroBody.velocity.y = 35;
+                                if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('pickup-super-sneakers');
+                            } catch(e) {}
+                            showEnergyToast('⬆️ BOUNCE');
+                        }
                         continue;
+                    } else if (!obs.bounced) {
+                        if (boardActive) {
+                            try { hero.hoverboard.explode ? hero.hoverboard.explode() : hero.hoverboard.turnOff(); } catch(e) {}
+                            obs.destroyed = true;
+                            if (obs.mesh && obs.mesh.parent) {
+                                try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                            }
+                            customObstacles.splice(i, 1);
+                            showEnergyToast('💥 PROTEGEU');
+                            continue;
+                        }
+                        if (isDashing) continue;
+                        obs.destroyed = true;
+                        if (window.NO_COIN_MODE) {
+                            triggerNoCoinDeath(null);
+                        } else if (hero.player && hero.player.die) {
+                            hero.player.die('train');
+                        }
+                        return;
                     }
                 }
-                if (obs.bounced || heroY >= 2.0) {
-                    continue;
+                if (obs.bounced || heroY >= 2.0) continue;
+            }
+
+            // 5. Trem pela Metade / Vagão Aberto (subwagon): FÍSICA SÓLIDA DE TREM
+            if (obs.type === 'subwagon') {
+                const halfDepth = 18;
+                const halfWidth = 7.5;
+                const roofY = 7.0;
+                if (dz < halfDepth && dx < halfWidth) {
+                    if (heroY >= 3.6) {
+                        if (hero.body) {
+                            hero.body.ground = roofY;
+                            if (hero.body.y < roofY) {
+                                hero.body.y = roofY;
+                                if (hero.body.velocity.y < 0) hero.body.velocity.y = 0;
+                            }
+                        }
+                        continue;
+                    } else {
+                        if (boardActive) {
+                            try { hero.hoverboard.explode ? hero.hoverboard.explode() : hero.hoverboard.turnOff(); } catch(e) {}
+                            obs.destroyed = true;
+                            if (obs.mesh && obs.mesh.parent) {
+                                try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                            }
+                            customObstacles.splice(i, 1);
+                            showEnergyToast('💥 PROTEGEU');
+                            continue;
+                        }
+                        if (isDashing) continue;
+                        obs.destroyed = true;
+                        if (window.NO_COIN_MODE) {
+                            triggerNoCoinDeath(null);
+                        } else if (hero.player && hero.player.die) {
+                            hero.player.die('train');
+                        }
+                        return;
+                    }
                 }
             }
 
-            // 5. Tábuas de Madeira Quebráveis (Plank)
+            // 6. Container Flutuante (ocean_container): Plataforma sólida sobre a água
+            if (obs.type === 'ocean_container') {
+                const halfDepth = 13;
+                const halfWidth = 7.5;
+                const roofY = 3.8;
+                if (dz < halfDepth && dx < halfWidth) {
+                    if (heroY >= 1.8) {
+                        if (hero.body) {
+                            hero.body.ground = roofY;
+                            if (hero.body.y < roofY) {
+                                hero.body.y = roofY;
+                                if (hero.body.velocity.y < 0) hero.body.velocity.y = 0;
+                            }
+                        }
+                        continue;
+                    } else {
+                        if (boardActive) {
+                            try { hero.hoverboard.explode ? hero.hoverboard.explode() : hero.hoverboard.turnOff(); } catch(e) {}
+                            obs.destroyed = true;
+                            if (obs.mesh && obs.mesh.parent) {
+                                try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                            }
+                            customObstacles.splice(i, 1);
+                            showEnergyToast('💥 PROTEGEU');
+                            continue;
+                        }
+                        if (isDashing) continue;
+                        obs.destroyed = true;
+                        if (hero.player && hero.player.die) hero.player.die('train');
+                        return;
+                    }
+                }
+            }
+
+            // 7. Tábuas de Madeira Quebráveis (Plank)
             if (obs.type === 'plank') {
                 if (dz < 9 && dx < 8) {
                     if (heroY > 1.8 || isRolling || boardActive || isDashing) {
@@ -1371,7 +1464,6 @@
                         try { if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('wood-break'); } catch(e) {}
                         continue;
                     } else {
-                        // Tripping upright
                         if (hero && hero.player && typeof hero.player.stumble === 'function') {
                             hero.player.stumble('bush');
                         }
@@ -1385,7 +1477,7 @@
                 }
             }
 
-            // 6. Muro 3 Trilhos (Wall): SÓ PASSA ROLANDO!
+            // 8. Muro 3 Trilhos (Wall): SÓ PASSA ROLANDO!
             if (obs.type === 'wall') {
                 const hitDepth = 8;
                 const hitWidth = 8;
@@ -1417,7 +1509,7 @@
                 continue;
             }
 
-            // 7. Standard Obstacle Hits (Dumpster, Bush, Blocker Jump)
+            // 9. Standard Obstacle Hits (Dumpster, Bush, Blocker Jump)
             const hitDepth = (obs.bounds ? obs.bounds.depth / 2 : 5) + 3.0;
             const hitWidth = (obs.bounds ? obs.bounds.width / 2 : 4) + 1.5;
             const hitHeight = (obs.bounds ? obs.bounds.height : 6) + 2.0;
@@ -1435,9 +1527,6 @@
 
                 if (obs.type === 'blocker_jump' && isJumping) continue;
                 if (obs.type === 'bush' && isJumping) continue;
-                if (obs.type === 'subwagon' && heroY >= 2.0) continue;
-                if (obs.type === 'ocean_container' && heroY >= 0.8) continue;
-                if (obs.type === 'bounceTrain' && (obs.bounced || heroY >= 2.0)) continue;
 
                 obs.destroyed = true;
                 if (boardActive) {
