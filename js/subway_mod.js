@@ -599,20 +599,10 @@
         if (rim) {
             orientCoin(rim);
             if (rim.scale) rim.scale.set(1.51, 1.51, 1.55);
-            const tintRim = obj => {
-                if (!obj) return;
-                const view = obj.view3d || obj;
-                const source = view && view.material;
-                const materials = Array.isArray(source) ? source : (source ? [source] : []);
-                for (const material of materials) if (material) {
-                    material.diffuseMap = null;
-                    if ('map' in material) material.map = null;
-                    material.color = 0x087bdc;
-                }
-                const children = obj.children || (obj.container && obj.container.children);
-                if (children) for (let i = 0; i < children.length; i++) tintRim(children[i]);
-            };
-            tintRim(rim);
+            // This renderer turns unmapped materials black, so keep the blue
+            // albedo texture on the thicker edge and tint it cyan for contrast.
+            applyEnergyCoinTexture(rim);
+            setEntityHexColor(rim, 0x38baff);
             rim._energyCoinDepthOffset = -0.12;
             parts.push(rim);
         }
