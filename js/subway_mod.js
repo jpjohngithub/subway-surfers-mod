@@ -431,8 +431,10 @@
         if (count) count.textContent = `${skateEnergy}/${ENERGY_MAX}`;
         widget.classList.toggle('is-ready', skateEnergy >= ENERGY_MAX);
         widget.classList.toggle('is-active', active);
-        widget.setAttribute('aria-label', active ? 'Skate ativo; energia da próxima carga ' + skateEnergy + ' de 8' : 'Energia do skate ' + skateEnergy + ' de 8; toque ou aperte B para ativar quando cheio');
-        widget.title = active ? 'Skate ativo · cargas coletadas aumentam a duração' : skateEnergy >= ENERGY_MAX ? 'Skate pronto · toque ou aperte B' : `Energia do skate · ${skateEnergy}/${ENERGY_MAX}`;
+        widget.setAttribute('aria-label', active ? 'Skate ativo; energia da próxima carga ' + skateEnergy + ' de 8' : 'Energia do skate ' + skateEnergy + ' de 8');
+        widget.title = active ? 'Skate ativo · energia aumenta a duração' : skateEnergy >= ENERGY_MAX ? 'Skate pronto · use o botão padrão do jogo' : `Energia do skate · ${skateEnergy}/${ENERGY_MAX}`;
+        const state = widget.querySelector('.energy-state');
+        if (state) state.textContent = active ? 'ATIVO' : skateEnergy >= ENERGY_MAX ? 'PRONTO' : 'CARGA';
     }
 
     function grantEnergy(amount = 1) {
@@ -456,7 +458,8 @@
         const originalTurnOn = board.turnOn;
         board.turnOn = function() {
             if (!this.__energyPermit) {
-                showEnergyToast(skateEnergy >= ENERGY_MAX ? 'ATIVE PELO MEDIDOR ⚡' : `ENERGIA ${skateEnergy}/${ENERGY_MAX}`);
+                if (skateEnergy >= ENERGY_MAX) activateBoard();
+                else showEnergyToast(`ENERGIA ${skateEnergy}/${ENERGY_MAX}`);
                 return;
             }
             return originalTurnOn.apply(this, arguments);
@@ -510,10 +513,6 @@
             updateEnergyHud();
         }
     }
-
-    window.addEventListener('keydown', event => {
-        if ((event.code === 'KeyB' || String(event.key).toLowerCase() === 'b') && !event.repeat) activateBoard();
-    }, true);
 
     // Called on every coin spawn/awake from patched dependencies.bundle.js
     window.__activeCoins = new Set();
@@ -894,9 +893,417 @@
             }
         } catch (e) {}
     };
-    window.__onGameOver = function() { stopRunTimer(); updateEnergyHud(); };
-    window.__onGameReset = function() { hideRunTimer(); skateEnergy = 0; updateEnergyHud(); };
     setInterval(() => { installHoverboardEnergyGate(); updateEnergyHud(); }, 250);
+
+    // ==========================================
+    // NO COIN DYNAMIC OBSTACLE ENGINE
+    // ==========================================
+    let customObstacles = [];
+    let nextObstacleZ = -300;
+
+    function cleanupCustomObstacles() {
+        for (let i = 0; i < customObstacles.length; i++) {
+            const obs = customObstacles[i];
+            if (obs && obs.mesh && obs.mesh.parent) {
+                try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+            }
+        }
+        customObstacles = [];
+        nextObstacleZ = (window.game && window.game.hero && window.game.hero.body ? window.game.hero.body.z : 0) - 350;
+    }
+
+    // Prevents placing obstacle coins/dumpsters inside trains, barriers or native coins
+    function isPositionBlocked(x, y, z, margin = 12) {
+        // 1. Existing native map coins
+        if (window.__activeCoins) {
+            for (const c of window.__activeCoins) {
+                if (c && c.active && c.body) {
+                    if (Math.abs(c.body.z - z) < 22 && Math.abs(c.body.x - x) < 8) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // 2. Trains, ramps and blockers in physics system (prevent spawning inside trains)
+        const phys = window.game && window.game.physics;
+        if (phys && Array.isArray(phys.entities)) {
+            for (let i = 0; i < phys.entities.length; i++) {
+                const ent = phys.entities[i];
+                const b = ent && ent.body;
+                if (b && !b.deco && !b.player) {
+                    const halfDepth = (b.depth || 14) / 2 + 15;
+                    const halfWidth = (b.width || 14) / 2 + 3;
+                    if (Math.abs(b.x - x) < halfWidth && Math.abs(b.z - z) < halfDepth) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // 3. Already placed custom obstacles
+        for (let i = 0; i < customObstacles.length; i++) {
+            const obs = customObstacles[i];
+            if (obs && !obs.destroyed) {
+                if (Math.abs(obs.z - z) < 24 && Math.abs(obs.x - x) < 8) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function createObstacle3D(type, x, y, z, options = {}) {
+        if (!window.__lib || !window.__lib.getEntity) return null;
+        const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20;
+        if (isPositionBlocked(x, y, z, margin)) return null;
+
+        try {
+            let mesh = null;
+            let bounds = { depth: 6, width: 14, height: 8 };
+
+            if (type === 'dumpster') {
+                mesh = window.__lib.getEntity('dumpster');
+                if (mesh) {
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI; // Perfectly parallel to rails
+                    if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
+                    bounds = { depth: 10, width: 16, height: 12 };
+                }
+            } else if (type === 'bush') {
+                mesh = window.__lib.getEntity('bush_1');
+                if (mesh) {
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI; // Perfectly centered on track
+                    if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
+                    bounds = { depth: 8, width: 15, height: 10 };
+                }
+            } else if (type === 'blocker_jump') {
+                mesh = window.__lib.getEntity('blocker_jump');
+                if (mesh) {
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
+                    if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
+                    bounds = { depth: 6, width: 16, height: 8, jumpable: true };
+                }
+            } else if (type === 'blocker_roll') {
+                mesh = window.__lib.getEntity('blocker_roll');
+                if (mesh) {
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
+                    if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
+                    bounds = { depth: 6, width: 16, height: 18, rollable: true };
+                }
+            } else if (type === 'lightSignal') {
+                mesh = window.__lib.getEntity('lightSignal');
+                if (mesh) {
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
+                    if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
+                    bounds = { depth: 8, width: 10, height: 20 };
+                }
+            } else {
+                mesh = window.__lib.getEntity('currency_coin');
+                if (mesh) {
+                    if (mesh.scale) mesh.scale.set(1.15, 1.15, 1.15);
+                    setEntityHexColor(mesh, 0xff1e1e);
+                    bounds = { depth: 5, width: 4, height: 6 };
+                }
+            }
+
+            if (!mesh) return null;
+            mesh.x = x;
+            mesh.y = y;
+            mesh.z = z;
+
+            const hero = window.game && window.game.hero;
+            if (hero && hero.parent) {
+                hero.parent.addChild(mesh);
+                return {
+                    type,
+                    x, y, z,
+                    mesh,
+                    bounds,
+                    destroyed: false,
+                    isOscillating: !!options.isOscillating,
+                    isFloating: !!options.isFloating,
+                    baseX: x,
+                    baseY: y,
+                    speed: options.speed || 1.8,
+                    phase: options.phase || 0
+                };
+            }
+        } catch(e) {}
+        return null;
+    }
+
+    function spawnNoCoinObstaclePattern(centerZ) {
+        const lanes = [-20, 0, 20];
+        const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 12));
+        if (freeGroundLanes.length === 0) return;
+
+        // Pattern selector (10 rich, exciting patterns):
+        // 0: Moeda Móvel Oscilante (desliza de um lado pro outro continuamente)
+        // 1: Muro de Moedas (2 pistas bloqueadas com moedas no chão e no ar, 1 brecha)
+        // 2: Moedas Voando no Alto (teto flutuante y=18, proíbe pulo, exige rolamento)
+        // 3: Pulo Obrigatório de Moedas (barreira de chão y=5 nas pistas)
+        // 4: Slalom / Zig-Zag de Moedas (4 moedas em ziguezague ao longo da pista)
+        // 5: Torre Vertical de Moedas (3 moedas empilhadas y=5, y=12, y=19) + Mato/Caçamba
+        // 6: Moeda Voadora com Ondulação Vertical (sobe e desce em onda y=8 a y=20)
+        // 7: Dupla Moeda Móvel Cruzada (duas moedas deslizando em direções opostas)
+        // 8: Mato 3D (bush_1) + Moeda Flutuante no alto
+        // 9: Cavalete de Pulo (blocker_jump) ou Caçamba (dumpster)
+        const pattern = Math.floor(Math.random() * 10);
+
+        if (pattern === 0) {
+            // 1. MOEDA MÓVEL OSCILANTE: Desliza de -20 a +20 através das 3 pistas
+            const c = createObstacle3D('coin', 0, 6, centerZ, {
+                isOscillating: true,
+                speed: 2.2 + Math.random() * 0.8,
+                phase: Math.random() * Math.PI
+            });
+            if (c) customObstacles.push(c);
+
+            // Adiciona um mato ou caçamba na lateral para forçar o desvio
+            const sideLane = Math.random() > 0.5 ? -20 : 20;
+            if (!isPositionBlocked(sideLane, 0, centerZ - 50, 15)) {
+                const b = createObstacle3D(Math.random() > 0.4 ? 'bush' : 'dumpster', sideLane, 0, centerZ - 50);
+                if (b) customObstacles.push(b);
+            }
+        } else if (pattern === 1) {
+            // 2. MURO DE MOEDAS: Fecha 2 pistas com moedas no chão e no ar, deixando 1 brecha
+            if (freeGroundLanes.length >= 2) {
+                const openLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+                freeGroundLanes.forEach(lx => {
+                    if (lx !== openLane) {
+                        // Moeda no chão
+                        const c1 = createObstacle3D('coin', lx, 6, centerZ);
+                        if (c1) customObstacles.push(c1);
+                        // Moeda no ar (muro duplo)
+                        const c2 = createObstacle3D('coin', lx, 14, centerZ);
+                        if (c2) customObstacles.push(c2);
+                    }
+                });
+            }
+        } else if (pattern === 2) {
+            // 3. MOEDAS VOANDO NO ALTO: Teto flutuante a y=18 (força a correr por baixo ou rolar)
+            lanes.forEach(lx => {
+                if (!isPositionBlocked(lx, 18, centerZ, 12)) {
+                    const c = createObstacle3D('coin', lx, 18, centerZ);
+                    if (c) customObstacles.push(c);
+                }
+            });
+        } else if (pattern === 3) {
+            // 4. PULO OBRIGATÓRIO DE MOEDAS: Barreira rente ao chão (y=4.5) que exige pular
+            freeGroundLanes.forEach(lx => {
+                const c = createObstacle3D('coin', lx, 4.5, centerZ);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 4) {
+            // 5. SLALOM / ZIG-ZAG DE MOEDAS: Linha sinuosa de moedas alternadas
+            const order = [-20, 0, 20, 0];
+            if (Math.random() > 0.5) order.reverse();
+            order.forEach((lx, idx) => {
+                const pz = centerZ - (idx * 55);
+                if (!isPositionBlocked(lx, 6, pz, 15)) {
+                    const c = createObstacle3D('coin', lx, 6, pz);
+                    if (c) customObstacles.push(c);
+                }
+            });
+        } else if (pattern === 5) {
+            // 6. TORRE VERTICAL DE MOEDAS: Coluna de 3 moedas empilhadas em uma pista
+            const tLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            [5, 12, 19].forEach(yPos => {
+                const c = createObstacle3D('coin', tLane, yPos, centerZ);
+                if (c) customObstacles.push(c);
+            });
+            // Mato ou barreira na pista vizinha
+            const other = freeGroundLanes.filter(l => l !== tLane);
+            if (other.length > 0) {
+                const obs = createObstacle3D('bush', other[0], 0, centerZ - 40);
+                if (obs) customObstacles.push(obs);
+            }
+        } else if (pattern === 6) {
+            // 7. MOEDA VOADORA COM ONDULAÇÃO: Flutua subindo e descendo no ar
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const c = createObstacle3D('coin', lane, 12, centerZ, {
+                isFloating: true,
+                speed: 2.0,
+                phase: Math.random() * Math.PI
+            });
+            if (c) customObstacles.push(c);
+        } else if (pattern === 7) {
+            // 8. DUPLA MOEDA MÓVEL CRUZADA: Duas moedas cruzando a pista simultaneamente
+            const c1 = createObstacle3D('coin', -15, 6, centerZ, {
+                isOscillating: true,
+                speed: 2.4,
+                phase: 0
+            });
+            const c2 = createObstacle3D('coin', 15, 6, centerZ - 60, {
+                isOscillating: true,
+                speed: 2.4,
+                phase: Math.PI
+            });
+            if (c1) customObstacles.push(c1);
+            if (c2) customObstacles.push(c2);
+        } else if (pattern === 8) {
+            // 9. MATO 3D (bush_1) + ARCO DE MOEDAS NO ALTO
+            const bLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const b = createObstacle3D('bush', bLane, 0, centerZ);
+            if (b) customObstacles.push(b);
+
+            const otherFree = freeGroundLanes.filter(l => l !== bLane);
+            if (otherFree.length > 0) {
+                const c = createObstacle3D('coin', otherFree[0], 15, centerZ);
+                if (c) customObstacles.push(c);
+            }
+        } else {
+            // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const r = Math.random();
+            let obsType = 'bush';
+            if (r < 0.35) obsType = 'bush';
+            else if (r < 0.65) obsType = 'blocker_jump';
+            else if (r < 0.88) obsType = 'dumpster';
+            else if (r < 0.96) obsType = 'blocker_roll';
+            else obsType = 'lightSignal'; // Apenas 4% de chance para semáforo
+
+            const obs = createObstacle3D(obsType, lane, 0, centerZ);
+            if (obs) customObstacles.push(obs);
+        }
+    }
+
+    function updateNoCoinObstacleEngine() {
+        if (!window.game || !window.game.hero || !window.game.hero.body) {
+            if (customObstacles.length) cleanupCustomObstacles();
+            return;
+        }
+
+        const hero = window.game.hero;
+        const heroBody = hero.body;
+        const heroZ = heroBody.z;
+        const heroX = heroBody.x;
+        const heroY = heroBody.y !== undefined ? heroBody.y : (heroBody.bottom || 0);
+
+        if (window.isGamePaused) return;
+
+        // Check spawn ahead of runner (abundant, regular obstacles)
+        if (heroZ < nextObstacleZ) {
+            spawnNoCoinObstaclePattern(heroZ - 320);
+            nextObstacleZ = heroZ - (130 + Math.random() * 70);
+        }
+
+        // Update active obstacles
+        const now = Date.now();
+        const isDashing = now < dashInvulnUntil;
+
+        for (let i = customObstacles.length - 1; i >= 0; i--) {
+            const obs = customObstacles[i];
+            if (!obs || obs.destroyed) {
+                customObstacles.splice(i, 1);
+                continue;
+            }
+
+            // Passed behind player: remove immediately
+            if (obs.z > heroZ + 50) {
+                if (obs.mesh && obs.mesh.parent) {
+                    try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                }
+                customObstacles.splice(i, 1);
+                continue;
+            }
+
+            // High-performance distance culling: skip heavy math for far obstacles
+            const dz = Math.abs(obs.z - heroZ);
+            if (dz > 180) continue;
+
+            // Oscillating dynamic horizontal movement across lanes
+            if (obs.isOscillating && obs.mesh) {
+                obs.x = Math.sin(now * 0.003 * obs.speed + obs.phase) * 20;
+                obs.mesh.x = obs.x;
+            }
+
+            // Vertical floating wave movement in air
+            if (obs.isFloating && obs.mesh) {
+                obs.y = (obs.baseY || 12) + Math.sin(now * 0.004 * obs.speed + obs.phase) * 7;
+                obs.mesh.y = obs.y;
+            }
+
+            // Spin coin
+            if (obs.type === 'coin' && obs.mesh && obs.mesh.rotation) {
+                obs.mesh.rotation.y += 0.09;
+            }
+            const dx = Math.abs(obs.x - heroX);
+            const dy = Math.abs(obs.y - heroY);
+
+            // Calibrated hitboxes per obstacle type
+            const hitDepth = (obs.bounds ? obs.bounds.depth / 2 : 5) + 3.0;
+            const hitWidth = (obs.bounds ? obs.bounds.width / 2 : 4) + 1.5;
+            const hitHeight = (obs.bounds ? obs.bounds.height : 6) + 2.0;
+
+            if (dz < hitDepth && dx < hitWidth && dy < hitHeight) {
+                if (isDashing) {
+                    obs.destroyed = true;
+                    if (obs.mesh && obs.mesh.parent) {
+                        try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                    }
+                    customObstacles.splice(i, 1);
+
+                    continue;
+                } else {
+                    // Check if player cleared obstacle cleanly:
+                    const isJumping = heroY >= 7.5;
+                    const isRolling = hero && hero.character && (
+                        (hero.character.roll && hero.character.roll.active) ||
+                        (hero.anim && hero.anim.currentAnimationClipName === 'roll')
+                    );
+
+                    if (obs.type === 'blocker_jump' && isJumping) {
+                        continue; // Cleared jump barrier
+                    }
+                    if (obs.type === 'blocker_roll' && isRolling) {
+                        continue; // Cleared roll barrier
+                    }
+                    if (obs.type === 'bush' && isJumping) {
+                        continue; // Cleared bush jump
+                    }
+
+                    obs.destroyed = true;
+                    if (window.NO_COIN_MODE) {
+                        triggerNoCoinDeath(null);
+                        return;
+                    } else {
+                        if (hero && hero.player) {
+                            if (obs.type === 'bush' && typeof hero.player.stumble === 'function') {
+                                hero.player.stumble('bush');
+                            } else if (typeof hero.player.die === 'function') {
+                                hero.player.die('train');
+                            }
+                        }
+                        return;
+                    }
+                }
+            }
+
+            // Passed behind player
+            if (obs.z > heroZ + 80) {
+                if (obs.mesh && obs.mesh.parent) {
+                    try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                }
+                customObstacles.splice(i, 1);
+            }
+        }
+    }
+
+    setInterval(updateNoCoinObstacleEngine, 30);
+
+    window.__onGameOver = function() {
+        stopRunTimer();
+        cleanupCustomObstacles();
+        updateEnergyHud();
+    };
+    window.__onGameReset = function() {
+        hideRunTimer();
+        cleanupCustomObstacles();
+        skateEnergy = 0;
+        updateEnergyHud();
+    };
+
 
     // ==========================================
     // ANTI-CHEAT & INTEGRITY SHIELD
@@ -2719,20 +3126,14 @@
         if (!document.getElementById('subway-energy-widget')) {
             const meter = document.createElement('div');
             meter.id = 'subway-energy-widget';
-            meter.setAttribute('role', 'button');
-            meter.setAttribute('tabindex', '0');
             meter.setAttribute('aria-label', 'Energia do skate: 0 de 8');
-            meter.title = 'Energia do skate · aperte B quando estiver cheio';
+            meter.title = 'Energia do skate · use o botão padrão do jogo quando estiver cheia';
             meter.innerHTML = `
                 <div class="energy-cap"><span class="energy-bolt">ϟ</span><span class="energy-label">SKATE</span></div>
                 <div class="energy-gauge"><div class="energy-fill" id="subway-energy-fill"></div><div class="energy-ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
                 <div class="energy-count" id="subway-energy-value">0/8</div>
-                <div class="energy-key">B</div>
+                <div class="energy-state">CARGA</div>
             `;
-            meter.addEventListener('click', activateBoard);
-            meter.addEventListener('keydown', event => {
-                if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activateBoard(); }
-            });
             document.body.appendChild(meter);
             updateEnergyHud();
         }
@@ -3453,34 +3854,30 @@
             /* Compact vertical hoverboard battery */
             #subway-energy-widget {
                 position: fixed; top: 112px; right: max(14px, env(safe-area-inset-right, 14px));
-                z-index: 99990; width: 48px; height: 146px; padding: 9px 7px 8px;
-                box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 7px;
-                border: 1px solid rgba(124, 236, 255, .34); border-radius: 19px;
-                background: linear-gradient(165deg, rgba(6, 22, 39, .92), rgba(9, 48, 69, .82));
-                box-shadow: 0 8px 24px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255,255,255,.12);
-                backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-                color: #dffaff; cursor: pointer; user-select: none; touch-action: manipulation;
-                transition: transform .18s ease, border-color .2s ease, box-shadow .2s ease;
+                z-index: 99990; width: 54px; height: 166px; padding: 9px 8px;
+                box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 5px;
+                border: 1px solid rgba(148, 214, 230, .25); border-radius: 20px;
+                background: linear-gradient(160deg, rgba(11, 25, 38, .94), rgba(8, 34, 49, .88));
+                box-shadow: 0 5px 18px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255,255,255,.09);
+                backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
+                color: #e2f4f8; user-select: none; pointer-events: none;
             }
-            #subway-energy-widget:hover { transform: translateY(-2px); border-color: rgba(103,232,249,.8); }
-            #subway-energy-widget:active { transform: scale(.96); }
-            #subway-energy-widget:focus-visible { outline: 2px solid #67e8f9; outline-offset: 3px; }
             #subway-energy-widget .energy-cap { display:flex; flex-direction:column; align-items:center; gap:0; line-height:1; }
-            #subway-energy-widget .energy-bolt { color:#67e8f9; font:900 21px/20px Arial,sans-serif; text-shadow:0 0 10px rgba(34,211,238,.75); }
-            #subway-energy-widget .energy-label { color:rgba(224,247,255,.78); font:800 7px/9px Arial,sans-serif; letter-spacing:1px; }
-            #subway-energy-widget .energy-gauge { position:relative; flex:1; width:18px; min-height:66px; overflow:hidden; border:1px solid rgba(186,230,253,.55); border-radius:10px; background:linear-gradient(90deg,rgba(3,16,29,.92),rgba(17,46,65,.82)); box-shadow:inset 0 2px 6px rgba(0,0,0,.55); }
-            #subway-energy-widget .energy-fill { position:absolute; left:1px; right:1px; bottom:1px; height:0%; border-radius:8px; background:linear-gradient(0deg,#0284c7 0%,#06b6d4 48%,#a5f3fc 100%); box-shadow:0 0 12px rgba(34,211,238,.9); transition:height .32s cubic-bezier(.2,.8,.2,1); }
+            #subway-energy-widget .energy-bolt { color:#67d8e9; font:800 20px/19px Arial,sans-serif; text-shadow:0 0 8px rgba(34,211,238,.38); }
+            #subway-energy-widget .energy-label { color:rgba(224,239,243,.72); font:800 7px/9px Arial,sans-serif; letter-spacing:1.1px; }
+            #subway-energy-widget .energy-gauge { position:relative; flex:1 1 auto; width:22px; min-height:0; overflow:hidden; border:1px solid rgba(169,206,216,.52); border-radius:12px; background:linear-gradient(90deg,rgba(3,15,24,.94),rgba(17,38,48,.8)); box-shadow:inset 0 2px 5px rgba(0,0,0,.45); }
+            #subway-energy-widget .energy-fill { position:absolute; left:1px; right:1px; bottom:1px; height:0%; border-radius:0 0 10px 10px; background:linear-gradient(0deg,#1487a4 0%,#21b3c6 62%,#a7eff0 100%); box-shadow:0 0 9px rgba(34,211,238,.58); transition:height .32s cubic-bezier(.2,.8,.2,1); }
             #subway-energy-widget .energy-ticks { position:absolute; inset:0; display:flex; flex-direction:column-reverse; justify-content:space-evenly; pointer-events:none; }
             #subway-energy-widget .energy-ticks i { height:1px; width:100%; background:rgba(3,17,30,.72); }
-            #subway-energy-widget .energy-count { color:#e0faff; font:800 10px/11px ui-monospace,Consolas,monospace; letter-spacing:.2px; text-shadow:0 1px 4px #00121c; }
-            #subway-energy-widget .energy-key { color:#67e8f9; background:rgba(34,211,238,.1); border:1px solid rgba(103,232,249,.26); border-radius:5px; padding:2px 7px; font:900 8px/9px Arial,sans-serif; }
-            #subway-energy-widget.is-ready { border-color:#a5f3fc; box-shadow:0 0 19px rgba(34,211,238,.55), inset 0 0 14px rgba(34,211,238,.14); animation:energyReadyGlow 1.4s ease-in-out infinite alternate; }
-            #subway-energy-widget.is-active { border-color:rgba(251,191,36,.8); box-shadow:0 0 16px rgba(245,158,11,.35), inset 0 0 12px rgba(245,158,11,.12); }
-            #subway-energy-widget.is-active .energy-fill { background:linear-gradient(0deg,#d97706,#fbbf24,#fef3c7); box-shadow:0 0 12px rgba(251,191,36,.8); }
-            @keyframes energyReadyGlow { from { box-shadow:0 0 10px rgba(34,211,238,.3); } to { box-shadow:0 0 22px rgba(34,211,238,.68), inset 0 0 12px rgba(34,211,238,.15); } }
+            #subway-energy-widget .energy-count { color:#e6f6f8; font:800 10px/12px ui-monospace,Consolas,monospace; letter-spacing:.3px; }
+            #subway-energy-widget .energy-state { min-height:10px; color:rgba(166,205,214,.68); font:800 7px/10px Arial,sans-serif; letter-spacing:.8px; }
+            #subway-energy-widget.is-ready { border-color:rgba(103,232,249,.68); box-shadow:0 0 13px rgba(34,211,238,.28), inset 0 0 9px rgba(34,211,238,.08); }
+            #subway-energy-widget.is-ready .energy-state { color:#7be4ed; }
+            #subway-energy-widget.is-active { border-color:rgba(251,191,36,.62); }
+            #subway-energy-widget.is-active .energy-fill { background:linear-gradient(0deg,#c27415,#e8b443,#fff0bd); box-shadow:0 0 9px rgba(251,191,36,.54); }
             #subway-energy-toast { position:fixed; top:116px; right:70px; z-index:99991; padding:8px 12px; border:1px solid rgba(103,232,249,.45); border-radius:10px; background:rgba(5,18,31,.9); color:#dffaff; font:800 10px/1.2 Arial,sans-serif; letter-spacing:.7px; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:0; transform:translateX(6px); pointer-events:none; transition:opacity .16s,transform .16s; }
             #subway-energy-toast.visible { opacity:1; transform:translateX(0); }
-            @media(max-width:600px) { #subway-energy-widget { top:100px; right:8px; width:42px; height:126px; } #subway-energy-toast { top:104px; right:58px; } }
+            @media(max-width:600px) { #subway-energy-widget { top:100px; right:8px; width:50px; height:154px; padding:8px 7px; gap:4px; } #subway-energy-toast { top:104px; right:58px; } }
             
             /* Map Themes */
             .map-grid {
