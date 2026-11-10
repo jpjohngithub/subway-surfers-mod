@@ -395,6 +395,23 @@
         } catch(e) {}
     }
 
+    function setEntitySolidColor(obj, hexColor) {
+        if (!obj) return;
+        try {
+            const view = obj.view3d || obj;
+            const source = view && view.material;
+            const materials = Array.isArray(source) ? source : (source ? [source] : []);
+            for (const material of materials) {
+                if (!material) continue;
+                material.color = hexColor;
+                material.diffuseMap = null;
+                if ('map' in material) material.map = null;
+            }
+            const children = obj.children || (obj.container && obj.container.children);
+            if (children) for (let i = 0; i < children.length; i++) setEntitySolidColor(children[i], hexColor);
+        } catch(e) {}
+    }
+
     // Run-scoped hoverboard energy: it is earned by surviving and never leaks
     // between runs. The skate is unlimited once the player fills the meter.
     const ENERGY_MAX = 8;
@@ -1081,14 +1098,22 @@
     function cleanupCustomObstacles() {
         for (let i = 0; i < customObstacles.length; i++) {
             const obs = customObstacles[i];
-            if (obs && obs.mesh && obs.mesh.parent) {
-                try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-            }
+            removeObstacleViews(obs);
         }
         customObstacles = [];
         obstacleChunkCount = 0;
         trampolineCameraUntil = 0;
         nextObstacleZ = (window.game && window.game.hero && window.game.hero.body ? window.game.hero.body.z : 0) - 350;
+    }
+
+    function removeObstacleViews(obs) {
+        if (!obs) return;
+        const views = [obs.mesh, ...(obs.parts || [])];
+        for (const view of views) {
+            if (view && view.parent) {
+                try { view.parent.removeChild(view); } catch(e) {}
+            }
+        }
     }
 
     // Prevents placing obstacle coins/dumpsters inside trains, barriers or native coins
@@ -1193,7 +1218,7 @@
             }
 
             if (type === 'trampoline') {
-                mesh = buildTrampolineCushionMesh();
+                mesh = buildTrampolineCushionMesh(x, y, z);
                 if (mesh) {
                     applyTrampolineGlow(mesh, 1);
                     bounds = { depth: 18, width: 20, height: 8, isTrampoline: true };
@@ -1208,10 +1233,15 @@
             const hero = window.game && window.game.hero;
             if (hero && hero.parent) {
                 hero.parent.addChild(mesh);
+                const parts = mesh._trampolineTargetParts || [];
+                for (const part of parts) {
+                    try { hero.parent.addChild(part); } catch(e) {}
+                }
                 return {
                     type,
                     x, y, z,
                     mesh,
+                    parts,
                     bounds,
                     destroyed: false,
                     isOscillating: !!options.isOscillating,
@@ -1249,7 +1279,7 @@
         applyMaterialGlow(mesh);
     }
 
-    function buildTrampolineCushionMesh() {
+    function buildTrampolineCushionMesh(x, y, z) {
         if (!window.__lib || !window.__lib.getEntity) return null;
         let cushion;
         try { cushion = window.__lib.getEntity('currency_coin'); } catch(e) { return null; }
@@ -1261,22 +1291,25 @@
         if (cushion.scale) cushion.scale.set(3.0, 3.0, 0.62);
         if (!applyTrampolinePadTexture(cushion)) setEntityHexColor(cushion, 0xe51d36);
 
-        // Build a raised white bullseye from thin nested 3D discs so it stays
-        // clearly visible even if the renderer cannot load the SVG map.
+        // Keep the bullseye as independent 3D pieces in the game scene. Some
+        // models ignore nested children, which made the old target disappear.
+        const targetParts = [];
         const addTargetDisc = (size, lift, color) => {
             let disc;
             try { disc = window.__lib.getEntity('currency_coin'); } catch(e) { return; }
             if (!disc) return;
-            disc.rx = 0; disc.ry = 0; disc.rz = 0;
-            disc.x = 0; disc.y = 0; disc.z = -lift;
-            if (disc.scale) disc.scale.set(size, size, 0.055);
-            setEntityHexColor(disc, color);
-            try { cushion.addChild(disc); } catch(e) {}
+            disc.rx = Math.PI / 2; disc.ry = 0; disc.rz = 0;
+            disc.x = x; disc.y = y + lift; disc.z = z;
+            if (disc.scale) disc.scale.set(size, size, 0.11);
+            setEntitySolidColor(disc, color);
+            targetParts.push(disc);
         };
-        addTargetDisc(0.78, 0.47, 0xffffff);
-        addTargetDisc(0.58, 0.53, 0xd71932);
-        addTargetDisc(0.31, 0.59, 0xffffff);
-        addTargetDisc(0.12, 0.64, 0xd71932);
+        addTargetDisc(1.68, 0.66, 0xffffff);
+        addTargetDisc(1.28, 0.78, 0xd71932);
+        addTargetDisc(0.82, 0.90, 0xffffff);
+        addTargetDisc(0.39, 1.02, 0xd71932);
+        addTargetDisc(0.15, 1.14, 0xffffff);
+        cushion._trampolineTargetParts = targetParts;
         return cushion;
     }
 
@@ -1329,6 +1362,9 @@
             y: obs.mesh.scale.y,
             z: obs.mesh.scale.z
         } : { x: 1, y: 1, z: 1 };
+        obs.partBaseScales = (obs.parts || []).map(part => part.scale ? {
+            x: part.scale.x, y: part.scale.y, z: part.scale.z, yPos: part.y
+        } : { x: 1, y: 1, z: 1, yPos: part.y });
         breakRedCoinsNearTrampoline(obs);
         try {
             if (hero.jump && hero.jump.perform) hero.jump.perform(56, true);
@@ -1657,9 +1693,7 @@
             if (obs.type === 'trampoline' && obs.bounceStartedAt) {
                 const elapsed = now - obs.bounceStartedAt;
                 if (elapsed >= 620) {
-                    if (obs.mesh && obs.mesh.parent) {
-                        try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                    }
+                    removeObstacleViews(obs);
                     customObstacles.splice(i, 1);
                     continue;
                 }
@@ -1681,14 +1715,20 @@
                     obs.mesh.y = obs.baseY - squash * 0.58;
                     applyTrampolineGlow(obs.mesh, 0.65 + Math.max(0, squash) * 0.35);
                 }
+                const partBases = obs.partBaseScales || [];
+                (obs.parts || []).forEach((part, index) => {
+                    if (!part || !part.scale) return;
+                    const partBase = partBases[index] || { x: part.scale.x, y: part.scale.y, z: part.scale.z, yPos: part.y };
+                    const bulge = 1 + Math.max(0, -squash) * 0.13;
+                    part.scale.set(partBase.x * bulge, partBase.y * bulge, partBase.z * (1 - squash * 0.68));
+                    part.y = partBase.yPos - squash * 0.58;
+                });
                 continue;
             }
 
             // Passed behind player: remove immediately
             if (obs.z > heroZ + 50) {
-                if (obs.mesh && obs.mesh.parent) {
-                    try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                }
+                removeObstacleViews(obs);
                 customObstacles.splice(i, 1);
                 continue;
             }
@@ -1752,9 +1792,7 @@
                         playCoinShatterEffect(obs, shardColor, 1.15);
                     }
                     obs.destroyed = true;
-                    if (obs.mesh && obs.mesh.parent) {
-                        try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                    }
+                    removeObstacleViews(obs);
                     customObstacles.splice(i, 1);
 
                     continue;
@@ -1764,13 +1802,13 @@
                         showEnergyToast('+1 ENERGIA');
                         try { if (window.game && window.game.sfx) window.game.sfx.play('pickup-coin', { volume: 0.8 }); } catch(e) {}
                         obs.destroyed = true;
-                        if (obs.mesh && obs.mesh.parent) { try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {} }
+                        removeObstacleViews(obs);
                         customObstacles.splice(i, 1);
                         continue;
                     }
                     if (obs.type === 'coin') {
                         obs.destroyed = true;
-                        if (obs.mesh && obs.mesh.parent) { try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {} }
+                        removeObstacleViews(obs);
                         customObstacles.splice(i, 1);
                         if (window.NO_COIN_MODE) {
                             triggerNoCoinDeath(null);
@@ -1821,9 +1859,7 @@
 
             // Passed behind player
             if (obs.z > heroZ + 80) {
-                if (obs.mesh && obs.mesh.parent) {
-                    try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                }
+                removeObstacleViews(obs);
                 customObstacles.splice(i, 1);
             }
         }
