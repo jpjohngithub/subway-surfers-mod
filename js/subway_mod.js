@@ -1632,8 +1632,8 @@
         const spot = findTrainTopSpecialPosition(startZ);
         if (!spot) return false;
         const usableDepth = Math.max(0, spot.platformDepth - 32);
-        const count = Math.max(2, Math.min(5, Math.floor(usableDepth / 26) + 1));
-        const spacing = 26;
+        const count = Math.max(2, Math.min(7, Math.floor(usableDepth / 22) + 1));
+        const spacing = 22;
         const span = (count - 1) * spacing;
         const firstZ = Math.max(
             spot.platformCenterZ - spot.platformDepth / 2 + 16,
@@ -1649,7 +1649,7 @@
         for (let i = 0; i < count; i++) {
             let x = spot.x;
             let y = coinBaseY;
-            if (pattern === 1) x += offsets[i] * lateralRange;
+            if (pattern === 1) x += offsets[Math.round(i * 4 / Math.max(1, count - 1))] * lateralRange;
             if (pattern === 2) y += (i / Math.max(1, count - 1)) * 4;
             if (pattern === 3) y += heights[Math.round(i * 4 / Math.max(1, count - 1))];
 
@@ -1693,7 +1693,7 @@
         }
 
         // Every few chunks, add a varied coin route directly on a wagon roof.
-        if (obstacleChunkCount % 5 === 0 && spawnTrainTopCoinPattern(centerZ)) return;
+        if (obstacleChunkCount % 3 === 0 && spawnTrainTopCoinPattern(centerZ)) return;
 
         // Add a separate red-coin route in No Coin mode. This runs independently
         // of trampoline spawning, so its coins never form a trail in front of a pad.
@@ -1773,10 +1773,10 @@
             });
         } else if (pattern === 4) {
             // 5. SLALOM / ZIG-ZAG DE MOEDAS: Linha sinuosa de moedas alternadas
-            const order = [-20, 0, 20, 0];
+            const order = [-20, 0, 20, 0, -20, 0];
             if (Math.random() > 0.5) order.reverse();
             order.forEach((lx, idx) => {
-                const pz = centerZ - (idx * 55);
+                const pz = centerZ - (idx * 40);
                 if (!isPositionBlocked(lx, 6, pz, 15)) {
                     const c = createObstacle3D('coin', lx, 6, pz);
                     if (c) customObstacles.push(c);
@@ -1831,8 +1831,8 @@
             }
         } else if (pattern === 9) {
             // Staircase of coins that climbs and drops across the lanes.
-            const order = [-20, 0, 20, 0, -20];
-            const heights = [5, 10, 16, 10, 5];
+            const order = [-20, 0, 20, 0, -20, 0, 20];
+            const heights = [5, 9, 14, 18, 14, 9, 5];
             if (Math.random() > 0.5) order.reverse();
             order.forEach((lane, i) => {
                 const coin = createObstacle3D('coin', lane, heights[i], centerZ - i * 30);
@@ -1840,26 +1840,26 @@
             });
         } else if (pattern === 10) {
             // Low coin sweep alternating across all three lanes.
-            const order = [-20, 0, 20, 0, -20, 0, 20];
+            const order = [-20, 0, 20, 0, -20, 0, 20, 0, -20];
             if (Math.random() > 0.5) order.reverse();
             order.forEach((lane, i) => {
-                const coin = createObstacle3D('coin', lane, 6, centerZ - i * 30);
+                const coin = createObstacle3D('coin', lane, 6, centerZ - i * 24);
                 if (coin) customObstacles.push(coin);
             });
         } else if (pattern === 11) {
             // Two parallel rows with a safe lane between them.
             const openLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             lanes.filter(lane => lane !== openLane).forEach(lane => {
-                for (let i = 0; i < 4; i++) {
-                    const coin = createObstacle3D('coin', lane, i % 2 ? 11 : 5, centerZ - i * 32);
+                for (let i = 0; i < 5; i++) {
+                    const coin = createObstacle3D('coin', lane, i % 2 ? 11 : 5, centerZ - i * 26);
                     if (coin) customObstacles.push(coin);
                 }
             });
         } else if (pattern === 12) {
             // A high arc that rewards a jump while leaving the neighboring lanes clear.
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            [7, 13, 18, 13, 7].forEach((height, i) => {
-                const coin = createObstacle3D('coin', lane, height, centerZ - i * 30);
+            [6, 10, 15, 18, 15, 10, 6].forEach((height, i) => {
+                const coin = createObstacle3D('coin', lane, height, centerZ - i * 24);
                 if (coin) customObstacles.push(coin);
             });
         } else if (pattern === 13) {
