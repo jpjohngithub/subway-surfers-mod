@@ -401,6 +401,7 @@
     const ENERGY_MAX = 8;
     let skateEnergy = 0;
     let lastEnergyTickTime = 0;
+    const ENERGY_INTERVAL_MS = 10000;
     let energyGateInstalled = false;
 
     function showEnergyToast(message) {
@@ -735,7 +736,7 @@
             if (isRunActive && !deathFrozen && !isGamePaused) {
                 runElapsedTime = performance.now() - runStartTime;
                 const now = performance.now();
-                if (now - lastEnergyTickTime >= 15000) {
+                if (now - lastEnergyTickTime >= ENERGY_INTERVAL_MS) {
                     lastEnergyTickTime = now;
                     grantEnergy(1);
                 }
@@ -918,7 +919,7 @@
         if (window.__activeCoins) {
             for (const c of window.__activeCoins) {
                 if (c && c.active && c.body) {
-                    if (Math.abs(c.body.z - z) < 22 && Math.abs(c.body.x - x) < 8) {
+                    if (Math.abs(c.body.z - z) < 22 && Math.abs(c.body.x - x) < 8 && Math.abs((c.body.y || 0) - y) < 7) {
                         return true;
                     }
                 }
@@ -945,7 +946,7 @@
         for (let i = 0; i < customObstacles.length; i++) {
             const obs = customObstacles[i];
             if (obs && !obs.destroyed) {
-                if (Math.abs(obs.z - z) < 24 && Math.abs(obs.x - x) < 8) {
+                if (Math.abs(obs.z - z) < 24 && Math.abs(obs.x - x) < 8 && Math.abs((obs.y || 0) - y) < 7) {
                     return true;
                 }
             }
@@ -997,12 +998,32 @@
                     if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
                     bounds = { depth: 8, width: 10, height: 20 };
                 }
-            } else {
+            } else if (type === 'coin' || type === 'energyCoin') {
                 mesh = window.__lib.getEntity('currency_coin');
                 if (mesh) {
-                    if (mesh.scale) mesh.scale.set(1.15, 1.15, 1.15);
-                    setEntityHexColor(mesh, 0xff1e1e);
+                    const energyCoin = type === 'energyCoin';
+                    if (mesh.scale) mesh.scale.set(energyCoin ? 1.35 : 1.15, energyCoin ? 1.35 : 1.15, energyCoin ? 1.35 : 1.15);
+                    setEntityHexColor(mesh, energyCoin ? 0x12c8ff : (window.NO_COIN_MODE ? 0xff1e1e : 0xffc928));
                     bounds = { depth: 5, width: 4, height: 6 };
+                }
+            }
+
+            if (type === 'trampoline') {
+                mesh = window.__lib.getEntity('blocker_jump');
+                if (mesh) {
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
+                    if (mesh.scale) mesh.scale.set(0.9, 0.28, 1.1);
+                    setEntityHexColor(mesh, 0x7839cc);
+                    const pad = window.__lib.getEntity('currency_coin');
+                    if (pad) {
+                        pad.rx = Math.PI / 2;
+                        pad.y = 1.3;
+                        pad.ry = 0;
+                        if (pad.scale) pad.scale.set(1.55, 1.55, 0.18);
+                        setEntityHexColor(pad, 0x25d8f2);
+                        if (mesh.addChild) mesh.addChild(pad);
+                    }
+                    bounds = { depth: 14, width: 18, height: 5, isTrampoline: true };
                 }
             }
 
@@ -1037,7 +1058,18 @@
         const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 12));
         if (freeGroundLanes.length === 0) return;
 
-        // Pattern selector (10 rich, exciting patterns):
+        // Rare energy pickups appear as small groups of 1–3 blue coins.
+        if (Math.random() < 0.055) {
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const count = 1 + Math.floor(Math.random() * 3);
+            for (let i = 0; i < count; i++) {
+                const coin = createObstacle3D('energyCoin', lane, 7, centerZ - i * 30);
+                if (coin) customObstacles.push(coin);
+            }
+            return;
+        }
+
+        // Pattern selector: familiar hazards plus fresh, readable coin routes.
         // 0: Moeda Móvel Oscilante (desliza de um lado pro outro continuamente)
         // 1: Muro de Moedas (2 pistas bloqueadas com moedas no chão e no ar, 1 brecha)
         // 2: Moedas Voando no Alto (teto flutuante y=18, proíbe pulo, exige rolamento)
@@ -1047,8 +1079,10 @@
         // 6: Moeda Voadora com Ondulação Vertical (sobe e desce em onda y=8 a y=20)
         // 7: Dupla Moeda Móvel Cruzada (duas moedas deslizando em direções opostas)
         // 8: Mato 3D (bush_1) + Moeda Flutuante no alto
-        // 9: Cavalete de Pulo (blocker_jump) ou Caçamba (dumpster)
-        const pattern = Math.floor(Math.random() * 10);
+        // 9–12: new coin arches, stair trails and lane sweeps
+        // 13: trampoline; the only new solid obstacle
+        // 14: familiar native obstacle
+        const pattern = Math.floor(Math.random() * 15);
 
         if (pattern === 0) {
             // 1. MOEDA MÓVEL OSCILANTE: Desliza de -20 a +20 através das 3 pistas
@@ -1152,6 +1186,48 @@
                 const c = createObstacle3D('coin', otherFree[0], 15, centerZ);
                 if (c) customObstacles.push(c);
             }
+        } else if (pattern === 9) {
+            // Staircase of coins that climbs and drops across the lanes.
+            const order = [-20, 0, 20, 0, -20];
+            const heights = [5, 10, 16, 10, 5];
+            if (Math.random() > 0.5) order.reverse();
+            order.forEach((lane, i) => {
+                const coin = createObstacle3D('coin', lane, heights[i], centerZ - i * 30);
+                if (coin) customObstacles.push(coin);
+            });
+        } else if (pattern === 10) {
+            // Low coin sweep alternating across all three lanes.
+            const order = [-20, 0, 20, 0, -20, 0, 20];
+            if (Math.random() > 0.5) order.reverse();
+            order.forEach((lane, i) => {
+                const coin = createObstacle3D('coin', lane, 6, centerZ - i * 30);
+                if (coin) customObstacles.push(coin);
+            });
+        } else if (pattern === 11) {
+            // Two parallel rows with a safe lane between them.
+            const openLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            lanes.filter(lane => lane !== openLane).forEach(lane => {
+                for (let i = 0; i < 4; i++) {
+                    const coin = createObstacle3D('coin', lane, i % 2 ? 11 : 5, centerZ - i * 32);
+                    if (coin) customObstacles.push(coin);
+                }
+            });
+        } else if (pattern === 12) {
+            // A high arc that rewards a jump while leaving the neighboring lanes clear.
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            [7, 13, 18, 13, 7].forEach((height, i) => {
+                const coin = createObstacle3D('coin', lane, height, centerZ - i * 30);
+                if (coin) customObstacles.push(coin);
+            });
+        } else if (pattern === 13) {
+            // Purple spring pad: land on it to launch into a high jump.
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const pad = createObstacle3D('trampoline', lane, 0, centerZ);
+            if (pad) customObstacles.push(pad);
+            for (let i = 1; i <= 3; i++) {
+                const coin = createObstacle3D('coin', lane, 14 + (i % 2) * 4, centerZ - i * 30);
+                if (coin) customObstacles.push(coin);
+            }
         } else {
             // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
@@ -1225,7 +1301,7 @@
             }
 
             // Spin coin
-            if (obs.type === 'coin' && obs.mesh && obs.mesh.rotation) {
+            if ((obs.type === 'coin' || obs.type === 'energyCoin') && obs.mesh && obs.mesh.rotation) {
                 obs.mesh.rotation.y += 0.09;
             }
             const dx = Math.abs(obs.x - heroX);
@@ -1238,6 +1314,8 @@
 
             if (dz < hitDepth && dx < hitWidth && dy < hitHeight) {
                 if (isDashing) {
+                    if (obs.type === 'energyCoin') grantEnergy(1);
+                    else if (obs.type === 'coin' && !window.NO_COIN_MODE) collectGeneratedCoin(hero);
                     obs.destroyed = true;
                     if (obs.mesh && obs.mesh.parent) {
                         try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
@@ -1246,12 +1324,48 @@
 
                     continue;
                 } else {
+                    if (obs.type === 'energyCoin') {
+                        grantEnergy(1);
+                        showEnergyToast('+1 ENERGIA');
+                        try { if (window.game && window.game.sfx) window.game.sfx.play('pickup-coin', { volume: 0.8 }); } catch(e) {}
+                        obs.destroyed = true;
+                        if (obs.mesh && obs.mesh.parent) { try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {} }
+                        customObstacles.splice(i, 1);
+                        continue;
+                    }
+                    if (obs.type === 'coin') {
+                        obs.destroyed = true;
+                        if (obs.mesh && obs.mesh.parent) { try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {} }
+                        customObstacles.splice(i, 1);
+                        if (window.NO_COIN_MODE) {
+                            triggerNoCoinDeath(null);
+                            return;
+                        }
+                        collectGeneratedCoin(hero);
+                        continue;
+                    }
+
                     // Check if player cleared obstacle cleanly:
                     const isJumping = heroY >= 7.5;
                     const isRolling = hero && hero.character && (
                         (hero.character.roll && hero.character.roll.active) ||
                         (hero.anim && hero.anim.currentAnimationClipName === 'roll')
                     );
+
+                    if (obs.type === 'trampoline') {
+                        const verticalSpeed = heroBody.velocity ? heroBody.velocity.y : 0;
+                        if (heroY > 6.5) continue; // Clear the pad cleanly when jumping over it.
+                        if (heroY >= 2.5 && verticalSpeed <= 1 && now - (obs.lastBounceAt || 0) > 700) {
+                            obs.lastBounceAt = now;
+                            try {
+                                if (hero.jump && hero.jump.perform) hero.jump.perform(38, true);
+                                else if (heroBody.velocity) heroBody.velocity.y = 35;
+                                if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('pickup-super-sneakers');
+                            } catch(e) {}
+                            showEnergyToast('PULÃO!');
+                            continue;
+                        }
+                    }
 
                     if (obs.type === 'blocker_jump' && isJumping) {
                         continue; // Cleared jump barrier
@@ -1288,6 +1402,18 @@
                 customObstacles.splice(i, 1);
             }
         }
+    }
+
+    function collectGeneratedCoin(hero) {
+        const game = window.game;
+        if (!game) return;
+        if (game.stats) game.stats.coins = (game.stats.coins || 0) + 1;
+        try { if (game.missions) game.missions.addStat(1, 'mission-pickup-coins'); } catch(e) {}
+        try { if (game.sfx) game.sfx.play('pickup-coin', { volume: 0.5 }); } catch(e) {}
+        try {
+            if (hero && hero.pop && typeof hero.pop.play === 'function') hero.pop.play();
+            else if (hero && hero.popPickup && typeof hero.popPickup.play === 'function') hero.popPickup.play();
+        } catch(e) {}
     }
 
     setInterval(updateNoCoinObstacleEngine, 30);
@@ -1476,7 +1602,7 @@
                 handlePlayerDeath(msg);
                 break;
             case 'coop_pos':
-                handleCoopPos(msg);
+                // Legacy real-time avatar packets are intentionally ignored.
                 break;
             case 'mp_mode_change':
                 handleMPModeChange(msg);
@@ -2301,9 +2427,6 @@
             try { window.app.nav.toGame(); } catch (e) {}
             setTimeout(restoreHeroMesh, 300);
 
-            startCoopRenderLoop();
-            showCoopHUD();
-
             if (MP.isPartyLeader) hostStartBots();
         });
     }
@@ -2388,30 +2511,6 @@
                     MPX.lastTick[id] = Date.now();
                     sendRoomMessage({ type: 'tick', sender, t, round: MPX.round });
 
-                    if (MP.inMatch) {
-                        const hero = window.game && window.game.hero;
-                        const heroZ = (hero && hero.body) ? hero.body.z : -(t * 0.05);
-                        const idx = MP.party.findIndex(x => x.id === id);
-                        const lane = (idx === 1 ? -20 : (idx === 2 ? 20 : 0));
-                        const zOffset = (idx * 8) - 16;
-                        let botAnim = 'run3';
-                        const cycle = Math.floor(t / 1800) % 5;
-                        if (cycle === 2) botAnim = 'jump';
-                        else if (cycle === 4) botAnim = 'roll';
-
-                        const botMsg = {
-                            type: 'coop_pos',
-                            sender,
-                            x: lane,
-                            y: botAnim === 'jump' ? 12 : 0,
-                            z: heroZ + zOffset,
-                            anim: botAnim,
-                            charId: 'jake',
-                            alive: true,
-                            round: MPX.round
-                        };
-                        handleCoopPos(botMsg);
-                    }
                 }
             });
             renderTimeline();
@@ -2428,31 +2527,6 @@
         if (MPX.dead[myProfile.id] !== undefined) return;
         MPX.live[myProfile.id] = runElapsedTime;
 
-        const hero = window.game && window.game.hero;
-        const heroBody = hero && hero.body;
-        if (heroBody) {
-            let currentAnim = 'run3';
-            if (hero.anim && hero.anim.currentAnimationClipName) {
-                currentAnim = hero.anim.currentAnimationClipName;
-            } else if (heroBody.y > 2) {
-                currentAnim = 'jump';
-            } else if (hero.roll && typeof hero.roll.isOn === 'function' && hero.roll.isOn()) {
-                currentAnim = 'roll';
-            }
-            sendRoomMessage({
-                type: 'coop_pos',
-                sender: myProfile,
-                x: heroBody.x || 0,
-                y: heroBody.y !== undefined ? heroBody.y : 0,
-                z: heroBody.z || 0,
-                anim: currentAnim,
-                charId: (hero.anim && hero.anim.character) || 'jake',
-                alive: true,
-                seq: ++MPX.posSeq,
-                sentAt: Date.now(),
-                round: MPX.round
-            });
-        }
         sendRoomMessage({ type: 'tick', sender: myProfile, t: runElapsedTime, round: MPX.round });
         renderTimeline();
     }
@@ -2473,20 +2547,6 @@
         MPX.live[myProfile.id] = timeMs;
 
         sendRoomMessage({ type: 'player_death', sender: myProfile, timeMs: timeMs, round: MPX.round });
-        if (MP.inMatch) {
-            const hero = window.game && window.game.hero;
-            const heroBody = hero && hero.body;
-            sendRoomMessage({
-                type: 'coop_pos',
-                sender: myProfile,
-                x: heroBody ? heroBody.x : 0,
-                y: 0,
-                z: heroBody ? heroBody.z : 0,
-                anim: 'fall',
-                alive: false,
-                round: MPX.round
-            });
-        }
         suppressRevive(true);
         showWaitHUD(timeMs, false);
         renderTimeline();
@@ -3853,7 +3913,7 @@
 
             /* Compact vertical hoverboard battery */
             #subway-energy-widget {
-                position: fixed; top: 112px; right: max(14px, env(safe-area-inset-right, 14px));
+                position: fixed; top: 126px; left: max(14px, env(safe-area-inset-left, 14px)); right: auto;
                 z-index: 99990; width: 54px; height: 166px; padding: 9px 8px;
                 box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 5px;
                 border: 1px solid rgba(148, 214, 230, .25); border-radius: 20px;
@@ -3875,9 +3935,9 @@
             #subway-energy-widget.is-ready .energy-state { color:#7be4ed; }
             #subway-energy-widget.is-active { border-color:rgba(251,191,36,.62); }
             #subway-energy-widget.is-active .energy-fill { background:linear-gradient(0deg,#c27415,#e8b443,#fff0bd); box-shadow:0 0 9px rgba(251,191,36,.54); }
-            #subway-energy-toast { position:fixed; top:116px; right:70px; z-index:99991; padding:8px 12px; border:1px solid rgba(103,232,249,.45); border-radius:10px; background:rgba(5,18,31,.9); color:#dffaff; font:800 10px/1.2 Arial,sans-serif; letter-spacing:.7px; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:0; transform:translateX(6px); pointer-events:none; transition:opacity .16s,transform .16s; }
+            #subway-energy-toast { position:fixed; top:130px; left:76px; right:auto; z-index:99991; padding:8px 12px; border:1px solid rgba(103,232,249,.45); border-radius:10px; background:rgba(5,18,31,.9); color:#dffaff; font:800 10px/1.2 Arial,sans-serif; letter-spacing:.7px; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:0; transform:translateX(-6px); pointer-events:none; transition:opacity .16s,transform .16s; }
             #subway-energy-toast.visible { opacity:1; transform:translateX(0); }
-            @media(max-width:600px) { #subway-energy-widget { top:100px; right:8px; width:50px; height:154px; padding:8px 7px; gap:4px; } #subway-energy-toast { top:104px; right:58px; } }
+            @media(max-width:600px) { #subway-energy-widget { top:118px; left:max(8px, env(safe-area-inset-left, 8px)); width:48px; height:148px; padding:7px 6px; gap:4px; } #subway-energy-toast { top:122px; left:64px; } }
             
             /* Map Themes */
             .map-grid {
