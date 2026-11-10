@@ -1337,7 +1337,12 @@
                 if (b && !b.deco && !b.player) {
                     const halfDepth = (b.depth || 14) / 2 + 15;
                     const halfWidth = (b.width || 14) / 2 + 3;
-                    if (Math.abs(b.x - x) < halfWidth && Math.abs(b.z - z) < halfDepth) {
+                    const bodyBottom = Number.isFinite(b.bottom) ? b.bottom : (Number.isFinite(b.y) ? b.y : 0);
+                    const bodyTop = Number.isFinite(b.top) ? b.top : bodyBottom + (b.height || 14);
+                    const candidateBottom = y - 3;
+                    const candidateTop = y + 8;
+                    const overlapsVertically = candidateTop > bodyBottom && candidateBottom < bodyTop;
+                    if (overlapsVertically && Math.abs(b.x - x) < halfWidth && Math.abs(b.z - z) < halfDepth) {
                         return true;
                     }
                 }
@@ -1694,6 +1699,26 @@
 
         // Every few chunks, add a varied coin route directly on a wagon roof.
         if (obstacleChunkCount % 3 === 0 && spawnTrainTopCoinPattern(centerZ)) return;
+
+        // Put a visible coin formation in the regular route every fourth chunk.
+        // The previous broad train check treated objects above or below the coin
+        // as blockers, which could silently reject every coin in a curved section.
+        if (obstacleChunkCount % 4 === 0) {
+            const safeSpot = findSafeSpecialPosition(7, centerZ);
+            const nearTrampoline = safeSpot && customObstacles.some(obs => obs && obs.type === 'trampoline' &&
+                Math.abs(obs.x - safeSpot.lane) < 8 && Math.abs(obs.z - safeSpot.z) < 170);
+            if (safeSpot && !nearTrampoline) {
+                let spawned = 0;
+                for (let i = 0; i < 5; i++) {
+                    const coin = createObstacle3D('coin', safeSpot.lane, 7, safeSpot.z - i * 26);
+                    if (coin) {
+                        customObstacles.push(coin);
+                        spawned++;
+                    }
+                }
+                if (spawned) return;
+            }
+        }
 
         // Add a separate red-coin route in No Coin mode. This runs independently
         // of trampoline spawning, so its coins never form a trail in front of a pad.
