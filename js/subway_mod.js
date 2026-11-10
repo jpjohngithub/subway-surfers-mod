@@ -403,6 +403,27 @@
     let lastEnergyTickTime = 0;
     const ENERGY_INTERVAL_MS = 10000;
     let energyGateInstalled = false;
+    let energyCoinBlueTexture = null;
+
+    function applyEnergyCoinTexture(mesh) {
+        try {
+            if (!mesh || !mesh.view3d || !mesh.view3d.material || !window.__lib || !window.__lib.getMap) return false;
+            const originalMap = window.__lib.getMap('props-tex');
+            const TextureClass = originalMap && originalMap.constructor;
+            if (!energyCoinBlueTexture && TextureClass && typeof TextureClass.from === 'function') {
+                energyCoinBlueTexture = TextureClass.from(new URL('assets/energy-coin-blue.png', window.location.href).href);
+            }
+            if (!energyCoinBlueTexture) return false;
+            const materials = Array.isArray(mesh.view3d.material) ? mesh.view3d.material : [mesh.view3d.material];
+            materials.forEach(material => {
+                if (!material) return;
+                material.diffuseMap = energyCoinBlueTexture;
+                if ('map' in material) material.map = energyCoinBlueTexture;
+                material.color = 0xffffff;
+            });
+            return true;
+        } catch(e) { return false; }
+    }
 
     function showEnergyToast(message) {
         let toast = document.getElementById('subway-energy-toast');
@@ -421,21 +442,16 @@
         const widget = document.getElementById('subway-energy-widget');
         if (!widget) return;
         const fill = document.getElementById('subway-energy-fill');
-        if (fill) fill.style.height = `${(skateEnergy / ENERGY_MAX) * 100}%`;
+        if (fill) fill.style.width = `${(skateEnergy / ENERGY_MAX) * 100}%`;
         const hero = window.game && window.game.hero;
         const board = hero && hero.hoverboard;
         const active = !!(board && board.isOn && board.isOn());
         widget.querySelectorAll('.energy-segment').forEach((segment, index) => {
             segment.classList.toggle('charged', index < skateEnergy);
         });
-        const count = widget.querySelector('.energy-count');
-        if (count) count.textContent = `${skateEnergy}/${ENERGY_MAX}`;
         widget.classList.toggle('is-ready', skateEnergy >= ENERGY_MAX);
         widget.classList.toggle('is-active', active);
-        widget.setAttribute('aria-label', active ? 'Skate ativo; energia da próxima carga ' + skateEnergy + ' de 8' : 'Energia do skate ' + skateEnergy + ' de 8');
-        widget.title = active ? 'Skate ativo · energia aumenta a duração' : skateEnergy >= ENERGY_MAX ? 'Skate pronto · use o botão padrão do jogo' : `Energia do skate · ${skateEnergy}/${ENERGY_MAX}`;
-        const state = widget.querySelector('.energy-state');
-        if (state) state.textContent = active ? 'ATIVO' : skateEnergy >= ENERGY_MAX ? 'PRONTO' : 'CARGA';
+        widget.setAttribute('aria-label', active ? 'Energia do skate carregando enquanto ativo' : 'Energia do skate');
     }
 
     function grantEnergy(amount = 1) {
@@ -531,6 +547,29 @@
     // Called on every coin spawn/awake from patched dependencies.bundle.js
     window.__activeCoins = new Set();
 
+    function isCoinUnderHighBarrier(coin) {
+        const physics = (coin && coin.game && coin.game.physics) || (window.game && window.game.physics);
+        if (!coin || !coin.body || !physics || !Array.isArray(physics.entities)) return false;
+        const cb = coin.body;
+        for (const entity of physics.entities) {
+            const body = entity && entity.body;
+            if (!body || entity === coin || body === cb || body.player || body.deco) continue;
+            const name = [entity.name, entity.type, entity.constructor && entity.constructor.name, entity.model && entity.model.name]
+                .filter(Boolean).join(' ').toLowerCase();
+            const rollBarrier = /blocker[_ -]?roll|roll[_ -]?barrier/.test(name);
+            const coinX = cb.x || 0;
+            const coinZ = cb.z || 0;
+            const halfWidth = ((body.width || 12) + (cb.width || 5)) / 2 + 2;
+            const halfDepth = ((body.depth || 8) + (cb.depth || 5)) / 2 + 2;
+            if (Math.abs(body.x - coinX) > halfWidth || Math.abs(body.z - coinZ) > halfDepth) continue;
+            const coinTop = (cb.bottom !== undefined ? cb.bottom : (cb.y || 0)) + (cb.height || 5);
+            const barrierBottom = body.bottom !== undefined ? body.bottom : (body.y || 0);
+            const overhead = (body.height || 0) >= 14 && barrierBottom >= coinTop + 2;
+            if (rollBarrier || overhead) return true;
+        }
+        return false;
+    }
+
     window.__onCoinAwake = function(coin) {
         if (!coin) return;
         if (!window.__activeCoins) window.__activeCoins = new Set();
@@ -561,6 +600,12 @@
 
         const coinZ = coin.body ? coin.body.z : (coin.z || 0);
         const coinX = coin.body ? coin.body.x : (coin.x || 0);
+        if (isCoinUnderHighBarrier(coin)) {
+            coin.active = false;
+            coin.visible = false;
+            if (coin.body) { coin.body.width = 0; coin.body.height = 0; coin.body.depth = 0; }
+            return;
+        }
         coinSpawnCounter++;
 
         // Spawn collectible Dash Item on the map lanes every ~16 coins when spaced >= 180 Z units
@@ -725,6 +770,7 @@
     function startRunTimer() {
         window.startRunTimer = startRunTimer;
         if (isRunActive) return;
+        hideCleanResultsOverlay();
         isRunActive = true;
         deathFrozen = false;
         isGamePaused = false;
@@ -1029,7 +1075,12 @@
                 if (mesh) {
                     const energyCoin = type === 'energyCoin';
                     if (mesh.scale) mesh.scale.set(energyCoin ? 1.35 : 1.15, energyCoin ? 1.35 : 1.15, energyCoin ? 1.35 : 1.15);
-                    setEntityHexColor(mesh, energyCoin ? 0x1677ff : (window.NO_COIN_MODE ? 0xff1e1e : 0xffc928));
+                    if (energyCoin) {
+                        const hasDedicatedTexture = applyEnergyCoinTexture(mesh);
+                        setEntityHexColor(mesh, hasDedicatedTexture ? 0xffffff : 0x087bff);
+                    } else {
+                        setEntityHexColor(mesh, window.NO_COIN_MODE ? 0xff1e1e : 0xffc928);
+                    }
                     bounds = { depth: 5, width: 4, height: 6 };
                 }
             }
@@ -1461,14 +1512,79 @@
         } catch(e) {}
     }
 
+    function hideCleanResultsOverlay() {
+        const overlay = document.getElementById('subway-clean-results');
+        if (overlay) overlay.remove();
+    }
+
+    function dispatchNativeResultsButton(action) {
+        const canvas = (window.app && window.app.view) || document.querySelector('#game-canvas') || document.querySelector('canvas');
+        if (!canvas || !canvas.getBoundingClientRect) return;
+        const rect = canvas.getBoundingClientRect();
+        // Proxy the original game buttons so their built-in navigation stays intact.
+        const x = rect.left + rect.width * (action === 'menu' ? 0.15 : 0.695);
+        const y = rect.top + rect.height * 0.90;
+        try {
+            if (window.PointerEvent) {
+                const base = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y };
+                canvas.dispatchEvent(new PointerEvent('pointerdown', base));
+                canvas.dispatchEvent(new PointerEvent('pointerup', base));
+                canvas.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+            } else {
+                canvas.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x, clientY: y }));
+                canvas.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y }));
+            }
+        } catch(e) {}
+    }
+
+    function showCleanResultsOverlay() {
+        if (isRunActive) return;
+        hideCleanResultsOverlay();
+        const overlay = document.createElement('div');
+        overlay.id = 'subway-clean-results';
+        overlay.innerHTML = `
+            <div class="clean-results-actions">
+                <button class="clean-results-menu" type="button" aria-label="Menu"><span aria-hidden="true">⌂</span><b>MENU</b></button>
+                <button class="clean-results-play" type="button" aria-label="Play"><span aria-hidden="true">▶</span><b>PLAY</b></button>
+            </div>
+        `;
+        Object.assign(overlay.style, {
+            position: 'fixed', inset: '0', zIndex: '1000000', display: 'grid', placeItems: 'center',
+            background: 'linear-gradient(160deg,rgba(7,18,30,.97),rgba(10,33,48,.97))',
+            fontFamily: 'Arial,sans-serif'
+        });
+        const actions = overlay.querySelector('.clean-results-actions');
+        Object.assign(actions.style, { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'clamp(14px,4vw,34px)', width: '100%', padding: '20px', boxSizing: 'border-box' });
+        const menu = overlay.querySelector('.clean-results-menu');
+        const play = overlay.querySelector('.clean-results-play');
+        Object.assign(menu.style, {
+            width: 'clamp(118px,22vw,176px)', height: 'clamp(76px,14vw,100px)', border: '3px solid #d5d9dd', borderRadius: '16px',
+            background: 'linear-gradient(#4d5157,#25282c)', color: '#fff', boxShadow: '0 7px 0 #11151a,0 12px 24px #0007',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', cursor: 'pointer'
+        });
+        Object.assign(play.style, {
+            width: 'clamp(170px,34vw,280px)', height: 'clamp(76px,14vw,100px)', border: '3px solid #b8e4bf', borderRadius: '16px',
+            background: 'linear-gradient(#23c42f,#079317)', color: '#fff', boxShadow: '0 7px 0 #075d12,0 12px 24px #0007',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: 'pointer', fontSize: 'clamp(24px,5vw,38px)', fontWeight: '900'
+        });
+        const icon = menu.querySelector('span');
+        Object.assign(icon.style, { fontSize: 'clamp(26px,5vw,38px)', lineHeight: '1' });
+        menu.querySelector('b').style.fontSize = 'clamp(13px,2.7vw,19px)';
+        menu.addEventListener('click', () => { hideCleanResultsOverlay(); dispatchNativeResultsButton('menu'); });
+        play.addEventListener('click', () => { hideCleanResultsOverlay(); dispatchNativeResultsButton('play'); });
+        document.body.appendChild(overlay);
+    }
+
     setInterval(updateNoCoinObstacleEngine, 30);
 
     window.__onGameOver = function() {
         stopRunTimer();
         cleanupCustomObstacles();
         updateEnergyHud();
+        setTimeout(showCleanResultsOverlay, 1000);
     };
     window.__onGameReset = function() {
+        hideCleanResultsOverlay();
         hideRunTimer();
         cleanupCustomObstacles();
         skateEnergy = 0;
@@ -3232,12 +3348,8 @@
             const meter = document.createElement('div');
             meter.id = 'subway-energy-widget';
             meter.setAttribute('aria-label', 'Energia do skate: 0 de 8');
-            meter.title = 'Energia do skate · use o botão padrão do jogo quando estiver cheia';
             meter.innerHTML = `
-                <div class="energy-cap"><span class="energy-bolt">ϟ</span><span class="energy-label">SKATE</span></div>
-                <div class="energy-gauge"><div class="energy-fill" id="subway-energy-fill"></div><div class="energy-ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
-                <div class="energy-count" id="subway-energy-value">0/8</div>
-                <div class="energy-state">CARGA</div>
+                <div class="energy-track"><div class="energy-fill" id="subway-energy-fill"></div><div class="energy-ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
             `;
             document.body.appendChild(meter);
             updateEnergyHud();
@@ -3956,33 +4068,23 @@
         const style = document.createElement('style');
         style.textContent = `
 
-            /* Compact vertical hoverboard battery */
+            /* Minimal horizontal skate charge bar */
             #subway-energy-widget {
-                position: fixed; top: 144px; right: max(14px, env(safe-area-inset-right, 14px)); left: auto;
-                z-index: 99990; width: 54px; height: 166px; padding: 9px 8px;
-                box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 5px;
-                border: 1px solid rgba(148, 214, 230, .25); border-radius: 20px;
-                background: linear-gradient(160deg, rgba(11, 25, 38, .94), rgba(8, 34, 49, .88));
-                box-shadow: 0 5px 18px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255,255,255,.09);
-                backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
-                color: #e2f4f8; user-select: none; pointer-events: none;
+                position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom, 18px)); transform: translateX(-50%);
+                z-index: 99990; width: min(260px, 58vw); height: 12px; padding: 2px;
+                box-sizing: border-box; border: 1px solid rgba(176, 225, 235, .42); border-radius: 99px;
+                background: rgba(5, 18, 28, .82); box-shadow: 0 2px 10px rgba(0,0,0,.42), inset 0 1px 2px rgba(0,0,0,.7);
+                user-select: none; pointer-events: none;
             }
-            #subway-energy-widget .energy-cap { display:flex; flex-direction:column; align-items:center; gap:0; line-height:1; }
-            #subway-energy-widget .energy-bolt { color:#67d8e9; font:800 20px/19px Arial,sans-serif; text-shadow:0 0 8px rgba(34,211,238,.38); }
-            #subway-energy-widget .energy-label { color:rgba(224,239,243,.72); font:800 7px/9px Arial,sans-serif; letter-spacing:1.1px; }
-            #subway-energy-widget .energy-gauge { position:relative; flex:1 1 auto; width:22px; min-height:0; overflow:hidden; border:1px solid rgba(169,206,216,.52); border-radius:12px; background:linear-gradient(90deg,rgba(3,15,24,.94),rgba(17,38,48,.8)); box-shadow:inset 0 2px 5px rgba(0,0,0,.45); }
-            #subway-energy-widget .energy-fill { position:absolute; left:1px; right:1px; bottom:1px; height:0%; border-radius:0 0 10px 10px; background:linear-gradient(0deg,#1487a4 0%,#21b3c6 62%,#a7eff0 100%); box-shadow:0 0 9px rgba(34,211,238,.58); transition:height .32s cubic-bezier(.2,.8,.2,1); }
-            #subway-energy-widget .energy-ticks { position:absolute; inset:0; display:flex; flex-direction:column-reverse; justify-content:space-evenly; pointer-events:none; }
-            #subway-energy-widget .energy-ticks i { height:1px; width:100%; background:rgba(3,17,30,.72); }
-            #subway-energy-widget .energy-count { color:#e6f6f8; font:800 10px/12px ui-monospace,Consolas,monospace; letter-spacing:.3px; }
-            #subway-energy-widget .energy-state { min-height:10px; color:rgba(166,205,214,.68); font:800 7px/10px Arial,sans-serif; letter-spacing:.8px; }
-            #subway-energy-widget.is-ready { border-color:rgba(103,232,249,.68); box-shadow:0 0 13px rgba(34,211,238,.28), inset 0 0 9px rgba(34,211,238,.08); }
-            #subway-energy-widget.is-ready .energy-state { color:#7be4ed; }
-            #subway-energy-widget.is-active { border-color:rgba(251,191,36,.62); }
-            #subway-energy-widget.is-active .energy-fill { background:linear-gradient(0deg,#c27415,#e8b443,#fff0bd); box-shadow:0 0 9px rgba(251,191,36,.54); }
-            #subway-energy-toast { position:fixed; top:148px; right:76px; left:auto; z-index:99991; padding:8px 12px; border:1px solid rgba(103,232,249,.45); border-radius:10px; background:rgba(5,18,31,.9); color:#dffaff; font:800 10px/1.2 Arial,sans-serif; letter-spacing:.7px; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:0; transform:translateX(6px); pointer-events:none; transition:opacity .16s,transform .16s; }
-            #subway-energy-toast.visible { opacity:1; transform:translateX(0); }
-            @media(max-width:600px) { #subway-energy-widget { top:auto; right:max(8px, env(safe-area-inset-right, 8px)); bottom:max(12px, env(safe-area-inset-bottom, 12px)); left:auto; width:46px; height:120px; padding:6px 5px; gap:3px; } #subway-energy-widget .energy-bolt { font-size:18px; line-height:17px; } #subway-energy-widget .energy-gauge { width:20px; } #subway-energy-widget .energy-count { font-size:9px; } #subway-energy-toast { top:auto; right:60px; bottom:68px; left:auto; } }
+            #subway-energy-widget .energy-track { position:relative; width:100%; height:100%; overflow:hidden; border-radius:99px; background:rgba(10,28,39,.92); }
+            #subway-energy-widget .energy-fill { position:absolute; inset:0 auto 0 0; width:0%; border-radius:99px; background:linear-gradient(90deg,#086dca,#178df0 70%,#7bd3ff); box-shadow:0 0 8px rgba(35,151,255,.58); transition:width .32s cubic-bezier(.2,.8,.2,1); }
+            #subway-energy-widget .energy-ticks { position:absolute; inset:0; display:flex; justify-content:space-evenly; pointer-events:none; }
+            #subway-energy-widget .energy-ticks i { width:1px; height:100%; background:rgba(4,20,32,.72); }
+            #subway-energy-widget.is-ready { border-color:rgba(94,195,255,.86); box-shadow:0 0 12px rgba(34,145,255,.4), inset 0 0 5px rgba(130,206,255,.24); }
+            #subway-energy-widget.is-active .energy-fill { background:linear-gradient(90deg,#c27415,#e8b443,#fff0bd); box-shadow:0 0 8px rgba(251,191,36,.54); }
+            #subway-energy-toast { position:fixed; left:50%; bottom:42px; transform:translate(-50%,6px); z-index:99991; padding:8px 12px; border:1px solid rgba(103,232,249,.45); border-radius:10px; background:rgba(5,18,31,.9); color:#dffaff; font:800 10px/1.2 Arial,sans-serif; letter-spacing:.7px; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:0; pointer-events:none; transition:opacity .16s,transform .16s; }
+            #subway-energy-toast.visible { opacity:1; transform:translate(-50%,0); }
+            @media(max-width:600px) { #subway-energy-widget { width:min(228px,58vw); height:10px; bottom:max(14px, env(safe-area-inset-bottom, 14px)); } #subway-energy-toast { bottom:34px; } }
             
             /* Map Themes */
             .map-grid {
