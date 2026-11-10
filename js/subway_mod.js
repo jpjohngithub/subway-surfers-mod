@@ -1350,7 +1350,7 @@
                 mesh = buildTrampolineCushionMesh(x, y, z);
                 if (mesh) {
                     applyTrampolineGlow(mesh, 1);
-                    bounds = { depth: 18, width: 20, height: 8, isTrampoline: true };
+                    bounds = { depth: 13, width: 13, height: 8, isTrampoline: true };
                 }
             }
 
@@ -1413,7 +1413,9 @@
         let cushion;
         try { cushion = window.__lib.getEntity('currency_coin'); } catch(e) { return null; }
         if (!cushion) return null;
-        const padScale = 2.55;
+        // The pillow model is authored at roughly two game units across.
+        // Scale it to a broad, readable landing pad on top of a wagon.
+        const padScale = 4.25;
         const usesPilow = applyPilowGeometry(cushion, pilowGeometry);
         cushion.__trampolineTint = 0xffffff;
         cushion.__trampolineVerticalAxis = usesPilow ? 'y' : 'z';
