@@ -523,6 +523,23 @@
         if (!window.__activeCoins) window.__activeCoins = new Set();
         window.__activeCoins.add(coin);
         const isNoCoin = !!window.NO_COIN_MODE;
+        const attractable = coin.attractable;
+        if (attractable) {
+            if (!attractable.__normalMagnetUpdate && typeof attractable.update === 'function') {
+                attractable.__normalMagnetUpdate = attractable.update;
+                attractable.__normalMagnetStart = attractable.attractionStart;
+            }
+            if (isNoCoin) {
+                attractable.active = false;
+                attractable.attracted = false;
+                attractable.update = function() {};
+                attractable.attractionStart = function() {};
+            } else {
+                if (attractable.__normalMagnetUpdate) attractable.update = attractable.__normalMagnetUpdate;
+                if (attractable.__normalMagnetStart) attractable.attractionStart = attractable.__normalMagnetStart;
+                attractable.active = true;
+            }
+        }
         coin._isDashItem = false;
         coin.visible = true;
         if (coin.model && coin.model.scale) {
@@ -569,12 +586,6 @@
 
 
         if (isNoCoin) {
-            if (coin.attractable) {
-                coin.attractable.active = false;
-                coin.attractable.attracted = false;
-                coin.attractable.update = function() {};
-                coin.attractable.attractionStart = function() {};
-            }
             if (coin.body) {
                 coin.body.width = 3.6;
                 coin.body.height = 3.6;
@@ -1003,7 +1014,7 @@
                 if (mesh) {
                     const energyCoin = type === 'energyCoin';
                     if (mesh.scale) mesh.scale.set(energyCoin ? 1.35 : 1.15, energyCoin ? 1.35 : 1.15, energyCoin ? 1.35 : 1.15);
-                    setEntityHexColor(mesh, energyCoin ? 0x12c8ff : (window.NO_COIN_MODE ? 0xff1e1e : 0xffc928));
+                    setEntityHexColor(mesh, energyCoin ? 0x1677ff : (window.NO_COIN_MODE ? 0xff1e1e : 0xffc928));
                     bounds = { depth: 5, width: 4, height: 6 };
                 }
             }
@@ -1298,6 +1309,25 @@
             if (obs.isFloating && obs.mesh) {
                 obs.y = (obs.baseY || 12) + Math.sin(now * 0.004 * obs.speed + obs.phase) * 7;
                 obs.mesh.y = obs.y;
+            }
+
+            // Apply the native magnet pull to custom coin routes in normal mode.
+            const magnet = hero.magnet;
+            const magnetMayCollect = obs.type === 'energyCoin' || (obs.type === 'coin' && !window.NO_COIN_MODE);
+            if (magnetMayCollect && magnet && magnet.isOn && magnet.isOn() && dz < 110) {
+                const targetY = heroBody.center && Number.isFinite(heroBody.center.y) ? heroBody.center.y : heroY + 2;
+                const targetZ = heroZ + ((heroBody.velocity && heroBody.velocity.z) || -8) * 0.7;
+                const mdx = heroX - obs.x;
+                const mdy = targetY - obs.y;
+                const mdz = targetZ - obs.z;
+                const distance = Math.sqrt(mdx * mdx + mdy * mdy + mdz * mdz);
+                if (distance < 110) {
+                    const pull = 0.11 + (1 - distance / 110) * 0.1;
+                    obs.x += mdx * pull;
+                    obs.y += mdy * pull;
+                    obs.z += mdz * pull;
+                    if (obs.mesh) { obs.mesh.x = obs.x; obs.mesh.y = obs.y; obs.mesh.z = obs.z; }
+                }
             }
 
             // Spin coin
@@ -3913,7 +3943,7 @@
 
             /* Compact vertical hoverboard battery */
             #subway-energy-widget {
-                position: fixed; top: 126px; left: max(14px, env(safe-area-inset-left, 14px)); right: auto;
+                position: fixed; top: 144px; right: max(14px, env(safe-area-inset-right, 14px)); left: auto;
                 z-index: 99990; width: 54px; height: 166px; padding: 9px 8px;
                 box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 5px;
                 border: 1px solid rgba(148, 214, 230, .25); border-radius: 20px;
@@ -3935,9 +3965,9 @@
             #subway-energy-widget.is-ready .energy-state { color:#7be4ed; }
             #subway-energy-widget.is-active { border-color:rgba(251,191,36,.62); }
             #subway-energy-widget.is-active .energy-fill { background:linear-gradient(0deg,#c27415,#e8b443,#fff0bd); box-shadow:0 0 9px rgba(251,191,36,.54); }
-            #subway-energy-toast { position:fixed; top:130px; left:76px; right:auto; z-index:99991; padding:8px 12px; border:1px solid rgba(103,232,249,.45); border-radius:10px; background:rgba(5,18,31,.9); color:#dffaff; font:800 10px/1.2 Arial,sans-serif; letter-spacing:.7px; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:0; transform:translateX(-6px); pointer-events:none; transition:opacity .16s,transform .16s; }
+            #subway-energy-toast { position:fixed; top:148px; right:76px; left:auto; z-index:99991; padding:8px 12px; border:1px solid rgba(103,232,249,.45); border-radius:10px; background:rgba(5,18,31,.9); color:#dffaff; font:800 10px/1.2 Arial,sans-serif; letter-spacing:.7px; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:0; transform:translateX(6px); pointer-events:none; transition:opacity .16s,transform .16s; }
             #subway-energy-toast.visible { opacity:1; transform:translateX(0); }
-            @media(max-width:600px) { #subway-energy-widget { top:118px; left:max(8px, env(safe-area-inset-left, 8px)); width:48px; height:148px; padding:7px 6px; gap:4px; } #subway-energy-toast { top:122px; left:64px; } }
+            @media(max-width:600px) { #subway-energy-widget { top:auto; right:max(8px, env(safe-area-inset-right, 8px)); bottom:max(12px, env(safe-area-inset-bottom, 12px)); left:auto; width:46px; height:120px; padding:6px 5px; gap:3px; } #subway-energy-widget .energy-bolt { font-size:18px; line-height:17px; } #subway-energy-widget .energy-gauge { width:20px; } #subway-energy-widget .energy-count { font-size:9px; } #subway-energy-toast { top:auto; right:60px; bottom:68px; left:auto; } }
             
             /* Map Themes */
             .map-grid {
