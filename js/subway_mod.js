@@ -421,18 +421,6 @@
         el._timer = setTimeout(() => el.classList.remove('show'), 1500);
     }
 
-    function showEnergyDropPop(txt) {
-        try {
-            const pop = document.createElement('div');
-            pop.className = 'se-drop-pop';
-            pop.textContent = txt;
-            pop.style.left = `${window.innerWidth / 2}px`;
-            pop.style.top = `${window.innerHeight * 0.42}px`;
-            document.body.appendChild(pop);
-            setTimeout(() => pop.remove(), 700);
-        } catch(e) {}
-    }
-
     function updateEnergyHud() {
         const fill = document.getElementById('subway-energy-fill');
         const val = document.getElementById('subway-energy-value');
@@ -633,12 +621,12 @@
             if (coin.model) {
                 setEntityHexColor(coin.model, 0x00e5ff);
                 if (coin.model.scale && coin.model.scale.set) coin.model.scale.set(1.35, 1.35, 1.35);
-                coin.model.active = false;
-                coin.model.visible = false;
-                if (coin.model.view3d) coin.model.view3d.renderable = false;
+                coin.model.active = true;
+                coin.model.visible = true;
+                if (coin.model.view3d) coin.model.view3d.renderable = true;
             }
             if (coin.shine) {
-                coin.shine.active = false;
+                coin.shine.active = true;
             }
         }
 
@@ -654,7 +642,6 @@
                         if (this.model) this.model.active = false;
                         if (this.body) { this.body.width = 0; this.body.height = 0; this.body.depth = 0; }
                         grantEnergy(1);
-                        showEnergyDropPop('+1 ⚡');
                         try { if (this.game && this.game.sfx && this.game.sfx.play) this.game.sfx.play('pickup-powerup'); } catch(e) {}
                         return;
                     }
@@ -1003,6 +990,8 @@
     let activeSetPiece = null;
     let proceduralCanvas = null;
     let proceduralCtx = null;
+    const staleProceduralCanvas = document.getElementById('subway-procedural-world');
+    if (staleProceduralCanvas) staleProceduralCanvas.remove();
 
     // Procedural low-poly models are drawn in a perspective overlay using new geometry,
     // rather than borrowing the game's obstacle meshes. Their collision volumes remain
@@ -1118,14 +1107,11 @@
     }
 
     function renderProceduralWorld() {
-        const hero=window.game&&window.game.hero;if(!hero||!hero.body)return;
-        ensureProceduralCanvas();if(!proceduralCtx)return;
-        const dpr=Math.min(window.devicePixelRatio||1,2),w=Math.max(1,Math.floor(window.innerWidth*dpr)),h=Math.max(1,Math.floor(window.innerHeight*dpr));
-        if(proceduralCanvas.width!==w||proceduralCanvas.height!==h){proceduralCanvas.width=w;proceduralCanvas.height=h;}
-        proceduralCtx.setTransform(dpr,0,0,dpr,0,0);proceduralCtx.clearRect(0,0,window.innerWidth,window.innerHeight);
-        const time=performance.now();
-        for(const obs of customObstacles){if(!obs.destroyed&&obs.mesh&&obs.mesh.procedural)drawProceduralObstacle(proceduralCtx,obs,hero,window.innerWidth,window.innerHeight,time);}
-        if(window.__activeCoins)for(const coin of window.__activeCoins){if(coin&&coin.active&&coin._isEnergyPickup&&coin.body){const p=projPoint(coin.body.x,coin.body.y,coin.body.z,hero,window.innerWidth,window.innerHeight);if(p.depth<300&&p.depth>0)drawCoinModel(proceduralCtx,p,5,true);}}
+        // The game camera uses its own 3D projection. A screen-space approximation
+        // makes world objects drift/jump, so keep this legacy canvas fully cleared.
+        if (!proceduralCanvas || !proceduralCtx) return;
+        proceduralCtx.clearRect(0, 0, proceduralCanvas.width, proceduralCanvas.height);
+        proceduralCanvas.style.display = 'none';
     }
 
     function cleanupCustomObstacles() {
@@ -1186,7 +1172,27 @@
         const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20;
         if (!options.ignoreBlocked && isPositionBlocked(x, y, z, margin)) return null;
 
-        const proceduralTypes = ['halfTrain', 'bounceTrain', 'plank', 'wall', 'water', 'container', 'platform', 'drone', 'energyCoin', 'coin'];
+        // Collectibles must live in the game's 3D scene so they stay attached to
+        // the rails and camera. Do not represent them as screen-space drawings.
+        if (type === 'energyCoin' || type === 'coin') {
+            if (!window.__lib || !window.__lib.getEntity) return null;
+            try {
+                const mesh = window.__lib.getEntity('currency_coin');
+                const hero = window.game && window.game.hero;
+                if (!mesh || !hero || !hero.parent) return null;
+                mesh.x = x; mesh.y = y; mesh.z = z;
+                mesh.rx = 0; mesh.rz = 0;
+                if (mesh.scale && mesh.scale.set) mesh.scale.set(type === 'energyCoin' ? 1.2 : 1.05, type === 'energyCoin' ? 1.2 : 1.05, type === 'energyCoin' ? 1.2 : 1.05);
+                setEntityHexColor(mesh, type === 'energyCoin' ? 0x00dfff : 0xffbd2e);
+                hero.parent.addChild(mesh);
+                return { type, x, y, z, mesh, bounds: { depth: 5, width: 6, height: 7 }, destroyed: false,
+                    baseX: x, baseY: y, speed: options.speed || 1.5, phase: options.phase || 0,
+                    isOscillating: !!options.isOscillating, isFloating: !!options.isFloating,
+                    moving: !!options.moving, options, setPiece: options.setPiece || 0 };
+            } catch(e) { return null; }
+        }
+
+        const proceduralTypes = ['halfTrain', 'bounceTrain', 'plank', 'wall', 'water', 'container', 'platform', 'drone'];
         if (proceduralTypes.includes(type)) {
             const dims = {
                 halfTrain: { width: 20, height: 12, depth: 14 }, bounceTrain: { width: 21, height: 9, depth: 16 },
@@ -1708,7 +1714,7 @@
                         if (obs.type === 'coin') {
                             try { if (window.game.stats) window.game.stats.coins += 1; if (window.game.missions) window.game.missions.addStat(1, 'mission-pickup-coins'); } catch(e) {}
                         } else {
-                            grantEnergy(1); showEnergyDropPop('+1 ⚡');
+                            grantEnergy(1);
                         }
                         removeProceduralObstacle(obs); customObstacles.splice(i, 1);
                         try { if (window.game.sfx && window.game.sfx.play) window.game.sfx.play(obs.type === 'coin' ? 'pickup-coin' : 'pickup-powerup'); } catch(e) {}
@@ -4367,19 +4373,6 @@
             #subway-expansion-toast.show {
                 opacity: 1;
                 transform: translate(-50%, 0);
-            }
-            .se-drop-pop {
-                position: fixed;
-                z-index: 99995;
-                pointer-events: none;
-                color: #7af4ff;
-                font: 900 15px Arial;
-                text-shadow: 0 2px 5px #000;
-                animation: sePopUp 0.7s ease-out forwards;
-            }
-            @keyframes sePopUp {
-                0% { opacity: 1; transform: translate(-50%, 0) scale(1); }
-                100% { opacity: 0; transform: translate(-50%, -28px) scale(1.3); }
             }
             @media (max-width: 600px) {
                 #subway-energy-widget { top: 78px; right: 8px; width: 32px; height: 126px; }
