@@ -1621,9 +1621,48 @@
             const z = Math.max(body.z - depth / 2 + 16, Math.min(startZ, body.z + depth / 2 - 16));
             const bottom = Number.isFinite(body.bottom) ? body.bottom : (body.y || 0);
             const top = bottom + (body.height || 18);
-            if (!isPositionBlocked(lane, top, z, 12, train)) return { lane, y: top, z, platformEntity: train };
+            if (!isPositionBlocked(lane, top, z, 12, train)) {
+                return { lane, x: body.x, y: top, z, platformEntity: train, platformDepth: depth, platformWidth: body.width || 18, platformCenterZ: body.z };
+            }
         }
         return null;
+    }
+
+    function spawnTrainTopCoinPattern(startZ) {
+        const spot = findTrainTopSpecialPosition(startZ);
+        if (!spot) return false;
+        const usableDepth = Math.max(0, spot.platformDepth - 32);
+        const count = Math.max(2, Math.min(5, Math.floor(usableDepth / 26) + 1));
+        const spacing = 26;
+        const span = (count - 1) * spacing;
+        const firstZ = Math.max(
+            spot.platformCenterZ - spot.platformDepth / 2 + 16,
+            Math.min(startZ - span / 2, spot.platformCenterZ + spot.platformDepth / 2 - 16 - span)
+        );
+        const pattern = Math.floor(Math.random() * 4);
+        const lateralRange = Math.max(0, Math.min(5, spot.platformWidth / 2 - 4));
+        const offsets = [0, -1, 1, -1, 0];
+        const heights = [0, 2.5, 4.5, 2.5, 0];
+        let spawned = 0;
+
+        for (let i = 0; i < count; i++) {
+            let x = spot.x;
+            let y = spot.y + 2;
+            if (pattern === 1) x += offsets[i] * lateralRange;
+            if (pattern === 2) y += (i / Math.max(1, count - 1)) * 4;
+            if (pattern === 3) y += heights[Math.round(i * 4 / Math.max(1, count - 1))];
+
+            const z = firstZ + i * spacing;
+            const nextToSpring = customObstacles.some(obs => obs && obs.type === 'trampoline' &&
+                Math.abs(obs.x - x) < 12 && Math.abs(obs.z - z) < 150);
+            if (nextToSpring) continue;
+            const coin = createObstacle3D('coin', x, y, z, { platformEntity: spot.platformEntity });
+            if (coin) {
+                customObstacles.push(coin);
+                spawned++;
+            }
+        }
+        return spawned > 0;
     }
 
     function spawnNoCoinObstaclePattern(centerZ) {
@@ -1651,6 +1690,9 @@
             if (pad) customObstacles.push(pad);
             if (pad) return;
         }
+
+        // Every few chunks, add a varied coin route directly on a wagon roof.
+        if (obstacleChunkCount % 5 === 0 && spawnTrainTopCoinPattern(centerZ)) return;
 
         // Add a separate red-coin route in No Coin mode. This runs independently
         // of trampoline spawning, so its coins never form a trail in front of a pad.
