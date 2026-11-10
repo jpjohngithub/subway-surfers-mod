@@ -387,10 +387,6 @@
             if (obj.material) {
                 obj.material.color = hexColor;
             }
-            if (obj.parts) {
-                const partsArr = Array.isArray(obj.parts) ? obj.parts : Object.values(obj.parts);
-                for (let i = 0; i < partsArr.length; i++) setEntityHexColor(partsArr[i], hexColor);
-            }
             const children = obj.children || (obj.container && obj.container.children);
             if (children && children.length) {
                 for (let i = 0; i < children.length; i++) {
@@ -399,109 +395,6 @@
             }
         } catch(e) {}
     }
-
-    // ==========================================
-    // SKATE ENERGY & HOVERBOARD SYSTEM
-    // ==========================================
-    const ENERGY_MAX = 8;
-    let skateEnergy = 0;
-    let lastEnergyTickTime = 0;
-
-    function storeEnergy() {
-        updateEnergyHud();
-    }
-
-    function showEnergyToast(msg) {
-        let el = document.getElementById('subway-expansion-toast');
-        if (!el) {
-            el = document.createElement('div');
-            el.id = 'subway-expansion-toast';
-            document.body.appendChild(el);
-        }
-        el.innerHTML = msg;
-        el.classList.add('show');
-        clearTimeout(el._timer);
-        el._timer = setTimeout(() => el.classList.remove('show'), 1100);
-    }
-
-    function updateEnergyHud() {
-        const fill = document.getElementById('subway-energy-fill');
-        const val = document.getElementById('subway-energy-value');
-        const widget = document.getElementById('subway-energy-widget');
-        const dots = document.querySelectorAll('#subway-energy-widget .se-dot');
-        const hero = window.game && window.game.hero;
-        const active = !!(hero && hero.hoverboard && hero.hoverboard.isOn && hero.hoverboard.isOn());
-        
-        if (val) val.textContent = `${skateEnergy}/${ENERGY_MAX}`;
-        dots.forEach((dot, idx) => {
-            dot.classList.toggle('filled', idx < skateEnergy);
-        });
-        if (widget) {
-            widget.classList.toggle('is-ready', skateEnergy >= ENERGY_MAX);
-            widget.classList.toggle('is-active', active);
-            widget.title = active ? 'Skate ativo (+1.2s)' : (skateEnergy >= ENERGY_MAX ? 'Skate pronto · Toque ou aperte B' : `Energia: ${skateEnergy}/${ENERGY_MAX}`);
-        }
-    }
-
-    function grantEnergy(amount = 1) {
-        const hero = window.game && window.game.hero;
-        const board = hero && hero.hoverboard;
-        if (board && board.isOn && board.isOn()) {
-            board.count = Math.min((board.count || 0) + 1.2, (board.duration || 30) + 12);
-            showEnergyToast('🛹 +1.2s');
-            return;
-        }
-        if (skateEnergy >= ENERGY_MAX) return;
-        skateEnergy = Math.min(ENERGY_MAX, skateEnergy + amount);
-        storeEnergy();
-        if (skateEnergy === ENERGY_MAX) showEnergyToast('🛹 PRONTO [B]');
-    }
-
-    function activateBoard() {
-        const game = window.game;
-        const hero = game && game.hero;
-        const board = hero && hero.hoverboard;
-        if (!game || !hero || game.state !== 1) {
-            showEnergyToast('NA CORRIDA');
-            return;
-        }
-        if (board && board.isOn && board.isOn()) return;
-        if (skateEnergy < ENERGY_MAX) {
-            showEnergyToast(`⚡ ${skateEnergy}/${ENERGY_MAX}`);
-            return;
-        }
-        skateEnergy = 0;
-        storeEnergy();
-        try {
-            const user = (window.app && window.app.user) || (window.game && window.game.user);
-            if (user && !user.board) user.board = 'hoverboard';
-            if (board.setBoard && user && user.board) board.setBoard(user.board);
-            const oldNoCoin = window.NO_COIN_MODE;
-            const oldLocked = board.locked;
-            const oldHas = board.hasHoverboards;
-            const oldSpend = board.spendHoverboard;
-            window.NO_COIN_MODE = false;
-            board.locked = false;
-            board.hasHoverboards = () => true;
-            board.spendHoverboard = () => {};
-            board.turnOn();
-            window.NO_COIN_MODE = oldNoCoin;
-            board.locked = oldLocked;
-            if (oldHas) board.hasHoverboards = oldHas; else delete board.hasHoverboards;
-            if (oldSpend) board.spendHoverboard = oldSpend; else delete board.spendHoverboard;
-            showEnergyToast('🛹 ATIVADO');
-        } catch(e) {
-            skateEnergy = ENERGY_MAX;
-            storeEnergy();
-        }
-        updateEnergyHud();
-    }
-
-    window.addEventListener('keydown', function(event) {
-        if ((event.code === 'KeyB' || event.key.toLowerCase() === 'b') && !event.repeat) {
-            activateBoard();
-        }
-    }, true);
 
     // Called on every coin spawn/awake from patched dependencies.bundle.js
     window.__activeCoins = new Set();
@@ -512,10 +405,6 @@
         window.__activeCoins.add(coin);
         const isNoCoin = !!window.NO_COIN_MODE;
         coin._isDashItem = false;
-        if (coin.hasOwnProperty('onCollect')) {
-            delete coin.onCollect;
-        }
-        delete coin._dashHookAttached;
         coin.visible = true;
         if (coin.model && coin.model.scale) {
             coin.model.scale.set(1, 1, 1);
@@ -525,8 +414,8 @@
         const coinX = coin.body ? coin.body.x : (coin.x || 0);
         coinSpawnCounter++;
 
-        // Spawn collectible GREEN Dash Boost Coin on the map lanes every ~18 coins
-        if (coinSpawnCounter % 18 === 0 && Math.abs(coinZ - lastDashZ) > 160) {
+        // Spawn collectible Dash Item on the map lanes every ~16 coins when spaced >= 180 Z units
+        if (coinSpawnCounter % 16 === 0 && Math.abs(coinZ - lastDashZ) > 180) {
             coin._isDashItem = true;
             lastDashZ = coinZ;
             lastDashLaneX = coinX;
@@ -536,17 +425,30 @@
                 coin.body.depth = 6.2;
             }
             if (coin.model) {
-                setEntityHexColor(coin.model, 0x00ff66); // Pure vibrant neon green!
-                if (coin.model.scale && coin.model.scale.set) coin.model.scale.set(1.45, 1.45, 1.45);
+                setEntityHexColor(coin.model, 0x00e5ff);
+                if (coin.model.scale) coin.model.scale.set(1.45, 1.45, 1.45);
             }
             if (coin.shine) {
                 coin.shine.active = true;
-                if (coin.shine.view) setEntityHexColor(coin.shine.view, 0x00ff66);
+                if (coin.shine.view) setEntityHexColor(coin.shine.view, 0x00e5ff);
             }
             return;
         }
 
-        // In No Coin Mode, regular coins are 100% RED with exact zero-magnetism hitbox
+        // In No Coin Mode, clear adjacent coins right behind/ahead of a Dash item on the same lane
+        if (isNoCoin && Math.abs(coinX - lastDashLaneX) < 5 && Math.abs(coinZ - lastDashZ) < 42) {
+            coin.active = false;
+            coin.visible = false;
+            if (coin.body) {
+                coin.body.width = 0;
+                coin.body.height = 0;
+                coin.body.depth = 0;
+            }
+            return;
+        }
+
+
+
         if (isNoCoin) {
             if (coin.attractable) {
                 coin.attractable.active = false;
@@ -559,27 +461,20 @@
                 coin.body.height = 3.6;
                 coin.body.depth = 3.6;
             }
-            if (coin.model) {
-                setEntityHexColor(coin.model, 0xff1e1e);
+        } else {
+            if (coin.body) {
+                coin.body.width = 5.0;
+                coin.body.height = 5.0;
+                coin.body.depth = 5.0;
             }
-            if (coin.shine) {
-                coin.shine.active = false;
-            }
-            return;
         }
 
-        // Normal Mode: standard native golden coins
-        if (coin.body) {
-            coin.body.width = 5.0;
-            coin.body.height = 5.0;
-            coin.body.depth = 5.0;
-        }
         if (coin.model) {
-            setEntityHexColor(coin.model, 0xffffff);
+            setEntityHexColor(coin.model, isNoCoin ? 0xff1e1e : 0xffffff);
         }
         if (coin.shine) {
-            coin.shine.active = true;
-            if (coin.shine.view) setEntityHexColor(coin.shine.view, 0xffffff);
+            coin.shine.active = !isNoCoin;
+            if (!isNoCoin && coin.shine.view) setEntityHexColor(coin.shine.view, 0xffffff);
         }
     };
 
@@ -600,7 +495,7 @@
             try {
                 const pop = document.createElement('div');
                 pop.className = 'subway-boost-time-pop';
-                pop.innerHTML = '+5.0s ⚡'; showEnergyToast('🚀 BOOST');
+                pop.innerHTML = '+5.0s ⚡';
                 document.body.appendChild(pop);
                 setTimeout(() => pop.remove(), 700);
             } catch(e) {}
@@ -734,7 +629,6 @@
         isGamePaused = false;
         pauseStartedAt = 0;
         runStartTime = performance.now();
-        lastEnergyTickTime = performance.now();
         runElapsedTime = 0;
         window.__dashSpeedMult = 1.0;
         lastDashZ = 999999;
@@ -760,12 +654,6 @@
         runTimerInterval = setInterval(() => {
             if (isRunActive && !deathFrozen && !isGamePaused) {
                 runElapsedTime = performance.now() - runStartTime;
-                const now = performance.now();
-                if (now - lastEnergyTickTime >= 15000) {
-                    lastEnergyTickTime = now;
-                    grantEnergy(1);
-                    showEnergyToast('+1 ⚡');
-                }
             } else if (isRunActive && deathFrozen) {
                 try {
                     const pl = window.game && window.game.hero && window.game.hero.player;
@@ -939,8 +827,8 @@
 
     // Prevents placing obstacle coins/dumpsters inside trains, barriers or native coins
     function isPositionBlocked(x, y, z, margin = 12) {
-        const isAir = (y >= 6.5);
-        if (window.__activeCoins && !isAir) {
+        // 1. Existing native map coins
+        if (window.__activeCoins) {
             for (const c of window.__activeCoins) {
                 if (c && c.active && c.body) {
                     if (Math.abs(c.body.z - z) < 22 && Math.abs(c.body.x - x) < 8) {
@@ -949,6 +837,8 @@
                 }
             }
         }
+
+        // 2. Trains, ramps and blockers in physics system (prevent spawning inside trains)
         const phys = window.game && window.game.physics;
         if (phys && Array.isArray(phys.entities)) {
             for (let i = 0; i < phys.entities.length; i++) {
@@ -963,11 +853,12 @@
                 }
             }
         }
+
+        // 3. Already placed custom obstacles
         for (let i = 0; i < customObstacles.length; i++) {
             const obs = customObstacles[i];
             if (obs && !obs.destroyed) {
                 if (Math.abs(obs.z - z) < 24 && Math.abs(obs.x - x) < 8) {
-                    if (isAir && (obs.y || 0) < 6.0) continue;
                     return true;
                 }
             }
@@ -975,11 +866,9 @@
         return false;
     }
 
-    let activeOceanZones = [];
-
     function createObstacle3D(type, x, y, z, options = {}) {
         if (!window.__lib || !window.__lib.getEntity) return null;
-        const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'bounceTrain' || type === 'subwagon' || type === 'wall') ? 28 : 15;
+        const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20;
         if (isPositionBlocked(x, y, z, margin)) return null;
 
         try {
@@ -989,14 +878,14 @@
             if (type === 'dumpster') {
                 mesh = window.__lib.getEntity('dumpster');
                 if (mesh) {
-                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI; // Perfectly parallel to rails
                     if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
                     bounds = { depth: 10, width: 16, height: 12 };
                 }
             } else if (type === 'bush') {
                 mesh = window.__lib.getEntity('bush_1');
                 if (mesh) {
-                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
+                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI; // Perfectly centered on track
                     if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
                     bounds = { depth: 8, width: 15, height: 10 };
                 }
@@ -1007,73 +896,26 @@
                     if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
                     bounds = { depth: 6, width: 16, height: 8, jumpable: true };
                 }
-            } else if (type === 'bounceTrain') {
-                mesh = window.__lib.getEntity('train_standardwagon') || window.__lib.getEntity('train_cargo');
+            } else if (type === 'blocker_roll') {
+                mesh = window.__lib.getEntity('blocker_roll');
                 if (mesh) {
                     mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
-                    if (mesh.scale) mesh.scale.set(0.85, 0.45, 0.32);
-                    setEntityHexColor(mesh, 0x9e36ff);
-                    bounds = { depth: 22, width: 14, height: 10, isBounce: true };
+                    if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
+                    bounds = { depth: 6, width: 16, height: 18, rollable: true };
                 }
-            } else if (type === 'subwagon') {
-                mesh = window.__lib.getEntity('train_subwagon') || window.__lib.getEntity('train_ramp');
+            } else if (type === 'lightSignal') {
+                mesh = window.__lib.getEntity('lightSignal');
                 if (mesh) {
                     mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
-                    if (mesh.scale) mesh.scale.set(1.0, 0.8, 1.0);
-                    bounds = { depth: 32, width: 14, height: 8, isPlatform: true };
-                }
-            } else if (type === 'plank') {
-                mesh = window.__lib.getEntity('blocker_jump') || window.__lib.getEntity('dumpster');
-                if (mesh) {
-                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
-                    if (mesh.scale) mesh.scale.set(1.4, 0.42, 1.5);
-                    setEntityHexColor(mesh, 0x8a5a36);
-                    y = 0.5;
-                    bounds = { depth: 12, width: 15, height: 6, isPlank: true };
-                }
-            } else if (type === 'wall') {
-                // Natural proportionate container (one per lane, no texture stretching!)
-                mesh = window.__lib.getEntity('train_cargo');
-                if (mesh) {
-                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
-                    if (mesh.scale) mesh.scale.set(0.95, 0.45, 0.35);
-                    setEntityHexColor(mesh, 0xd84925);
-                    y = 7.2;
-                    bounds = { depth: 14, width: 14, height: 10, isWall: true, minClearY: 6.0 };
-                }
-            } else if (type === 'energy') {
-                mesh = window.__lib.getEntity('currency_coin');
-                if (mesh) {
-                    if (mesh.scale) mesh.scale.set(1.25, 1.65, 0.7);
-                    setEntityHexColor(mesh, 0x00e5ff);
-                    y = 5.0;
-                    bounds = { depth: 6, width: 6, height: 6, isEnergy: true };
-                }
-            } else if (type === 'drone') {
-                mesh = window.__lib.getEntity('sprayCan') || window.__lib.getEntity('dumpster');
-                if (mesh) {
-                    mesh.rx = 0; mesh.rz = 0; mesh.ry = 0;
-                    if (mesh.scale) mesh.scale.set(1.5, 0.6, 1.5);
-                    setEntityHexColor(mesh, 0x00e5ff);
-                    y = 5.0;
-                    bounds = { depth: 10, width: 12, height: 8, isDrone: true };
-                }
-            } else if (type === 'ocean_container') {
-                mesh = window.__lib.getEntity('train_cargo');
-                if (mesh) {
-                    mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
-                    if (mesh.scale) mesh.scale.set(0.9, 0.38, 0.55);
-                    setEntityHexColor(mesh, 0xd84925);
-                    y = 1.0;
-                    bounds = { depth: 26, width: 14, height: 6, isWaterPlatform: true };
+                    if (mesh.scale) mesh.scale.set(1.0, 1.0, 1.0);
+                    bounds = { depth: 8, width: 10, height: 20 };
                 }
             } else {
                 mesh = window.__lib.getEntity('currency_coin');
                 if (mesh) {
                     if (mesh.scale) mesh.scale.set(1.15, 1.15, 1.15);
-                    const isNoCoin = !!window.NO_COIN_MODE;
-                    setEntityHexColor(mesh, isNoCoin ? 0xff1e1e : 0xffffff);
-                    bounds = { depth: 5, width: 4, height: 6, isCoin: true };
+                    setEntityHexColor(mesh, 0xff1e1e);
+                    bounds = { depth: 5, width: 4, height: 6 };
                 }
             }
 
@@ -1103,118 +945,143 @@
         return null;
     }
 
-    function spawnCityObstaclePattern(centerZ) {
+    function spawnNoCoinObstaclePattern(centerZ) {
         const lanes = [-20, 0, 20];
         const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 12));
         if (freeGroundLanes.length === 0) return;
 
-        const isNoCoin = !!window.NO_COIN_MODE;
+        // Pattern selector (10 rich, exciting patterns):
+        // 0: Moeda Móvel Oscilante (desliza de um lado pro outro continuamente)
+        // 1: Muro de Moedas (2 pistas bloqueadas com moedas no chão e no ar, 1 brecha)
+        // 2: Moedas Voando no Alto (teto flutuante y=18, proíbe pulo, exige rolamento)
+        // 3: Pulo Obrigatório de Moedas (barreira de chão y=5 nas pistas)
+        // 4: Slalom / Zig-Zag de Moedas (4 moedas em ziguezague ao longo da pista)
+        // 5: Torre Vertical de Moedas (3 moedas empilhadas y=5, y=12, y=19) + Mato/Caçamba
+        // 6: Moeda Voadora com Ondulação Vertical (sobe e desce em onda y=8 a y=20)
+        // 7: Dupla Moeda Móvel Cruzada (duas moedas deslizando em direções opostas)
+        // 8: Mato 3D (bush_1) + Moeda Flutuante no alto
+        // 9: Cavalete de Pulo (blocker_jump) ou Caçamba (dumpster)
+        const pattern = Math.floor(Math.random() * 10);
 
-        // If in No Coin mode, 45% spawn coin traps
-        if (isNoCoin && Math.random() < 0.45) {
-            const coinPattern = Math.floor(Math.random() * 5);
-            if (coinPattern === 0) {
-                const c = createObstacle3D('coin', 0, 6, centerZ, { isOscillating: true, speed: 2.2, phase: Math.random() * Math.PI });
-                if (c) customObstacles.push(c);
-            } else if (coinPattern === 1) {
+        if (pattern === 0) {
+            // 1. MOEDA MÓVEL OSCILANTE: Desliza de -20 a +20 através das 3 pistas
+            const c = createObstacle3D('coin', 0, 6, centerZ, {
+                isOscillating: true,
+                speed: 2.2 + Math.random() * 0.8,
+                phase: Math.random() * Math.PI
+            });
+            if (c) customObstacles.push(c);
+
+            // Adiciona um mato ou caçamba na lateral para forçar o desvio
+            const sideLane = Math.random() > 0.5 ? -20 : 20;
+            if (!isPositionBlocked(sideLane, 0, centerZ - 50, 15)) {
+                const b = createObstacle3D(Math.random() > 0.4 ? 'bush' : 'dumpster', sideLane, 0, centerZ - 50);
+                if (b) customObstacles.push(b);
+            }
+        } else if (pattern === 1) {
+            // 2. MURO DE MOEDAS: Fecha 2 pistas com moedas no chão e no ar, deixando 1 brecha
+            if (freeGroundLanes.length >= 2) {
                 const openLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
                 freeGroundLanes.forEach(lx => {
                     if (lx !== openLane) {
+                        // Moeda no chão
                         const c1 = createObstacle3D('coin', lx, 6, centerZ);
-                        const c2 = createObstacle3D('coin', lx, 14, centerZ);
                         if (c1) customObstacles.push(c1);
+                        // Moeda no ar (muro duplo)
+                        const c2 = createObstacle3D('coin', lx, 14, centerZ);
                         if (c2) customObstacles.push(c2);
                     }
                 });
-            } else if (coinPattern === 2) {
-                freeGroundLanes.forEach(lx => {
-                    const c = createObstacle3D('coin', lx, 4.5, centerZ);
-                    if (c) customObstacles.push(c);
-                });
-            } else if (coinPattern === 3) {
-                [-20, 0, 20].forEach((lx, idx) => {
-                    const c = createObstacle3D('coin', lx, 6, centerZ - (idx * 50));
-                    if (c) customObstacles.push(c);
-                });
-            } else {
-                const tLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-                [5, 12, 19].forEach(yPos => {
-                    const c = createObstacle3D('coin', tLane, yPos, centerZ);
-                    if (c) customObstacles.push(c);
-                });
             }
-            return;
-        }
-
-        // SUBWAY SURFERS CITY SUITE
-        const cityPattern = Math.floor(Math.random() * 8);
-
-        if (cityPattern === 0) {
-            // 1. MURO 3 TRILHOS (CONTAINERS SUSPENSOS): 3 containers individuais nos 3 trilhos, SÓ PASSA ROLANDO!
-            [-20, 0, 20].forEach(lx => {
-                const w = createObstacle3D('wall', lx, 7.2, centerZ);
-                if (w) customObstacles.push(w);
+        } else if (pattern === 2) {
+            // 3. MOEDAS VOANDO NO ALTO: Teto flutuante a y=18 (força a correr por baixo ou rolar)
+            lanes.forEach(lx => {
+                if (!isPositionBlocked(lx, 18, centerZ, 12)) {
+                    const c = createObstacle3D('coin', lx, 18, centerZ);
+                    if (c) customObstacles.push(c);
+                }
             });
-        } else if (cityPattern === 1) {
-            // 2. TREM BOUNCE (PULA-PULA COM AURA ROXA): Pular em cima arremessa alto com moedas/tokens no céu!
+        } else if (pattern === 3) {
+            // 4. PULO OBRIGATÓRIO DE MOEDAS: Barreira rente ao chão (y=4.5) que exige pular
+            freeGroundLanes.forEach(lx => {
+                const c = createObstacle3D('coin', lx, 4.5, centerZ);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 4) {
+            // 5. SLALOM / ZIG-ZAG DE MOEDAS: Linha sinuosa de moedas alternadas
+            const order = [-20, 0, 20, 0];
+            if (Math.random() > 0.5) order.reverse();
+            order.forEach((lx, idx) => {
+                const pz = centerZ - (idx * 55);
+                if (!isPositionBlocked(lx, 6, pz, 15)) {
+                    const c = createObstacle3D('coin', lx, 6, pz);
+                    if (c) customObstacles.push(c);
+                }
+            });
+        } else if (pattern === 5) {
+            // 6. TORRE VERTICAL DE MOEDAS: Coluna de 3 moedas empilhadas em uma pista
+            const tLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            [5, 12, 19].forEach(yPos => {
+                const c = createObstacle3D('coin', tLane, yPos, centerZ);
+                if (c) customObstacles.push(c);
+            });
+            // Mato ou barreira na pista vizinha
+            const other = freeGroundLanes.filter(l => l !== tLane);
+            if (other.length > 0) {
+                const obs = createObstacle3D('bush', other[0], 0, centerZ - 40);
+                if (obs) customObstacles.push(obs);
+            }
+        } else if (pattern === 6) {
+            // 7. MOEDA VOADORA COM ONDULAÇÃO: Flutua subindo e descendo no ar
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const c = createObstacle3D('coin', lane, 12, centerZ, {
+                isFloating: true,
+                speed: 2.0,
+                phase: Math.random() * Math.PI
+            });
+            if (c) customObstacles.push(c);
+        } else if (pattern === 7) {
+            // 8. DUPLA MOEDA MÓVEL CRUZADA: Duas moedas cruzando a pista simultaneamente
+            const c1 = createObstacle3D('coin', -15, 6, centerZ, {
+                isOscillating: true,
+                speed: 2.4,
+                phase: 0
+            });
+            const c2 = createObstacle3D('coin', 15, 6, centerZ - 60, {
+                isOscillating: true,
+                speed: 2.4,
+                phase: Math.PI
+            });
+            if (c1) customObstacles.push(c1);
+            if (c2) customObstacles.push(c2);
+        } else if (pattern === 8) {
+            // 9. MATO 3D (bush_1) + ARCO DE MOEDAS NO ALTO
             const bLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const bt = createObstacle3D('bounceTrain', bLane, 0, centerZ);
-            if (bt) customObstacles.push(bt);
-            for (let k = 1; k <= 3; k++) {
-                const c = createObstacle3D(Math.random() > 0.5 ? 'energy' : 'coin', bLane, 16, centerZ - (k * 24));
+            const b = createObstacle3D('bush', bLane, 0, centerZ);
+            if (b) customObstacles.push(b);
+
+            const otherFree = freeGroundLanes.filter(l => l !== bLane);
+            if (otherFree.length > 0) {
+                const c = createObstacle3D('coin', otherFree[0], 15, centerZ);
                 if (c) customObstacles.push(c);
             }
-        } else if (cityPattern === 2) {
-            // 3. TREM PELA METADE / VAGÃO ABERTO: Vagão baixo transitável ao lado de trem normal
-            const sLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const sw = createObstacle3D('subwagon', sLane, 0, centerZ);
-            if (sw) customObstacles.push(sw);
-            const e = createObstacle3D('energy', sLane, 5.0, centerZ - 10);
-            if (e) customObstacles.push(e);
-        } else if (cityPattern === 3) {
-            // 4. TÁBUAS DE MADEIRA QUEBRÁVEIS: Quebra ao pisar/rolar e dropa 3 moedas
-            freeGroundLanes.forEach(lx => {
-                const p = createObstacle3D('plank', lx, 0.5, centerZ);
-                if (p) customObstacles.push(p);
-            });
-        } else if (cityPattern === 4) {
-            // 5. TRILHA DE CÁPSULAS DE ENERGIA AZUIS (⚡)
-            const eLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            for (let k = 0; k < 3; k++) {
-                const e = createObstacle3D('energy', eLane, 5.0, centerZ - (k * 22));
-                if (e) customObstacles.push(e);
-            }
-        } else if (cityPattern === 5) {
-            // 6. PARKOUR DE CONTAINERS FLUTUANTES (Água)
-            const seqLanes = [-20, 0, 20];
-            seqLanes.forEach((lx, idx) => {
-                const oc = createObstacle3D('ocean_container', lx, 1.2, centerZ - (idx * 45), {
-                    isFloating: true,
-                    speed: 1.5,
-                    phase: idx * 1.5
-                });
-                if (oc) customObstacles.push(oc);
-                const coin = createObstacle3D('energy', lx, 6.0, centerZ - (idx * 45));
-                if (coin) customObstacles.push(coin);
-            });
-        } else if (cityPattern === 6) {
-            // 7. DRONE VOADOR: Lança o jogador para o alto com trilha aérea de moedas/tokens!
-            const dLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const dr = createObstacle3D('drone', dLane, 5.0, centerZ);
-            if (dr) customObstacles.push(dr);
-            for (let k = 1; k <= 4; k++) {
-                const skyCoin = createObstacle3D(k % 2 === 0 ? 'energy' : 'coin', dLane, 16.0, centerZ - (k * 28));
-                if (skyCoin) customObstacles.push(skyCoin);
-            }
         } else {
-            // 8. OBSTÁCULOS NATIVOS
+            // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const obs = createObstacle3D(Math.random() > 0.5 ? 'bush' : 'dumpster', lane, 0, centerZ);
+            const r = Math.random();
+            let obsType = 'bush';
+            if (r < 0.35) obsType = 'bush';
+            else if (r < 0.65) obsType = 'blocker_jump';
+            else if (r < 0.88) obsType = 'dumpster';
+            else if (r < 0.96) obsType = 'blocker_roll';
+            else obsType = 'lightSignal'; // Apenas 4% de chance para semáforo
+
+            const obs = createObstacle3D(obsType, lane, 0, centerZ);
             if (obs) customObstacles.push(obs);
         }
     }
 
-    function updateObstacleEngine() {
+    function updateNoCoinObstacleEngine() {
         if (!window.game || !window.game.hero || !window.game.hero.body) {
             if (customObstacles.length) cleanupCustomObstacles();
             return;
@@ -1228,22 +1095,15 @@
 
         if (window.isGamePaused) return;
 
-        // Check spawn ahead of runner
+        // Check spawn ahead of runner (abundant, regular obstacles)
         if (heroZ < nextObstacleZ) {
-            spawnCityObstaclePattern(heroZ - 320);
+            spawnNoCoinObstaclePattern(heroZ - 320);
             nextObstacleZ = heroZ - (130 + Math.random() * 70);
         }
 
+        // Update active obstacles
         const now = Date.now();
         const isDashing = now < dashInvulnUntil;
-        const isJumping = heroY >= 6.0;
-        const isRolling = !!(
-            (hero && hero.roll && (hero.roll.isRolling || hero.roll._isOn)) ||
-            (heroBody && heroBody.height <= 6.5) ||
-            (hero && hero.character && hero.character.roll && hero.character.roll.active) ||
-            (hero && hero.anim && hero.anim.currentAnimationClipName === 'roll')
-        );
-        const boardActive = !!(hero && hero.hoverboard && hero.hoverboard.isOn && hero.hoverboard.isOn());
 
         for (let i = customObstacles.length - 1; i >= 0; i--) {
             const obs = customObstacles[i];
@@ -1252,6 +1112,7 @@
                 continue;
             }
 
+            // Passed behind player: remove immediately
             if (obs.z > heroZ + 50) {
                 if (obs.mesh && obs.mesh.parent) {
                     try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
@@ -1260,256 +1121,30 @@
                 continue;
             }
 
+            // High-performance distance culling: skip heavy math for far obstacles
             const dz = Math.abs(obs.z - heroZ);
             if (dz > 180) continue;
 
+            // Oscillating dynamic horizontal movement across lanes
             if (obs.isOscillating && obs.mesh) {
                 obs.x = Math.sin(now * 0.003 * obs.speed + obs.phase) * 20;
                 obs.mesh.x = obs.x;
             }
 
+            // Vertical floating wave movement in air
             if (obs.isFloating && obs.mesh) {
-                obs.y = (obs.baseY || 1.2) + Math.sin(now * 0.004 * obs.speed + obs.phase) * 1.8;
+                obs.y = (obs.baseY || 12) + Math.sin(now * 0.004 * obs.speed + obs.phase) * 7;
                 obs.mesh.y = obs.y;
             }
 
-            if ((obs.type === 'coin' || obs.type === 'energy') && obs.mesh && obs.mesh.rotation) {
+            // Spin coin
+            if (obs.type === 'coin' && obs.mesh && obs.mesh.rotation) {
                 obs.mesh.rotation.y += 0.09;
             }
-
             const dx = Math.abs(obs.x - heroX);
             const dy = Math.abs(obs.y - heroY);
 
-            // 1. Blue Energy Capsule (⚡)
-            if (obs.type === 'energy') {
-                if (dz < 8 && dx < 6 && dy < 8) {
-                    obs.destroyed = true;
-                    if (obs.mesh && obs.mesh.parent) {
-                        try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                    }
-                    customObstacles.splice(i, 1);
-                    grantEnergy(1);
-                    showEnergyToast('+1 ⚡');
-                    try { if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('pickup-coin'); } catch(e) {}
-                    continue;
-                }
-            }
-
-            // 2. Regular Coin
-            if (obs.type === 'coin') {
-                if (dz < 7 && dx < 5 && dy < 7) {
-                    obs.destroyed = true;
-                    if (obs.mesh && obs.mesh.parent) {
-                        try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                    }
-                    customObstacles.splice(i, 1);
-                    if (window.NO_COIN_MODE) {
-                        triggerNoCoinDeath(null);
-                        return;
-                    } else {
-                        try {
-                            const u = (window.app && window.app.user) || (window.game && window.game.user);
-                            if (u) u.coins = (u.coins || 0) + 1;
-                            if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('pickup-coin');
-                        } catch(e) {}
-                        continue;
-                    }
-                }
-            }
-
-            // 3. Drone Voador (Air Launch)
-            if (obs.type === 'drone') {
-                if (dz < 10 && dx < 7 && dy < 9) {
-                    obs.destroyed = true;
-                    if (obs.mesh && obs.mesh.parent) {
-                        try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                    }
-                    customObstacles.splice(i, 1);
-                    try {
-                        if (hero.jump && hero.jump.perform) hero.jump.perform(34, true);
-                        else if (heroBody) heroBody.velocity.y = 32;
-                        if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('pickup-jetpack');
-                    } catch(e) {}
-                    showEnergyToast('🛸 DRONE AÉREO');
-                    continue;
-                }
-            }
-
-            // 4. Trem Bounce (Pula-Pula)
-            if (obs.type === 'bounceTrain') {
-                const halfDepth = 14;
-                const halfWidth = 7.5;
-                if (dz < halfDepth && dx < halfWidth) {
-                    if (heroY >= 2.0) {
-                        if (!obs.bounced) {
-                            obs.bounced = true;
-                            try {
-                                if (hero.jump && hero.jump.perform) hero.jump.perform(38, true);
-                                else if (heroBody) heroBody.velocity.y = 35;
-                                if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('pickup-super-sneakers');
-                            } catch(e) {}
-                            showEnergyToast('⬆️ BOUNCE');
-                        }
-                        continue;
-                    } else if (!obs.bounced) {
-                        if (boardActive) {
-                            try { hero.hoverboard.explode ? hero.hoverboard.explode() : hero.hoverboard.turnOff(); } catch(e) {}
-                            obs.destroyed = true;
-                            if (obs.mesh && obs.mesh.parent) {
-                                try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                            }
-                            customObstacles.splice(i, 1);
-                            showEnergyToast('💥 PROTEGEU');
-                            continue;
-                        }
-                        if (isDashing) continue;
-                        obs.destroyed = true;
-                        if (window.NO_COIN_MODE) {
-                            triggerNoCoinDeath(null);
-                        } else if (hero.player && hero.player.die) {
-                            hero.player.die('train');
-                        }
-                        return;
-                    }
-                }
-                if (obs.bounced || heroY >= 2.0) continue;
-            }
-
-            // 5. Trem pela Metade / Vagão Aberto (subwagon): FÍSICA SÓLIDA DE TREM
-            if (obs.type === 'subwagon') {
-                const halfDepth = 18;
-                const halfWidth = 7.5;
-                const roofY = 7.0;
-                if (dz < halfDepth && dx < halfWidth) {
-                    if (heroY >= 3.6) {
-                        if (hero.body) {
-                            hero.body.ground = roofY;
-                            if (hero.body.y < roofY) {
-                                hero.body.y = roofY;
-                                if (hero.body.velocity.y < 0) hero.body.velocity.y = 0;
-                            }
-                        }
-                        continue;
-                    } else {
-                        if (boardActive) {
-                            try { hero.hoverboard.explode ? hero.hoverboard.explode() : hero.hoverboard.turnOff(); } catch(e) {}
-                            obs.destroyed = true;
-                            if (obs.mesh && obs.mesh.parent) {
-                                try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                            }
-                            customObstacles.splice(i, 1);
-                            showEnergyToast('💥 PROTEGEU');
-                            continue;
-                        }
-                        if (isDashing) continue;
-                        obs.destroyed = true;
-                        if (window.NO_COIN_MODE) {
-                            triggerNoCoinDeath(null);
-                        } else if (hero.player && hero.player.die) {
-                            hero.player.die('train');
-                        }
-                        return;
-                    }
-                }
-            }
-
-            // 6. Container Flutuante (ocean_container): Plataforma sólida sobre a água
-            if (obs.type === 'ocean_container') {
-                const halfDepth = 13;
-                const halfWidth = 7.5;
-                const roofY = 3.8;
-                if (dz < halfDepth && dx < halfWidth) {
-                    if (heroY >= 1.8) {
-                        if (hero.body) {
-                            hero.body.ground = roofY;
-                            if (hero.body.y < roofY) {
-                                hero.body.y = roofY;
-                                if (hero.body.velocity.y < 0) hero.body.velocity.y = 0;
-                            }
-                        }
-                        continue;
-                    } else {
-                        if (boardActive) {
-                            try { hero.hoverboard.explode ? hero.hoverboard.explode() : hero.hoverboard.turnOff(); } catch(e) {}
-                            obs.destroyed = true;
-                            if (obs.mesh && obs.mesh.parent) {
-                                try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                            }
-                            customObstacles.splice(i, 1);
-                            showEnergyToast('💥 PROTEGEU');
-                            continue;
-                        }
-                        if (isDashing) continue;
-                        obs.destroyed = true;
-                        if (hero.player && hero.player.die) hero.player.die('train');
-                        return;
-                    }
-                }
-            }
-
-            // 7. Tábuas de Madeira Quebráveis (Plank)
-            if (obs.type === 'plank') {
-                if (dz < 9 && dx < 8) {
-                    if (heroY > 1.8 || isRolling || boardActive || isDashing) {
-                        obs.destroyed = true;
-                        if (obs.mesh && obs.mesh.parent) {
-                            try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                        }
-                        customObstacles.splice(i, 1);
-                        showEnergyToast('📦 DROP');
-                        for (let k = 0; k < 3; k++) {
-                            const dropCoin = createObstacle3D('coin', obs.x + (k - 1) * 3, 2.5, obs.z - 8);
-                            if (dropCoin) customObstacles.push(dropCoin);
-                        }
-                        try { if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('wood-break'); } catch(e) {}
-                        continue;
-                    } else {
-                        if (hero && hero.player && typeof hero.player.stumble === 'function') {
-                            hero.player.stumble('bush');
-                        }
-                        obs.destroyed = true;
-                        if (obs.mesh && obs.mesh.parent) {
-                            try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                        }
-                        customObstacles.splice(i, 1);
-                        continue;
-                    }
-                }
-            }
-
-            // 8. Muro 3 Trilhos (Wall): SÓ PASSA ROLANDO!
-            if (obs.type === 'wall') {
-                const hitDepth = 8;
-                const hitWidth = 8;
-                if (dz < hitDepth && dx < hitWidth) {
-                    if (isRolling) {
-                        continue;
-                    }
-                    if (boardActive) {
-                        try { hero.hoverboard.explode ? hero.hoverboard.explode() : hero.hoverboard.turnOff(); } catch(e) {}
-                        obs.destroyed = true;
-                        if (obs.mesh && obs.mesh.parent) {
-                            try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                        }
-                        customObstacles.splice(i, 1);
-                        showEnergyToast('💥 PROTEGEU');
-                        continue;
-                    }
-                    if (isDashing) {
-                        continue;
-                    }
-                    obs.destroyed = true;
-                    if (window.NO_COIN_MODE) {
-                        triggerNoCoinDeath(null);
-                    } else if (hero.player && hero.player.die) {
-                        hero.player.die('train');
-                    }
-                    return;
-                }
-                continue;
-            }
-
-            // 9. Standard Obstacle Hits (Dumpster, Bush, Blocker Jump)
+            // Calibrated hitboxes per obstacle type
             const hitDepth = (obs.bounds ? obs.bounds.depth / 2 : 5) + 3.0;
             const hitWidth = (obs.bounds ? obs.bounds.width / 2 : 4) + 1.5;
             const hitHeight = (obs.bounds ? obs.bounds.height : 6) + 2.0;
@@ -1523,40 +1158,52 @@
                     customObstacles.splice(i, 1);
                     triggerCoinShatter({ body: { x: obs.x, y: obs.y, z: obs.z } });
                     continue;
-                }
-
-                if (obs.type === 'blocker_jump' && isJumping) continue;
-                if (obs.type === 'bush' && isJumping) continue;
-
-                obs.destroyed = true;
-                if (boardActive) {
-                    try { hero.hoverboard.explode ? hero.hoverboard.explode() : hero.hoverboard.turnOff(); } catch(e) {}
-                    if (obs.mesh && obs.mesh.parent) {
-                        try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
-                    }
-                    customObstacles.splice(i, 1);
-                    showEnergyToast('💥 PROTEGEU');
-                    continue;
-                }
-
-                if (window.NO_COIN_MODE) {
-                    triggerNoCoinDeath(null);
-                    return;
                 } else {
-                    if (hero && hero.player) {
-                        if (obs.type === 'bush' && typeof hero.player.stumble === 'function') {
-                            hero.player.stumble('bush');
-                        } else if (typeof hero.player.die === 'function') {
-                            hero.player.die('train');
-                        }
+                    // Check if player cleared obstacle cleanly:
+                    const isJumping = heroY >= 7.5;
+                    const isRolling = hero && hero.character && (
+                        (hero.character.roll && hero.character.roll.active) ||
+                        (hero.anim && hero.anim.currentAnimationClipName === 'roll')
+                    );
+
+                    if (obs.type === 'blocker_jump' && isJumping) {
+                        continue; // Cleared jump barrier
                     }
-                    return;
+                    if (obs.type === 'blocker_roll' && isRolling) {
+                        continue; // Cleared roll barrier
+                    }
+                    if (obs.type === 'bush' && isJumping) {
+                        continue; // Cleared bush jump
+                    }
+
+                    obs.destroyed = true;
+                    if (window.NO_COIN_MODE) {
+                        triggerNoCoinDeath(null);
+                        return;
+                    } else {
+                        if (hero && hero.player) {
+                            if (obs.type === 'bush' && typeof hero.player.stumble === 'function') {
+                                hero.player.stumble('bush');
+                            } else if (typeof hero.player.die === 'function') {
+                                hero.player.die('train');
+                            }
+                        }
+                        return;
+                    }
                 }
+            }
+
+            // Passed behind player
+            if (obs.z > heroZ + 80) {
+                if (obs.mesh && obs.mesh.parent) {
+                    try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
+                }
+                customObstacles.splice(i, 1);
             }
         }
     }
 
-    setInterval(updateObstacleEngine, 30);
+    setInterval(updateNoCoinObstacleEngine, 30);
 
     window.__onGameOver = function() {
         stopRunTimer();
@@ -3315,41 +2962,6 @@
     // 8. UNIFIED MOD MENU & UI
     // ==========================================
     function createUnifiedUI() {
-        // Vertical skate energy meter; click the meter or press B when full.
-        // Minimalist Graphical Drawn Energy Widget (No words, pure icons)
-        if (!document.getElementById('subway-energy-widget')) {
-            const ew = document.createElement('div');
-            ew.id = 'subway-energy-widget';
-            ew.setAttribute('role', 'button');
-            ew.setAttribute('aria-label', 'Ativar Skate');
-            ew.innerHTML = `
-                <div class="se-core">
-                    <svg class="se-svg-deck" viewBox="0 0 32 32" width="24" height="24">
-                        <path d="M6 16 C6 13.5, 9 12, 16 12 C23 12, 26 13.5, 26 16 C26 18.5, 23 20, 16 20 C9 20, 6 18.5, 6 16 Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-                        <circle cx="10" cy="20.5" r="1.8" fill="currentColor"/>
-                        <circle cx="22" cy="20.5" r="1.8" fill="currentColor"/>
-                        <path d="M16 8 L14 14.5 L17 14.5 L15 21" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span id="subway-energy-value" class="se-badge">0/8</span>
-                </div>
-                <div class="se-dots-ring">
-                    <span class="se-dot"></span><span class="se-dot"></span>
-                    <span class="se-dot"></span><span class="se-dot"></span>
-                    <span class="se-dot"></span><span class="se-dot"></span>
-                    <span class="se-dot"></span><span class="se-dot"></span>
-                </div>
-                <div class="se-pill-hint">B</div>
-            `;
-            ew.addEventListener('click', activateBoard);
-            document.body.appendChild(ew);
-
-            const toast = document.createElement('div');
-            toast.id = 'subway-expansion-toast';
-            document.body.appendChild(toast);
-
-            updateEnergyHud();
-        }
-
         // Minimalist Stopwatch Timer (Hidden by default, shown ONLY during active run)
         if (!document.getElementById('subway-top-timer-wrap')) {
             const timer = document.createElement('div');
@@ -3750,22 +3362,6 @@
             btn.className = `btn-clean-toggle ${window.NO_COIN_MODE ? 'toggle-active-danger' : ''}`;
             btn.innerHTML = `<span class="toggle-indicator"></span><span class="toggle-label">${window.NO_COIN_MODE ? 'ATIVADO' : 'DESATIVADO'}</span>`;
         }
-        if (window.__activeCoins) {
-            for (const coin of window.__activeCoins) {
-                if (coin && coin._isDashItem) continue; // NEVER recolor green dash coins
-                if (coin && coin.model) {
-                    setEntityHexColor(coin.model, window.NO_COIN_MODE ? 0xff1e1e : 0xffffff);
-                }
-                if (coin && coin.shine) {
-                    coin.shine.active = !window.NO_COIN_MODE;
-                }
-            }
-        }
-        for (const obs of customObstacles) {
-            if (obs && obs.type === 'coin' && obs.mesh) {
-                setEntityHexColor(obs.mesh, window.NO_COIN_MODE ? 0xff1e1e : 0xffffff);
-            }
-        }
         showHUDNotification(window.NO_COIN_MODE ? '🔴 MODO NO COIN ATIVADO! Cuidado com as moedas vermelhas!' : '🟡 MODO NORMAL ATIVADO!');
     }
 
@@ -4079,144 +3675,6 @@
         const style = document.createElement('style');
         style.textContent = `
             
-            /* Vertical skate energy meter */
-                        /* Minimalist Drawn Graphical Energy Widget */
-            #subway-energy-widget {
-                position: fixed;
-                right: 20px;
-                top: 190px;
-                z-index: 99990;
-                width: 52px;
-                height: 74px;
-                padding: 6px 4px;
-                border-radius: 18px;
-                background: rgba(8, 18, 30, 0.88);
-                backdrop-filter: blur(10px);
-                border: 1.5px solid rgba(0, 229, 255, 0.35);
-                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: space-between;
-                cursor: pointer;
-                user-select: none;
-                touch-action: manipulation;
-                box-sizing: border-box;
-                transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
-            }
-            #subway-energy-widget:hover {
-                transform: translateY(-2px);
-                border-color: rgba(0, 229, 255, 0.7);
-            }
-            #subway-energy-widget:active {
-                transform: scale(0.95);
-            }
-            #subway-energy-widget .se-core {
-                position: relative;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 2px;
-            }
-            #subway-energy-widget .se-svg-deck {
-                color: #7dd3fc;
-                filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.4));
-                transition: color 0.25s, filter 0.25s;
-            }
-            #subway-energy-widget .se-badge {
-                font: 800 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-                color: #bae6fd;
-                letter-spacing: -0.3px;
-                line-height: 10px;
-            }
-            #subway-energy-widget .se-dots-ring {
-                display: flex;
-                gap: 3px;
-                align-items: center;
-                justify-content: center;
-                width: 100%;
-                padding: 0 2px;
-            }
-            #subway-energy-widget .se-dot {
-                width: 3.5px;
-                height: 8px;
-                border-radius: 2px;
-                background: rgba(255, 255, 255, 0.12);
-                transition: background 0.2s, box-shadow 0.2s;
-            }
-            #subway-energy-widget .se-dot.filled {
-                background: #00e5ff;
-                box-shadow: 0 0 6px #00e5ff;
-            }
-            #subway-energy-widget .se-pill-hint {
-                font: 900 9px Arial, sans-serif;
-                color: #38bdf8;
-                padding: 1px 7px;
-                border-radius: 6px;
-                background: rgba(0, 229, 255, 0.12);
-                border: 1px solid rgba(0, 229, 255, 0.25);
-            }
-            #subway-energy-widget.is-ready {
-                border-color: #00e5ff;
-                box-shadow: 0 0 18px rgba(0, 229, 255, 0.8), inset 0 0 10px rgba(0, 229, 255, 0.25);
-                animation: seWidgetPulse 1.2s infinite alternate;
-            }
-            #subway-energy-widget.is-ready .se-svg-deck {
-                color: #ffffff;
-                filter: drop-shadow(0 0 8px #00e5ff);
-            }
-            #subway-energy-widget.is-ready .se-pill-hint {
-                background: #00e5ff;
-                color: #041420;
-                border-color: #ffffff;
-                box-shadow: 0 0 8px #00e5ff;
-            }
-            #subway-energy-widget.is-active {
-                border-color: #fbbf24;
-                box-shadow: 0 0 18px rgba(251, 191, 36, 0.7);
-            }
-            #subway-energy-widget.is-active .se-svg-deck {
-                color: #fde68a;
-                filter: drop-shadow(0 0 8px #f59e0b);
-            }
-            #subway-energy-widget.is-active .se-dot.filled {
-                background: #f59e0b;
-                box-shadow: 0 0 6px #f59e0b;
-            }
-            @keyframes seWidgetPulse {
-                0% { box-shadow: 0 0 10px rgba(0, 229, 255, 0.5); }
-                100% { box-shadow: 0 0 22px rgba(0, 229, 255, 0.95); }
-            }
-
-            /* Minimalist Floating Bottom Toast */
-            #subway-expansion-toast {
-                position: fixed;
-                left: 50%;
-                bottom: 74px;
-                transform: translate(-50%, 12px);
-                opacity: 0;
-                z-index: 100000;
-                padding: 4px 14px;
-                border-radius: 999px;
-                background: rgba(6, 16, 28, 0.88);
-                backdrop-filter: blur(8px);
-                border: 1px solid rgba(0, 229, 255, 0.45);
-                color: #e0f9ff;
-                font: 800 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-                letter-spacing: 0.5px;
-                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), 0 0 10px rgba(0, 229, 255, 0.25);
-                pointer-events: none;
-                transition: opacity 0.16s ease, transform 0.16s ease;
-            }
-            #subway-expansion-toast.show {
-                opacity: 1;
-                transform: translate(-50%, 0);
-            }
-            @media (max-width: 600px) {
-                #subway-energy-widget { top: 150px; right: 12px; width: 48px; height: 68px; }
-                #subway-expansion-toast { bottom: 62px; font-size: 10px; padding: 3px 12px; }
-            }
-
             /* Map Themes */
             .map-grid {
                 display: grid;
