@@ -376,6 +376,7 @@
     let lastDashLaneX = 0;
     let coinSpawnCounter = 0;
     let dashInvulnUntil = 0;
+    const coinShatterFragments = [];
     window.__dashSpeedMult = 1.0;
 
     function setEntityHexColor(obj, hexColor) {
@@ -404,6 +405,7 @@
     const ENERGY_INTERVAL_MS = 10000;
     let energyGateInstalled = false;
     let energyCoinBlueTexture = null;
+    let trampolinePadTexture = null;
 
     function applyEnergyCoinTexture(mesh) {
         try {
@@ -422,6 +424,36 @@
                 material.color = 0xffffff;
             });
             return true;
+        } catch(e) { return false; }
+    }
+
+    function applyTrampolinePadTexture(mesh) {
+        try {
+            if (!mesh || !window.__lib || !window.__lib.getMap) return false;
+            const originalMap = window.__lib.getMap('props-tex');
+            const TextureClass = originalMap && originalMap.constructor;
+            if (!trampolinePadTexture && TextureClass && typeof TextureClass.from === 'function') {
+                trampolinePadTexture = TextureClass.from(new URL('assets/trampoline-pad.svg', window.location.href).href);
+            }
+            if (!trampolinePadTexture) return false;
+            let applied = false;
+            const visit = obj => {
+                if (!obj) return;
+                const view = obj.view3d || obj;
+                const source = view && view.material;
+                const materials = Array.isArray(source) ? source : (source ? [source] : []);
+                materials.forEach(material => {
+                    if (!material) return;
+                    material.diffuseMap = trampolinePadTexture;
+                    if ('map' in material) material.map = trampolinePadTexture;
+                    material.color = 0xffffff;
+                    applied = true;
+                });
+                const children = obj.children || (obj.container && obj.container.children);
+                if (children) for (let i = 0; i < children.length; i++) visit(children[i]);
+            };
+            visit(mesh);
+            return applied;
         } catch(e) { return false; }
     }
 
@@ -670,7 +702,7 @@
     window.__onDashCollect = function(coin) {
         dashInvulnUntil = Date.now() + 750;
         window.__dashSpeedMult = Math.min((window.__dashSpeedMult || 1.0) + 0.14, 1.95);
-        playCoinShatterEffect();
+        playCoinShatterEffect(coin, 0xffd84a, 1.35);
 
         // Boost de tempo adicional (APENAS no modo online ativo)
         if (MP.inMatch && MPX.roundActive && !MPX.isPracticing && isRunActive && !deathFrozen) {
@@ -710,27 +742,82 @@
         } catch(e) {}
     };
 
-    function playCoinShatterEffect() {
+    function spawnCoinWorldFragments(source, color = 0xffd84a, count = 8, intensity = 1) {
+        const hero = window.game && window.game.hero;
+        const parent = hero && hero.parent;
+        const point = source && source.body ? source.body : source;
+        if (!parent || !point || !window.__lib || !window.__lib.getEntity) return;
+        const x = Number(point.x), y = Number(point.y), z = Number(point.z);
+        if (![x, y, z].every(Number.isFinite)) return;
+        for (let i = 0; i < count; i++) {
+            let shard;
+            try { shard = window.__lib.getEntity('currency_coin'); } catch(e) { continue; }
+            if (!shard) continue;
+            shard.rx = Math.PI / 2;
+            shard.x = x; shard.y = y; shard.z = z;
+            if (shard.scale) shard.scale.set(0.34 * intensity, 0.34 * intensity, 0.08);
+            setEntityHexColor(shard, color);
+            try { parent.addChild(shard); } catch(e) { continue; }
+            const angle = (i / Math.max(count, 1)) * Math.PI * 2 + Math.random() * 0.22;
+            const speed = (0.018 + Math.random() * 0.016) * intensity;
+            coinShatterFragments.push({
+                mesh: shard, x, y, z,
+                vx: Math.cos(angle) * speed,
+                vy: (0.026 + Math.random() * 0.024) * intensity,
+                vz: Math.sin(angle) * speed,
+                startedAt: Date.now(), life: 560 + Math.random() * 100,
+                scale: 0.34 * intensity
+            });
+        }
+    }
+
+    function playCoinShatterEffect(source = null, color = 0xffd84a, intensity = 1.25, fragmentCount = 10) {
+        if (fragmentCount > 0) spawnCoinWorldFragments(source, color, fragmentCount, intensity);
         const burst = document.createElement('div');
         burst.className = 'subway-coin-shatter';
         burst.setAttribute('aria-hidden', 'true');
-        burst.innerHTML = '<span class="coin-shatter-ring"></span><span class="coin-shatter-core">✦</span>';
-        for (let i = 0; i < 12; i++) {
+        burst.style.setProperty('--coin-burst-color', `#${color.toString(16).padStart(6, '0')}`);
+        burst.innerHTML = '<span class="coin-shatter-flash"></span><span class="coin-shatter-ring"></span><span class="coin-shatter-ring coin-shatter-ring-inner"></span><span class="coin-shatter-core">✦</span>';
+        const shardCount = Math.round(22 * Math.min(1.6, intensity));
+        for (let i = 0; i < shardCount; i++) {
             const shard = document.createElement('i');
             shard.className = 'coin-shatter-shard';
-            shard.style.setProperty('--angle', `${i * 30}deg`);
-            shard.style.setProperty('--distance', `${42 + (i % 3) * 13}px`);
+            shard.style.setProperty('--angle', `${(i / shardCount) * 360 + (i % 4) * 7}deg`);
+            shard.style.setProperty('--distance', `${85 + (i % 5) * 24}px`);
+            shard.style.setProperty('--shard-delay', `${(i % 4) * 12}ms`);
             burst.appendChild(shard);
         }
         document.body.appendChild(burst);
-        setTimeout(() => burst.remove(), 720);
+        setTimeout(() => burst.remove(), 900);
+    }
+
+    function updateCoinShatterFragments(now) {
+        for (let i = coinShatterFragments.length - 1; i >= 0; i--) {
+            const fragment = coinShatterFragments[i];
+            const elapsed = now - fragment.startedAt;
+            const t = elapsed / fragment.life;
+            if (!fragment.mesh || t >= 1) {
+                if (fragment.mesh && fragment.mesh.parent) {
+                    try { fragment.mesh.parent.removeChild(fragment.mesh); } catch(e) {}
+                }
+                coinShatterFragments.splice(i, 1);
+                continue;
+            }
+            fragment.mesh.x = fragment.x + fragment.vx * elapsed;
+            fragment.mesh.y = fragment.y + fragment.vy * elapsed - 0.000035 * elapsed * elapsed;
+            fragment.mesh.z = fragment.z + fragment.vz * elapsed;
+            fragment.mesh.ry = (fragment.mesh.ry || 0) + 0.24;
+            fragment.mesh.rx = (fragment.mesh.rx || 0) + 0.13;
+            const scale = fragment.scale * (1 - t * 0.85);
+            if (fragment.mesh.scale) fragment.mesh.scale.set(scale, scale, Math.max(0.025, scale * 0.24));
+        }
     }
 
     // Called when player touches a coin in No Coin Mode
     window.__onNoCoinCollect = function(coin) {
         if (!window.NO_COIN_MODE) return;
         if (Date.now() < dashInvulnUntil) {
-            // Dash immunity absorbs the red coin without spawning screen-space debris.
+            playCoinShatterEffect(coin, 0xff3a54, 1.1, 7);
             return;
         }
         if (coin && coin._isDashItem) return;
@@ -1007,7 +1094,7 @@
     }
 
     // Prevents placing obstacle coins/dumpsters inside trains, barriers or native coins
-    function isPositionBlocked(x, y, z, margin = 12) {
+    function isPositionBlocked(x, y, z, margin = 12, ignoredEntity = null) {
         // 1. Existing native map coins
         if (window.__activeCoins) {
             for (const c of window.__activeCoins) {
@@ -1024,6 +1111,7 @@
         if (phys && Array.isArray(phys.entities)) {
             for (let i = 0; i < phys.entities.length; i++) {
                 const ent = phys.entities[i];
+                if (ent === ignoredEntity) continue;
                 const b = ent && ent.body;
                 if (b && !b.deco && !b.player) {
                     const halfDepth = (b.depth || 14) / 2 + 15;
@@ -1050,7 +1138,7 @@
     function createObstacle3D(type, x, y, z, options = {}) {
         if (!window.__lib || !window.__lib.getEntity) return null;
         const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20;
-        if (isPositionBlocked(x, y, z, margin)) return null;
+        if (isPositionBlocked(x, y, z, margin, options.platformEntity || null)) return null;
 
         try {
             let mesh = null;
@@ -1142,23 +1230,19 @@
 
     function applyTrampolineGlow(mesh, pulse = 1) {
         if (!mesh) return;
-        const r = Math.round(174 + 81 * pulse);
-        const g = Math.round(8 + 23 * pulse);
-        const b = Math.round(24 + 42 * pulse);
-        const red = (r << 16) | (g << 8) | b;
         const applyMaterialGlow = obj => {
-            if (!obj || obj.__trampolineTarget) return;
+            if (!obj) return;
             const view = obj && obj.view3d;
             const materialList = view && view.material ? (Array.isArray(view.material) ? view.material : [view.material]) : [];
             for (const material of materialList) {
                 if (!material) continue;
                 try {
-                    material.color = red;
-                    material.emissive = red;
-                    material.emissiveColor = red;
-                    material.emissionColor = red;
-                    material.emission = 0.8 + pulse * 0.7;
-                    material.emissiveIntensity = 0.8 + pulse * 0.7;
+                    material.color = 0xffffff;
+                    material.emissive = 0x39000a;
+                    material.emissiveColor = 0x39000a;
+                    material.emissionColor = 0x39000a;
+                    material.emission = 0.08 + pulse * 0.12;
+                    material.emissiveIntensity = 0.08 + pulse * 0.12;
                 } catch(e) {}
             }
             const children = obj && (obj.children || (obj.container && obj.container.children));
@@ -1172,44 +1256,83 @@
         let cushion;
         try { cushion = window.__lib.getEntity('currency_coin'); } catch(e) { return null; }
         if (!cushion) return null;
-
-        // Flattened, overlapping 3D coin forms create a new puffy square pad.
-        // The layered white/red discs on top form a readable bullseye target.
+        // Use one wide, flattened model with a square cushion texture across
+        // every material in the model (the coin asset has nested render parts).
+        // This prevents its original gold surfaces from showing through.
         cushion.rx = Math.PI / 2;
         cushion.ry = 0;
         cushion.rz = 0;
-        cushion.__trampolinePadPart = true;
-        if (cushion.scale) cushion.scale.set(1.55, 1.55, 0.2);
-        setEntityHexColor(cushion, 0xe51d36);
+        if (cushion.scale) cushion.scale.set(3.1, 3.1, 0.24);
+        if (!applyTrampolinePadTexture(cushion)) setEntityHexColor(cushion, 0xe51d36);
+        return cushion;
+    }
 
-        const getPiece = (x, z, size, height, color, target = false) => {
-            let part;
-            try { part = window.__lib.getEntity('currency_coin'); } catch(e) { return null; }
-            if (!part) return null;
-            part.x = x;
-            part.y = z;
-            part.z = -height;
-            part.rx = 0;
-            part.ry = 0;
-            part.rz = 0;
-            part.__trampolineTarget = target;
-            part.__trampolinePadPart = !target;
-            if (part.scale) part.scale.set(size, size, 0.16);
-            setEntityHexColor(part, color);
-            try { cushion.addChild(part); } catch(e) { return null; }
-            return part;
+    function breakRedCoinsNearTrampoline(pad) {
+        if (!window.NO_COIN_MODE || !pad) return 0;
+        let broken = 0;
+        const nearPad = point => {
+            if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.z)) return false;
+            return Math.abs(point.x - pad.x) < 24 && point.z <= pad.z + 18 && point.z >= pad.z - 145;
         };
 
-        for (const x of [-3.8, 0, 3.8]) {
-            for (const z of [-3.8, 0, 3.8]) {
-                if (x === 0 && z === 0) continue;
-                getPiece(x, z, 1.08, 0.03, 0xe51d36);
+        for (let i = customObstacles.length - 1; i >= 0; i--) {
+            const coin = customObstacles[i];
+            if (!coin || coin.type !== 'coin' || !nearPad(coin)) continue;
+            spawnCoinWorldFragments(coin, 0xff394f, 5, 0.75);
+            if (coin.mesh && coin.mesh.parent) {
+                try { coin.mesh.parent.removeChild(coin.mesh); } catch(e) {}
+            }
+            customObstacles.splice(i, 1);
+            broken++;
+        }
+
+        if (window.__activeCoins) {
+            for (const coin of window.__activeCoins) {
+                if (!coin || !coin.active || coin._isDashItem || !coin.body || !nearPad(coin.body)) continue;
+                spawnCoinWorldFragments(coin.body, 0xff394f, 5, 0.75);
+                coin.active = false;
+                coin.visible = false;
+                if (coin.model) coin.model.visible = false;
+                coin.body.width = 0;
+                coin.body.height = 0;
+                coin.body.depth = 0;
+                broken++;
             }
         }
-        getPiece(0, 0, 0.86, 0.2, 0xffffff, true);
-        getPiece(0, 0, 0.59, 0.3, 0xd71932, true);
-        getPiece(0, 0, 0.29, 0.4, 0xffffff, true);
-        return cushion;
+
+        if (broken) {
+            playCoinShatterEffect({ x: pad.x, y: pad.y + 5, z: pad.z - 18 }, 0xff394f, 1.5, 0);
+        }
+        return broken;
+    }
+
+    function activateTrampoline(obs, hero, heroBody, heroY, now) {
+        if (!obs || obs.used) return false;
+        obs.used = true;
+        obs.bounceStartedAt = now;
+        obs.baseY = obs.mesh ? obs.mesh.y : obs.y;
+        obs.baseScale = obs.mesh && obs.mesh.scale ? {
+            x: obs.mesh.scale.x,
+            y: obs.mesh.scale.y,
+            z: obs.mesh.scale.z
+        } : { x: 1, y: 1, z: 1 };
+        breakRedCoinsNearTrampoline(obs);
+        try {
+            if (hero.jump && hero.jump.perform) hero.jump.perform(56, true);
+            else if (heroBody.velocity) heroBody.velocity.y = 53;
+            // Move body and camera anchor together for a brief forward launch.
+            heroBody.z -= 55;
+            const game = window.game;
+            if (game && game.stats && Number.isFinite(game.stats.z)) game.stats.z -= 55;
+            trampolineCameraUntil = now + 2400;
+            if (hero.player) {
+                hero.player.cameraTargetY = Number.isFinite(heroBody.bottom) ? heroBody.bottom : heroY;
+                hero.player.cameraY = hero.player.cameraTargetY;
+            }
+            if (game && game.sfx && game.sfx.play) game.sfx.play('pickup-super-sneakers');
+        } catch(e) {}
+        showEnergyToast('MEGA PULÃO!');
+        return true;
     }
 
     function findSafeSpecialPosition(y, startZ) {
@@ -1222,6 +1345,32 @@
                 const z = startZ + zOffset;
                 if (!isPositionBlocked(lane, y, z, 12)) return { lane, z };
             }
+        }
+        return null;
+    }
+
+    function findTrainTopSpecialPosition(startZ) {
+        const physics = window.game && window.game.physics;
+        if (!physics || !Array.isArray(physics.entities)) return null;
+        const lanes = [-20, 0, 20];
+        const trains = physics.entities
+            .filter(ent => {
+                const body = ent && ent.body;
+                const label = `${(ent && ent.name) || ''} ${(ent && ent.type) || ''} ${(ent && ent.constructor && ent.constructor.name) || ''} ${(ent && ent.model && ent.model.name) || ''}`.toLowerCase();
+                return !!(body && !body.deco && !body.player && /train|wagon|freight/.test(label));
+            })
+            .sort((a, b) => Math.abs(a.body.z - startZ) - Math.abs(b.body.z - startZ));
+
+        for (const train of trains) {
+            const body = train.body;
+            if (Math.abs(body.z - startZ) > 190) continue;
+            const lane = lanes.reduce((best, current) => Math.abs(current - body.x) < Math.abs(best - body.x) ? current : best, lanes[0]);
+            if (Math.abs(lane - body.x) > Math.max(8, (body.width || 18) / 2)) continue;
+            const depth = body.depth || 60;
+            const z = Math.max(body.z - depth / 2 + 16, Math.min(startZ, body.z + depth / 2 - 16));
+            const bottom = Number.isFinite(body.bottom) ? body.bottom : (body.y || 0);
+            const top = bottom + (body.height || 18);
+            if (!isPositionBlocked(lane, top, z, 12, train)) return { lane, y: top, z, platformEntity: train };
         }
         return null;
     }
@@ -1244,8 +1393,10 @@
             }
             if (safeSpot && customObstacles.some(obs => obs && obs.type === 'energyCoin' && Math.abs(obs.z - safeSpot.z) < 90)) return;
         } else if (obstacleChunkCount % 8 === 3) {
-            const safeSpot = findSafeSpecialPosition(0, centerZ);
-            const pad = safeSpot && createObstacle3D('trampoline', safeSpot.lane, 0, safeSpot.z);
+            const trainTop = Math.random() < 0.45 ? findTrainTopSpecialPosition(centerZ) : null;
+            const safeSpot = trainTop || findSafeSpecialPosition(0, centerZ);
+            const options = safeSpot && safeSpot.platformEntity ? { platformEntity: safeSpot.platformEntity } : {};
+            const pad = safeSpot && createObstacle3D('trampoline', safeSpot.lane, safeSpot.y || 0, safeSpot.z, options);
             if (pad) customObstacles.push(pad);
             if (pad) return;
         }
@@ -1439,6 +1590,8 @@
     }
 
     function updateNoCoinObstacleEngine() {
+        const frameNow = Date.now();
+        updateCoinShatterFragments(frameNow);
         if (!window.game || !window.game.hero || !window.game.hero.body) {
             if (customObstacles.length) cleanupCustomObstacles();
             return;
@@ -1446,7 +1599,7 @@
 
         const hero = window.game.hero;
         const heroBody = hero.body;
-        const heroZ = heroBody.z;
+        let heroZ = heroBody.z;
         const heroX = heroBody.x;
         const heroY = heroBody.y !== undefined ? heroBody.y : (heroBody.bottom || 0);
 
@@ -1464,8 +1617,22 @@
         }
 
         // Update active obstacles
-        const now = Date.now();
+        const now = frameNow;
         const isDashing = now < dashInvulnUntil;
+
+        // Resolve spring contact before coin collisions so nearby No Coin
+        // pickups shatter instead of ending the run on the same frame.
+        for (const pad of customObstacles) {
+            if (!pad || pad.type !== 'trampoline' || pad.used) continue;
+            const dz = Math.abs(pad.z - heroZ);
+            const dx = Math.abs(pad.x - heroX);
+            const dy = Math.abs(pad.y - heroY);
+            if (dz < (pad.bounds.depth / 2) + 3 && dx < (pad.bounds.width / 2) + 1.5 && dy < pad.bounds.height + 2) {
+                activateTrampoline(pad, hero, heroBody, heroY, now);
+                heroZ = heroBody.z;
+                break;
+            }
+        }
 
         for (let i = customObstacles.length - 1; i >= 0; i--) {
             const obs = customObstacles[i];
@@ -1565,7 +1732,10 @@
                 if (isDashing) {
                     if (obs.type === 'energyCoin') grantEnergy(1);
                     else if (obs.type === 'coin' && !window.NO_COIN_MODE) collectGeneratedCoin(hero);
-                    if (obs.type === 'coin' || obs.type === 'energyCoin') playCoinShatterEffect();
+                    if (obs.type === 'coin' || obs.type === 'energyCoin') {
+                        const shardColor = obs.type === 'energyCoin' ? 0x26c9ff : (window.NO_COIN_MODE ? 0xff394f : 0xffd84a);
+                        playCoinShatterEffect(obs, shardColor, 1.15);
+                    }
                     obs.destroyed = true;
                     if (obs.mesh && obs.mesh.parent) {
                         try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
@@ -1603,35 +1773,7 @@
                     );
 
                     if (obs.type === 'trampoline') {
-                        // Any contact activates the spring; it is consumed once
-                        // so the same cushion cannot retrigger during the launch.
-                        if (!obs.used) {
-                            obs.used = true;
-                            obs.bounceStartedAt = now;
-                            obs.baseY = obs.mesh ? obs.mesh.y : obs.y;
-                            obs.baseScale = obs.mesh && obs.mesh.scale ? {
-                                x: obs.mesh.scale.x,
-                                y: obs.mesh.scale.y,
-                                z: obs.mesh.scale.z
-                            } : { x: 1, y: 1, z: 1 };
-                            try {
-                                if (hero.jump && hero.jump.perform) hero.jump.perform(48, true);
-                                else if (heroBody.velocity) heroBody.velocity.y = 45;
-                                // Keep body and camera travel in sync without changing
-                                // the runner's sustained speed.
-                                heroBody.z -= 55;
-                                const game = window.game;
-                                if (game && game.stats && Number.isFinite(game.stats.z)) game.stats.z -= 55;
-                                trampolineCameraUntil = now + 2400;
-                                if (hero.player) {
-                                    hero.player.cameraTargetY = Number.isFinite(heroBody.bottom) ? heroBody.bottom : heroY;
-                                    hero.player.cameraY = hero.player.cameraTargetY;
-                                }
-                                if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('pickup-super-sneakers');
-                            } catch(e) {}
-                            showEnergyToast('MEGA PULÃO!');
-                            continue;
-                        }
+                        if (!obs.used) activateTrampoline(obs, hero, heroBody, heroY, now);
                         continue;
                     }
 
@@ -5343,38 +5485,59 @@
                 animation: dashBurstAnim 0.45s ease-out forwards;
             }
             .subway-coin-shatter {
-                position: fixed; left: 50%; top: 59%; width: 1px; height: 1px;
-                z-index: 99997; pointer-events: none; color: #ffe36a;
-                filter: drop-shadow(0 0 10px rgba(255, 190, 30, .8));
+                position: fixed; inset: 0; z-index: 100002; pointer-events: none;
+                color: var(--coin-burst-color, #ffd84a);
+                filter: drop-shadow(0 0 18px var(--coin-burst-color, #ffd84a));
+            }
+            .coin-shatter-flash {
+                position: absolute; inset: 0;
+                background: radial-gradient(circle at 50% 59%, color-mix(in srgb, var(--coin-burst-color) 42%, transparent), transparent 38%);
+                animation: coinShatterFlash .24s ease-out forwards;
             }
             .coin-shatter-ring {
-                position: absolute; left: -19px; top: -19px; width: 38px; height: 38px;
-                border: 3px solid #ffdf50; border-radius: 50%;
-                animation: coinShatterRing .62s cubic-bezier(.12,.72,.24,1) forwards;
+                position: absolute; left: 50%; top: 59%; width: 92px; height: 92px;
+                margin: -46px 0 0 -46px; border: 7px solid var(--coin-burst-color);
+                border-radius: 50%; box-shadow: 0 0 24px var(--coin-burst-color), inset 0 0 18px #fff7;
+                animation: coinShatterRing .78s cubic-bezier(.12,.72,.24,1) forwards;
+            }
+            .coin-shatter-ring-inner {
+                width: 54px; height: 54px; margin: -27px 0 0 -27px;
+                border-width: 4px; animation-delay: .035s; opacity: .85;
             }
             .coin-shatter-core {
-                position: absolute; left: -14px; top: -19px; width: 28px; height: 28px;
-                text-align: center; font: 900 28px/28px Arial,sans-serif;
-                color: #fff8b3; text-shadow: 0 0 8px #ffb000;
-                animation: coinShatterCore .42s ease-out forwards;
+                position: absolute; left: 50%; top: 59%; width: 72px; height: 72px;
+                margin: -36px 0 0 -36px; display: grid; place-items: center;
+                border: 4px solid #fff; border-radius: 50%; box-sizing: border-box;
+                background: radial-gradient(circle at 35% 30%, #fffbd0, var(--coin-burst-color) 75%);
+                color: #fff; font: 900 48px/1 Arial,sans-serif;
+                text-shadow: 0 2px 0 #a34b00, 0 0 14px #fff;
+                box-shadow: 0 0 30px var(--coin-burst-color), 0 6px 0 #6f3500;
+                animation: coinShatterCore .5s cubic-bezier(.15,.9,.2,1) forwards;
             }
             .coin-shatter-shard {
-                position: absolute; left: -2px; top: -12px; width: 4px; height: 13px;
-                border-radius: 2px; background: linear-gradient(#fff8b3,#ff9f19);
-                transform: rotate(var(--angle));
-                animation: coinShatterShard .58s cubic-bezier(.12,.72,.24,1) forwards;
+                position: absolute; left: 50%; top: 59%; width: 7px; height: 23px;
+                margin: -12px 0 0 -3px; border-radius: 3px;
+                background: linear-gradient(#fff,#fff6a3 38%,var(--coin-burst-color));
+                box-shadow: 0 0 10px var(--coin-burst-color);
+                animation: coinShatterShard .72s cubic-bezier(.12,.72,.24,1) var(--shard-delay,0ms) forwards;
             }
             @keyframes coinShatterRing {
-                0% { opacity: .95; transform: scale(.35); }
-                100% { opacity: 0; transform: scale(2.8); }
+                0% { opacity: .98; transform: scale(.18); }
+                100% { opacity: 0; transform: scale(4.4); }
             }
             @keyframes coinShatterCore {
-                0% { opacity: 1; transform: scale(1) rotate(0); }
-                100% { opacity: 0; transform: scale(.2) rotate(100deg); }
+                0% { opacity: 0; transform: scale(.2) rotate(-35deg); }
+                25% { opacity: 1; transform: scale(1.45) rotate(12deg); }
+                55% { opacity: 1; transform: scale(.92) rotate(-6deg); }
+                100% { opacity: 0; transform: scale(.3) rotate(35deg); }
             }
             @keyframes coinShatterShard {
-                0% { opacity: 1; translate: 0 0; }
-                100% { opacity: 0; translate: 0 calc(-1 * var(--distance)); }
+                0% { opacity: 1; transform: rotate(var(--angle)) translateY(-10px) scale(.65); }
+                100% { opacity: 0; transform: rotate(var(--angle)) translateY(calc(0px - var(--distance))) scale(.25); }
+            }
+            @keyframes coinShatterFlash {
+                0% { opacity: .9; }
+                100% { opacity: 0; }
             }
             .subway-boost-time-pop {
                 position: fixed;
