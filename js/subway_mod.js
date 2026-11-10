@@ -395,23 +395,6 @@
         } catch(e) {}
     }
 
-    function setEntitySolidColor(obj, hexColor) {
-        if (!obj) return;
-        try {
-            const view = obj.view3d || obj;
-            const source = view && view.material;
-            const materials = Array.isArray(source) ? source : (source ? [source] : []);
-            for (const material of materials) {
-                if (!material) continue;
-                material.color = hexColor;
-                material.diffuseMap = null;
-                if ('map' in material) material.map = null;
-            }
-            const children = obj.children || (obj.container && obj.container.children);
-            if (children) for (let i = 0; i < children.length; i++) setEntitySolidColor(children[i], hexColor);
-        } catch(e) {}
-    }
-
     // Run-scoped hoverboard energy: it is earned by surviving and never leaks
     // between runs. The skate is unlimited once the player fills the meter.
     const ENERGY_MAX = 8;
@@ -547,7 +530,19 @@
                 if (data.uvs) geometry.addAttribute('aUv', data.uvs, 2);
                 geometry.addIndex(data.indices);
                 mesh.geometry = geometry;
-                setEntitySolidColor(entity, 0x1767ff);
+                // The GLB's embedded image is only a white metallic/roughness
+                // map. Give the pillow its actual fabric/albedo texture and a
+                // neutral material so it cannot render as a black silhouette.
+                applyTrampolinePadTexture(entity);
+                const material = mesh.material;
+                if (material) {
+                    material.color = 0xffffff;
+                    material.emissive = 0x321018;
+                    material.emissiveColor = 0x321018;
+                    material.emissionColor = 0x321018;
+                    material.emission = 0.2;
+                    material.emissiveIntensity = 0.2;
+                }
                 return true;
             }
             const children = node && (node.children || (node.container && node.container.children));
@@ -1418,9 +1413,9 @@
         let cushion;
         try { cushion = window.__lib.getEntity('currency_coin'); } catch(e) { return null; }
         if (!cushion) return null;
-        const padScale = 3.0;
+        const padScale = 2.55;
         const usesPilow = applyPilowGeometry(cushion, pilowGeometry);
-        cushion.__trampolineTint = usesPilow ? 0x1767ff : 0xffffff;
+        cushion.__trampolineTint = 0xffffff;
         cushion.__trampolineVerticalAxis = usesPilow ? 'y' : 'z';
         if (usesPilow) {
             cushion.rx = 0; cushion.ry = 0; cushion.rz = 0;
@@ -1431,37 +1426,18 @@
             if (!applyTrampolinePadTexture(cushion)) setEntityHexColor(cushion, 0xe51d36);
         }
 
-        // Keep the bullseye as independent 3D pieces in the game scene. Some
-        // models ignore nested children, which made the old target disappear.
-        const targetParts = [];
-        const targetTop = usesPilow ? pilowGeometry.topY * padScale : 0.66;
-        const addTargetDisc = (size, lift, color) => {
-            let disc;
-            try { disc = window.__lib.getEntity('currency_coin'); } catch(e) { return; }
-            if (!disc) return;
-            disc.rx = Math.PI / 2; disc.ry = 0; disc.rz = 0;
-            disc.x = x; disc.y = y + targetTop + lift; disc.z = z;
-            if (disc.scale) disc.scale.set(size, size, 0.11);
-            setEntitySolidColor(disc, color);
-            targetParts.push(disc);
-        };
-        addTargetDisc(1.68, 0.04, 0xffffff);
-        addTargetDisc(1.28, 0.12, 0xd71932);
-        addTargetDisc(0.82, 0.20, 0xffffff);
-        addTargetDisc(0.39, 0.28, 0xd71932);
-        addTargetDisc(0.15, 0.36, 0xffffff);
-        cushion._trampolineTargetParts = targetParts;
+        // Both the GLB UVs and the SVG fallback carry the target artwork, so
+        // no coin meshes are stacked on top of the pillow.
+        cushion._trampolineTargetParts = [];
 
         // The first trampoline can be spawned before the small GLB fetch
         // finishes. Upgrade that fallback in place so collision stays intact.
         if (!usesPilow) pilowGeometryReady.then(data => {
             if (!data || !applyPilowGeometry(cushion, data)) return;
-            cushion.__trampolineTint = 0x1767ff;
+            cushion.__trampolineTint = 0xffffff;
             cushion.__trampolineVerticalAxis = 'y';
             cushion.rx = 0; cushion.ry = 0; cushion.rz = 0;
             if (cushion.scale) cushion.scale.set(padScale, padScale, padScale);
-            const modelTop = data.topY * padScale;
-            targetParts.forEach((part, index) => { part.y = y + modelTop + 0.04 + index * 0.08; });
         });
         return cushion;
     }
