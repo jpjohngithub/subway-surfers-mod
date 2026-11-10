@@ -1195,7 +1195,7 @@
 
         // Put blue energy coins and the spring into a predictable rotation so
         // players can actually encounter both during an ordinary run.
-        if (obstacleChunkCount % 4 === 1) {
+        if (obstacleChunkCount % 12 === 1) {
             const safeSpot = findSafeSpecialPosition(7, centerZ);
             const count = 1 + Math.floor(Math.random() * 3);
             if (safeSpot) {
@@ -1451,7 +1451,7 @@
 
             // Apply the native magnet pull to custom coin routes in normal mode.
             const magnet = hero.magnet;
-            const magnetMayCollect = obs.type === 'energyCoin' || (obs.type === 'coin' && !window.NO_COIN_MODE);
+            const magnetMayCollect = obs.type === 'coin' && !window.NO_COIN_MODE;
             if (magnetMayCollect && magnet && magnet.isOn && magnet.isOn() && dz < 110) {
                 const targetY = heroBody.center && Number.isFinite(heroBody.center.y) ? heroBody.center.y : heroY + 2;
                 const targetZ = heroZ + ((heroBody.velocity && heroBody.velocity.z) || -8) * 0.7;
