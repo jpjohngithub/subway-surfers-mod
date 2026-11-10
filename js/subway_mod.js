@@ -401,8 +401,7 @@
     // ==========================================
     const ENERGY_MAX = 8;
     let skateEnergy = 0;
-    let energyRunActive = false;
-    let energyCoinSerial = 0;
+    let lastEnergyTickTime = 0;
 
     function storeEnergy() {
         updateEnergyHud();
@@ -545,8 +544,44 @@
         const coinX = coin.body ? coin.body.x : (coin.x || 0);
         coinSpawnCounter++;
 
-        // Spawn collectible Dash Item on the map lanes every ~16 coins when spaced >= 180 Z units
-        if (coinSpawnCounter % 16 === 0 && Math.abs(coinZ - lastDashZ) > 180) {
+        // In No Coin Mode, EVERY coin must be 100% RED with exact zero-magnetism hitbox
+        if (isNoCoin) {
+            if (coin.attractable) {
+                coin.attractable.active = false;
+                coin.attractable.attracted = false;
+                coin.attractable.update = function() {};
+                coin.attractable.attractionStart = function() {};
+            }
+            if (coin.body) {
+                coin.body.width = 3.6;
+                coin.body.height = 3.6;
+                coin.body.depth = 3.6;
+            }
+            if (coin.model) {
+                setEntityHexColor(coin.model, 0xff1e1e);
+            }
+            if (coin.shine) {
+                coin.shine.active = false;
+            }
+            return;
+        }
+
+        // Normal Mode: standard golden coins
+        if (coin.body) {
+            coin.body.width = 5.0;
+            coin.body.height = 5.0;
+            coin.body.depth = 5.0;
+        }
+        if (coin.model) {
+            setEntityHexColor(coin.model, 0xffffff);
+        }
+        if (coin.shine) {
+            coin.shine.active = true;
+            if (coin.shine.view) setEntityHexColor(coin.shine.view, 0xffffff);
+        }
+
+        // Spawn collectible Dash Item on the map lanes every ~24 coins (Normal Mode only)
+        if (coinSpawnCounter % 24 === 0 && Math.abs(coinZ - lastDashZ) > 180) {
             coin._isDashItem = true;
             lastDashZ = coinZ;
             lastDashLaneX = coinX;
@@ -563,95 +598,10 @@
                 coin.shine.active = true;
                 if (coin.shine.view) setEntityHexColor(coin.shine.view, 0x00e5ff);
             }
-            return;
-        }
-
-        // In No Coin Mode, clear adjacent coins right behind/ahead of a Dash item on the same lane
-        if (isNoCoin && Math.abs(coinX - lastDashLaneX) < 5 && Math.abs(coinZ - lastDashZ) < 42) {
-            coin.active = false;
-            coin.visible = false;
-            if (coin.body) {
-                coin.body.width = 0;
-                coin.body.height = 0;
-                coin.body.depth = 0;
-            }
-            return;
-        }
-
-
-
-        if (isNoCoin) {
-            if (coin.attractable) {
-                coin.attractable.active = false;
-                coin.attractable.attracted = false;
-                coin.attractable.update = function() {};
-                coin.attractable.attractionStart = function() {};
-            }
-            if (coin.body) {
-                coin.body.width = 3.6;
-                coin.body.height = 3.6;
-                coin.body.depth = 3.6;
-            }
-        } else {
-            if (coin.body) {
-                coin.body.width = 5.0;
-                coin.body.height = 5.0;
-                coin.body.depth = 5.0;
-            }
-        }
-
-        if (coin.model) {
-            setEntityHexColor(coin.model, isNoCoin ? 0xff1e1e : 0xffffff);
-        }
-        if (coin.shine) {
-            coin.shine.active = !isNoCoin;
-            if (!isNoCoin && coin.shine.view) setEntityHexColor(coin.shine.view, 0xffffff);
-        }
-
-        // Replace each regular coin with a new cyan energy pickup; dash pickups stay separate.
-        if (!coin._isDashItem && !coin.__energyAssigned) {
-            coin.__energyAssigned = true;
-            energyCoinSerial++;
-            coin._isEnergyPickup = true;
-            if (coin.body) {
-                coin.body.width = 6.0;
-                coin.body.height = 7.0;
-                coin.body.depth = 6.0;
-            }
-            if (coin.model) {
-                setEntityHexColor(coin.model, 0x00e5ff);
-                if (coin.model.scale && coin.model.scale.set) coin.model.scale.set(1.35, 1.35, 1.35);
-                coin.model.active = true;
-                coin.model.visible = true;
-                if (coin.model.view3d) coin.model.view3d.renderable = true;
-            }
-            if (coin.shine) {
-                coin.shine.active = true;
-            }
-        }
-
-        // Safe energy collection hook attached once per coin
-        if (!coin._energyHookAttached) {
-            coin._energyHookAttached = true;
-            const origCollect = coin.onCollect;
-            if (typeof origCollect === 'function') {
-                coin.onCollect = function() {
-                    if (this._isEnergyPickup) {
-                        this.active = false;
-                        this.visible = false;
-                        if (this.model) this.model.active = false;
-                        if (this.body) { this.body.width = 0; this.body.height = 0; this.body.depth = 0; }
-                        grantEnergy(1);
-                        try { if (this.game && this.game.sfx && this.game.sfx.play) this.game.sfx.play('pickup-powerup'); } catch(e) {}
-                        return;
-                    }
-                    return origCollect.apply(this, arguments);
-                };
-            }
         }
     };
 
-    // Called when player collects a Dash boost item on the map
+        // Called when player collects a Dash boost item on the map
     window.__onDashCollect = function(coin) {
         dashInvulnUntil = Date.now() + 750;
         window.__dashSpeedMult = Math.min((window.__dashSpeedMult || 1.0) + 0.14, 1.95);
@@ -802,6 +752,7 @@
         isGamePaused = false;
         pauseStartedAt = 0;
         runStartTime = performance.now();
+        lastEnergyTickTime = performance.now();
         runElapsedTime = 0;
         window.__dashSpeedMult = 1.0;
         lastDashZ = 999999;
@@ -827,6 +778,12 @@
         runTimerInterval = setInterval(() => {
             if (isRunActive && !deathFrozen && !isGamePaused) {
                 runElapsedTime = performance.now() - runStartTime;
+                const now = performance.now();
+                if (now - lastEnergyTickTime >= 15000) {
+                    lastEnergyTickTime = now;
+                    grantEnergy(1);
+                    showEnergyToast('⚡ +1 Energia (a cada 15s)');
+                }
             } else if (isRunActive && deathFrozen) {
                 try {
                     const pl = window.game && window.game.hero && window.game.hero.player;
@@ -1172,8 +1129,7 @@
         const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20;
         if (!options.ignoreBlocked && isPositionBlocked(x, y, z, margin)) return null;
 
-        // Collectibles must live in the game's 3D scene so they stay attached to
-        // the rails and camera. Do not represent them as screen-space drawings.
+        // Collectible / obstacle coins: Pure RED in No Coin mode, standard GOLD in Normal mode
         if (type === 'energyCoin' || type === 'coin') {
             if (!window.__lib || !window.__lib.getEntity) return null;
             try {
@@ -1182,10 +1138,11 @@
                 if (!mesh || !hero || !hero.parent) return null;
                 mesh.x = x; mesh.y = y; mesh.z = z;
                 mesh.rx = 0; mesh.rz = 0;
-                if (mesh.scale && mesh.scale.set) mesh.scale.set(type === 'energyCoin' ? 1.2 : 1.05, type === 'energyCoin' ? 1.2 : 1.05, type === 'energyCoin' ? 1.2 : 1.05);
-                setEntityHexColor(mesh, type === 'energyCoin' ? 0x00dfff : 0xffbd2e);
+                const isNoCoin = !!window.NO_COIN_MODE;
+                if (mesh.scale && mesh.scale.set) mesh.scale.set(1.15, 1.15, 1.15);
+                setEntityHexColor(mesh, isNoCoin ? 0xff1e1e : 0xffffff);
                 hero.parent.addChild(mesh);
-                return { type, x, y, z, mesh, bounds: { depth: 5, width: 6, height: 7 }, destroyed: false,
+                return { type: 'coin', x, y, z, mesh, bounds: { depth: 5, width: 6, height: 7 }, destroyed: false,
                     baseX: x, baseY: y, speed: options.speed || 1.5, phase: options.phase || 0,
                     isOscillating: !!options.isOscillating, isFloating: !!options.isFloating,
                     moving: !!options.moving, options, setPiece: options.setPiece || 0 };
@@ -3970,6 +3927,21 @@
         if (btn) {
             btn.className = `btn-clean-toggle ${window.NO_COIN_MODE ? 'toggle-active-danger' : ''}`;
             btn.innerHTML = `<span class="toggle-indicator"></span><span class="toggle-label">${window.NO_COIN_MODE ? 'ATIVADO' : 'DESATIVADO'}</span>`;
+        }
+        if (window.__activeCoins) {
+            for (const coin of window.__activeCoins) {
+                if (coin && coin.model) {
+                    setEntityHexColor(coin.model, window.NO_COIN_MODE ? 0xff1e1e : 0xffffff);
+                }
+                if (coin && coin.shine) {
+                    coin.shine.active = !window.NO_COIN_MODE;
+                }
+            }
+        }
+        for (const obs of customObstacles) {
+            if (obs && obs.type === 'coin' && obs.mesh) {
+                setEntityHexColor(obs.mesh, window.NO_COIN_MODE ? 0xff1e1e : 0xffffff);
+            }
         }
         showHUDNotification(window.NO_COIN_MODE ? '🔴 MODO NO COIN ATIVADO! Cuidado com as moedas vermelhas!' : '🟡 MODO NORMAL ATIVADO!');
     }
