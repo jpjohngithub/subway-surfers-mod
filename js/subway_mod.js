@@ -1620,7 +1620,7 @@
             const depth = body.depth || 60;
             const z = Math.max(body.z - depth / 2 + 16, Math.min(startZ, body.z + depth / 2 - 16));
             const bottom = Number.isFinite(body.bottom) ? body.bottom : (body.y || 0);
-            const top = bottom + (body.height || 18);
+            const top = Number.isFinite(body.top) ? body.top : bottom + (body.height || 18);
             if (!isPositionBlocked(lane, top, z, 12, train)) {
                 return { lane, x: body.x, y: top, z, platformEntity: train, platformDepth: depth, platformWidth: body.width || 18, platformCenterZ: body.z };
             }
@@ -1643,11 +1643,12 @@
         const lateralRange = Math.max(0, Math.min(5, spot.platformWidth / 2 - 4));
         const offsets = [0, -1, 1, -1, 0];
         const heights = [0, 2.5, 4.5, 2.5, 0];
+        const coinBaseY = spot.y + 7;
         let spawned = 0;
 
         for (let i = 0; i < count; i++) {
             let x = spot.x;
-            let y = spot.y + 2;
+            let y = coinBaseY;
             if (pattern === 1) x += offsets[i] * lateralRange;
             if (pattern === 2) y += (i / Math.max(1, count - 1)) * 4;
             if (pattern === 3) y += heights[Math.round(i * 4 / Math.max(1, count - 1))];
