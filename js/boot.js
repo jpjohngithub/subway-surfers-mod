@@ -1,13 +1,21 @@
 /* eslint-disable func-names */
 /* eslint-disable no-var */
 /** Load script file */
-function loadScript(path, onComplete)
+function loadScript(path, onComplete, onError)
 {
     var script = document.createElement('script');
 
     if (onComplete) script.onload = onComplete;
+    if (onError) script.onerror = onError;
     script.src = path;
     document.head.appendChild(script);
+}
+
+function showStartupError(label)
+{
+    var message = document.getElementById('message');
+    if (!message) return;
+    message.innerHTML = '<div style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);max-width:90vw;padding:22px 26px;border-radius:14px;background:#101827;color:#fff;font:600 16px Arial;text-align:center;box-shadow:0 12px 40px #0008"><strong style="color:#ff8a65">Não foi possível iniciar o jogo</strong><br><span style="display:block;margin-top:10px;font-size:13px;color:#cbd5e1">Falha ao carregar ' + label + '. Atualize a página e tente novamente.</span></div>';
 }
 
 /** Start up Poki SDK */
@@ -47,8 +55,18 @@ function initApp()
         window.PokiSDK.setDebug(window.GAME_CONFIG.pokiSdkDebug);
     }
 
-    loadScript('./js/dependencies.bundle.js?v=41');
-    loadScript(window.MAIN ? window.MAIN : './js/index.js?v=32');
+    // The game entry imports the engine globals from dependencies.bundle.js.
+    // Load it first; parallel script tags race and can leave only the blue page background visible.
+    loadScript('./js/dependencies.bundle.js?v=41', function ()
+    {
+        loadScript(window.MAIN ? window.MAIN : './js/index.js?v=33', null, function ()
+        {
+            showStartupError('o motor principal do Subway Surfers');
+        });
+    }, function ()
+    {
+        showStartupError('as dependências 3D');
+    });
 }
 
 /** Prevent arrows and space from scrolling browser */
