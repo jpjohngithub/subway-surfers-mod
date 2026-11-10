@@ -421,6 +421,140 @@
     let energyGateInstalled = false;
     let energyCoinBlueTexture = null;
     let trampolinePadTexture = null;
+    let pilowGeometry = null;
+    const pilowGeometryReady = loadPilowGeometry().then(data => { pilowGeometry = data; return data; }).catch(() => null);
+
+    function multiplyMatrix4(a, b) {
+        const out = new Float32Array(16);
+        for (let col = 0; col < 4; col++) for (let row = 0; row < 4; row++) {
+            let sum = 0;
+            for (let k = 0; k < 4; k++) sum += a[k * 4 + row] * b[col * 4 + k];
+            out[col * 4 + row] = sum;
+        }
+        return out;
+    }
+
+    function localNodeMatrix(node) {
+        if (node.matrix && node.matrix.length === 16) return new Float32Array(node.matrix);
+        const [x, y, z, w] = node.rotation || [0, 0, 0, 1];
+        const [sx, sy, sz] = node.scale || [1, 1, 1];
+        const x2 = x + x, y2 = y + y, z2 = z + z;
+        const xx = x * x2, xy = x * y2, xz = x * z2;
+        const yy = y * y2, yz = y * z2, zz = z * z2;
+        const wx = w * x2, wy = w * y2, wz = w * z2;
+        const [tx, ty, tz] = node.translation || [0, 0, 0];
+        return new Float32Array([
+            (1 - (yy + zz)) * sx, (xy + wz) * sx, (xz - wy) * sx, 0,
+            (xy - wz) * sy, (1 - (xx + zz)) * sy, (yz + wx) * sy, 0,
+            (xz + wy) * sz, (yz - wx) * sz, (1 - (xx + yy)) * sz, 0,
+            tx, ty, tz, 1
+        ]);
+    }
+
+    async function loadPilowGeometry() {
+        const response = await fetch(new URL('assets/pilow.glb', window.location.href).href, { cache: 'force-cache' });
+        if (!response.ok) throw new Error('Could not load pilow.glb');
+        const bytes = await response.arrayBuffer();
+        const view = new DataView(bytes);
+        if (view.getUint32(0, true) !== 0x46546c67) throw new Error('Invalid GLB header');
+        const jsonLength = view.getUint32(12, true);
+        const gltf = JSON.parse(new TextDecoder().decode(new Uint8Array(bytes, 20, jsonLength)).trim());
+        const binaryHeader = 20 + jsonLength;
+        const binaryLength = view.getUint32(binaryHeader, true);
+        const binary = new Uint8Array(bytes, binaryHeader + 8, binaryLength);
+        const meshNode = (gltf.nodes || []).find(node => Number.isInteger(node.mesh));
+        if (!meshNode) throw new Error('No mesh in pilow.glb');
+        const primitive = gltf.meshes[meshNode.mesh].primitives[0];
+        const readAccessor = accessorIndex => {
+            const accessor = gltf.accessors[accessorIndex];
+            const bufferView = gltf.bufferViews[accessor.bufferView];
+            const componentInfo = ({ 5121: [1, Uint8Array], 5123: [2, Uint16Array], 5125: [4, Uint32Array], 5126: [4, Float32Array] })[accessor.componentType];
+            const componentCount = ({ SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 })[accessor.type];
+            if (!componentInfo || !componentCount) throw new Error('Unsupported pilow geometry format');
+            const [componentBytes, TypedArray] = componentInfo;
+            const stride = bufferView.byteStride || componentBytes * componentCount;
+            const base = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+            const result = new TypedArray(accessor.count * componentCount);
+            for (let row = 0; row < accessor.count; row++) for (let col = 0; col < componentCount; col++) {
+                const offset = base + row * stride + col * componentBytes;
+                let value;
+                if (accessor.componentType === 5126) value = new DataView(binary.buffer, binary.byteOffset, binary.byteLength).getFloat32(offset, true);
+                else if (accessor.componentType === 5125) value = new DataView(binary.buffer, binary.byteOffset, binary.byteLength).getUint32(offset, true);
+                else if (accessor.componentType === 5123) value = new DataView(binary.buffer, binary.byteOffset, binary.byteLength).getUint16(offset, true);
+                else value = binary[offset];
+                result[row * componentCount + col] = value;
+            }
+            return { data: result, count: componentCount };
+        };
+        const positions = readAccessor(primitive.attributes.POSITION).data;
+        const normals = primitive.attributes.NORMAL === undefined ? null : readAccessor(primitive.attributes.NORMAL).data;
+        const uvs = primitive.attributes.TEXCOORD_0 === undefined ? null : readAccessor(primitive.attributes.TEXCOORD_0).data;
+        const indicesRaw = readAccessor(primitive.indices).data;
+
+        const parents = new Map();
+        (gltf.nodes || []).forEach((node, index) => (node.children || []).forEach(child => parents.set(child, index)));
+        let worldMatrix = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+        const chain = [];
+        let nodeIndex = gltf.nodes.indexOf(meshNode);
+        while (nodeIndex !== -1) { chain.unshift(nodeIndex); nodeIndex = parents.has(nodeIndex) ? parents.get(nodeIndex) : -1; }
+        for (const index of chain) worldMatrix = multiplyMatrix4(worldMatrix, localNodeMatrix(gltf.nodes[index]));
+
+        const transformed = new Float32Array(positions.length);
+        const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+        for (let i = 0; i < positions.length; i += 3) {
+            const x = positions[i], y = positions[i + 1], z = positions[i + 2];
+            const tx = worldMatrix[0] * x + worldMatrix[4] * y + worldMatrix[8] * z + worldMatrix[12];
+            const ty = worldMatrix[1] * x + worldMatrix[5] * y + worldMatrix[9] * z + worldMatrix[13];
+            const tz = worldMatrix[2] * x + worldMatrix[6] * y + worldMatrix[10] * z + worldMatrix[14];
+            transformed[i] = tx; transformed[i + 1] = ty; transformed[i + 2] = tz;
+            min[0] = Math.min(min[0], tx); min[1] = Math.min(min[1], ty); min[2] = Math.min(min[2], tz);
+            max[0] = Math.max(max[0], tx); max[1] = Math.max(max[1], ty); max[2] = Math.max(max[2], tz);
+        }
+        const center = min.map((value, axis) => (value + max[axis]) / 2);
+        for (let i = 0; i < transformed.length; i += 3) {
+            transformed[i] -= center[0]; transformed[i + 1] -= min[1]; transformed[i + 2] -= center[2];
+        }
+        const transformedNormals = normals && new Float32Array(normals.length);
+        if (normals) for (let i = 0; i < normals.length; i += 3) {
+            let nx = worldMatrix[0] * normals[i] + worldMatrix[4] * normals[i + 1] + worldMatrix[8] * normals[i + 2];
+            let ny = worldMatrix[1] * normals[i] + worldMatrix[5] * normals[i + 1] + worldMatrix[9] * normals[i + 2];
+            let nz = worldMatrix[2] * normals[i] + worldMatrix[6] * normals[i + 1] + worldMatrix[10] * normals[i + 2];
+            const length = Math.hypot(nx, ny, nz) || 1;
+            transformedNormals[i] = nx / length; transformedNormals[i + 1] = ny / length; transformedNormals[i + 2] = nz / length;
+        }
+        return {
+            positions: transformed,
+            normals: transformedNormals,
+            uvs,
+            indices: new Uint16Array(indicesRaw),
+            topY: max[1] - min[1],
+            width: Math.max(max[0] - min[0], max[2] - min[2])
+        };
+    }
+
+    function applyPilowGeometry(entity, data) {
+        if (!entity || !data) return false;
+        const pending = [entity];
+        while (pending.length) {
+            const node = pending.shift();
+            const mesh = node && node.view3d;
+            const sourceGeometry = mesh && mesh.geometry;
+            if (sourceGeometry && typeof sourceGeometry.addAttribute === 'function' && typeof sourceGeometry.addIndex === 'function') {
+                const GeometryClass = sourceGeometry.constructor;
+                const geometry = new GeometryClass();
+                geometry.addAttribute('aPosition', data.positions, 3);
+                if (data.normals) geometry.addAttribute('aNormal', data.normals, 3);
+                if (data.uvs) geometry.addAttribute('aUv', data.uvs, 2);
+                geometry.addIndex(data.indices);
+                mesh.geometry = geometry;
+                setEntitySolidColor(entity, 0x1767ff);
+                return true;
+            }
+            const children = node && (node.children || (node.container && node.container.children));
+            if (children) for (let i = 0; i < children.length; i++) pending.push(children[i]);
+        }
+        return false;
+    }
 
     function applyEnergyCoinTexture(mesh) {
         try {
@@ -1265,7 +1399,7 @@
             for (const material of materialList) {
                 if (!material) continue;
                 try {
-                    material.color = 0xffffff;
+                    material.color = obj.__trampolineTint || 0xffffff;
                     material.emissive = 0x39000a;
                     material.emissiveColor = 0x39000a;
                     material.emissionColor = 0x39000a;
@@ -1284,32 +1418,51 @@
         let cushion;
         try { cushion = window.__lib.getEntity('currency_coin'); } catch(e) { return null; }
         if (!cushion) return null;
-        // A wider, thicker body gives the pad visible side walls and depth.
-        cushion.rx = Math.PI / 2;
-        cushion.ry = 0;
-        cushion.rz = 0;
-        if (cushion.scale) cushion.scale.set(3.0, 3.0, 0.62);
-        if (!applyTrampolinePadTexture(cushion)) setEntityHexColor(cushion, 0xe51d36);
+        const padScale = 3.0;
+        const usesPilow = applyPilowGeometry(cushion, pilowGeometry);
+        cushion.__trampolineTint = usesPilow ? 0x1767ff : 0xffffff;
+        cushion.__trampolineVerticalAxis = usesPilow ? 'y' : 'z';
+        if (usesPilow) {
+            cushion.rx = 0; cushion.ry = 0; cushion.rz = 0;
+            if (cushion.scale) cushion.scale.set(padScale, padScale, padScale);
+        } else {
+            cushion.rx = Math.PI / 2; cushion.ry = 0; cushion.rz = 0;
+            if (cushion.scale) cushion.scale.set(3.0, 3.0, 0.62);
+            if (!applyTrampolinePadTexture(cushion)) setEntityHexColor(cushion, 0xe51d36);
+        }
 
         // Keep the bullseye as independent 3D pieces in the game scene. Some
         // models ignore nested children, which made the old target disappear.
         const targetParts = [];
+        const targetTop = usesPilow ? pilowGeometry.topY * padScale : 0.66;
         const addTargetDisc = (size, lift, color) => {
             let disc;
             try { disc = window.__lib.getEntity('currency_coin'); } catch(e) { return; }
             if (!disc) return;
             disc.rx = Math.PI / 2; disc.ry = 0; disc.rz = 0;
-            disc.x = x; disc.y = y + lift; disc.z = z;
+            disc.x = x; disc.y = y + targetTop + lift; disc.z = z;
             if (disc.scale) disc.scale.set(size, size, 0.11);
             setEntitySolidColor(disc, color);
             targetParts.push(disc);
         };
-        addTargetDisc(1.68, 0.66, 0xffffff);
-        addTargetDisc(1.28, 0.78, 0xd71932);
-        addTargetDisc(0.82, 0.90, 0xffffff);
-        addTargetDisc(0.39, 1.02, 0xd71932);
-        addTargetDisc(0.15, 1.14, 0xffffff);
+        addTargetDisc(1.68, 0.04, 0xffffff);
+        addTargetDisc(1.28, 0.12, 0xd71932);
+        addTargetDisc(0.82, 0.20, 0xffffff);
+        addTargetDisc(0.39, 0.28, 0xd71932);
+        addTargetDisc(0.15, 0.36, 0xffffff);
         cushion._trampolineTargetParts = targetParts;
+
+        // The first trampoline can be spawned before the small GLB fetch
+        // finishes. Upgrade that fallback in place so collision stays intact.
+        if (!usesPilow) pilowGeometryReady.then(data => {
+            if (!data || !applyPilowGeometry(cushion, data)) return;
+            cushion.__trampolineTint = 0x1767ff;
+            cushion.__trampolineVerticalAxis = 'y';
+            cushion.rx = 0; cushion.ry = 0; cushion.rz = 0;
+            if (cushion.scale) cushion.scale.set(padScale, padScale, padScale);
+            const modelTop = data.topY * padScale;
+            targetParts.forEach((part, index) => { part.y = y + modelTop + 0.04 + index * 0.08; });
+        });
         return cushion;
     }
 
@@ -1711,7 +1864,11 @@
                 }
                 if (obs.mesh && obs.mesh.scale) {
                     const bulge = 1 + Math.max(0, -squash) * 0.13;
-                    obs.mesh.scale.set(base.x * bulge, base.y * bulge, base.z * (1 - squash * 0.68));
+                    if (obs.mesh.__trampolineVerticalAxis === 'y') {
+                        obs.mesh.scale.set(base.x * bulge, base.y * (1 - squash * 0.68), base.z * bulge);
+                    } else {
+                        obs.mesh.scale.set(base.x * bulge, base.y * bulge, base.z * (1 - squash * 0.68));
+                    }
                     obs.mesh.y = obs.baseY - squash * 0.58;
                     applyTrampolineGlow(obs.mesh, 0.65 + Math.max(0, squash) * 0.35);
                 }
