@@ -670,6 +670,7 @@
     window.__onDashCollect = function(coin) {
         dashInvulnUntil = Date.now() + 750;
         window.__dashSpeedMult = Math.min((window.__dashSpeedMult || 1.0) + 0.14, 1.95);
+        playCoinShatterEffect();
 
         // Boost de tempo adicional (APENAS no modo online ativo)
         if (MP.inMatch && MPX.roundActive && !MPX.isPracticing && isRunActive && !deathFrozen) {
@@ -708,6 +709,22 @@
             setTimeout(() => fx.remove(), 450);
         } catch(e) {}
     };
+
+    function playCoinShatterEffect() {
+        const burst = document.createElement('div');
+        burst.className = 'subway-coin-shatter';
+        burst.setAttribute('aria-hidden', 'true');
+        burst.innerHTML = '<span class="coin-shatter-ring"></span><span class="coin-shatter-core">✦</span>';
+        for (let i = 0; i < 12; i++) {
+            const shard = document.createElement('i');
+            shard.className = 'coin-shatter-shard';
+            shard.style.setProperty('--angle', `${i * 30}deg`);
+            shard.style.setProperty('--distance', `${42 + (i % 3) * 13}px`);
+            burst.appendChild(shard);
+        }
+        document.body.appendChild(burst);
+        setTimeout(() => burst.remove(), 720);
+    }
 
     // Called when player touches a coin in No Coin Mode
     window.__onNoCoinCollect = function(coin) {
@@ -973,6 +990,7 @@
     // ==========================================
     let customObstacles = [];
     let nextObstacleZ = -300;
+    let obstacleChunkCount = 0;
 
     function cleanupCustomObstacles() {
         for (let i = 0; i < customObstacles.length; i++) {
@@ -982,6 +1000,7 @@
             }
         }
         customObstacles = [];
+        obstacleChunkCount = 0;
         nextObstacleZ = (window.game && window.game.hero && window.game.hero.body ? window.game.hero.body.z : 0) - 350;
     }
 
@@ -1029,7 +1048,7 @@
     function createObstacle3D(type, x, y, z, options = {}) {
         if (!window.__lib || !window.__lib.getEntity) return null;
         const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20;
-        if (isPositionBlocked(x, y, z, margin)) return null;
+        if (!options.ignoreBlockCheck && isPositionBlocked(x, y, z, margin)) return null;
 
         try {
             let mesh = null;
@@ -1090,17 +1109,8 @@
                 if (mesh) {
                     mesh.rx = 0; mesh.rz = 0; mesh.ry = Math.PI;
                     if (mesh.scale) mesh.scale.set(0.72, 0.22, 0.34);
-                    setEntityHexColor(mesh, 0x08090c);
-                    const pad = window.__lib.getEntity('currency_coin');
-                    if (pad) {
-                        pad.rx = Math.PI / 2;
-                        pad.y = 1.1;
-                        pad.ry = 0;
-                        if (pad.scale) pad.scale.set(1.55, 1.55, 0.18);
-                        setEntityHexColor(pad, 0x9b39ff);
-                        if (mesh.addChild) mesh.addChild(pad);
-                    }
-                    bounds = { depth: 14, width: 18, height: 5, isTrampoline: true };
+                    applyTrampolineGlow(mesh, 1);
+                    bounds = { depth: 14, width: 18, height: 8, isTrampoline: true };
                 }
             }
 
@@ -1130,21 +1140,61 @@
         return null;
     }
 
+    function applyTrampolineGlow(mesh, pulse = 1) {
+        if (!mesh) return;
+        const r = Math.round(205 + 50 * pulse);
+        const g = Math.round(12 + 20 * pulse);
+        const b = Math.round(132 + 123 * pulse);
+        const pink = (r << 16) | (g << 8) | b;
+        setEntityHexColor(mesh, pink);
+        const applyMaterialGlow = obj => {
+            const view = obj && obj.view3d;
+            const materialList = view && view.material ? (Array.isArray(view.material) ? view.material : [view.material]) : [];
+            for (const material of materialList) {
+                if (!material) continue;
+                try {
+                    material.emissive = pink;
+                    material.emissiveColor = pink;
+                    material.emissionColor = pink;
+                    material.emission = 0.8 + pulse * 0.7;
+                    material.emissiveIntensity = 0.8 + pulse * 0.7;
+                } catch(e) {}
+            }
+            const children = obj && (obj.children || (obj.container && obj.container.children));
+            if (children) for (let i = 0; i < children.length; i++) applyMaterialGlow(children[i]);
+        };
+        applyMaterialGlow(mesh);
+    }
+
     function spawnNoCoinObstaclePattern(centerZ) {
         const lanes = [-20, 0, 20];
+        obstacleChunkCount++;
         const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 12));
-        if (freeGroundLanes.length === 0) return;
+        const candidateLanes = freeGroundLanes.length ? freeGroundLanes : lanes;
 
-        // Rare energy pickups appear as small groups of 1–3 blue coins.
-        if (Math.random() < 0.055) {
-            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+        // Put blue energy coins and the spring into a predictable rotation so
+        // players can actually encounter both during an ordinary run.
+        if (obstacleChunkCount % 4 === 1) {
+            const lane = candidateLanes[Math.floor(Math.random() * candidateLanes.length)];
             const count = 1 + Math.floor(Math.random() * 3);
             for (let i = 0; i < count; i++) {
-                const coin = createObstacle3D('energyCoin', lane, 7, centerZ - i * 30);
+                const coin = createObstacle3D('energyCoin', lane, 7, centerZ - i * 28, { ignoreBlockCheck: true });
                 if (coin) customObstacles.push(coin);
             }
-            return;
+            if (customObstacles.some(obs => obs && obs.type === 'energyCoin' && Math.abs(obs.z - centerZ) < 90)) return;
+        } else if (obstacleChunkCount % 4 === 3) {
+            const lane = candidateLanes[Math.floor(Math.random() * candidateLanes.length)];
+            const pad = createObstacle3D('trampoline', lane, 0, centerZ, { ignoreBlockCheck: true });
+            if (pad) customObstacles.push(pad);
+            if (pad) {
+                for (let i = 1; i <= 3; i++) {
+                    const coin = createObstacle3D('coin', lane, 14 + (i % 2) * 4, centerZ - i * 30, { ignoreBlockCheck: true });
+                    if (coin) customObstacles.push(coin);
+                }
+                return;
+            }
         }
+        if (freeGroundLanes.length === 0) return;
 
         // Pattern selector: familiar hazards plus fresh, readable coin routes.
         // 0: Moeda Móvel Oscilante (desliza de um lado pro outro continuamente)
@@ -1297,14 +1347,10 @@
                 if (coin) customObstacles.push(coin);
             });
         } else if (pattern === 13) {
-            // Purple spring pad: land on it to launch into a high jump.
+            // Trampoline is spawned by the predictable special-item rotation above.
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const pad = createObstacle3D('trampoline', lane, 0, centerZ);
-            if (pad) customObstacles.push(pad);
-            for (let i = 1; i <= 3; i++) {
-                const coin = createObstacle3D('coin', lane, 14 + (i % 2) * 4, centerZ - i * 30);
-                if (coin) customObstacles.push(coin);
-            }
+            const obs = createObstacle3D('bush', lane, 0, centerZ);
+            if (obs) customObstacles.push(obs);
         } else {
             // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
@@ -1376,6 +1422,9 @@
                 obs.y = (obs.baseY || 12) + Math.sin(now * 0.004 * obs.speed + obs.phase) * 7;
                 obs.mesh.y = obs.y;
             }
+            if (obs.type === 'trampoline' && obs.mesh) {
+                applyTrampolineGlow(obs.mesh, 0.55 + Math.sin(now * 0.008) * 0.45);
+            }
 
             // Apply the native magnet pull to custom coin routes in normal mode.
             const magnet = hero.magnet;
@@ -1412,6 +1461,7 @@
                 if (isDashing) {
                     if (obs.type === 'energyCoin') grantEnergy(1);
                     else if (obs.type === 'coin' && !window.NO_COIN_MODE) collectGeneratedCoin(hero);
+                    if (obs.type === 'coin' || obs.type === 'energyCoin') playCoinShatterEffect();
                     obs.destroyed = true;
                     if (obs.mesh && obs.mesh.parent) {
                         try { obs.mesh.parent.removeChild(obs.mesh); } catch(e) {}
@@ -1454,11 +1504,14 @@
                         if (heroY >= 2.5 && verticalSpeed <= 1 && now - (obs.lastBounceAt || 0) > 700) {
                             obs.lastBounceAt = now;
                             try {
-                                if (hero.jump && hero.jump.perform) hero.jump.perform(38, true);
-                                else if (heroBody.velocity) heroBody.velocity.y = 35;
+                                if (hero.jump && hero.jump.perform) hero.jump.perform(48, true);
+                                else if (heroBody.velocity) heroBody.velocity.y = 45;
+                                // One-time forward displacement creates launch impulse
+                                // without changing the runner's sustained speed.
+                                heroBody.z -= 55;
                                 if (window.game && window.game.sfx && window.game.sfx.play) window.game.sfx.play('pickup-super-sneakers');
                             } catch(e) {}
-                            showEnergyToast('PULÃO!');
+                            showEnergyToast('MEGA PULÃO!');
                             continue;
                         }
                     }
@@ -1517,79 +1570,12 @@
         if (overlay) overlay.remove();
     }
 
-    function dispatchNativeResultsButton(action) {
-        const canvas = (window.app && window.app.view) || document.querySelector('#game-canvas') || document.querySelector('canvas');
-        if (!canvas || !canvas.getBoundingClientRect) return;
-        const rect = canvas.getBoundingClientRect();
-        // Proxy the original game buttons so their built-in navigation stays intact.
-        const x = rect.left + rect.width * (action === 'menu' ? 0.15 : 0.695);
-        const y = rect.top + rect.height * 0.90;
-        try {
-            if (window.PointerEvent) {
-                const base = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y };
-                canvas.dispatchEvent(new PointerEvent('pointerdown', base));
-                canvas.dispatchEvent(new PointerEvent('pointerup', base));
-                canvas.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: x, clientY: y }));
-            } else {
-                canvas.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x, clientY: y }));
-                canvas.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y }));
-            }
-        } catch(e) {}
-    }
-
-    function showCleanResultsOverlay() {
-        if (isRunActive) return;
-        hideCleanResultsOverlay();
-        const overlay = document.createElement('div');
-        overlay.id = 'subway-clean-results';
-        overlay.innerHTML = `
-            <div class="clean-results-actions">
-                <button class="clean-results-menu" type="button" aria-label="Menu">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10.5 9-7 9 7M5.5 9.5V21h13V9.5M9.5 21v-7h5v7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    <b>MENU</b>
-                </button>
-                <button class="clean-results-play" type="button" aria-label="Play">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.8c0-.8.9-1.3 1.6-.9l11 7.1a1.2 1.2 0 0 1 0 2L8.6 20.1c-.7.4-1.6-.1-1.6-.9z" fill="currentColor"/></svg>
-                    <b>PLAY</b>
-                </button>
-            </div>
-        `;
-        Object.assign(overlay.style, {
-            position: 'fixed', inset: '0', zIndex: '2147483647', isolation: 'isolate', display: 'grid', placeItems: 'center',
-            background: 'linear-gradient(160deg,#0a1521 0%,#10283a 100%)', opacity: '1', pointerEvents: 'auto',
-            fontFamily: 'Arial,sans-serif', color: '#fff'
-        });
-        const actions = overlay.querySelector('.clean-results-actions');
-        Object.assign(actions.style, { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'clamp(14px,4vw,34px)', width: '100%', padding: '20px', boxSizing: 'border-box' });
-        const menu = overlay.querySelector('.clean-results-menu');
-        const play = overlay.querySelector('.clean-results-play');
-        Object.assign(menu.style, {
-            width: 'clamp(118px,22vw,176px)', height: 'clamp(76px,14vw,100px)', border: '3px solid #d5d9dd', borderRadius: '16px',
-            background: 'linear-gradient(#4d5157,#25282c)', color: '#fff', boxShadow: '0 7px 0 #11151a,0 12px 24px #0007',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', cursor: 'pointer'
-        });
-        Object.assign(play.style, {
-            width: 'clamp(170px,34vw,280px)', height: 'clamp(76px,14vw,100px)', border: '3px solid #b8e4bf', borderRadius: '16px',
-            background: 'linear-gradient(#23c42f,#079317)', color: '#fff', boxShadow: '0 7px 0 #075d12,0 12px 24px #0007',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: 'pointer', fontSize: 'clamp(24px,5vw,38px)', fontWeight: '900'
-        });
-        const menuIcon = menu.querySelector('svg');
-        const playIcon = play.querySelector('svg');
-        Object.assign(menuIcon.style, { width: 'clamp(27px,5vw,38px)', height: 'clamp(27px,5vw,38px)' });
-        Object.assign(playIcon.style, { width: 'clamp(25px,4.5vw,34px)', height: 'clamp(25px,4.5vw,34px)' });
-        menu.querySelector('b').style.fontSize = 'clamp(13px,2.7vw,19px)';
-        menu.addEventListener('click', () => { hideCleanResultsOverlay(); dispatchNativeResultsButton('menu'); });
-        play.addEventListener('click', () => { hideCleanResultsOverlay(); dispatchNativeResultsButton('play'); });
-        document.body.appendChild(overlay);
-    }
-
     setInterval(updateNoCoinObstacleEngine, 30);
 
     window.__onGameOver = function() {
         stopRunTimer();
         cleanupCustomObstacles();
         updateEnergyHud();
-        setTimeout(showCleanResultsOverlay, 1000);
     };
     window.__onGameReset = function() {
         hideCleanResultsOverlay();
@@ -5236,6 +5222,40 @@
                 z-index: 99996;
                 pointer-events: none;
                 animation: dashBurstAnim 0.45s ease-out forwards;
+            }
+            .subway-coin-shatter {
+                position: fixed; left: 50%; top: 59%; width: 1px; height: 1px;
+                z-index: 99997; pointer-events: none; color: #ffe36a;
+                filter: drop-shadow(0 0 10px rgba(255, 190, 30, .8));
+            }
+            .coin-shatter-ring {
+                position: absolute; left: -19px; top: -19px; width: 38px; height: 38px;
+                border: 3px solid #ffdf50; border-radius: 50%;
+                animation: coinShatterRing .62s cubic-bezier(.12,.72,.24,1) forwards;
+            }
+            .coin-shatter-core {
+                position: absolute; left: -14px; top: -19px; width: 28px; height: 28px;
+                text-align: center; font: 900 28px/28px Arial,sans-serif;
+                color: #fff8b3; text-shadow: 0 0 8px #ffb000;
+                animation: coinShatterCore .42s ease-out forwards;
+            }
+            .coin-shatter-shard {
+                position: absolute; left: -2px; top: -12px; width: 4px; height: 13px;
+                border-radius: 2px; background: linear-gradient(#fff8b3,#ff9f19);
+                transform: rotate(var(--angle));
+                animation: coinShatterShard .58s cubic-bezier(.12,.72,.24,1) forwards;
+            }
+            @keyframes coinShatterRing {
+                0% { opacity: .95; transform: scale(.35); }
+                100% { opacity: 0; transform: scale(2.8); }
+            }
+            @keyframes coinShatterCore {
+                0% { opacity: 1; transform: scale(1) rotate(0); }
+                100% { opacity: 0; transform: scale(.2) rotate(100deg); }
+            }
+            @keyframes coinShatterShard {
+                0% { opacity: 1; translate: 0 0; }
+                100% { opacity: 0; translate: 0 calc(-1 * var(--distance)); }
             }
             .subway-boost-time-pop {
                 position: fixed;
