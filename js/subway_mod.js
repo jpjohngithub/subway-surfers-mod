@@ -254,7 +254,7 @@
                 hero.lane.change = function(step) {
                     const res = origLaneChange(step);
                     if (typeof this.changeDuration === 'number' && this.changeDuration > 0) {
-                        this.changeDuration = Math.max(this.changeDuration * 0.68, 0.075);
+                        this.changeDuration = Math.max(this.changeDuration * 0.86, 0.125);
                     }
                     return res;
                 };
