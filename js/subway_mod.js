@@ -144,6 +144,7 @@
         fps: localStorage.getItem('sw_fps') || 'unlimited', // '60' | '120' | 'unlimited'
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 200
     };
+    const polishedAnimControllers = new WeakSet();
 
     // IMMEDIATELY apply stored saturation to root on script load so F5 NEVER resets!
     try {
@@ -184,7 +185,28 @@
     function optimizeHeroAnimAndFluidity() {
         try {
             const hero = (window.game && window.game.hero) || (window.app && window.app.game && window.app.game.hero);
-            if (hero && hero.character && hero.character.anim) {
+            const animControllers = new Set([
+                hero && hero.anim,
+                hero && hero.character && hero.character.anim
+            ].filter(anim => anim && typeof anim.play === 'function'));
+            for (const anim of animControllers) {
+                if (!polishedAnimControllers.has(anim)) {
+                    const originalPlay = anim.play.bind(anim);
+                    anim.play = function(clip, options = {}) {
+                        const clipName = Array.isArray(clip) ? clip[0] : clip;
+                        const isRun = typeof clipName === 'string' && /^run/i.test(clipName);
+                        return originalPlay(clip, {
+                            ...options,
+                            // Explicit speed/mix values from gameplay systems win;
+                            // otherwise use the polished defaults above.
+                            mixRatio: options.mixRatio === undefined ? 0.14 : options.mixRatio,
+                            sudden: options.sudden === undefined ? false : options.sudden,
+                            speed: options.speed === undefined ? (isRun ? 1.1 : 1) : options.speed
+                        });
+                    };
+                    polishedAnimControllers.add(anim);
+                }
+                if (anim.currentController) anim.currentController.allowMixing = true;
             }
             const scene = (window.game && window.game.scene) || (window.app && window.app.scene);
             if (scene && scene.time) {
@@ -7413,6 +7435,8 @@
     }
     window.addEventListener('pageshow', reapplyPersistedGraphicsToSurface);
     setInterval(reapplyPersistedGraphicsToSurface, 600);
+    // The character is created after the mod script during game boot.
+    setInterval(optimizeHeroAnimAndFluidity, 500);
 })();
 
 
