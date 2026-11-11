@@ -1634,7 +1634,7 @@
             spot.platformCenterZ - spot.platformDepth / 2 + 16,
             Math.min(startZ - span / 2, spot.platformCenterZ + spot.platformDepth / 2 - 16 - span)
         );
-        const pattern = Math.floor(Math.random() * 4);
+        const pattern = Math.floor(Math.random() * 7);
         const lateralRange = Math.max(0, Math.min(5, spot.platformWidth / 2 - 4));
         const offsets = [0, -1, 1, -1, 0];
         const heights = [0, 2.5, 4.5, 2.5, 0];
@@ -1647,6 +1647,19 @@
             if (pattern === 1) x += offsets[Math.round(i * 4 / Math.max(1, count - 1))] * lateralRange;
             if (pattern === 2) y += (i / Math.max(1, count - 1)) * 4;
             if (pattern === 3) y += heights[Math.round(i * 4 / Math.max(1, count - 1))];
+            if (pattern === 4) {
+                const t = i / Math.max(1, count - 1);
+                x += Math.sin(t * Math.PI * 2) * lateralRange * 0.7;
+                y += 1.5 + Math.sin(t * Math.PI) * 4;
+            }
+            if (pattern === 5) {
+                x += (i % 2 ? 1 : -1) * lateralRange * 0.65;
+                y += i % 2 ? 4 : 0;
+            }
+            if (pattern === 6) {
+                const t = i / Math.max(1, count - 1);
+                y += Math.sin(t * Math.PI * 2) * 2.2 + 2.2;
+            }
 
             const z = firstZ + i * spacing;
             const nextToSpring = customObstacles.some(obs => obs && obs.type === 'trampoline' &&
@@ -1727,7 +1740,7 @@
         }
         if (freeGroundLanes.length === 0) return;
 
-        // Pattern selector: familiar hazards plus fresh, readable coin routes.
+        // Pattern selector: readable coin formations across tracks and rooftops.
         // 0: Moeda Móvel Oscilante (desliza de um lado pro outro continuamente)
         // 1: Muro de Moedas (2 pistas bloqueadas com moedas no chão e no ar, 1 brecha)
         // 2: Moedas Voando no Alto (teto flutuante y=18, proíbe pulo, exige rolamento)
@@ -1737,10 +1750,11 @@
         // 6: Moeda Voadora com Ondulação Vertical (sobe e desce em onda y=8 a y=20)
         // 7: Dupla Moeda Móvel Cruzada (duas moedas deslizando em direções opostas)
         // 8: Mato 3D (bush_1) + Moeda Flutuante no alto
-        // 9–12: new coin arches, stair trails and lane sweeps
+        // 9–12: coin arches, stair trails and lane sweeps
         // 13: trampoline; the only new solid obstacle
         // 14: familiar native obstacle
-        const pattern = Math.floor(Math.random() * 15);
+        // 15–17: new coin formations (diamond, fork merge and triple wave)
+        const pattern = Math.floor(Math.random() * 18);
 
         if (pattern === 0) {
             // 1. MOEDA MÓVEL OSCILANTE: Desliza de -20 a +20 através das 3 pistas
@@ -1882,6 +1896,42 @@
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const obs = createObstacle3D('bush', lane, 0, centerZ);
             if (obs) customObstacles.push(obs);
+        } else if (pattern === 15) {
+            // Diamond trail: widen from a center lane and fold back to the tip.
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const sideLanes = lanes.filter(value => value !== lane);
+            const order = [lane, sideLanes[0], lane, sideLanes[1], lane];
+            order.forEach((coinLane, i) => {
+                const z = centerZ - i * 27;
+                if (!isPositionBlocked(coinLane, 6, z, 10)) {
+                    const coin = createObstacle3D('coin', coinLane, i === 1 || i === 3 ? 10 : 6, z);
+                    if (coin) customObstacles.push(coin);
+                }
+            });
+        } else if (pattern === 16) {
+            // Two branches converge into a fast center-lane run.
+            const sideOrder = Math.random() < 0.5 ? [-20, 20] : [20, -20];
+            const order = [sideOrder[0], sideOrder[1], 0, 0, 0, sideOrder[1], sideOrder[0]];
+            order.forEach((coinLane, i) => {
+                const z = centerZ - i * 25;
+                const y = i === 1 || i === 5 ? 9 : 6;
+                if (!isPositionBlocked(coinLane, y, z, 10)) {
+                    const coin = createObstacle3D('coin', coinLane, y, z);
+                    if (coin) customObstacles.push(coin);
+                }
+            });
+        } else if (pattern === 17) {
+            // Three-lane wave: staggered heights make the route readable in motion.
+            const order = [-20, 0, 20, 0, -20, 0, 20, 0, -20];
+            const heights = [6, 9, 13, 16, 13, 9, 6, 9, 13];
+            if (Math.random() < 0.5) order.reverse();
+            order.forEach((coinLane, i) => {
+                const z = centerZ - i * 24;
+                if (!isPositionBlocked(coinLane, heights[i], z, 10)) {
+                    const coin = createObstacle3D('coin', coinLane, heights[i], z);
+                    if (coin) customObstacles.push(coin);
+                }
+            });
         } else {
             // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
