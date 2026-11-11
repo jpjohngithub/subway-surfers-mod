@@ -373,6 +373,18 @@
         };
         addFrom(scene && scene.allEntities);
         addFrom(game && game.physics && game.physics.entities);
+        // The renderer's layer lists are the authoritative draw lists. Scene
+        // collections can contain only roots, while meshes are registered in
+        // these opaque/transparent buckets after their view3d component loads.
+        const layerSystem = scene && scene.view3d && scene.view3d.layers;
+        const layers = layerSystem && (layerSystem.layers || layerSystem);
+        if (layers && typeof layers === 'object') {
+            for (const layer of Object.values(layers)) {
+                if (!layer || typeof layer !== 'object') continue;
+                addFrom(layer.opaqueRenderables);
+                addFrom(layer.transparentRenderables);
+            }
+        }
         return [...found];
     }
 
@@ -485,10 +497,10 @@
                         intensity: 1.25,
                         softness: 0.78,
                         castShadow: true,
-                        shadowOptions: { size: 1536, bias: 0.0012, poissonSpread: 900 }
+                        shadowOptions: { size: 1536, bias: 0.0012, poissonSpread: 650 }
                     });
                     scene.addToScene(nativeLightingSunEntity);
-                    nativeLightingSunEntity._addShadowCaster({ size: 1536, bias: 0.0012, poissonSpread: 900 });
+                    nativeLightingSunEntity._addShadowCaster({ size: 1536, bias: 0.0012, poissonSpread: 650 });
                     nativeCreatedShadowOwners.add(nativeLightingSunEntity);
                     nativeLightingSun = nativeLightingSunEntity;
                 } catch (e) {
