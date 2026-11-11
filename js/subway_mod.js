@@ -400,13 +400,18 @@
                 uniforms: Object.assign({}, uniforms),
                 useLights: true,
                 receiveShadows: true,
+                // Keep high quality per-pixel normals on the actual meshes;
+                // the engine's fast-normal shortcut makes light roll-off flat.
+                fastNormals: false,
                 skinning: !!entity.skinned,
                 boneTexture: entity.skinned && entity.skinned.boneTexture,
                 maxBones: entity.skinned && entity.skinned.bones && entity.skinned.bones.length,
                 diffuseMap: material.diffuseMap || uniforms.uDiffuseMap,
                 color: material.color,
-                specular: material.specular === undefined ? 36 : material.specular,
-                gloss: material.gloss === undefined ? 2 : material.gloss,
+                // Give painted metal, rails, windows and train shells a
+                // controlled specular response while retaining authored maps.
+                specular: material.specular === undefined ? 48 : Math.max(24, material.specular),
+                gloss: material.gloss === undefined ? 5 : Math.max(3, material.gloss),
                 specularMap: material.specularMap || uniforms.uSpecularMap,
                 emissive: material.emissive,
                 emissiveColor: material.emissiveColor,
