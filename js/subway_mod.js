@@ -143,7 +143,14 @@
     const GFX_SETTINGS = {
         fps: localStorage.getItem('sw_fps') || 'unlimited', // '60' | '120' | 'unlimited'
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 200
+        motionBlur: localStorage.getItem('sw_motion_blur') || 'soft', // 'off' | 'soft' | 'high'
     };
+
+    function getMotionBlurLabel(val) {
+        if (val === 'off') return 'Desativado';
+        if (val === 'high') return 'Intenso';
+        return 'Suave';
+    }
 
     // IMMEDIATELY apply stored saturation to root on script load so F5 NEVER resets!
     try {
@@ -152,28 +159,40 @@
 
     function applyGraphicsSettings() {
         const satVal = GFX_SETTINGS.saturation || 100;
-        // Unconditionally set CSS custom property on root
         document.documentElement.style.setProperty('--game-saturation', satVal + '%');
 
-        // If canvas is already mounted, apply filter directly as well
         const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
         if (canvas) {
             applyCanvasGraphicsFilter(canvas, satVal);
         }
-
-
-        // 2. Ultra-Fluid Framerate (Unlock Pixi Ticker FPS for 120Hz / 144Hz screens)
-        if (window.app && window.app.ticker) {
-            if (GFX_SETTINGS.fps === 'unlimited') {
-                window.app.ticker.maxFPS = 0; // 0 = unlimited FPS in Pixi Ticker
-            } else {
-                window.app.ticker.maxFPS = parseInt(GFX_SETTINGS.fps, 10) || 60;
-            }
-            window.app.ticker.minFPS = 10;
+        const blurCanvas = document.getElementById('sw-motion-blur-canvas');
+        if (blurCanvas) {
+            blurCanvas.style.filter = `saturate(${satVal}%)`;
+            if (GFX_SETTINGS.motionBlur === 'off') blurCanvas.style.display = 'none';
         }
 
-        // 3. Smooth Hero Character Skeletal Animation & Scene Clock
+        // 2. Ultra-Fluid Framerate (Unlock Pixi Ticker FPS for 120Hz / 144Hz / 240Hz screens)
+        const targetMaxFPS = GFX_SETTINGS.fps === 'unlimited' ? 0 : (parseInt(GFX_SETTINGS.fps, 10) || 60);
+        if (window.app && window.app.ticker) {
+            window.app.ticker.maxFPS = targetMaxFPS; // 0 = unlimited FPS in Pixi Ticker
+            window.app.ticker.minFPS = targetMaxFPS === 0 ? 1 : 10;
+            try {
+                const TickerCls = window.app.ticker.constructor;
+                if (TickerCls && TickerCls.shared) {
+                    TickerCls.shared.maxFPS = targetMaxFPS;
+                    TickerCls.shared.minFPS = targetMaxFPS === 0 ? 1 : 10;
+                }
+                if (TickerCls && TickerCls.system) {
+                    TickerCls.system.maxFPS = targetMaxFPS;
+                }
+            } catch(e) {}
+        }
+
+        // 3. Smooth Hero Character Skeletal Animation & Snappy Movement
         optimizeHeroAnimAndFluidity();
+
+        // 4. GPU Velocity + Radial Motion Blur Overlay
+        initMotionBlurEngine();
     }
 
     function applyCanvasGraphicsFilter(canvas, saturation = GFX_SETTINGS.saturation || 100) {
@@ -183,13 +202,268 @@
 
     function optimizeHeroAnimAndFluidity() {
         try {
-            const hero = (window.game && window.game.hero) || (window.app && window.app.game && window.app.game.hero);
-            const scene = (window.game && window.game.scene) || (window.app && window.app.scene);
+            const game = window.game || (window.app && window.app.game);
+            const hero = (game && game.hero) || null;
+            const scene = (game && game.scene) || (window.app && window.app.scene);
             if (scene && scene.time) {
-                scene.time.maxDeltaTime = 30; // Prevents frame hitching spikes
+                scene.time.maxDeltaTime = 45;
+            }
+            if (hero && hero.anim && !hero.anim.__swFluidPatched) {
+                hero.anim.__swFluidPatched = true;
+                hero.anim.fpsGame = 120;
+
+                const isGameplayClip = (name) => {
+                    if (!name) return false;
+                    return /run|jump|roll|dodge|fall|grind|hover|hang|fly|surf|land/i.test(name) && !/crash|die|caught/i.test(name);
+                };
+
+                if (typeof hero.anim.play === 'function') {
+                    const origPlay = hero.anim.play.bind(hero.anim);
+                    hero.anim.play = function(clip, opts) {
+                        const cfg = opts ? Object.assign({}, opts) : {};
+                        if (isGameplayClip(clip)) {
+                            if (cfg.sudden) {
+                                cfg.sudden = false;
+                                cfg.mixRatio = Math.max(cfg.mixRatio || 0, 0.48);
+                            } else if (typeof cfg.mixRatio !== 'number') {
+                                cfg.mixRatio = 0.38;
+                            }
+                        }
+                        return origPlay(clip, cfg);
+                    };
+                }
+
+                if (typeof hero.anim.update === 'function') {
+                    const origUpdate = hero.anim.update.bind(hero.anim);
+                    hero.anim.update = function(dt) {
+                        const clip = this.currentAnimationClipName || '';
+                        const boostedDt = isGameplayClip(clip) ? dt * 1.24 : dt;
+                        return origUpdate(boostedDt);
+                    };
+                }
+            }
+
+            if (hero && hero.lane && typeof hero.lane.change === 'function' && !hero.lane.__swSnappyPatched) {
+                hero.lane.__swSnappyPatched = true;
+                const origLaneChange = hero.lane.change.bind(hero.lane);
+                hero.lane.change = function(step) {
+                    const res = origLaneChange(step);
+                    if (typeof this.changeDuration === 'number' && this.changeDuration > 0) {
+                        this.changeDuration = Math.max(this.changeDuration * 0.68, 0.075);
+                    }
+                    return res;
+                };
             }
         } catch(e) {}
     }
+
+    function initMotionBlurEngine() {
+        try {
+            if (window.__swMotionBlurHooked) return;
+            const app = window.app;
+            const gameCanvas = document.querySelector('#game-canvas') || (app && app.view) || document.querySelector('canvas');
+            if (!app || !app.renderer || !gameCanvas) return;
+
+            const blurCanvas = document.createElement('canvas');
+            blurCanvas.id = 'sw-motion-blur-canvas';
+            blurCanvas.style.cssText = 'position:fixed;pointer-events:none;z-index:1;display:none;background:transparent;';
+            blurCanvas.style.filter = `saturate(${GFX_SETTINGS.saturation || 100}%)`;
+            if (gameCanvas.parentNode) {
+                gameCanvas.parentNode.insertBefore(blurCanvas, gameCanvas.nextSibling);
+            } else {
+                document.body.appendChild(blurCanvas);
+            }
+
+            const gl = blurCanvas.getContext('webgl', {
+                alpha: false,
+                antialias: false,
+                depth: false,
+                stencil: false,
+                preserveDrawingBuffer: false,
+                powerPreference: 'high-performance'
+            }) || blurCanvas.getContext('experimental-webgl', { alpha: false, depth: false });
+
+            if (!gl) {
+                blurCanvas.remove();
+                return;
+            }
+
+            const vsSrc = [
+                'attribute vec2 aPos;',
+                'varying vec2 vUv;',
+                'void main(){',
+                '  vUv = aPos * 0.5 + 0.5;',
+                '  gl_Position = vec4(aPos, 0.0, 1.0);',
+                '}'
+            ].join('\n');
+
+            const fsSrc = [
+                'precision mediump float;',
+                'uniform sampler2D uTex;',
+                'uniform float uStrength;',
+                'uniform vec2 uVel;',
+                'uniform vec2 uCenter;',
+                'varying vec2 vUv;',
+                'void main(){',
+                '  vec4 base = texture2D(uTex, vUv);',
+                '  if(uStrength <= 0.0008){ gl_FragColor = base; return; }',
+                '  float hudMask = 1.0 - smoothstep(0.75, 0.87, vUv.y);',
+                '  vec2 dFocus = (vUv - vec2(0.5, 0.34)) * vec2(1.22, 0.90);',
+                '  float peripheral = smoothstep(0.16, 0.56, length(dFocus));',
+                '  float zoneMask = hudMask * mix(0.18, 1.0, peripheral);',
+                '  vec2 radial = (vUv - uCenter) * vec2(1.0, 1.15);',
+                '  vec2 dir = radial * (uStrength * 1.15) + uVel * (uStrength * 0.65);',
+                '  dir *= zoneMask;',
+                '  float maxLen = 0.048;',
+                '  float dLen = length(dir);',
+                '  if(dLen > maxLen) dir *= (maxLen / dLen);',
+                '  vec3 acc = base.rgb * 1.4;',
+                '  float totalW = 1.4;',
+                '  const int TAPS = 10;',
+                '  for(int i = 1; i <= TAPS; i++){',
+                '    float t = float(i) / float(TAPS);',
+                '    float w = (1.0 - t * 0.68);',
+                '    vec2 uvFwd = clamp(vUv + dir * (t * 0.85), vec2(0.002), vec2(0.998));',
+                '    vec2 uvBwd = clamp(vUv - dir * (t * 0.55), vec2(0.002), vec2(0.998));',
+                '    acc += texture2D(uTex, uvFwd).rgb * w;',
+                '    acc += texture2D(uTex, uvBwd).rgb * (w * 0.65);',
+                '    totalW += w * 1.65;',
+                '  }',
+                '  vec3 blurred = acc / totalW;',
+                '  gl_FragColor = vec4(mix(base.rgb, blurred, clamp(zoneMask * 1.15, 0.0, 1.0)), 1.0);',
+                '}'
+            ].join('\n');
+
+            const compile = (type, src) => {
+                const s = gl.createShader(type);
+                gl.shaderSource(s, src);
+                gl.compileShader(s);
+                return s;
+            };
+            const prog = gl.createProgram();
+            gl.attachShader(prog, compile(gl.VERTEX_SHADER, vsSrc));
+            gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fsSrc));
+            gl.linkProgram(prog);
+            gl.useProgram(prog);
+
+            const buf = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+            const aPos = gl.getAttribLocation(prog, 'aPos');
+            gl.enableVertexAttribArray(aPos);
+            gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+            const tex = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+            const uTex = gl.getUniformLocation(prog, 'uTex');
+            const uStrength = gl.getUniformLocation(prog, 'uStrength');
+            const uVel = gl.getUniformLocation(prog, 'uVel');
+            const uCenter = gl.getUniformLocation(prog, 'uCenter');
+            gl.uniform1i(uTex, 0);
+
+            window.__swMotionBlurHooked = true;
+            let smoothStrength = 0;
+            let smoothVx = 0;
+            let smoothVy = 0;
+            let lastHeroZ = null;
+            let lastTime = performance.now();
+
+            app.renderer.on('postrender', () => {
+                try {
+                    const mode = GFX_SETTINGS.motionBlur || 'soft';
+                    if (mode === 'off') {
+                        if (blurCanvas.style.display !== 'none') blurCanvas.style.display = 'none';
+                        smoothStrength = 0;
+                        return;
+                    }
+
+                    const now = performance.now();
+                    const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
+                    lastTime = now;
+
+                    const game = window.game || (window.app && window.app.game);
+                    const hero = game && game.hero;
+                    const body = hero && hero.body;
+                    const posZ = body && body.position ? body.position.z : null;
+                    const movedZ = (posZ !== null && lastHeroZ !== null) ? Math.abs(posZ - lastHeroZ) : 0;
+                    lastHeroZ = posZ;
+
+                    const activeModal = document.getElementById('subway-mod-modal');
+                    const modalOpen = activeModal && activeModal.style.display === 'flex';
+                    const clip = (hero && hero.anim && hero.anim.currentAnimationClipName) || '';
+                    const heroAlive = hero && hero.isAlive !== false && !/crash|die|caught|idle/i.test(clip);
+                    const isRunning = !!(hero && heroAlive && !window.isGamePaused && !modalOpen && movedZ > 0.02);
+
+                    let targetStrength = 0;
+                    let targetVx = 0;
+                    let targetVy = 0;
+
+                    if (isRunning) {
+                        const speedRatio = (game && game.stats && typeof game.stats.speedRatio === 'number') ? game.stats.speedRatio : 0.35;
+                        const dashBoost = (typeof window.__dashSpeedMult === 'number' && window.__dashSpeedMult > 1) ? (window.__dashSpeedMult - 1) * 0.5 : 0;
+                        const vx = body && body.velocity ? (body.velocity.x || 0) : 0;
+                        const vy = body && body.velocity ? (body.velocity.y || 0) : 0;
+                        const mult = mode === 'high' ? 0.030 : 0.017;
+
+                        targetStrength = mult * (0.45 + speedRatio * 0.85 + dashBoost + Math.min(0.65, Math.abs(vx) * 0.018));
+                        targetVx = Math.max(-1.2, Math.min(1.2, -vx * 0.025));
+                        targetVy = Math.max(-0.8, Math.min(0.8, -vy * 0.014));
+                    }
+
+                    const lerpRate = Math.min(1, dt * (targetStrength > smoothStrength ? 14 : 18));
+                    smoothStrength += (targetStrength - smoothStrength) * lerpRate;
+                    smoothVx += (targetVx - smoothVx) * Math.min(1, dt * 16);
+                    smoothVy += (targetVy - smoothVy) * Math.min(1, dt * 16);
+
+                    if (smoothStrength < 0.0012 || gameCanvas.width < 2 || gameCanvas.height < 2) {
+                        if (blurCanvas.style.display !== 'none') blurCanvas.style.display = 'none';
+                        return;
+                    }
+
+                    const rect = gameCanvas.getBoundingClientRect();
+                    if (rect.width < 10 || rect.height < 10) return;
+
+                    if (blurCanvas.width !== gameCanvas.width || blurCanvas.height !== gameCanvas.height) {
+                        blurCanvas.width = gameCanvas.width;
+                        blurCanvas.height = gameCanvas.height;
+                    }
+                    blurCanvas.style.left = rect.left + 'px';
+                    blurCanvas.style.top = rect.top + 'px';
+                    blurCanvas.style.width = rect.width + 'px';
+                    blurCanvas.style.height = rect.height + 'px';
+                    if (blurCanvas.style.display !== 'block') blurCanvas.style.display = 'block';
+
+                    gl.viewport(0, 0, blurCanvas.width, blurCanvas.height);
+                    gl.activeTexture(gl.TEXTURE0);
+                    gl.bindTexture(gl.TEXTURE_2D, tex);
+                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, gameCanvas);
+
+                    gl.uniform1f(uStrength, smoothStrength);
+                    gl.uniform2f(uVel, smoothVx, smoothVy);
+                    gl.uniform2f(uCenter, 0.5, 0.62);
+                    gl.drawArrays(gl.TRIANGLES, 0, 6);
+                } catch(e) {}
+            });
+        } catch(e) {}
+    }
+
+    window.__cycleMotionBlur = function() {
+        const order = ['off', 'soft', 'high'];
+        const curIdx = order.indexOf(GFX_SETTINGS.motionBlur);
+        GFX_SETTINGS.motionBlur = order[(curIdx + 1) % order.length];
+        localStorage.setItem('sw_motion_blur', GFX_SETTINGS.motionBlur);
+        applyGraphicsSettings();
+        const label = getMotionBlurLabel(GFX_SETTINGS.motionBlur);
+        const el = document.getElementById('val-gfx-motionblur');
+        if (el) el.textContent = label;
+        showHUDNotification('Motion Blur: ' + label);
+    };
 
     window.__cycleFPS = function() {
         const order = ['unlimited', '60', '120'];
@@ -1243,6 +1517,7 @@
     // Game lifecycle hooks from patched dependencies.bundle.js
     window.__onGameRun = function() {
         startRunTimer();
+        applyGraphicsSettings();
     };
     window.__onHeroDeath = function() {
         try {
@@ -4223,6 +4498,15 @@
                             <span class="setting-title">Taxa de Quadros (FPS)</span>
                             <span class="setting-value" id="val-gfx-fps">${GFX_SETTINGS.fps === 'unlimited' ? 'Ilimitado (120Hz+)' : (GFX_SETTINGS.fps + ' FPS')}</span>
                         </div>
+                    </div>
+
+                    <!-- Motion Blur Setting -->
+                    <div class="subway-setting-row" onclick="window.__cycleMotionBlur()" title="Toque para alternar o Motion Blur">
+                        <div>
+                            <div style="font-size:15px;font-weight:800;color:#ffffff">Motion Blur (Desfoque)</div>
+                            <div style="font-size:11px;color:#94a3b8;font-weight:600">Desfoque direcional e radial de alta velocidade</div>
+                        </div>
+                        <span class="setting-value" id="val-gfx-motionblur">${getMotionBlurLabel(GFX_SETTINGS.motionBlur)}</span>
                     </div>
 
                     <!-- Saturation Slider Card -->
@@ -7528,6 +7812,11 @@
         const saturationFilter = `saturate(${GFX_SETTINGS.saturation || 100}%)`;
         if (canvas && !(canvas.style.filter || '').includes(saturationFilter)) {
             applyCanvasGraphicsFilter(canvas, GFX_SETTINGS.saturation);
+        }
+        optimizeHeroAnimAndFluidity();
+        initMotionBlurEngine();
+        if (GFX_SETTINGS.fps === 'unlimited' && window.app && window.app.ticker && window.app.ticker.maxFPS !== 0) {
+            window.app.ticker.maxFPS = 0;
         }
     }
     window.addEventListener('pageshow', reapplyPersistedGraphicsToSurface);

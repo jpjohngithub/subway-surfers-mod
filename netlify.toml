@@ -43,3 +43,8 @@
   for = "/assets/boards/*.png"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/assets/preload/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
