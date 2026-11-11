@@ -148,6 +148,14 @@
     let shaderLightingFilter = null;
     let shaderLightingStage = null;
     let shaderLightingFallback = false;
+    let nativeLightingSnapshot = null;
+    let nativeLightingSun = null;
+    let nativeLightingSunEntity = null;
+    let nativeLightingFill = null;
+    let nativeLightingStats = { lights: 0, shadows: 0, receivers: 0 };
+    const nativeCreatedShadowOwners = new Set();
+    const nativeShadowMaterialOwners = new Set();
+    const nativeShadowMaterials = new WeakMap();
     const SHADER_LIGHTING_FRAGMENT = `
         precision mediump float;
         varying vec2 vTextureCoord;
@@ -155,10 +163,8 @@
         uniform vec2 uTexel;
         vec3 grade(vec3 c) {
             float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-            float shadow = 1.0 - smoothstep(0.06, 0.46, l);
             float highlight = smoothstep(0.52, 0.94, l);
             c *= mix(vec3(0.91, 0.97, 1.08), vec3(1.08, 1.015, 0.91), highlight);
-            c *= 1.0 - shadow * 0.045;
             return (c - 0.5) * 1.075 + 0.5;
         }
         void main(void) {
@@ -184,9 +190,6 @@
             bloom += max(s8 - vec3(0.76), vec3(0.0)) * 0.7;
             vec3 color = grade(src.rgb) + bloom * vec3(0.28, 0.25, 0.21);
             float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
-            float edge = max(max(abs(luma - dot(s1, vec3(0.2126,0.7152,0.0722))), abs(luma - dot(s2, vec3(0.2126,0.7152,0.0722)))), max(abs(luma - dot(s3, vec3(0.2126,0.7152,0.0722))), abs(luma - dot(s4, vec3(0.2126,0.7152,0.0722)))));
-            float contactShade = smoothstep(0.035, 0.20, edge) * (1.0 - smoothstep(0.12, 0.42, luma)) * 0.12;
-            color *= 1.0 - contactShade;
             color = mix(vec3(luma), color, 1.10);
             gl_FragColor = vec4(min(color, vec3(1.0)), src.a);
         }
@@ -243,18 +246,14 @@
     }
 
     function applyShaderLighting() {
+        applyNativeSceneLighting();
         const app = window.app;
         const renderer = app && app.renderer;
         const stage = app && app.stage;
         const canvas = document.querySelector('#game-canvas') || (app && app.view) || document.querySelector('canvas');
 
         if (!GFX_SETTINGS.shaderLighting) {
-            if (shaderLightingStage) {
-                shaderLightingStage.filters = shaderLightingStage.__swShaderLightingBaseFilters || null;
-                delete shaderLightingStage.__swShaderLightingBaseFilters;
-                shaderLightingStage = null;
-                shaderLightingFilter = null;
-            }
+            restoreScreenShader();
             shaderLightingFallback = false;
             applyCanvasGraphicsFilter(canvas);
             return;
@@ -265,10 +264,7 @@
         if (stage && renderer && Filter) {
             try {
                 if (shaderLightingStage && shaderLightingStage !== stage) {
-                    shaderLightingStage.filters = shaderLightingStage.__swShaderLightingBaseFilters || null;
-                    delete shaderLightingStage.__swShaderLightingBaseFilters;
-                    shaderLightingStage = null;
-                    shaderLightingFilter = null;
+                    restoreScreenShader();
                 }
                 if (!shaderLightingFilter) {
                     const width = renderer.screen && renderer.screen.width || renderer.width || 800;
@@ -304,10 +300,287 @@
         updateShaderLightingLabel();
     }
 
+    function restoreScreenShader() {
+        if (shaderLightingStage) {
+            shaderLightingStage.filters = shaderLightingStage.__swShaderLightingBaseFilters || null;
+            delete shaderLightingStage.__swShaderLightingBaseFilters;
+        }
+        shaderLightingStage = null;
+        shaderLightingFilter = null;
+    }
+
+    function findNativeLightSystem(scene) {
+        if (!scene) return null;
+        const queue = [{ value: scene, depth: 0 }];
+        for (const candidate of [scene.view3d, scene.view3d && scene.view3d.lights, scene._system, scene.system, scene._view3d, scene.game && scene.game.view3d]) {
+            if (candidate && typeof candidate === 'object') queue.push({ value: candidate, depth: 1 });
+        }
+        const seen = new Set();
+        while (queue.length && seen.size < 180) {
+            const { value, depth } = queue.shift();
+            if (!value || typeof value !== 'object' || seen.has(value)) continue;
+            seen.add(value);
+            if (Array.isArray(value.lightEntities) && value.ambientLight) return value;
+            if (value.lights && Array.isArray(value.lights.lightEntities) && value.lights.ambientLight) return value.lights;
+            if (depth >= 4 || ArrayBuffer.isView(value)) continue;
+            let keys = [];
+            try { keys = Object.keys(value); } catch (e) {}
+            for (const key of keys) {
+                if (/^(parent|children|container|renderer|geometry|material|texture|view|camera|transform|model)$/i.test(key)) continue;
+                let child;
+                try { child = value[key]; } catch (e) { continue; }
+                if (!child || typeof child !== 'object') continue;
+                if (Array.isArray(child)) {
+                    for (let i = 0; i < Math.min(child.length, 12); i++) queue.push({ value: child[i], depth: depth + 1 });
+                } else queue.push({ value: child, depth: depth + 1 });
+            }
+        }
+        return null;
+    }
+
+    function collectSceneRenderables(scene, game) {
+        const found = new Set();
+        const addFrom = source => {
+            if (!source) return;
+            const add = entity => { if (entity && entity.view3d && entity.view3d.geometry) found.add(entity); };
+            try {
+                if (Array.isArray(source) || source instanceof Set) source.forEach(add);
+                else if (typeof source.forEach === 'function') source.forEach(add);
+                else if (source[Symbol.iterator]) for (const entity of source) add(entity);
+                else for (const key of ['entities', '_entities', 'items', '_items', 'list', '_list']) {
+                    if (source[key]) addFrom(source[key]);
+                }
+            } catch (e) {}
+        };
+        addFrom(scene && scene.allEntities);
+        addFrom(game && game.physics && game.physics.entities);
+        return [...found];
+    }
+
+    function enableShadowReception(entity) {
+        if (!entity || nativeShadowMaterials.has(entity)) return;
+        const view = entity.view3d;
+        const material = view && view.material;
+        if (!material || typeof material.constructor !== 'function') return;
+        const uniforms = material.uniforms || {};
+        if (!uniforms.uSpecularGloss || !uniforms.uDiffuseColor) return;
+        try {
+            const shadowMaterial = new material.constructor({
+                uniforms: Object.assign({}, uniforms),
+                useLights: true,
+                receiveShadows: true,
+                skinning: !!entity.skinned,
+                boneTexture: entity.skinned && entity.skinned.boneTexture,
+                maxBones: entity.skinned && entity.skinned.bones && entity.skinned.bones.length,
+                diffuseMap: material.diffuseMap || uniforms.uDiffuseMap,
+                color: material.color,
+                specular: material.specular,
+                gloss: material.gloss,
+                specularMap: material.specularMap || uniforms.uSpecularMap,
+                emissive: material.emissive,
+                emissiveColor: material.emissiveColor,
+                environmentMap: material.environmentMap || uniforms.uEnvironmentMap,
+                metalPower: material.metalPower,
+                normalMap: material.normalMap || uniforms.uNormalMap,
+                normalScale: material.normalScale || uniforms.uNormalScale,
+                tangents: material.tangents,
+                alphaTest: uniforms.uAlphaTest || 0,
+                clippingPlane: uniforms.uClippingPlane,
+                morphTargets: !!uniforms.uMorphTargetInfluence
+            });
+            nativeShadowMaterials.set(entity, material);
+            nativeShadowMaterialOwners.add(entity);
+            view.material = shadowMaterial;
+        } catch (e) {}
+    }
+
+    function applyNativeSceneLighting() {
+        const game = window.game || (window.app && window.app.game);
+        const scene = game && game.scene;
+        const lights = findNativeLightSystem(scene);
+        if (!scene || !lights) {
+            restoreNativeSceneLighting();
+            if (GFX_SETTINGS.shaderLighting) updateShaderLightingLabel();
+            return;
+        }
+
+        if (!GFX_SETTINGS.shaderLighting) {
+            restoreNativeSceneLighting();
+            return;
+        }
+
+        if (!nativeLightingSnapshot || nativeLightingSnapshot.lights !== lights) {
+            restoreNativeSceneLighting();
+            nativeLightingSnapshot = {
+                lights,
+                ambientIntensity: lights.ambientLight.intensity,
+                ambientColor: lights.ambientLight.color,
+                originalLights: new Map(lights.lightEntities
+                    .filter(entity => entity && entity.light)
+                    .map(entity => [entity, {
+                        intensity: entity.light.intensity,
+                        color: entity.light.color,
+                        softness: entity.light.softness
+                    }]))
+            };
+        }
+
+        lights.ambientLight.color = 0xf7f4ee;
+        lights.ambientLight.intensity = 0.42;
+        for (const entity of lights.lightEntities) {
+            const light = entity && entity.light;
+            if (!light) continue;
+            if (!nativeLightingSnapshot.originalLights.has(entity)) {
+                nativeLightingSnapshot.originalLights.set(entity, {
+                    intensity: light.intensity, color: light.color, softness: light.softness
+                });
+            }
+            const original = nativeLightingSnapshot.originalLights.get(entity);
+            light.intensity = Math.min(1.8, Math.max(0.1, original.intensity * 1.35));
+            light.softness = Math.max(original.softness || 0, 0.72);
+            if (light.type === 0 && !entity.shadow && typeof entity._addShadowCaster === 'function') {
+                try {
+                    entity._addShadowCaster({ size: 1024, bias: 0.0015, poissonSpread: 1200 });
+                    if (entity.shadow) nativeCreatedShadowOwners.add(entity);
+                } catch (e) {}
+            }
+        }
+
+        if (!lights._johnSurfSun) {
+            const existingLight = lights.lightEntities.find(entity => entity && entity.light && typeof entity._addShadowCaster === 'function');
+            if (existingLight && scene.addToScene) {
+                try {
+                    nativeLightingSunEntity = new existingLight.constructor({
+                        type: 0,
+                        lightId: 'john_surf_sun',
+                        direction: new Float32Array([-0.38, -0.82, -0.42]),
+                        color: 0xffd5a0,
+                        intensity: 1.25,
+                        softness: 0.78,
+                        castShadow: true,
+                        shadowOptions: { size: 1536, bias: 0.0012, poissonSpread: 900 }
+                    });
+                    scene.addToScene(nativeLightingSunEntity);
+                    nativeLightingSunEntity._addShadowCaster({ size: 1536, bias: 0.0012, poissonSpread: 900 });
+                    nativeCreatedShadowOwners.add(nativeLightingSunEntity);
+                    nativeLightingSun = nativeLightingSunEntity;
+                } catch (e) {
+                    nativeLightingSunEntity = null;
+                    nativeLightingSun = null;
+                }
+            }
+            if (!nativeLightingSun) nativeLightingSun = {
+                UID: 2147483000,
+                light: {
+                    type: 0,
+                    lightId: 'john_surf_sun',
+                    direction: new Float32Array([-0.38, -0.82, -0.42]),
+                    output: new Float32Array([0.95, 0.78, 0.58]),
+                    color: 0xffd5a0,
+                    intensity: 1.15,
+                    softness: 0.7,
+                    distance: 1200,
+                    dirty: false
+                }
+            };
+            nativeLightingFill = {
+                UID: 2147483001,
+                light: {
+                    type: 0,
+                    lightId: 'john_surf_fill',
+                    direction: new Float32Array([0.42, -0.38, -0.78]),
+                    output: new Float32Array([0.18, 0.27, 0.42]),
+                    color: 0x7fc9ff,
+                    intensity: 0.55,
+                    softness: 0.9,
+                    distance: 900,
+                    dirty: false
+                }
+            };
+            lights._johnSurfSun = nativeLightingSun;
+            lights._johnSurfFill = nativeLightingFill;
+            if (!nativeLightingSunEntity) lights.lightEntities.push(nativeLightingSun);
+            lights.lightEntities.push(nativeLightingFill);
+            lights.lightsDirtyTick++;
+            lights._lightsDirtyTick = -1;
+        }
+
+        const renderables = collectSceneRenderables(scene, game);
+        for (const entity of renderables) {
+            enableShadowReception(entity);
+            for (const lightEntity of lights.lightEntities) {
+                const shadow = lightEntity && lightEntity.shadow;
+                if (!shadow || !nativeCreatedShadowOwners.has(lightEntity) || typeof shadow.add !== 'function') continue;
+                try { shadow.add(entity); } catch (e) {}
+            }
+        }
+        nativeLightingStats = {
+            lights: lights.lightEntities.length,
+            shadows: [...nativeCreatedShadowOwners].filter(entity => entity && entity.shadow
+                && entity.shadow._shadowRenderGroup
+                && entity.shadow._shadowRenderGroup.toRenderList
+                && entity.shadow._shadowRenderGroup.toRenderList.length > 0).length,
+            receivers: [...renderables].filter(entity => nativeShadowMaterials.has(entity)).length
+        };
+        updateShaderLightingLabel();
+    }
+
+    function restoreNativeSceneLighting() {
+        if (!nativeLightingSnapshot) return;
+        const { lights, ambientIntensity, ambientColor, originalLights } = nativeLightingSnapshot;
+        try {
+            lights.ambientLight.intensity = ambientIntensity;
+            lights.ambientLight.color = ambientColor;
+            if (nativeLightingSun) {
+                if (nativeLightingSunEntity) {
+                    if (lights.scene && lights.scene.removeFromScene) lights.scene.removeFromScene(nativeLightingSunEntity);
+                } else {
+                    lights.lightEntities = lights.lightEntities.filter(entity => entity !== nativeLightingSun);
+                }
+                delete lights._johnSurfSun;
+            }
+            if (nativeLightingFill) {
+                lights.lightEntities = lights.lightEntities.filter(entity => entity !== nativeLightingFill);
+                delete lights._johnSurfFill;
+            }
+            for (const [entity, original] of originalLights) {
+                if (!entity.light) continue;
+                entity.light.intensity = original.intensity;
+                entity.light.color = original.color;
+                entity.light.softness = original.softness;
+            }
+            for (const entity of nativeShadowMaterialOwners) {
+                const material = nativeShadowMaterials.get(entity);
+                if (entity.view3d) entity.view3d.material = material;
+                nativeShadowMaterials.delete(entity);
+            }
+            nativeShadowMaterialOwners.clear();
+            for (const entity of nativeCreatedShadowOwners) {
+                if (!entity.shadow || typeof entity.removeComponent !== 'function') continue;
+                try {
+                    entity.removeComponent(entity.shadow.constructor);
+                    entity.shadow = null;
+                } catch (e) {}
+            }
+            nativeCreatedShadowOwners.clear();
+            lights.lightsDirtyTick++;
+            lights._lightsDirtyTick = -1;
+        } catch (e) {}
+        nativeLightingSnapshot = null;
+        nativeLightingSun = null;
+        nativeLightingSunEntity = null;
+        nativeLightingFill = null;
+        nativeLightingStats = { lights: 0, shadows: 0, receivers: 0 };
+    }
+
     function updateShaderLightingLabel() {
         const el = document.getElementById('val-gfx-shaders');
         if (el) el.textContent = !GFX_SETTINGS.shaderLighting ? 'Desativado'
-            : (shaderLightingFallback ? 'Ativado · bloom & contraste' : 'Ativado · shader, sombras & bloom');
+            : (nativeLightingStats.shadows && nativeLightingStats.receivers
+                ? `Sol 3D + ${nativeLightingStats.shadows} sombra(s) dinâmica(s) · bloom`
+                : (nativeLightingStats.lights
+                    ? 'Luz 3D ativa · modelos sem suporte a sombra dinâmica'
+                    : (shaderLightingFallback ? 'Pós-processamento · aguardando cena 3D' : 'Aguardando cena 3D')));
         const pill = document.getElementById('gfx-shader-state');
         if (pill) {
             pill.textContent = GFX_SETTINGS.shaderLighting ? 'ON' : 'OFF';
@@ -4307,8 +4580,8 @@
                             </svg>
                         </div>
                         <div class="setting-text-col">
-                            <span class="setting-title">Shaders · Iluminação avançada</span>
-                            <span class="setting-value" id="val-gfx-shaders">${GFX_SETTINGS.shaderLighting ? 'Ativado · shader e bloom' : 'Desativado'}</span>
+                            <span class="setting-title">Shaders · Luz real e sombras</span>
+                            <span class="setting-value" id="val-gfx-shaders">${GFX_SETTINGS.shaderLighting ? 'Ativado · inicializando cena 3D' : 'Desativado'}</span>
                         </div>
                         <span class="gfx-state-pill ${GFX_SETTINGS.shaderLighting ? 'is-on' : ''}" id="gfx-shader-state">${GFX_SETTINGS.shaderLighting ? 'ON' : 'OFF'}</span>
                     </div>
