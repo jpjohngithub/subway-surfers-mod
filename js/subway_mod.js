@@ -183,6 +183,9 @@
             vec3 s6 = texture2D(uSampler, vTextureCoord + vec2(-blurStep.x, blurStep.y)).rgb;
             vec3 s7 = texture2D(uSampler, vTextureCoord + vec2(blurStep.x, -blurStep.y)).rgb;
             vec3 s8 = texture2D(uSampler, vTextureCoord - blurStep).rgb;
+            vec3 ray1 = texture2D(uSampler, vTextureCoord + uTexel * vec2(-4.0, -8.0)).rgb;
+            vec3 ray2 = texture2D(uSampler, vTextureCoord + uTexel * vec2(-8.0, -16.0)).rgb;
+            vec3 ray3 = texture2D(uSampler, vTextureCoord + uTexel * vec2(-14.0, -28.0)).rgb;
             // Color-buffer screen-space occlusion: darken the lower-value side
             // of nearby geometry edges, where the missing depth pass would
             // otherwise leave contact areas completely flat.
@@ -191,6 +194,8 @@
             float farBright = max(max(luminance(s5), luminance(s6)), max(luminance(s7), luminance(s8)));
             float nearOcclusion = smoothstep(0.035, 0.24, max(nearBright - centerLuma, 0.0));
             float farOcclusion = smoothstep(0.06, 0.34, max(farBright - centerLuma, 0.0));
+            float rayOcclusion = max(max(luminance(ray1), luminance(ray2)), luminance(ray3)) - centerLuma;
+            rayOcclusion = smoothstep(0.045, 0.32, max(rayOcclusion, 0.0));
             bloom += max(s1 - vec3(0.68), vec3(0.0));
             bloom += max(s2 - vec3(0.68), vec3(0.0));
             bloom += max(s3 - vec3(0.68), vec3(0.0));
@@ -200,7 +205,7 @@
             bloom += max(s7 - vec3(0.76), vec3(0.0)) * 0.7;
             bloom += max(s8 - vec3(0.76), vec3(0.0)) * 0.7;
             vec3 color = grade(src.rgb) + bloom * vec3(0.28, 0.25, 0.21);
-            float screenOcclusion = (nearOcclusion * 0.24 + farOcclusion * 0.08)
+            float screenOcclusion = (nearOcclusion * 0.48 + farOcclusion * 0.20 + rayOcclusion * 0.30)
                 * (1.0 - smoothstep(0.72, 0.98, centerLuma));
             color *= 1.0 - screenOcclusion;
             float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
@@ -464,10 +469,18 @@
             const existingLight = lights.lightEntities.find(entity => entity && entity.light && typeof entity._addShadowCaster === 'function');
             if (existingLight && scene.addToScene) {
                 try {
+                    const position = existingLight.transform && existingLight.transform.position;
+                    const currentDirection = existingLight.light.direction;
+                    const vectorConstructor = currentDirection && !ArrayBuffer.isView(currentDirection) && currentDirection.constructor !== Object
+                        ? currentDirection.constructor
+                        : (position && !ArrayBuffer.isView(position) && position.constructor !== Object && position.constructor);
+                    const sunDirection = vectorConstructor
+                        ? new vectorConstructor(-0.38, -0.82, -0.42)
+                        : { x: -0.38, y: -0.82, z: -0.42 };
                     nativeLightingSunEntity = new existingLight.constructor({
                         type: 0,
                         lightId: 'john_surf_sun',
-                        direction: new Float32Array([-0.38, -0.82, -0.42]),
+                        direction: sunDirection,
                         color: 0xffd5a0,
                         intensity: 1.25,
                         softness: 0.78,
