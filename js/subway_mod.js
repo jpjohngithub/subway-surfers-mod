@@ -457,7 +457,9 @@
         }
 
         lights.ambientLight.color = 0xf7f4ee;
-        lights.ambientLight.intensity = 0.42;
+        // Lower ambient fill so the native directional light produces clear
+        // face-to-face lighting contrast in the actual 3D material shaders.
+        lights.ambientLight.intensity = 0.26;
         for (const entity of lights.lightEntities) {
             const light = entity && entity.light;
             if (!light) continue;
@@ -494,13 +496,13 @@
                         lightId: 'john_surf_sun',
                         direction: sunDirection,
                         color: 0xffd5a0,
-                        intensity: 1.25,
-                        softness: 0.78,
+                        intensity: 1.75,
+                        softness: 0.48,
                         castShadow: true,
-                        shadowOptions: { size: 1536, bias: 0.0012, poissonSpread: 650 }
+                        shadowOptions: { size: 1536, bias: 0.00055, poissonSpread: 360 }
                     });
                     scene.addToScene(nativeLightingSunEntity);
-                    nativeLightingSunEntity._addShadowCaster({ size: 1536, bias: 0.0012, poissonSpread: 650 });
+                    nativeLightingSunEntity._addShadowCaster({ size: 1536, bias: 0.00055, poissonSpread: 360 });
                     nativeCreatedShadowOwners.add(nativeLightingSunEntity);
                     nativeLightingSun = nativeLightingSunEntity;
                 } catch (e) {
@@ -516,7 +518,7 @@
                     direction: new Float32Array([-0.38, -0.82, -0.42]),
                     output: new Float32Array([0.95, 0.78, 0.58]),
                     color: 0xffd5a0,
-                    intensity: 1.15,
+                    intensity: 1.75,
                     softness: 0.7,
                     distance: 1200,
                     dirty: false
@@ -530,7 +532,7 @@
                     direction: new Float32Array([0.42, -0.38, -0.78]),
                     output: new Float32Array([0.18, 0.27, 0.42]),
                     color: 0x7fc9ff,
-                    intensity: 0.55,
+                    intensity: 0.28,
                     softness: 0.9,
                     distance: 900,
                     dirty: false
