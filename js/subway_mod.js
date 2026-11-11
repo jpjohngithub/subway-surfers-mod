@@ -213,32 +213,37 @@
                 hero.anim.fpsGame = 120;
 
                 const isGameplayClip = (name) => {
-                    if (!name) return false;
-                    return /run|jump|roll|dodge|fall|grind|hover|hang|fly|surf|land/i.test(name) && !/crash|die|caught/i.test(name);
+                    const s = Array.isArray(name) ? String(name[0] || '') : String(name || '');
+                    if (!s) return false;
+                    return /run|jump|roll|dodge|fall|grind|hover|hang|fly|surf|land/i.test(s) && !/crash|die|caught|idle|intro/i.test(s);
                 };
 
                 if (typeof hero.anim.play === 'function') {
                     const origPlay = hero.anim.play.bind(hero.anim);
                     hero.anim.play = function(clip, opts) {
-                        const cfg = opts ? Object.assign({}, opts) : {};
-                        if (isGameplayClip(clip)) {
-                            if (cfg.sudden) {
-                                cfg.sudden = false;
-                                cfg.mixRatio = Math.max(cfg.mixRatio || 0, 0.48);
-                            } else if (typeof cfg.mixRatio !== 'number') {
-                                cfg.mixRatio = 0.38;
+                        if (opts && typeof opts === 'object') {
+                            const cfg = Object.assign({}, opts);
+                            if (isGameplayClip(clip) && !cfg.sudden) {
+                                cfg.mixRatio = Math.max(cfg.mixRatio || 0, 0.52);
                             }
+                            return origPlay(clip, cfg);
                         }
-                        return origPlay(clip, cfg);
+                        return origPlay(clip, opts);
                     };
                 }
 
                 if (typeof hero.anim.update === 'function') {
                     const origUpdate = hero.anim.update.bind(hero.anim);
-                    hero.anim.update = function(dt) {
-                        const clip = this.currentAnimationClipName || '';
-                        const boostedDt = isGameplayClip(clip) ? dt * 1.24 : dt;
-                        return origUpdate(boostedDt);
+                    hero.anim.update = function(timeObj) {
+                        const savedSpeed = this.speed;
+                        if (isGameplayClip(this.currentAnimationClipName)) {
+                            this.speed = (savedSpeed || 1) * 1.24;
+                        }
+                        try {
+                            return origUpdate(timeObj);
+                        } finally {
+                            this.speed = savedSpeed;
+                        }
                     };
                 }
             }
@@ -261,12 +266,12 @@
         try {
             if (window.__swMotionBlurHooked) return;
             const app = window.app;
-            const gameCanvas = document.querySelector('#game-canvas') || (app && app.view) || document.querySelector('canvas');
+            const gameCanvas = (app && app.renderer && app.renderer.view) || (app && app.view) || document.querySelector('#game-canvas') || document.querySelector('canvas');
             if (!app || !app.renderer || !gameCanvas) return;
 
             const blurCanvas = document.createElement('canvas');
             blurCanvas.id = 'sw-motion-blur-canvas';
-            blurCanvas.style.cssText = 'position:fixed;pointer-events:none;z-index:1;display:none;background:transparent;';
+            blurCanvas.style.cssText = 'position:fixed;pointer-events:none;z-index:50;display:none;background:transparent;';
             blurCanvas.style.filter = `saturate(${GFX_SETTINGS.saturation || 100}%)`;
             if (gameCanvas.parentNode) {
                 gameCanvas.parentNode.insertBefore(blurCanvas, gameCanvas.nextSibling);
@@ -308,29 +313,29 @@
                 '  vec4 base = texture2D(uTex, vUv);',
                 '  if(uStrength <= 0.0008){ gl_FragColor = base; return; }',
                 '  float hudMask = 1.0 - smoothstep(0.75, 0.87, vUv.y);',
-                '  vec2 dFocus = (vUv - vec2(0.5, 0.34)) * vec2(1.22, 0.90);',
-                '  float peripheral = smoothstep(0.16, 0.56, length(dFocus));',
-                '  float zoneMask = hudMask * mix(0.18, 1.0, peripheral);',
-                '  vec2 radial = (vUv - uCenter) * vec2(1.0, 1.15);',
-                '  vec2 dir = radial * (uStrength * 1.15) + uVel * (uStrength * 0.65);',
+                '  vec2 dFocus = (vUv - vec2(0.5, 0.34)) * vec2(1.25, 0.92);',
+                '  float peripheral = smoothstep(0.14, 0.48, length(dFocus));',
+                '  float zoneMask = hudMask * mix(0.12, 1.0, peripheral);',
+                '  vec2 radial = (vUv - uCenter) * vec2(1.05, 1.22);',
+                '  vec2 dir = radial * (uStrength * 1.45) + uVel * (uStrength * 0.95);',
                 '  dir *= zoneMask;',
-                '  float maxLen = 0.048;',
+                '  float maxLen = 0.085;',
                 '  float dLen = length(dir);',
                 '  if(dLen > maxLen) dir *= (maxLen / dLen);',
-                '  vec3 acc = base.rgb * 1.4;',
-                '  float totalW = 1.4;',
+                '  vec3 acc = base.rgb * 1.15;',
+                '  float totalW = 1.15;',
                 '  const int TAPS = 10;',
                 '  for(int i = 1; i <= TAPS; i++){',
                 '    float t = float(i) / float(TAPS);',
-                '    float w = (1.0 - t * 0.68);',
-                '    vec2 uvFwd = clamp(vUv + dir * (t * 0.85), vec2(0.002), vec2(0.998));',
-                '    vec2 uvBwd = clamp(vUv - dir * (t * 0.55), vec2(0.002), vec2(0.998));',
+                '    float w = (1.0 - t * 0.55);',
+                '    vec2 uvFwd = clamp(vUv + dir * t, vec2(0.002), vec2(0.998));',
+                '    vec2 uvBwd = clamp(vUv - dir * (t * 0.65), vec2(0.002), vec2(0.998));',
                 '    acc += texture2D(uTex, uvFwd).rgb * w;',
-                '    acc += texture2D(uTex, uvBwd).rgb * (w * 0.65);',
-                '    totalW += w * 1.65;',
+                '    acc += texture2D(uTex, uvBwd).rgb * (w * 0.75);',
+                '    totalW += w * 1.75;',
                 '  }',
                 '  vec3 blurred = acc / totalW;',
-                '  gl_FragColor = vec4(mix(base.rgb, blurred, clamp(zoneMask * 1.15, 0.0, 1.0)), 1.0);',
+                '  gl_FragColor = vec4(mix(base.rgb, blurred, clamp(zoneMask * 1.2, 0.0, 1.0)), 1.0);',
                 '}'
             ].join('\n');
 
@@ -390,15 +395,13 @@
                     const game = window.game || (window.app && window.app.game);
                     const hero = game && game.hero;
                     const body = hero && hero.body;
-                    const posZ = body && body.position ? body.position.z : null;
-                    const movedZ = (posZ !== null && lastHeroZ !== null) ? Math.abs(posZ - lastHeroZ) : 0;
-                    lastHeroZ = posZ;
-
+                    const posZ = (body && typeof body.z === 'number') ? body.z : null;
                     const activeModal = document.getElementById('subway-mod-modal');
                     const modalOpen = activeModal && activeModal.style.display === 'flex';
                     const clip = (hero && hero.anim && hero.anim.currentAnimationClipName) || '';
+                    const statePlaying = !!(hero && hero.state && hero.state.playing);
                     const heroAlive = hero && hero.isAlive !== false && !/crash|die|caught|idle/i.test(clip);
-                    const isRunning = !!(hero && heroAlive && !window.isGamePaused && !modalOpen && movedZ > 0.02);
+                    const isRunning = !!(hero && body && (statePlaying || (posZ !== null && posZ !== 0 && heroAlive)) && !window.isGamePaused && !modalOpen);
 
                     let targetStrength = 0;
                     let targetVx = 0;
@@ -406,14 +409,14 @@
 
                     if (isRunning) {
                         const speedRatio = (game && game.stats && typeof game.stats.speedRatio === 'number') ? game.stats.speedRatio : 0.35;
-                        const dashBoost = (typeof window.__dashSpeedMult === 'number' && window.__dashSpeedMult > 1) ? (window.__dashSpeedMult - 1) * 0.5 : 0;
+                        const dashBoost = (typeof window.__dashSpeedMult === 'number' && window.__dashSpeedMult > 1) ? (window.__dashSpeedMult - 1) * 0.65 : 0;
                         const vx = body && body.velocity ? (body.velocity.x || 0) : 0;
                         const vy = body && body.velocity ? (body.velocity.y || 0) : 0;
-                        const mult = mode === 'high' ? 0.030 : 0.017;
+                        const mult = mode === 'high' ? 0.056 : 0.032;
 
-                        targetStrength = mult * (0.45 + speedRatio * 0.85 + dashBoost + Math.min(0.65, Math.abs(vx) * 0.018));
-                        targetVx = Math.max(-1.2, Math.min(1.2, -vx * 0.025));
-                        targetVy = Math.max(-0.8, Math.min(0.8, -vy * 0.014));
+                        targetStrength = mult * (0.55 + speedRatio * 0.95 + dashBoost + Math.min(0.75, Math.abs(vx) * 0.025));
+                        targetVx = Math.max(-1.4, Math.min(1.4, -vx * 0.032));
+                        targetVy = Math.max(-0.9, Math.min(0.9, -vy * 0.018));
                     }
 
                     const lerpRate = Math.min(1, dt * (targetStrength > smoothStrength ? 14 : 18));
