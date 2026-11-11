@@ -143,6 +143,7 @@
     const GFX_SETTINGS = {
         fps: localStorage.getItem('sw_fps') || 'unlimited', // '60' | '120' | 'unlimited'
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 200
+        smoothAnim: localStorage.getItem('sw_smooth_anim') !== 'false',
     };
 
     // IMMEDIATELY apply stored saturation to root on script load so F5 NEVER resets!
@@ -185,6 +186,12 @@
         try {
             const hero = (window.game && window.game.hero) || (window.app && window.app.game && window.app.game.hero);
             if (hero && hero.character && hero.character.anim) {
+                if (GFX_SETTINGS.smoothAnim) {
+                    hero.character.anim.mixRatio = 0.15; // Silky smooth transitions
+                    if (hero.character.anim.currentController) {
+                        hero.character.anim.currentController.allowMixing = true;
+                    }
+                }
             }
             const scene = (window.game && window.game.scene) || (window.app && window.app.scene);
             if (scene && scene.time) {
@@ -226,6 +233,37 @@
         if (s && s.value != GFX_SETTINGS.saturation) s.value = GFX_SETTINGS.saturation;
     };
 
+    window.__toggleSmoothAnim = function() {
+        GFX_SETTINGS.smoothAnim = !GFX_SETTINGS.smoothAnim;
+        localStorage.setItem('sw_smooth_anim', GFX_SETTINGS.smoothAnim);
+        optimizeHeroAnimAndFluidity();
+        const el = document.getElementById('val-gfx-smooth');
+        if (el) el.textContent = GFX_SETTINGS.smoothAnim ? 'Ativada (120Hz Interpolação)' : 'Padrão (60Hz)';
+        showHUDNotification('Fluidez da Animação: ' + (GFX_SETTINGS.smoothAnim ? 'Ativada' : 'Desativada'));
+    };
+
+// Multiplayer State
+    const MP = {
+        active: false,
+        mqtt: null,
+        broadcast: null,
+        roomId: 'room_' + myProfile.id,
+        currentRoomTopic: 'subwaysurf/room/room_' + myProfile.id,
+        party: [{ ...myProfile, ready: false, isLeader: true }],
+        isPartyLeader: true,
+        isReady: false,
+        inMatch: false,
+        matchType: '1v1', // '1v1' | 'tournament'
+        onlinePlayers: new Map(), // id -> { profile, lastSeen }
+        playersState: new Map(),  // id -> { x, y, z, anim, alive, score, time }
+        placement: [],           // [{ id, nick, avatar, alive, time }]
+        spectatingId: null,
+        aliveCount: 0
+    };
+
+    // ==========================================
+    // 3. MODO ILIMITADO (TUDO LIBERADO)
+    // ==========================================
     function applyUnlimitedStorage() {
         if (!window.UNLIMITED_MODE) return;
         try {
@@ -4107,6 +4145,19 @@
                     </div>
 
                     <!-- Fluid Animation Optimizer -->
+                    <div class="subway-setting-row" onclick="window.__toggleSmoothAnim()" title="Toque para alternar fluidez de animação">
+                        <div class="btn-subway-glossy-box">
+                            <svg class="glossy-icon" viewBox="0 0 24 24" width="26" height="26" fill="#ffffff">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
+                            </svg>
+                        </div>
+                        <div class="setting-text-col">
+                            <span class="setting-title">Fluidez das Animações</span>
+                            <span class="setting-value" id="val-gfx-smooth">${GFX_SETTINGS.smoothAnim ? 'Ultra Fluido (120Hz Interpolação)' : 'Padrão (60Hz)'}</span>
+                        </div>
+                    </div>
+
+                    <!-- Saturation Slider Card -->
                     <div class="subway-setting-card">
                         <div class="setting-card-header">
                             <div class="btn-subway-glossy-box small">
