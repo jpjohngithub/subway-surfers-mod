@@ -167,6 +167,9 @@
             c *= mix(vec3(0.91, 0.97, 1.08), vec3(1.08, 1.015, 0.91), highlight);
             return (c - 0.5) * 1.075 + 0.5;
         }
+        float luminance(vec3 c) {
+            return dot(c, vec3(0.2126, 0.7152, 0.0722));
+        }
         void main(void) {
             vec4 src = texture2D(uSampler, vTextureCoord);
             vec3 bloom = vec3(0.0);
@@ -180,6 +183,14 @@
             vec3 s6 = texture2D(uSampler, vTextureCoord + vec2(-blurStep.x, blurStep.y)).rgb;
             vec3 s7 = texture2D(uSampler, vTextureCoord + vec2(blurStep.x, -blurStep.y)).rgb;
             vec3 s8 = texture2D(uSampler, vTextureCoord - blurStep).rgb;
+            // Color-buffer screen-space occlusion: darken the lower-value side
+            // of nearby geometry edges, where the missing depth pass would
+            // otherwise leave contact areas completely flat.
+            float centerLuma = luminance(src.rgb);
+            float nearBright = max(max(luminance(s1), luminance(s2)), max(luminance(s3), luminance(s4)));
+            float farBright = max(max(luminance(s5), luminance(s6)), max(luminance(s7), luminance(s8)));
+            float nearOcclusion = smoothstep(0.035, 0.24, max(nearBright - centerLuma, 0.0));
+            float farOcclusion = smoothstep(0.06, 0.34, max(farBright - centerLuma, 0.0));
             bloom += max(s1 - vec3(0.68), vec3(0.0));
             bloom += max(s2 - vec3(0.68), vec3(0.0));
             bloom += max(s3 - vec3(0.68), vec3(0.0));
@@ -189,6 +200,9 @@
             bloom += max(s7 - vec3(0.76), vec3(0.0)) * 0.7;
             bloom += max(s8 - vec3(0.76), vec3(0.0)) * 0.7;
             vec3 color = grade(src.rgb) + bloom * vec3(0.28, 0.25, 0.21);
+            float screenOcclusion = (nearOcclusion * 0.24 + farOcclusion * 0.08)
+                * (1.0 - smoothstep(0.72, 0.98, centerLuma));
+            color *= 1.0 - screenOcclusion;
             float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
             color = mix(vec3(luma), color, 1.10);
             gl_FragColor = vec4(min(color, vec3(1.0)), src.a);
@@ -577,10 +591,10 @@
         const el = document.getElementById('val-gfx-shaders');
         if (el) el.textContent = !GFX_SETTINGS.shaderLighting ? 'Desativado'
             : (nativeLightingStats.shadows && nativeLightingStats.receivers
-                ? `Sol 3D + ${nativeLightingStats.shadows} sombra(s) dinâmica(s) · bloom`
+                ? `Sol 3D + ${nativeLightingStats.shadows} sombra(s) · oclusão de contato`
                 : (nativeLightingStats.lights
-                    ? 'Luz 3D ativa · modelos sem suporte a sombra dinâmica'
-                    : (shaderLightingFallback ? 'Pós-processamento · aguardando cena 3D' : 'Aguardando cena 3D')));
+                    ? 'Luz 3D + oclusão de contato · sombra 3D indisponível'
+                    : (shaderLightingFallback ? 'Efeito simples · renderer 3D indisponível' : 'Oclusão de contato + bloom · sombra 3D indisponível')));
         const pill = document.getElementById('gfx-shader-state');
         if (pill) {
             pill.textContent = GFX_SETTINGS.shaderLighting ? 'ON' : 'OFF';
