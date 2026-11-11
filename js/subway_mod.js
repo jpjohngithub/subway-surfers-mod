@@ -347,7 +347,7 @@
                 if (Array.isArray(source) || source instanceof Set) source.forEach(add);
                 else if (typeof source.forEach === 'function') source.forEach(add);
                 else if (source[Symbol.iterator]) for (const entity of source) add(entity);
-                else for (const key of ['entities', '_entities', 'items', '_items', 'list', '_list']) {
+                else for (const key of ['entities', '_entities', 'items', '_items', 'list', '_list', 'children']) {
                     if (source[key]) addFrom(source[key]);
                 }
             } catch (e) {}
@@ -363,7 +363,7 @@
         const material = view && view.material;
         if (!material || typeof material.constructor !== 'function') return;
         const uniforms = material.uniforms || {};
-        if (!uniforms.uSpecularGloss || !uniforms.uDiffuseColor) return;
+        if (!uniforms.uDiffuseColor) return;
         try {
             const shadowMaterial = new material.constructor({
                 uniforms: Object.assign({}, uniforms),
@@ -374,8 +374,8 @@
                 maxBones: entity.skinned && entity.skinned.bones && entity.skinned.bones.length,
                 diffuseMap: material.diffuseMap || uniforms.uDiffuseMap,
                 color: material.color,
-                specular: material.specular,
-                gloss: material.gloss,
+                specular: material.specular === undefined ? 36 : material.specular,
+                gloss: material.gloss === undefined ? 2 : material.gloss,
                 specularMap: material.specularMap || uniforms.uSpecularMap,
                 emissive: material.emissive,
                 emissiveColor: material.emissiveColor,
