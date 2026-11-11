@@ -141,8 +141,56 @@
     const GFX_SETTINGS = {
         fps: localStorage.getItem('sw_fps') || 'unlimited', // '60' | '120' | 'unlimited'
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 200
-        smoothAnim: localStorage.getItem('sw_smooth_anim') !== 'false'
+        smoothAnim: localStorage.getItem('sw_smooth_anim') !== 'false',
+        shaderLighting: localStorage.getItem('sw_shader_lighting') === 'true'
     };
+
+    let shaderLightingFilter = null;
+    let shaderLightingStage = null;
+    let shaderLightingFallback = false;
+    const SHADER_LIGHTING_FRAGMENT = `
+        precision mediump float;
+        varying vec2 vTextureCoord;
+        uniform sampler2D uSampler;
+        uniform vec2 uTexel;
+        vec3 grade(vec3 c) {
+            float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+            float shadow = 1.0 - smoothstep(0.06, 0.46, l);
+            float highlight = smoothstep(0.52, 0.94, l);
+            c *= mix(vec3(0.91, 0.97, 1.08), vec3(1.08, 1.015, 0.91), highlight);
+            c *= 1.0 - shadow * 0.045;
+            return (c - 0.5) * 1.075 + 0.5;
+        }
+        void main(void) {
+            vec4 src = texture2D(uSampler, vTextureCoord);
+            vec3 bloom = vec3(0.0);
+            vec2 d = uTexel * 2.0;
+            vec3 s1 = texture2D(uSampler, vTextureCoord + vec2(d.x, 0.0)).rgb;
+            vec3 s2 = texture2D(uSampler, vTextureCoord - vec2(d.x, 0.0)).rgb;
+            vec3 s3 = texture2D(uSampler, vTextureCoord + vec2(0.0, d.y)).rgb;
+            vec3 s4 = texture2D(uSampler, vTextureCoord - vec2(0.0, d.y)).rgb;
+            vec2 blurStep = uTexel * 7.0;
+            vec3 s5 = texture2D(uSampler, vTextureCoord + vec2(blurStep.x, blurStep.y)).rgb;
+            vec3 s6 = texture2D(uSampler, vTextureCoord + vec2(-blurStep.x, blurStep.y)).rgb;
+            vec3 s7 = texture2D(uSampler, vTextureCoord + vec2(blurStep.x, -blurStep.y)).rgb;
+            vec3 s8 = texture2D(uSampler, vTextureCoord - blurStep).rgb;
+            bloom += max(s1 - vec3(0.68), vec3(0.0));
+            bloom += max(s2 - vec3(0.68), vec3(0.0));
+            bloom += max(s3 - vec3(0.68), vec3(0.0));
+            bloom += max(s4 - vec3(0.68), vec3(0.0));
+            bloom += max(s5 - vec3(0.76), vec3(0.0)) * 0.7;
+            bloom += max(s6 - vec3(0.76), vec3(0.0)) * 0.7;
+            bloom += max(s7 - vec3(0.76), vec3(0.0)) * 0.7;
+            bloom += max(s8 - vec3(0.76), vec3(0.0)) * 0.7;
+            vec3 color = grade(src.rgb) + bloom * vec3(0.28, 0.25, 0.21);
+            float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+            float edge = max(max(abs(luma - dot(s1, vec3(0.2126,0.7152,0.0722))), abs(luma - dot(s2, vec3(0.2126,0.7152,0.0722)))), max(abs(luma - dot(s3, vec3(0.2126,0.7152,0.0722))), abs(luma - dot(s4, vec3(0.2126,0.7152,0.0722)))));
+            float contactShade = smoothstep(0.035, 0.20, edge) * (1.0 - smoothstep(0.12, 0.42, luma)) * 0.12;
+            color *= 1.0 - contactShade;
+            color = mix(vec3(luma), color, 1.10);
+            gl_FragColor = vec4(min(color, vec3(1.0)), src.a);
+        }
+    `;
 
     // IMMEDIATELY apply stored saturation to root on script load so F5 NEVER resets!
     try {
@@ -157,8 +205,10 @@
         // If canvas is already mounted, apply filter directly as well
         const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
         if (canvas) {
-            canvas.style.filter = `saturate(${satVal}%)`;
+            applyCanvasGraphicsFilter(canvas, satVal);
         }
+
+        applyShaderLighting();
 
         // 2. Ultra-Fluid Framerate (Unlock Pixi Ticker FPS for 120Hz / 144Hz screens)
         if (window.app && window.app.ticker) {
@@ -173,6 +223,107 @@
         // 3. Smooth Hero Character Skeletal Animation & Scene Clock
         optimizeHeroAnimAndFluidity();
     }
+
+    function applyCanvasGraphicsFilter(canvas, saturation = GFX_SETTINGS.saturation || 100) {
+        if (!canvas) return;
+        if (GFX_SETTINGS.shaderLighting && shaderLightingFallback) ensureShaderSvgFilter();
+        canvas.style.filter = GFX_SETTINGS.shaderLighting && shaderLightingFallback
+            ? `saturate(${saturation}%) contrast(1.1) brightness(1.02) url(#sw-shader-lighting-bloom)`
+            : `saturate(${saturation}%)`;
+    }
+
+    function ensureShaderSvgFilter() {
+        if (!document.body || document.getElementById('sw-shader-lighting-defs')) return;
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        defs.id = 'sw-shader-lighting-defs';
+        defs.setAttribute('aria-hidden', 'true');
+        defs.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
+        defs.innerHTML = '<filter id="sw-shader-lighting-bloom" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" result="highlights" values="1 0 0 0 -0.62 0 1 0 0 -0.62 0 0 1 0 -0.62 0 0 0 1 0"/><feGaussianBlur in="highlights" stdDeviation="7" result="bloom"/><feColorMatrix in="bloom" result="warmBloom" values="1.08 0 0 0 0 0 1.02 0 0 0 0 0 0.86 0 0 0 0 0 1 0"/><feBlend in="SourceGraphic" in2="warmBloom" mode="screen"/></filter>';
+        document.body.appendChild(defs);
+    }
+
+    function applyShaderLighting() {
+        const app = window.app;
+        const renderer = app && app.renderer;
+        const stage = app && app.stage;
+        const canvas = document.querySelector('#game-canvas') || (app && app.view) || document.querySelector('canvas');
+
+        if (!GFX_SETTINGS.shaderLighting) {
+            if (shaderLightingStage) {
+                shaderLightingStage.filters = shaderLightingStage.__swShaderLightingBaseFilters || null;
+                delete shaderLightingStage.__swShaderLightingBaseFilters;
+                shaderLightingStage = null;
+                shaderLightingFilter = null;
+            }
+            shaderLightingFallback = false;
+            applyCanvasGraphicsFilter(canvas);
+            return;
+        }
+
+        const pixi = window.PIXI || (window.app && window.app.PIXI) || (window.__lib && window.__lib.PIXI);
+        const Filter = pixi && (pixi.Filter || (pixi.filters && pixi.filters.Filter));
+        if (stage && renderer && Filter) {
+            try {
+                if (shaderLightingStage && shaderLightingStage !== stage) {
+                    shaderLightingStage.filters = shaderLightingStage.__swShaderLightingBaseFilters || null;
+                    delete shaderLightingStage.__swShaderLightingBaseFilters;
+                    shaderLightingStage = null;
+                    shaderLightingFilter = null;
+                }
+                if (!shaderLightingFilter) {
+                    const width = renderer.screen && renderer.screen.width || renderer.width || 800;
+                    const height = renderer.screen && renderer.screen.height || renderer.height || 600;
+                    shaderLightingFilter = new Filter(undefined, SHADER_LIGHTING_FRAGMENT, {
+                        uTexel: new Float32Array([1 / width, 1 / height])
+                    });
+                    shaderLightingStage = stage;
+                    shaderLightingStage.__swShaderLightingBaseFilters = Array.isArray(stage.filters) ? stage.filters.slice() : [];
+                }
+                const width = renderer.screen && renderer.screen.width || renderer.width || 800;
+                const height = renderer.screen && renderer.screen.height || renderer.height || 600;
+                if (shaderLightingFilter.uniforms && shaderLightingFilter.uniforms.uTexel) {
+                    shaderLightingFilter.uniforms.uTexel[0] = 1 / width;
+                    shaderLightingFilter.uniforms.uTexel[1] = 1 / height;
+                }
+                const base = shaderLightingStage.__swShaderLightingBaseFilters || [];
+                if (!Array.isArray(stage.filters) || !stage.filters.includes(shaderLightingFilter)) {
+                    stage.filters = [...base, shaderLightingFilter];
+                }
+                shaderLightingFallback = false;
+                applyCanvasGraphicsFilter(canvas);
+                updateShaderLightingLabel();
+                return;
+            } catch (e) {
+                // Older PIXI builds do not expose the filter constructor globally.
+            }
+        }
+
+        // CSS/SVG post-processing fallback for builds where PIXI keeps Filter private.
+        shaderLightingFallback = true;
+        applyCanvasGraphicsFilter(canvas);
+        updateShaderLightingLabel();
+    }
+
+    function updateShaderLightingLabel() {
+        const el = document.getElementById('val-gfx-shaders');
+        if (el) el.textContent = !GFX_SETTINGS.shaderLighting ? 'Desativado'
+            : (shaderLightingFallback ? 'Ativado · bloom & contraste' : 'Ativado · shader, sombras & bloom');
+        const pill = document.getElementById('gfx-shader-state');
+        if (pill) {
+            pill.textContent = GFX_SETTINGS.shaderLighting ? 'ON' : 'OFF';
+            pill.classList.toggle('is-on', GFX_SETTINGS.shaderLighting);
+        }
+    }
+
+    window.__toggleShaderLighting = function() {
+        GFX_SETTINGS.shaderLighting = !GFX_SETTINGS.shaderLighting;
+        localStorage.setItem('sw_shader_lighting', String(GFX_SETTINGS.shaderLighting));
+        applyGraphicsSettings();
+        updateShaderLightingLabel();
+        const btn = document.getElementById('btn-gfx-shaders');
+        if (btn) btn.classList.toggle('toggle-active', GFX_SETTINGS.shaderLighting);
+        showHUDNotification('Shaders gráficos: ' + (GFX_SETTINGS.shaderLighting ? 'Ativados' : 'Desativados'));
+    };
 
     function optimizeHeroAnimAndFluidity() {
         try {
@@ -210,7 +361,7 @@
 
         const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
         if (canvas) {
-            canvas.style.filter = `saturate(${GFX_SETTINGS.saturation}%)`;
+            applyCanvasGraphicsFilter(canvas, GFX_SETTINGS.saturation);
         }
 
         const el = document.getElementById('val-gfx-saturation');
@@ -4149,6 +4300,19 @@
                         </div>
                     </div>
 
+                    <div class="subway-setting-row" id="btn-gfx-shaders" onclick="window.__toggleShaderLighting()" title="Ative o pós-processamento gráfico avançado">
+                        <div class="btn-subway-glossy-box">
+                            <svg class="glossy-icon" viewBox="0 0 24 24" width="26" height="26" fill="#ffffff">
+                                <path d="M12 2 4.5 13h5L8.5 22 20 9h-5.5L17 2z"/>
+                            </svg>
+                        </div>
+                        <div class="setting-text-col">
+                            <span class="setting-title">Shaders · Iluminação avançada</span>
+                            <span class="setting-value" id="val-gfx-shaders">${GFX_SETTINGS.shaderLighting ? 'Ativado · shader e bloom' : 'Desativado'}</span>
+                        </div>
+                        <span class="gfx-state-pill ${GFX_SETTINGS.shaderLighting ? 'is-on' : ''}" id="gfx-shader-state">${GFX_SETTINGS.shaderLighting ? 'ON' : 'OFF'}</span>
+                    </div>
+
                     <!-- Saturation Slider Card -->
                     <div class="subway-setting-card">
                         <div class="setting-card-header">
@@ -4748,7 +4912,19 @@
                 touch-action: manipulation !important;
                 -webkit-touch-callout: none !important;
                 user-select: none !important;
-                filter: saturate(var(--game-saturation, 100%)) !important;
+                filter: saturate(var(--game-saturation, 100%));
+            }
+
+            .gfx-state-pill {
+                min-width: 38px; padding: 5px 8px; border-radius: 999px;
+                border: 1px solid rgba(148,163,184,.28); color: #94a3b8;
+                background: rgba(15,23,42,.9); font: 900 10px/1 Arial,sans-serif;
+                letter-spacing: .8px; text-align: center;
+            }
+            .gfx-state-pill.is-on {
+                border-color: rgba(56,189,248,.7); color: #dff7ff;
+                background: linear-gradient(180deg,rgba(14,165,233,.46),rgba(3,105,161,.3));
+                box-shadow: 0 0 14px rgba(56,189,248,.22);
             }
 
             /* Native Subway Surfers Glossy Blue Button System */
@@ -4769,6 +4945,11 @@
             .subway-setting-row:hover {
                 background: rgba(30, 41, 59, 0.85);
                 border-color: rgba(56, 189, 248, 0.3);
+            }
+            .subway-setting-row#btn-gfx-shaders.toggle-active {
+                background: linear-gradient(100deg, rgba(8, 47, 73, .82), rgba(15, 23, 42, .78));
+                border-color: rgba(56, 189, 248, .58);
+                box-shadow: inset 3px 0 rgba(56, 189, 248, .9), 0 0 18px rgba(14, 165, 233, .08);
             }
             .subway-setting-row:active {
                 transform: scale(0.98);
@@ -7435,6 +7616,7 @@
 })();
 
 applyGraphicsSettings(); 
+setInterval(() => { if (GFX_SETTINGS.shaderLighting) applyShaderLighting(); }, 1000);
 
 
 
