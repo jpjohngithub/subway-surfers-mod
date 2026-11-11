@@ -1693,6 +1693,7 @@
 
         const choice = choices[0];
         if (!choice || choice.clear < 3) return 0;
+        const makeWave = obstacleChunkCount % 3 === 0;
         let spawned = 0;
         for (let i = 0; i < 4; i++) {
             const z = firstZ - i * spacing;
@@ -1701,7 +1702,11 @@
                 Math.abs(obs.x - choice.lane) < 10 && Math.abs(obs.z - z) < 150)) continue;
             if (customObstacles.some(obs => obs && obs.type === 'coin' &&
                 Math.abs(obs.x - choice.lane) < 8 && Math.abs(obs.z - z) < 20)) continue;
-            const coin = createObstacle3D('coin', choice.lane, 7, z);
+            const coin = createObstacle3D('coin', choice.lane, 7, z, makeWave ? {
+                isOscillating: true,
+                speed: 1.35,
+                phase: i * 0.62
+            } : {});
             if (coin) {
                 customObstacles.push(coin);
                 spawned++;
@@ -1794,7 +1799,11 @@
         // 13: trampoline; the only new solid obstacle
         // 14: familiar native obstacle
         // 15–17: new coin formations (diamond, fork merge and triple wave)
-        const pattern = Math.floor(Math.random() * 18);
+        // Keep the full route pool, but weight the classic moving/floating
+        // formations so they remain a regular part of runs as the pool grows.
+        const pattern = Math.random() < 0.24
+            ? [0, 6, 7][Math.floor(Math.random() * 3)]
+            : Math.floor(Math.random() * 18);
 
         if (pattern === 0) {
             // 1. MOEDA MÓVEL OSCILANTE: Desliza de -20 a +20 através das 3 pistas
