@@ -1674,6 +1674,42 @@
         return spawned > 0;
     }
 
+    function spawnSupplementalCoinTrail(centerZ) {
+        const lanes = [-20, 0, 20];
+        const spacing = 22;
+        const firstZ = centerZ - 220;
+        const choices = lanes.map(lane => {
+            let clear = 0;
+            for (let i = 0; i < 4; i++) {
+                const z = firstZ - i * spacing;
+                const nearPad = customObstacles.some(obs => obs && obs.type === 'trampoline' &&
+                    Math.abs(obs.x - lane) < 10 && Math.abs(obs.z - z) < 150);
+                const duplicate = customObstacles.some(obs => obs && obs.type === 'coin' &&
+                    Math.abs(obs.x - lane) < 8 && Math.abs(obs.z - z) < 20);
+                if (!nearPad && !duplicate && !isPositionBlocked(lane, 7, z, 9)) clear++;
+            }
+            return { lane, clear };
+        }).sort((a, b) => b.clear - a.clear);
+
+        const choice = choices[0];
+        if (!choice || choice.clear < 3) return 0;
+        let spawned = 0;
+        for (let i = 0; i < 4; i++) {
+            const z = firstZ - i * spacing;
+            if (isPositionBlocked(choice.lane, 7, z, 9)) continue;
+            if (customObstacles.some(obs => obs && obs.type === 'trampoline' &&
+                Math.abs(obs.x - choice.lane) < 10 && Math.abs(obs.z - z) < 150)) continue;
+            if (customObstacles.some(obs => obs && obs.type === 'coin' &&
+                Math.abs(obs.x - choice.lane) < 8 && Math.abs(obs.z - z) < 20)) continue;
+            const coin = createObstacle3D('coin', choice.lane, 7, z);
+            if (coin) {
+                customObstacles.push(coin);
+                spawned++;
+            }
+        }
+        return spawned;
+    }
+
     function spawnNoCoinObstaclePattern(centerZ) {
         const lanes = [-20, 0, 20];
         obstacleChunkCount++;
@@ -1700,8 +1736,12 @@
             if (pad) return;
         }
 
-        // Every few chunks, add a varied coin route directly on a wagon roof.
-        if (obstacleChunkCount % 3 === 0 && spawnTrainTopCoinPattern(centerZ)) return;
+        // Fill long gaps with a short, safe route while preserving the existing
+        // random obstacle and coin-pattern rotation.
+        spawnSupplementalCoinTrail(centerZ);
+
+        // More frequent wagon-top routes, using the train's actual roof height.
+        if (obstacleChunkCount % 3 !== 1 && spawnTrainTopCoinPattern(centerZ)) return;
 
         // Put a visible coin formation in the regular route every fourth chunk.
         // The previous broad train check treated objects above or below the coin
