@@ -4,7 +4,7 @@
     "description": "Web version of Subway Surfers game",
     "start_url": ".",
     "orientation": "any",
-    "background_color": "#0b316b",
+    "background_color": "#000000",
     "display": "standalone",
     "icons": [
         {
