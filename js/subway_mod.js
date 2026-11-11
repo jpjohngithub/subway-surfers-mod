@@ -7913,10 +7913,21 @@
     } else {
         init();
     }
-})();
+    applyGraphicsSettings();
 
-applyGraphicsSettings(); 
-setInterval(() => { if (GFX_SETTINGS.shaderLighting) applyShaderLighting(); }, 1000);
+    // The game creates/replaces its canvas and Pixi stage after this mod loads.
+    // Reapply persisted options after a hard refresh or canvas recreation.
+    function reapplyPersistedGraphicsToSurface() {
+        const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
+        const saturationFilter = `saturate(${GFX_SETTINGS.saturation || 100}%)`;
+        if (canvas && !(canvas.style.filter || '').includes(saturationFilter)) {
+            applyCanvasGraphicsFilter(canvas, GFX_SETTINGS.saturation);
+        }
+        if (GFX_SETTINGS.shaderLighting) applyShaderLighting();
+    }
+    window.addEventListener('pageshow', reapplyPersistedGraphicsToSurface);
+    setInterval(reapplyPersistedGraphicsToSurface, 600);
+})();
 
 
 
