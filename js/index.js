@@ -7690,7 +7690,7 @@
         const _0x536564 = _0x2cdce5.includes('train') ? 'trains-tex' : "environment-tex";
         _0x25cfb3.map = this.getMap(_0x536564), _0x25cfb3.depthMask = false, _0x25cfb3.customNoFog = true, _0x25cfb3.fog = false;
       }
-      null != _0x17dac2 && _0x17dac2.includes("glass_transparent") ? _0x25cfb3.opacity = 0.5 : null != _0x17dac2 && _0x17dac2.includes('glass') && (_0x2cdce5.includes("epic_start") && (_0x25cfb3.fogMultiplier = 1.6), _0x25cfb3.reflectCube = this.getMap("reflection"), null != _0x17dac2 && _0x17dac2.includes("glass_opaque") && (_0x25cfb3.opacity = 0.5)), (null != _0x17dac2 && _0x17dac2.includes("water") || null != _0x17dac2 && _0x17dac2.includes("ice")) && (_0x25cfb3.opacity = 0.4, _0x25cfb3.customNoFog = true, _0x25cfb3.fog = false, _0x25cfb3.blendMode = _0x2a24d4.BLEND_MODES.NORMAL_NPM, _0x25cfb3.depthMask = false), (null != _0x17dac2 && _0x17dac2.includes("glow") || null != _0x17dac2 && _0x17dac2.includes("light")) && (_0x25cfb3.blendMode = _0x2a24d4.BLEND_MODES.ADD, _0x25cfb3.customNoFog = true, _0x25cfb3.opacity = 0.5, _0x25cfb3.depthMask = false), (null != _0x17dac2 && _0x17dac2.includes("train_start") || _0x2cdce5.includes("train_start")) && (_0x25cfb3.map = this.getMap("train-start"), _0x25cfb3.opacity = 0.999), null != _0x17dac2 && _0x17dac2.includes("rails") && null != _0x2cdce5 && _0x2cdce5.includes("train") && (_0x25cfb3.screenMask = "rails1");
+      null != _0x17dac2 && _0x17dac2.includes("glass_transparent") ? _0x25cfb3.opacity = 0.5 : null != _0x17dac2 && _0x17dac2.includes('glass') && (_0x2cdce5.includes("epic_start") && (_0x25cfb3.fogMultiplier = 1.6), _0x25cfb3.reflectCube = this.getMap("reflection"), null != _0x17dac2 && _0x17dac2.includes("glass_opaque") && (_0x25cfb3.opacity = 0.5)), (null != _0x17dac2 && _0x17dac2.includes("water") || null != _0x17dac2 && _0x17dac2.includes("ice")) && (_0x25cfb3.opacity = 0.4, _0x25cfb3.customNoFog = true, _0x25cfb3.fog = false, _0x25cfb3.blendMode = _0x2a24d4.BLEND_MODES.NORMAL_NPM, _0x25cfb3.depthMask = false), (null != _0x17dac2 && _0x17dac2.includes("glow") || null != _0x17dac2 && _0x17dac2.includes("light")) && (_0x25cfb3.blendMode = _0x2a24d4.BLEND_MODES.ADD, _0x25cfb3.customNoFog = true, _0x25cfb3.opacity = 0.5, _0x25cfb3.depthMask = false), (null != _0x17dac2 && _0x17dac2.includes("train_start") || _0x2cdce5.includes("train_start")) && (_0x25cfb3.map = (window.__SW_GET_JOHNSURF_TEX__ ? window.__SW_GET_JOHNSURF_TEX__() : this.getMap("train-start")), _0x25cfb3.opacity = 0.999), null != _0x17dac2 && _0x17dac2.includes("rails") && null != _0x2cdce5 && _0x2cdce5.includes("train") && (_0x25cfb3.screenMask = "rails1");
       const _0x478308 = "string" == typeof _0x25cfb3.map ? this.getMap(_0x25cfb3.map) : _0x25cfb3.map,
         _0x47777a = "string" == typeof _0x25cfb3.screenMask ? this.getMap(_0x25cfb3.screenMask) : _0x25cfb3.screenMask,
         _0x10bd64 = _0x25cfb3.material ? _0x25cfb3.material : _0x202f8d.a;
@@ -13617,10 +13617,16 @@
           const z = item.body.z;
           if (z < minZ - 14 || z > maxZ + 18) continue;
           const btm = item.body.bottom;
+          if (span.speed && btm < 8) {
+            item.active = false;
+            item.visible = false;
+            if (item.body) { item.body.width = 0; item.body.height = 0; item.body.depth = 0; }
+            continue;
+          }
           if (btm >= 24 && btm <= 85) {
             item.body.bottom = Math.max(halfRoofY, btm - roofDelta);
           } else if (btm >= 8 && btm < 24) {
-            item.body.bottom = Math.min(btm * (halfRoofY / 34), halfRoofY);
+            item.body.bottom = halfRoofY;
           } else if (btm >= 0 && btm < 8 && z >= minZ - 4 && z <= maxZ + 4) {
             item.body.bottom = halfRoofY;
           } else {

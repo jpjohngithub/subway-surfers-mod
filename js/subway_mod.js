@@ -127,7 +127,10 @@
     const GFX_SETTINGS = {
         fps: (_swSavedFps === '60' || _swSavedFps === '120' || _swSavedFps === '240') ? _swSavedFps : '240', // '60' | '120' | '240'
         showFps: localStorage.getItem('sw_show_fps') === '1',
-        saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 200
+        saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 300
+        contrast: parseInt(localStorage.getItem('sw_contrast') || '100', 10), // 50 - 300
+        resolution: localStorage.getItem('sw_resolution') || '100', // '100' | '75' | '50' | '35'
+        coinOutline: localStorage.getItem('sw_coin_outline') === '1',
         volume: _swSavedVol !== null ? Math.max(0, Math.min(100, parseInt(_swSavedVol, 10) || 0)) : 30, // 0 - 100 (padrão 30%)
         motionBlur: localStorage.getItem('sw_motion_blur') || 'soft', // 'off' | 'soft' | 'high'
         shaders: (localStorage.getItem('sw_shaders') === 'off') ? 'off' : 'medium', // 'off' | 'medium' (Ativado)
@@ -135,6 +138,11 @@
     };
     window.__SW_VOLUME_OVERRIDE__ = GFX_SETTINGS.volume / 100;
     window.__SW_NO_REVIVE__ = GFX_SETTINGS.noRevive;
+    window.__swipeT = 8;
+    try {
+        document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
+        document.documentElement.style.setProperty('--game-contrast', GFX_SETTINGS.contrast + '%');
+    } catch(e) {}
 
     function applyGameVolume(pct) {
         const clamped = Math.max(0, Math.min(100, parseInt(pct, 10) || 0));
@@ -383,21 +391,24 @@
 
     function applyGraphicsSettings() {
         const satVal = GFX_SETTINGS.saturation || 100;
+        const conVal = GFX_SETTINGS.contrast || 100;
         document.documentElement.style.setProperty('--game-saturation', satVal + '%');
+        document.documentElement.style.setProperty('--game-contrast', conVal + '%');
 
         const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
         if (canvas) {
-            applyCanvasGraphicsFilter(canvas, satVal);
+            applyCanvasGraphicsFilter(canvas, satVal, conVal);
         }
         const blurCanvas = document.getElementById('sw-motion-blur-canvas');
         if (blurCanvas) {
-            blurCanvas.style.filter = `saturate(${satVal}%)`;
+            blurCanvas.style.filter = `saturate(${satVal}%) contrast(${conVal}%)`;
             if (GFX_SETTINGS.motionBlur === 'off') blurCanvas.style.display = 'none';
         }
 
         // 2. Ultra-Fluid Framerate (Unlock Pixi System & Shared Tickers up to 240Hz)
         const targetMaxFPS = Math.min(240, parseInt(GFX_SETTINGS.fps, 10) || 240);
         applyTickerMaxFPS(targetMaxFPS);
+        applyRenderResolution(GFX_SETTINGS.resolution);
 
         // 3. Smooth Hero Character Skeletal Animation & Snappy Movement
         optimizeHeroAnimAndFluidity();
@@ -412,9 +423,9 @@
         initMotionBlurEngine();
     }
 
-    function applyCanvasGraphicsFilter(canvas, saturation = GFX_SETTINGS.saturation || 100) {
+    function applyCanvasGraphicsFilter(canvas, saturation = GFX_SETTINGS.saturation || 100, contrast = GFX_SETTINGS.contrast || 100) {
         if (!canvas) return;
-        canvas.style.filter = `saturate(${saturation}%)`;
+        canvas.style.filter = `saturate(${saturation}%) contrast(${contrast}%)`;
     }
 
     function optimizeHeroAnimAndFluidity() {
@@ -734,26 +745,97 @@
         showHUDNotification('Shaders & Sombras: ' + label);
     };
 
+    function getResolutionLabel(val) {
+        if (val === '35') return '35% (Ultra Leve)';
+        if (val === '50') return '50% (Média / Rápida)';
+        if (val === '75') return '75% (Alta)';
+        return '100% (Nativa)';
+    }
+
+    function applyRenderResolution(val) {
+        const pct = parseInt(val, 10) || 100;
+        const scale = pct / 100;
+        try {
+            const renderer = (window.app && window.app.renderer) || (window.game && window.game.renderer);
+            if (renderer) {
+                renderer.resolution = scale;
+                const baseW = window.innerWidth || 800;
+                const baseH = window.innerHeight || 600;
+                if (typeof renderer.resize === 'function') {
+                    renderer.resize(baseW, baseH);
+                }
+                const view = renderer.view;
+                if (view) {
+                    view.style.width = '100vw';
+                    view.style.height = '100vh';
+                    view.style.imageRendering = scale < 1 ? 'pixelated' : 'auto';
+                }
+            }
+        } catch(e) {}
+    }
+
+    window.__cycleResolution = function() {
+        const seq = ['100', '75', '50', '35'];
+        const idx = seq.indexOf(String(GFX_SETTINGS.resolution));
+        GFX_SETTINGS.resolution = seq[(idx + 1) % seq.length];
+        localStorage.setItem('sw_resolution', GFX_SETTINGS.resolution);
+        applyRenderResolution(GFX_SETTINGS.resolution);
+        const el = document.getElementById('val-gfx-resolution');
+        if (el) el.textContent = getResolutionLabel(GFX_SETTINGS.resolution);
+        showHUDNotification('Resolução: ' + getResolutionLabel(GFX_SETTINGS.resolution));
+    };
+
+    window.__toggleCoinOutline = function() {
+        GFX_SETTINGS.coinOutline = !GFX_SETTINGS.coinOutline;
+        localStorage.setItem('sw_coin_outline', GFX_SETTINGS.coinOutline ? '1' : '0');
+        const el = document.getElementById('val-gfx-coinoutline');
+        if (el) el.textContent = GFX_SETTINGS.coinOutline ? 'Ativado' : 'Desativado';
+        showHUDNotification('Contorno nas Moedas: ' + (GFX_SETTINGS.coinOutline ? 'Ativado' : 'Desativado'));
+    };
+
     window.__setSaturation = function(val) {
-        GFX_SETTINGS.saturation = Math.max(50, Math.min(200, parseInt(val, 10) || 100));
+        GFX_SETTINGS.saturation = Math.max(50, Math.min(300, parseInt(val, 10) || 100));
         localStorage.setItem('sw_saturation', String(GFX_SETTINGS.saturation));
         document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
 
         const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
         if (canvas) {
-            applyCanvasGraphicsFilter(canvas, GFX_SETTINGS.saturation);
+            applyCanvasGraphicsFilter(canvas, GFX_SETTINGS.saturation, GFX_SETTINGS.contrast);
         }
 
         const el = document.getElementById('val-gfx-saturation');
         if (el) {
             let desc = GFX_SETTINGS.saturation + '%';
             if (GFX_SETTINGS.saturation === 100) desc += ' (Padrão)';
+            else if (GFX_SETTINGS.saturation >= 200) desc += ' (Ultra Vívido)';
             else if (GFX_SETTINGS.saturation >= 150) desc += ' (Intenso)';
             else if (GFX_SETTINGS.saturation <= 75) desc += ' (Suave)';
             el.textContent = desc;
         }
         const s = document.getElementById('slider-saturation');
         if (s && s.value != GFX_SETTINGS.saturation) s.value = GFX_SETTINGS.saturation;
+    };
+
+    window.__setContrast = function(val) {
+        GFX_SETTINGS.contrast = Math.max(50, Math.min(300, parseInt(val, 10) || 100));
+        localStorage.setItem('sw_contrast', String(GFX_SETTINGS.contrast));
+        document.documentElement.style.setProperty('--game-contrast', GFX_SETTINGS.contrast + '%');
+
+        const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
+        if (canvas) {
+            applyCanvasGraphicsFilter(canvas, GFX_SETTINGS.saturation, GFX_SETTINGS.contrast);
+        }
+
+        const el = document.getElementById('val-gfx-contrast');
+        if (el) {
+            let desc = GFX_SETTINGS.contrast + '%';
+            if (GFX_SETTINGS.contrast === 100) desc += ' (Padrão)';
+            else if (GFX_SETTINGS.contrast >= 200) desc += ' (Forte)';
+            else if (GFX_SETTINGS.contrast >= 140) desc += ' (Alto)';
+            el.textContent = desc;
+        }
+        const s = document.getElementById('slider-contrast');
+        if (s && s.value != GFX_SETTINGS.contrast) s.value = GFX_SETTINGS.contrast;
     };
 
     window.__setGameVolume = function(val) {
@@ -1157,6 +1239,180 @@
         } catch(e) { return null; }
     }
 
+    let boostCoinGreenTexture = null;
+    function createBoostCoinAtlas(TextureClass) {
+        if (boostCoinGreenTexture) return boostCoinGreenTexture;
+        try {
+            if (typeof document !== 'undefined') {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256; canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    const gCore = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
+                    gCore.addColorStop(0.0, '#ffffff');
+                    gCore.addColorStop(0.24, '#a3ffb8');
+                    gCore.addColorStop(0.55, '#00e653');
+                    gCore.addColorStop(0.85, '#006b24');
+                    gCore.addColorStop(1.0, '#00260e');
+                    ctx.fillStyle = gCore;
+                    ctx.fillRect(0, 0, 128, 128);
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.shadowColor = '#00ff66';
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.moveTo(68, 20); ctx.lineTo(44, 64); ctx.lineTo(62, 64);
+                    ctx.lineTo(54, 108); ctx.lineTo(84, 56); ctx.lineTo(66, 56);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+
+                    const gRim = ctx.createLinearGradient(128, 0, 256, 128);
+                    gRim.addColorStop(0.0, '#85ffab');
+                    gRim.addColorStop(0.4, '#00c749');
+                    gRim.addColorStop(0.8, '#004719');
+                    gRim.addColorStop(1.0, '#2eff7b');
+                    ctx.fillStyle = gRim;
+                    ctx.fillRect(128, 0, 128, 128);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    for (let k = 0; k < 5; k++) ctx.fillRect(132 + k * 24, 48, 12, 32);
+
+                    ctx.fillStyle = '#003814';
+                    ctx.fillRect(0, 128, 128, 128);
+                    ctx.fillStyle = '#00ff66';
+                    for (let c = 0; c < 2; c++) {
+                        const ox = 26 + c * 38;
+                        ctx.beginPath();
+                        ctx.moveTo(ox, 150); ctx.lineTo(ox + 22, 192); ctx.lineTo(ox, 234);
+                        ctx.lineTo(ox + 16, 234); ctx.lineTo(ox + 38, 192); ctx.lineTo(ox + 16, 150);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+
+                    const gRing = ctx.createLinearGradient(128, 128, 256, 256);
+                    gRing.addColorStop(0.0, '#00ff73');
+                    gRing.addColorStop(0.5, '#7dffb3');
+                    gRing.addColorStop(1.0, '#009938');
+                    ctx.fillStyle = gRing;
+                    ctx.fillRect(128, 128, 128, 128);
+
+                    boostCoinGreenTexture = TextureClass.from(canvas);
+                }
+            }
+        } catch(e) {}
+        return boostCoinGreenTexture;
+    }
+
+    function getBoostCoinGreenTexture() {
+        if (boostCoinGreenTexture) return boostCoinGreenTexture;
+        try {
+            const origMap = window.__lib && window.__lib.getMap && window.__lib.getMap('props-tex');
+            return createBoostCoinAtlas(origMap && origMap.constructor);
+        } catch(e) { return null; }
+    }
+
+    function applyBoostCoinTexture(mesh) {
+        try {
+            const tex = getBoostCoinGreenTexture();
+            if (!mesh || !tex) return false;
+            let applied = false;
+            const visit = obj => {
+                if (!obj) return;
+                const view = obj.view3d || obj;
+                const source = view && view.material;
+                const materials = Array.isArray(source) ? source : (source ? [source] : []);
+                for (const material of materials) {
+                    if (!material) continue;
+                    material.diffuseMap = tex;
+                    if ('map' in material) material.map = tex;
+                    material.color = 0x00ff66;
+                    material.emissive = 0x00471a;
+                    material.emissiveIntensity = 0.35;
+                    applied = true;
+                }
+                const children = obj.children || (obj.container && obj.container.children);
+                if (children && children.length) {
+                    for (let i = 0; i < children.length; i++) visit(children[i]);
+                }
+            };
+            visit(mesh);
+            return applied;
+        } catch(e) { return false; }
+    }
+
+    window.__SW_GET_JOHNSURF_TEX__ = function() {
+        if (window.__SW_JOHNSURF_LOGO_TEX__) return window.__SW_JOHNSURF_LOGO_TEX__;
+        try {
+            const lib = window.__lib || (window.app && window.app.library);
+            const ref = lib && lib.getMap && (lib.getMap('props-tex') || lib.getMap('trains-tex') || lib.getMap('shadow'));
+            const TexCls = ref && ref.constructor;
+            if (TexCls && typeof TexCls.from === 'function') {
+                window.__SW_JOHNSURF_LOGO_TEX__ = TexCls.from(new URL('bundles/lasvegas/game-idle/train-start.png?h=johnsurf8', window.location.href).href);
+                return window.__SW_JOHNSURF_LOGO_TEX__;
+            }
+        } catch(e) {}
+        return null;
+    };
+
+    function enforceTrainStartLogo() {
+        try {
+            const tex = window.__SW_GET_JOHNSURF_TEX__ && window.__SW_GET_JOHNSURF_TEX__();
+            if (!tex) return;
+            const roots = [
+                window.app && window.app.game && window.app.game.idleScene,
+                window.app && window.app.game && window.app.game.scene,
+                window.game && window.game.scene
+            ].filter(Boolean);
+            for (const root of roots) {
+                const q = [root];
+                while (q.length) {
+                    const node = q.shift();
+                    const name = ((node.name || '') + ' ' + (node.materialName || '')).toLowerCase();
+                    if (name.includes('train_start') || name.includes('train-start') || (node.view3d && node.view3d.material && name.includes('start'))) {
+                        const v = node.view3d;
+                        if (v && v.material) {
+                            const mats = Array.isArray(v.material) ? v.material : [v.material];
+                            mats.forEach(m => {
+                                if (m && m.diffuseMap !== tex) {
+                                    m.diffuseMap = tex;
+                                    if ('map' in m) m.map = tex;
+                                    m.color = 0xffffff;
+                                    try { m.dirty = true; } catch(err) {}
+                                }
+                            });
+                        }
+                    }
+                    const ch = node.children || (node.container && node.container.children);
+                    if (ch) for (let i = 0; i < ch.length; i++) q.push(ch[i]);
+                }
+            }
+        } catch(e) {}
+    }
+
+    function hookLibraryGetMap() {
+        try {
+            const lib = window.__lib || (window.app && window.app.library);
+            if (lib && lib.getMap && !lib.__swHooked) {
+                lib.__swHooked = true;
+                const orig = lib.getMap.bind(lib);
+                lib.getMap = function(name) {
+                    if (name === 'train-start' || name === 'train_start') {
+                        const custom = window.__SW_GET_JOHNSURF_TEX__ && window.__SW_GET_JOHNSURF_TEX__();
+                        if (custom) return custom;
+                    }
+                    return orig(name);
+                };
+            }
+        } catch(e) {}
+    }
+    try {
+        hookLibraryGetMap();
+        setInterval(() => {
+            hookLibraryGetMap();
+            enforceTrainStartLogo();
+        }, 500);
+    } catch(e) {}
+
     function applyEnergyCoinTexture(mesh) {
         try {
             if (!mesh || !window.__lib || !window.__lib.getMap) return false;
@@ -1527,11 +1783,17 @@
     function updateEnergyHud() {
         const widget = document.getElementById('subway-energy-widget');
         if (!widget) return;
-        const inMatch = !!(isRunActive && !deathFrozen && !document.body.classList.contains('sw-hub-visible'));
-        widget.style.display = inMatch ? '' : 'none';
+        const g = window.game || (window.app && window.app.game);
+        const hero = g && g.hero;
+        const isRunning = !!(g && g.state === 1);
+        const isDead = deathFrozen || !isRunActive || !isRunning || (hero && hero.player && hero.player.dead);
+        const isPaused = window.isGamePaused || !isRunning || !!(g && (g.state === 0 || g.state === 2 || (g.hud && g.hud.paused && g.hud.paused.isOpen)));
+        const inMenu = document.body.classList.contains('sw-hub-visible') || !!document.getElementById('modal-unified-menu');
+        const showWidget = isRunActive && isRunning && !isDead && !isPaused && !inMenu;
+        widget.style.display = showWidget ? '' : 'none';
+        if (!showWidget) return;
         const fill = document.getElementById('subway-energy-fill');
         if (fill) fill.style.width = `${(skateEnergy / ENERGY_MAX) * 100}%`;
-        const hero = window.game && window.game.hero;
         const board = hero && hero.hoverboard;
         const active = !!(board && board.isOn && board.isOn());
         widget.querySelectorAll('.energy-segment').forEach((segment, index) => {
@@ -1669,7 +1931,7 @@
                 attractable.__normalMagnetUpdate = attractable.update;
                 attractable.__normalMagnetStart = attractable.attractionStart;
             }
-            if (isNoCoin) {
+            if (isNoCoin && !coin._isDashItem) {
                 attractable.active = false;
                 attractable.attracted = false;
                 attractable.update = function() {};
@@ -1701,21 +1963,53 @@
             coin._isDashItem = true;
             lastDashZ = coinZ;
             lastDashLaneX = coinX;
+            if (coin.attractable) {
+                if (coin.attractable.__normalMagnetUpdate) coin.attractable.update = coin.attractable.__normalMagnetUpdate;
+                if (coin.attractable.__normalMagnetStart) coin.attractable.attractionStart = coin.attractable.__normalMagnetStart;
+                coin.attractable.active = true;
+            }
             if (coin.body) {
                 coin.body.width = 6.2;
                 coin.body.height = 6.2;
                 coin.body.depth = 6.2;
             }
             if (coin.model) {
-                setEntityHexColor(coin.model, 0x00e5ff);
-                if (coin.model.scale) coin.model.scale.set(1.45, 1.45, 1.45);
+                applyBoostCoinTexture(coin.model);
+                setEntityHexColor(coin.model, 0x00ff66);
+                if (coin.model.scale) coin.model.scale.set(1.5, 1.5, 1.5);
             }
             if (coin.shine) {
                 coin.shine.active = true;
-                if (coin.shine.view) setEntityHexColor(coin.shine.view, 0x00e5ff);
+                if (coin.shine.view) setEntityHexColor(coin.shine.view, 0x00ff66);
             }
             return;
         }
+
+        // Prevent coins from being bugged inside moving trains or half wagons
+        try {
+            if (window.game && window.game.physics && Array.isArray(window.game.physics.entities)) {
+                for (const ent of window.game.physics.entities) {
+                    const b = ent && ent.body;
+                    if (!b || b.deco || b.player) continue;
+                    const speed = (ent && ent.movable && ent.movable.speed) || (b.velocity && Math.abs(b.velocity.z)) || 0;
+                    if (speed && Math.abs(b.x - coinX) < 8.5 && Math.abs(b.z - coinZ) < ((b.depth || 58) / 2 + 10)) {
+                        const topY = Number.isFinite(b.top) ? b.top : ((b.bottom || 0) + (b.height || 29));
+                        const cBtm = coin.body ? (coin.body.bottom !== undefined ? coin.body.bottom : (coin.body.y || 0)) : 0;
+                        if (cBtm < 8) {
+                            coin.active = false;
+                            coin.visible = false;
+                            if (coin.body) { coin.body.width = 0; coin.body.height = 0; coin.body.depth = 0; }
+                            return;
+                        } else if (cBtm < topY) {
+                            if (coin.body) coin.body.bottom = topY + 5.5;
+                            if (coin.movable && typeof coin.movable.run === 'function' && ent.movable) {
+                                coin.movable.run(ent.movable.speed, ent.movable.target);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch(e) {}
 
         // In No Coin Mode, clear adjacent coins right behind/ahead of a Dash item on the same lane
         if (isNoCoin && Math.abs(coinX - lastDashLaneX) < 5 && Math.abs(coinZ - lastDashZ) < 42) {
@@ -1745,8 +2039,33 @@
             }
         }
 
+        // Prevent coins directly on top of trampolines
+        if (customObstacles.some(obs => obs && obs.type === 'trampoline' && Math.abs(obs.x - coinX) < 16 && Math.abs(obs.z - coinZ) < 42)) {
+            coin.active = false;
+            coin.visible = false;
+            if (coin.body) { coin.body.width = 0; coin.body.height = 0; coin.body.depth = 0; }
+            return;
+        }
+
         if (coin.model) {
             setEntityHexColor(coin.model, isNoCoin ? 0xff1e1e : 0xffffff);
+            if (GFX_SETTINGS.coinOutline) {
+                try {
+                    if (!coin._outlineMesh && window.__lib && window.__lib.getEntity) {
+                        const ol = window.__lib.getEntity('currency_coin');
+                        if (ol) {
+                            setEntityHexColor(ol, 0x050505);
+                            ol.rx = Math.PI / 2;
+                            if (ol.scale) ol.scale.set(1.14, 1.14, 1.14);
+                            coin.addChild(ol);
+                            coin._outlineMesh = ol;
+                        }
+                    }
+                    if (coin._outlineMesh) coin._outlineMesh.visible = true;
+                } catch(e) {}
+            } else if (coin._outlineMesh) {
+                coin._outlineMesh.visible = false;
+            }
         }
         if (coin.shine) {
             coin.shine.active = !isNoCoin;
@@ -1758,7 +2077,7 @@
     window.__onDashCollect = function(coin) {
         dashInvulnUntil = Date.now() + 750;
         window.__dashSpeedMult = Math.min((window.__dashSpeedMult || 1.0) + 0.14, 1.95);
-        playCoinShatterEffect(coin, 0xffd84a, 1.35);
+        playCoinShatterEffect(coin, 0x00ff66, 1.45, 14, false, true);
 
         // Boost de tempo adicional (APENAS no modo online ativo)
         if (MP.inMatch && MPX.roundActive && !MPX.isPracticing && isRunActive && !deathFrozen) {
@@ -1853,13 +2172,29 @@
         }
     }
 
-    function playCoinShatterEffect(source = null, color = 0xffd84a, intensity = 1.25, fragmentCount = 10) {
+    function playCoinShatterEffect(source = null, color = 0xffd84a, intensity = 1.25, fragmentCount = 10, isBrokenCoin = false, isBoost = false) {
         if (fragmentCount > 0) spawnCoinWorldFragments(source, color, fragmentCount, intensity);
         const burst = document.createElement('div');
         burst.className = 'subway-coin-shatter';
         burst.setAttribute('aria-hidden', 'true');
-        burst.style.setProperty('--coin-burst-color', `#${color.toString(16).padStart(6, '0')}`);
-        burst.innerHTML = '<span class="coin-shatter-flash"></span><span class="coin-shatter-ring"></span><span class="coin-shatter-ring coin-shatter-ring-inner"></span><span class="coin-shatter-core">✦</span>';
+        const hex = `#${color.toString(16).padStart(6, '0')}`;
+        burst.style.setProperty('--coin-burst-color', hex);
+        if (isBrokenCoin) {
+            burst.innerHTML = '<span class="coin-shatter-flash" style="background: radial-gradient(circle at 50% 59%, rgba(255,46,77,0.5), transparent 42%);"></span>' +
+                '<span class="coin-shatter-ring" style="border-color: #ff2844;"></span>' +
+                '<div class="coin-broken-wrapper">' +
+                '<div class="coin-half coin-half-left"><svg viewBox="0 0 40 80" class="coin-half-svg"><path d="M 40,0 A 40,40 0 0,0 40,80 L 33,62 L 44,45 L 32,24 L 40,0 Z" fill="#ff2844" stroke="#ffffff" stroke-width="3"/><path d="M 28,14 A 25,25 0 0,0 28,66 L 31,52 L 23,38 L 31,22 Z" fill="#990014"/></svg></div>' +
+                '<div class="coin-half coin-half-right"><svg viewBox="0 0 40 80" class="coin-half-svg"><path d="M 0,0 L 7,24 L -5,45 L 7,62 L 0,80 A 40,40 0 0,0 0,0 Z" fill="#ff2844" stroke="#ffffff" stroke-width="3"/><path d="M 12,14 L 3,22 L 11,38 L 3,52 L 12,66 A 25,25 0 0,0 12,14 Z" fill="#990014"/></svg></div>' +
+                '<div class="coin-crack-spark">💥</div>' +
+                '</div>';
+        } else if (isBoost) {
+            burst.innerHTML = '<span class="coin-shatter-flash" style="background: radial-gradient(circle at 50% 59%, rgba(0,255,102,0.55), transparent 45%);"></span>' +
+                '<span class="coin-shatter-ring" style="border-color: #00ff66; box-shadow: 0 0 28px #00ff66;"></span>' +
+                '<span class="coin-shatter-ring coin-shatter-ring-inner" style="border-color: #a3ffb8;"></span>' +
+                '<span class="coin-shatter-core" style="background: radial-gradient(circle at 35% 30%, #e0ffe8, #00ff66 75%); box-shadow: 0 0 35px #00ff66; text-shadow: 0 0 16px #00ff66;">⚡</span>';
+        } else {
+            burst.innerHTML = '<span class="coin-shatter-flash"></span><span class="coin-shatter-ring"></span><span class="coin-shatter-ring coin-shatter-ring-inner"></span><span class="coin-shatter-core">✦</span>';
+        }
         const shardCount = Math.round(22 * Math.min(1.6, intensity));
         for (let i = 0; i < shardCount; i++) {
             const shard = document.createElement('i');
@@ -1919,8 +2254,11 @@
     // Called when player touches a coin in No Coin Mode
     window.__onNoCoinCollect = function(coin) {
         if (!window.NO_COIN_MODE) return;
+        const hero = window.game && window.game.hero;
+        const isJetpack = hero && hero.jetpack && ((hero.jetpack.isOn && hero.jetpack.isOn()) || hero.jetpack.active);
+        if (isJetpack) return;
         if (Date.now() < dashInvulnUntil) {
-            playCoinShatterEffect(coin, 0xff3a54, 1.1, 7);
+            playCoinShatterEffect(coin, 0xff2844, 1.35, 14, true, false);
             return;
         }
         if (coin && coin._isDashItem) return;
@@ -2156,8 +2494,14 @@
             }
             if (MP.inMatch && MPX.roundActive) {
                 if (MPX.isPracticing) {
+                    const noReviveActive = window.__SW_NO_REVIVE__ || (typeof GFX_SETTINGS !== 'undefined' && GFX_SETTINGS.noRevive);
+                    if (noReviveActive) {
+                        handleLocalMultiplayerDeath(runElapsedTime);
+                        return;
+                    }
                     setTimeout(() => {
-                        if (MPX.isPracticing && MPX.roundActive) {
+                        const noRevNow = window.__SW_NO_REVIVE__ || (typeof GFX_SETTINGS !== 'undefined' && GFX_SETTINGS.noRevive);
+                        if (MPX.isPracticing && MPX.roundActive && !noRevNow) {
                             try {
                                 ['saveme', 'gameover'].forEach(k => { const s = window.app && window.app[k]; if (s && s.close) s.close(); });
                                 if (window.app.game && typeof window.app.game.revive === 'function') {
@@ -2186,6 +2530,7 @@
     let obstacleChunkCount = 0;
     let trampolineCameraUntil = 0;
     let trampolineLaunchAt = 0;
+    let trampolineHitCount = 0;
 
     function cleanupCustomObstacles() {
         for (let i = 0; i < customObstacles.length; i++) {
@@ -2207,6 +2552,11 @@
             if (view && view.parent) {
                 try { view.parent.removeChild(view); } catch(e) {}
             }
+        }
+        if (obs.physicsEntity && window.game && window.game.physics && Array.isArray(window.game.physics.entities)) {
+            const idx = window.game.physics.entities.indexOf(obs.physicsEntity);
+            if (idx >= 0) window.game.physics.entities.splice(idx, 1);
+            obs.physicsEntity = null;
         }
     }
 
@@ -2345,17 +2695,89 @@
                     applyTrampolineGlow(mesh, 1);
                     bounds = { depth: 17.5, width: 17.5, height: 8, isTrampoline: true };
                 }
+            } else if (type === 'double_train') {
+                const getWagon = () => {
+                    try {
+                        if (window.__lib && window.__lib.hasGeometry && window.__lib.hasGeometry('train_standard')) return window.__lib.getEntity('train_standard');
+                    } catch(e) {}
+                    try {
+                        if (window.__lib && window.__lib.hasGeometry && window.__lib.hasGeometry('train_sub')) return window.__lib.getEntity('train_sub');
+                    } catch(e) {}
+                    try {
+                        return window.__lib.getEntity('train_start');
+                    } catch(e) {}
+                    return null;
+                };
+                const bottomWagon = getWagon();
+                const topWagon = getWagon();
+                if (bottomWagon) {
+                    bottomWagon.rx = 0; bottomWagon.rz = 0; bottomWagon.ry = Math.PI;
+                    mesh = bottomWagon;
+                    if (topWagon) {
+                        topWagon.rx = 0; topWagon.rz = 0; topWagon.ry = Math.PI;
+                        topWagon._yOffset = 29;
+                        topWagon._xOffset = 0;
+                        topWagon._zOffset = 0;
+                        try { setEntityHexColor(topWagon, 0x4a1e78); } catch(e) {}
+                        mesh._doubleTrainParts = [topWagon];
+                    }
+                    bounds = { depth: 60, width: 18, height: 58, isDoubleTrain: true };
+                }
+            } else if (type === 'wooden_ramp') {
+                const targetH = options.targetHeight || 29;
+                const rDepth = options.depth || (targetH >= 50 ? 150 : 85);
+                const rWidth = options.width || 18;
+                const getBlock = () => {
+                    try { return window.__lib.getEntity('dumpster'); } catch(e) {}
+                    try { return window.__lib.getEntity('blocker_jump'); } catch(e) {}
+                    return null;
+                };
+                const b1 = getBlock();
+                const b2 = getBlock();
+                const b3 = getBlock();
+                if (b1) {
+                    const stepH1 = targetH * 0.33;
+                    const stepH2 = targetH * 0.67;
+                    const stepH3 = targetH * 1.00;
+                    const segD = rDepth * 0.34;
+                    b1.scale.set(rWidth / 16, stepH1 / 12, segD / 10);
+                    b1.rx = 0; b1.rz = 0; b1.ry = Math.PI;
+                    setEntityHexColor(b1, 0x543217);
+                    b1._zOffset = segD;
+                    b1._yOffset = 0;
+                    b1._xOffset = 0;
+
+                    if (b2) {
+                        b2.scale.set(rWidth / 16, stepH2 / 12, segD / 10);
+                        b2.rx = 0; b2.rz = 0; b2.ry = Math.PI;
+                        setEntityHexColor(b2, 0x6d401e);
+                        b2._zOffset = 0;
+                        b2._yOffset = 0;
+                        b2._xOffset = 0;
+                    }
+                    if (b3) {
+                        b3.scale.set(rWidth / 16, stepH3 / 12, segD / 10);
+                        b3.rx = 0; b3.rz = 0; b3.ry = Math.PI;
+                        setEntityHexColor(b3, 0x8b5428);
+                        b3._zOffset = -segD;
+                        b3._yOffset = 0;
+                        b3._xOffset = 0;
+                    }
+                    mesh = b1;
+                    mesh._woodenRampParts = [b2, b3].filter(Boolean);
+                    bounds = { depth: rDepth, width: rWidth, height: targetH, isWoodenRamp: true };
+                }
             }
 
             if (!mesh) return null;
             mesh.x = x;
             mesh.y = y;
             mesh.z = z;
-            const parts = (mesh._energyCoinParts || mesh._trampolineTargetParts || []).slice();
+            const parts = (mesh._energyCoinParts || mesh._trampolineTargetParts || mesh._doubleTrainParts || mesh._woodenRampParts || []).slice();
             for (const part of parts) {
-                part.x = x;
-                part.y = y;
-                part.z = z + (part._energyCoinDepthOffset || 0);
+                part.x = x + (part._xOffset || 0);
+                part.y = y + (part._yOffset || 0);
+                part.z = z + (part._zOffset || part._energyCoinDepthOffset || 0);
             }
 
             // Reformulated dynamic ground/platform contact shadow for Shaders mode
@@ -2407,7 +2829,7 @@
                 for (const part of parts) {
                     try { hero.parent.addChild(part); } catch(e) {}
                 }
-                return {
+                const obsObj = {
                     type,
                     x, y, z,
                     mesh,
@@ -2422,6 +2844,53 @@
                     speed: options.speed || 1.8,
                     phase: options.phase || 0
                 };
+                if (window.game && window.game.physics && Array.isArray(window.game.physics.entities)) {
+                    if (type === 'wooden_ramp') {
+                        const physRamp = {
+                            _custom: true,
+                            ramp: true,
+                            body: {
+                                x: x, y: y + bounds.height * 0.5, z: z,
+                                width: bounds.width, height: bounds.height, depth: bounds.depth,
+                                top: y + bounds.height, bottom: y,
+                                left: x - bounds.width * 0.5, right: x + bounds.width * 0.5,
+                                front: z - bounds.depth * 0.5, back: z + bounds.depth * 0.5,
+                                box: {
+                                    center: { x, y: y + bounds.height * 0.5, z },
+                                    size: { x: bounds.width, y: bounds.height, z: bounds.depth },
+                                    left: x - bounds.width * 0.5, right: x + bounds.width * 0.5,
+                                    top: y + bounds.height, bottom: y,
+                                    front: z - bounds.depth * 0.5, back: z + bounds.depth * 0.5
+                                },
+                                deco: false, ghost: false, player: false
+                            }
+                        };
+                        window.game.physics.entities.push(physRamp);
+                        obsObj.physicsEntity = physRamp;
+                    } else if (type === 'double_train') {
+                        const physTrain = {
+                            _custom: true,
+                            body: {
+                                x: x, y: y + 29, z: z,
+                                width: 18, height: 58, depth: 60,
+                                top: y + 58, bottom: y,
+                                left: x - 9, right: x + 9,
+                                front: z - 30, back: z + 30,
+                                box: {
+                                    center: { x, y: y + 29, z },
+                                    size: { x: 18, y: 58, z: 60 },
+                                    left: x - 9, right: x + 9,
+                                    top: y + 58, bottom: y,
+                                    front: z - 30, back: z + 30
+                                },
+                                deco: false, ghost: false, player: false
+                            }
+                        };
+                        window.game.physics.entities.push(physTrain);
+                        obsObj.physicsEntity = physTrain;
+                    }
+                }
+                return obsObj;
             }
         } catch(e) {}
         return null;
@@ -2486,6 +2955,29 @@
         return cushion;
     }
 
+    function clearCoinsOnTrampoline(pad) {
+        if (!pad) return;
+        for (let i = customObstacles.length - 1; i >= 0; i--) {
+            const c = customObstacles[i];
+            if (!c || (c.type !== 'coin' && c.type !== 'energyCoin')) continue;
+            if (Math.abs(c.x - pad.x) < 16 && Math.abs(c.z - pad.z) < 42) {
+                removeObstacleViews(c);
+                customObstacles.splice(i, 1);
+            }
+        }
+        if (window.__activeCoins) {
+            for (const c of window.__activeCoins) {
+                if (!c || !c.active || !c.body) continue;
+                if (Math.abs(c.body.x - pad.x) < 16 && Math.abs(c.body.z - pad.z) < 42) {
+                    c.active = false;
+                    c.visible = false;
+                    if (c.model) c.model.visible = false;
+                    c.body.width = 0; c.body.height = 0; c.body.depth = 0;
+                }
+            }
+        }
+    }
+
     function breakRedCoinsNearTrampoline(pad) {
         if (!window.NO_COIN_MODE || !pad) return 0;
         let broken = 0;
@@ -2538,8 +3030,11 @@
         obs.partBaseScales = (obs.parts || []).map(part => part.scale ? {
             x: part.scale.x, y: part.scale.y, z: part.scale.z, yPos: part.y
         } : { x: 1, y: 1, z: 1, yPos: part.y });
+        clearCoinsOnTrampoline(obs);
         breakRedCoinsNearTrampoline(obs);
+        trampolineHitCount = 0;
         try {
+            if (heroBody) heroBody.ghost = true;
             if (hero.jump && hero.jump.perform) hero.jump.perform(72, true);
             else if (heroBody.velocity) heroBody.velocity.y = 68;
             trampolineLaunchAt = now;
@@ -3000,10 +3495,13 @@
             const feetY = Number.isFinite(heroBody.bottom) ? heroBody.bottom : heroY;
             const groundY = Number.isFinite(heroBody.ground) ? heroBody.ground : 0;
             const elapsedAir = Date.now() - trampolineLaunchAt;
+            heroBody.ghost = true;
             if (elapsedAir > 180 && (heroBody.landed || feetY <= groundY + 0.55)) {
                 trampolineCameraUntil = 0;
                 trampolineLaunchAt = 0;
+                trampolineHitCount = 0;
                 window.__SW_TRAMPOLINE_AIR_UNTIL__ = 0;
+                heroBody.ghost = false;
                 hero.player.cameraTargetY = groundY;
                 hero.player.cameraY = groundY;
             } else {
@@ -3024,7 +3522,9 @@
         // Resolve spring contact before coin collisions so nearby No Coin
         // pickups shatter instead of ending the run on the same frame.
         for (const pad of customObstacles) {
-            if (!pad || pad.type !== 'trampoline' || pad.used) continue;
+            if (!pad || pad.type !== 'trampoline') continue;
+            clearCoinsOnTrampoline(pad);
+            if (pad.used) continue;
             const dz = Math.abs(pad.z - heroZ);
             const dx = Math.abs(pad.x - heroX);
             const dy = Math.abs(pad.y - heroY);
@@ -3222,19 +3722,32 @@
                     }
 
                     if (now < trampolineCameraUntil) {
-                        obs.destroyed = true;
-                        playCoinShatterEffect(obs, 0xffd84a, 1.2);
-                        removeObstacleViews(obs);
-                        customObstacles.splice(i, 1);
-                        try {
-                            if (hero && hero.player && typeof hero.player.dizzyStart === 'function') hero.player.dizzyStart();
-                            if (hero.jump && hero.jump.perform) hero.jump.perform(58, true);
-                            else if (heroBody.velocity) heroBody.velocity.y = 56;
-                            trampolineLaunchAt = now;
-                            trampolineCameraUntil = now + 2600;
-                            window.__SW_TRAMPOLINE_AIR_UNTIL__ = trampolineCameraUntil;
-                        } catch(e) {}
-                        continue;
+                        trampolineHitCount++;
+                        if (trampolineHitCount <= 1) {
+                            obs.destroyed = true;
+                            playCoinShatterEffect(obs, 0xffd84a, 1.2);
+                            removeObstacleViews(obs);
+                            customObstacles.splice(i, 1);
+                            try {
+                                if (hero && hero.player && typeof hero.player.dizzyStart === 'function') hero.player.dizzyStart();
+                                else if (hero && hero.player && typeof hero.player.stumble === 'function') hero.player.stumble();
+                                if (hero.jump && hero.jump.perform) hero.jump.perform(58, true);
+                                else if (heroBody.velocity) heroBody.velocity.y = 56;
+                                trampolineLaunchAt = now;
+                                trampolineCameraUntil = now + 2400;
+                                window.__SW_TRAMPOLINE_AIR_UNTIL__ = trampolineCameraUntil;
+                            } catch(e) {}
+                            continue;
+                        } else {
+                            trampolineCameraUntil = 0;
+                            if (window.NO_COIN_MODE) {
+                                triggerNoCoinDeath(null);
+                                return;
+                            } else if (hero && hero.player && typeof hero.player.die === 'function') {
+                                hero.player.die('train');
+                                return;
+                            }
+                        }
                     }
 
                     obs.destroyed = true;
@@ -5528,6 +6041,24 @@
                             <span class="setting-pill" id="val-gfx-motionblur">${getMotionBlurLabel(GFX_SETTINGS.motionBlur)}</span>
                         </div>
 
+                        <!-- Resolução do Jogo Setting -->
+                        <div class="subway-setting-row" onclick="window.__cycleResolution()" title="Diminua a escala para aumentar o FPS e reduzir delay">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Resolução do Jogo</span>
+                                <span class="setting-desc">Diminua a escala para mais FPS e zero delay</span>
+                            </div>
+                            <span class="setting-pill" id="val-gfx-resolution">${getResolutionLabel(GFX_SETTINGS.resolution)}</span>
+                        </div>
+
+                        <!-- Contorno Preto nas Moedas Setting -->
+                        <div class="subway-setting-row" onclick="window.__toggleCoinOutline()" title="Contorno preto nas moedas para melhor visibilidade">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Contorno Preto nas Moedas</span>
+                                <span class="setting-desc">Destaca as moedas com borda nítida</span>
+                            </div>
+                            <span class="setting-pill" id="val-gfx-coinoutline">${GFX_SETTINGS.coinOutline ? 'Ativado' : 'Desativado'}</span>
+                        </div>
+
                         <!-- No Revive (Hardcore) Setting -->
                         <div class="subway-setting-row" onclick="window.__toggleNoRevive()" title="Bloqueia reviver por chave/moeda ou anúncio">
                             <div class="setting-text-col">
@@ -5542,18 +6073,38 @@
                     <div class="subway-setting-card">
                         <div class="setting-row-top">
                             <div class="setting-text-col">
-                                <span class="setting-title">Saturação de Cores</span>
-                                <span class="setting-desc">Intensidade das cores na tela</span>
+                                <span class="setting-title">Saturação e Vibração</span>
+                                <span class="setting-desc">Intensidade e vibração das cores (até 300%)</span>
                             </div>
                             <span class="setting-pill" id="val-gfx-saturation">${GFX_SETTINGS.saturation}%</span>
                         </div>
                         <div class="sat-slider-wrap">
-                            <input type="range" id="slider-saturation" min="50" max="200" step="5" value="${GFX_SETTINGS.saturation}" oninput="window.__setSaturation(this.value)" />
+                            <input type="range" id="slider-saturation" min="50" max="300" step="5" value="${GFX_SETTINGS.saturation}" oninput="window.__setSaturation(this.value)" />
                             <div class="sat-presets-row">
-                                <button class="btn-sat-chip" onclick="window.__setSaturation(70)">70% Suave</button>
                                 <button class="btn-sat-chip" onclick="window.__setSaturation(100)">100% Padrão</button>
-                                <button class="btn-sat-chip" onclick="window.__setSaturation(135)">135% Vívido</button>
-                                <button class="btn-sat-chip" onclick="window.__setSaturation(170)">170% Intenso</button>
+                                <button class="btn-sat-chip" onclick="window.__setSaturation(160)">160% Vívido</button>
+                                <button class="btn-sat-chip" onclick="window.__setSaturation(220)">220% Forte</button>
+                                <button class="btn-sat-chip" onclick="window.__setSaturation(300)">300% Máximo</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contrast Slider Card -->
+                    <div class="subway-setting-card">
+                        <div class="setting-row-top">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Contraste da Imagem</span>
+                                <span class="setting-desc">Acentuação de luz e sombras (até 300%)</span>
+                            </div>
+                            <span class="setting-pill" id="val-gfx-contrast">${GFX_SETTINGS.contrast}%</span>
+                        </div>
+                        <div class="sat-slider-wrap">
+                            <input type="range" id="slider-contrast" min="50" max="300" step="5" value="${GFX_SETTINGS.contrast}" oninput="window.__setContrast(this.value)" />
+                            <div class="sat-presets-row">
+                                <button class="btn-sat-chip" onclick="window.__setContrast(85)">85% Suave</button>
+                                <button class="btn-sat-chip" onclick="window.__setContrast(100)">100% Padrão</button>
+                                <button class="btn-sat-chip" onclick="window.__setContrast(150)">150% Alto</button>
+                                <button class="btn-sat-chip" onclick="window.__setContrast(220)">220% Forte</button>
                             </div>
                         </div>
                     </div>
@@ -6120,12 +6671,12 @@
             .world-tour-banner .wt-city { font-size: 14px; font-weight: 900; letter-spacing: 1px; color: #fff; }
 
             
-            /* Canvas Saturation & Visual Fidelity */
+            /* Canvas Saturation, Contrast & Ultra-Low Latency */
             canvas {
-                touch-action: manipulation !important;
+                touch-action: none !important;
                 -webkit-touch-callout: none !important;
                 user-select: none !important;
-                filter: saturate(var(--game-saturation, 100%));
+                filter: saturate(var(--game-saturation, 100%)) contrast(var(--game-contrast, 100%));
             }
 
             .gfx-state-pill {
@@ -7455,6 +8006,45 @@
                 text-shadow: 0 2px 0 #a34b00, 0 0 14px #fff;
                 box-shadow: 0 0 30px var(--coin-burst-color), 0 6px 0 #6f3500;
                 animation: coinShatterCore .5s cubic-bezier(.15,.9,.2,1) forwards;
+            }
+            .coin-broken-wrapper {
+                position: absolute; left: 50%; top: 59%; width: 84px; height: 84px;
+                margin: -42px 0 0 -42px; pointer-events: none;
+            }
+            .coin-half {
+                position: absolute; width: 42px; height: 84px; top: 0;
+            }
+            .coin-half-left {
+                left: 0; transform-origin: left bottom;
+                animation: coinSplitLeft .48s cubic-bezier(.12,.8,.2,1) forwards;
+            }
+            .coin-half-right {
+                left: 42px; transform-origin: right bottom;
+                animation: coinSplitRight .48s cubic-bezier(.12,.8,.2,1) forwards;
+            }
+            .coin-half-svg {
+                width: 42px; height: 84px; display: block;
+                filter: drop-shadow(0 0 12px #ff1e38);
+            }
+            .coin-crack-spark {
+                position: absolute; left: 50%; top: 50%; margin: -22px 0 0 -22px;
+                width: 44px; height: 44px; font-size: 34px; display: grid; place-items: center;
+                animation: coinCrackFlash .38s ease-out forwards;
+            }
+            @keyframes coinSplitLeft {
+                0% { transform: scale(1) translate(0, 0) rotate(0deg); opacity: 1; }
+                40% { transform: scale(1.15) translate(-16px, 6px) rotate(-18deg); opacity: 1; }
+                100% { transform: scale(.72) translate(-46px, 32px) rotate(-42deg); opacity: 0; }
+            }
+            @keyframes coinSplitRight {
+                0% { transform: scale(1) translate(0, 0) rotate(0deg); opacity: 1; }
+                40% { transform: scale(1.15) translate(16px, 8px) rotate(20deg); opacity: 1; }
+                100% { transform: scale(.72) translate(46px, 34px) rotate(45deg); opacity: 0; }
+            }
+            @keyframes coinCrackFlash {
+                0% { transform: scale(.3); opacity: 1; filter: brightness(2.2); }
+                50% { transform: scale(1.6); opacity: 1; }
+                100% { transform: scale(2.4); opacity: 0; }
             }
             .coin-shatter-shard {
                 position: absolute; left: 50%; top: 59%; width: 7px; height: 23px;
