@@ -39114,17 +39114,22 @@
           return;
         }
         t.__swBaseScale && t.scale.set(t.__swBaseScale.x, t.__swBaseScale.y, t.__swBaseScale.z);
-        const resetTint = obj => {
+        const jakeTint = "number" == typeof window.__SW_JAKE_TINT__ ? window.__SW_JAKE_TINT__ : 16777215;
+        const applyTint = obj => {
           if (!obj) return;
           const v = obj.view3d;
           if (v && v.material) {
             const mats = Array.isArray(v.material) ? v.material : [v.material];
-            mats.forEach(m => { m && (m.color = 16777215); });
+            mats.forEach(m => {
+              if (!m) return;
+              const isEye = m.name && /eye/i.test(m.name);
+              m.color = isEye ? 16777215 : jakeTint;
+            });
           }
           const ch = obj.children || (obj.container && obj.container.children);
-          if (ch) for (let k = 0; k < ch.length; k++) resetTint(ch[k]);
+          if (ch) for (let k = 0; k < ch.length; k++) applyTint(ch[k]);
         };
-        resetTint(t);
+        applyTint(t);
       }
       const a = i ? n.outfits[i - 1] : n,
         s = o.a.findEntity(t, "SkeletalMeshComponent0", 4, a.features);

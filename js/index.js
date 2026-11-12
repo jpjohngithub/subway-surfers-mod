@@ -7691,10 +7691,12 @@
         _0x47777a = "string" == typeof _0x25cfb3.screenMask ? this.getMap(_0x25cfb3.screenMask) : _0x25cfb3.screenMask,
         _0x10bd64 = _0x25cfb3.material ? _0x25cfb3.material : _0x202f8d.a;
       null === (_0x1d2ca5 = _0xb40e55.a.applyMaterialOpts) || void 0 === _0x1d2ca5 || _0x1d2ca5.call(_0xb40e55.a, _0x2cdce5, _0x17dac2, _0x25cfb3);
+      const _0xisFxBlend = !!(_0x25cfb3.blendMode || (_0x17dac2 && (_0x17dac2.includes("shadow") || _0x17dac2.includes("glow") || _0x17dac2.includes("water") || _0x17dac2.includes("ice") || _0x17dac2.includes("light"))));
       const _0x5274d1 = _0x25cfb3.color ? new _0x10bd64({
           color: _0x25cfb3.color,
           customFog: !!_0x25cfb3.fog,
-          fogMultiplier: _0x25cfb3.fogMultiplier
+          fogMultiplier: _0x25cfb3.fogMultiplier,
+          isFxBlend: _0xisFxBlend
         }) : new _0x10bd64({
           map: _0x478308,
           diffuseMap: _0x478308,
@@ -7702,7 +7704,8 @@
           rails: !!_0x25cfb3.rails,
           screenMask: _0x47777a,
           reflectCube: _0x25cfb3.reflectCube,
-          fogMultiplier: _0x25cfb3.fogMultiplier
+          fogMultiplier: _0x25cfb3.fogMultiplier,
+          isFxBlend: _0xisFxBlend
         }),
         _0x4303ac = new _0x2a24d4.State();
       _0x25cfb3.opacity && (_0x5274d1.opacity = _0x25cfb3.opacity), _0x4303ac.depthTest = true, _0x4303ac.blend = !!_0x25cfb3.opacity && _0x25cfb3.opacity < 1, _0x4303ac.culling = true, _0x25cfb3.blendMode && (_0x4303ac.blendMode = _0x25cfb3.blendMode), false === _0x25cfb3.depthMask && (_0x4303ac.depthMask = false);
@@ -11115,6 +11118,13 @@
       writable: true
     }) : _0x3f9aea[_0x2cd33f] = _0x54c718, _0x3f9aea;
   }
+  const _0xswShaderExt = {
+    name: "swShaderLight",
+    fragment: {
+      header: "\n            uniform vec4 uSwShader;\n        ",
+      end: "\n            if (uSwShader.x > 0.1) {\n                float swLv = uSwShader.x;\n                vec3 swN = normalize(vWorldNormal + vec3(0.0, 0.0001, 0.0));\n                vec3 swSun = normalize(vec3(0.42, 0.84, 0.34));\n                float swNdl = clamp(dot(swN, swSun), -1.0, 1.0);\n                float swDiff = smoothstep(-0.35, 0.85, swNdl);\n                vec3 swShadeCol = swLv > 1.5 ? vec3(0.32, 0.42, 0.72) : vec3(0.48, 0.57, 0.78);\n                vec3 swSunCol = swLv > 1.5 ? vec3(1.22, 1.12, 0.96) : vec3(1.12, 1.06, 0.96);\n                vec3 swLightTint = mix(swShadeCol, swSunCol, swDiff);\n                float swSpec = pow(max(dot(swN, normalize(swSun - eyeToSurfaceDir)), 0.0), swLv > 1.5 ? 24.0 : 32.0);\n                float swFres = pow(1.0 - max(dot(swN, -eyeToSurfaceDir), 0.0), 3.0);\n                vec3 swRim = mix(vec3(0.28, 0.72, 1.0), vec3(1.0, 0.86, 0.56), clamp(swNdl * 0.5 + 0.5, 0.0, 1.0));\n                vec2 swHoriz = (worldPosition.xz - vec2(uSwShader.y + 0.6, uSwShader.w + 0.85));\n                float swH = max(0.0, uSwShader.z - worldPosition.y);\n                float swRad = 4.6 + swH * 0.12;\n                float swSpot = 1.0 - smoothstep(swRad * 0.35, swRad, length(swHoriz * vec2(1.05, 0.82)));\n                float swFadeH = 1.0 - smoothstep(0.0, 30.0, swH);\n                float swProj = (swN.y > 0.65 && uSwShader.z >= worldPosition.y - 0.5) ? swSpot * swFadeH * (swLv > 1.5 ? 0.68 : 0.48) : 0.0;\n                float swStrength = swLv > 1.5 ? 1.0 : 0.62;\n                vec3 swLit = finalColor.rgb * mix(vec3(1.0), swLightTint, swStrength) * (1.0 - swProj);\n                swLit += (swSpec * (swLv > 1.5 ? 0.22 : 0.10)) * swSunCol * diffuseColor.a;\n                swLit += (swFres * (swLv > 1.5 ? 0.18 : 0.08)) * swRim * diffuseColor.a;\n                if (swLv > 1.5) {\n                    swLit = pow(max(swLit, vec3(0.0)), vec3(0.94)) * vec3(1.04, 1.02, 1.01);\n                }\n                finalColor.rgb = swLit;\n            }\n        "
+    }
+  };
   const _0x245df7 = {
     bend: true,
     fastNormals: true
@@ -11141,6 +11151,11 @@
         var _0x566615;
         const _0x489d37 = Object(_0x26089b.a)(null !== (_0x566615 = _0x57788c.maxBones) && void 0 !== _0x566615 ? _0x566615 : _0x1e11eb.a.MAX_BONES);
         _0x22f742.extensions.push(_0x489d37);
+      }
+      if (!_0x57788c.isFxBlend && _0x22f742.extensions) {
+        window.__SW_SHADER_VEC__ || (window.__SW_SHADER_VEC__ = new Float32Array([1.0, 0.0, 0.0, 0.0]));
+        _0x16bb44.uSwShader = window.__SW_SHADER_VEC__;
+        _0x22f742.extensions.push(_0xswShaderExt);
       }
       _0x57788c.screenMask && _0x22f742.extensions && (_0x22f742.extensions.push(_0x4bb817), _0x16bb44.uScreenMask = _0x57788c.screenMask), _0x57788c.bend && _0x22f742.extensions && _0x22f742.extensions.push(_0x53aa24), _0x57788c.fogMultiplier && _0x22f742.extensions && _0x22f742.extensions.push({
         fragment: {

@@ -179,6 +179,9 @@
     function applyShaderAndShadowPipeline() {
         const mode = GFX_SETTINGS.shaders || 'medium';
         window.__SW_SHADER_MODE__ = mode;
+        const lv = mode === 'ultra' ? 2.0 : (mode === 'medium' ? 1.0 : 0.0);
+        if (!window.__SW_SHADER_VEC__) window.__SW_SHADER_VEC__ = new Float32Array([lv, 0, 0, 0]);
+        window.__SW_SHADER_VEC__[0] = lv;
         const tex = ensureReformulatedShadowTexture();
         if (tex) window.__SW_SHADOW_TEX__ = tex;
 
@@ -320,6 +323,17 @@
         if (_fpsHooked) return;
         const ticker = window.__SW_TICKER_SYSTEM__ || window.__SW_TICKER_SHARED__ || (window.app && window.app.ticker);
         const sampleNow = () => {
+            try {
+                const sv = window.__SW_SHADER_VEC__;
+                if (sv && sv[0] > 0.1) {
+                    const hb = window.game && window.game.hero && window.game.hero.body;
+                    if (hb) {
+                        sv[1] = hb.x || 0;
+                        sv[2] = Number.isFinite(hb.bottom) ? hb.bottom : (hb.y || 0);
+                        sv[3] = hb.z || 0;
+                    }
+                }
+            } catch(e) {}
             _fpsTickFrames++;
             const now = performance.now();
             const dt = now - _fpsLastSample;
@@ -396,9 +410,9 @@
         if (!canvas) return;
         const sh = GFX_SETTINGS.shaders || 'medium';
         if (sh === 'ultra') {
-            canvas.style.filter = `contrast(1.13) brightness(1.03) saturate(${Math.round(saturation * 1.06)}%)`;
+            canvas.style.filter = `contrast(1.16) brightness(1.04) saturate(${Math.round(saturation * 1.08)}%)`;
         } else if (sh === 'medium') {
-            canvas.style.filter = `contrast(1.06) brightness(1.01) saturate(${saturation}%)`;
+            canvas.style.filter = `contrast(1.08) brightness(1.01) saturate(${saturation}%)`;
         } else {
             canvas.style.filter = `saturate(${saturation}%)`;
         }
@@ -4987,63 +5001,36 @@
     let hubSwitching = false;
 
     function getSkinCatalog() {
-        const CHAR_META = {
-            stick:  { name: 'Stick Preto', skins: ['Totalmente Preto'] },
-            jake:   { name: 'Jake',        skins: ['Clássico', 'Dark', 'Star'] },
-            tricky: { name: 'Tricky',      skins: ['Clássica', 'Camo', 'Heart'] },
-            fresh:  { name: 'Fresh',       skins: ['Clássico', 'Sport', 'Funk'] },
-            spike:  { name: 'Spike',       skins: ['Clássico', 'Punk', 'Rock'] },
-            yutani: { name: 'Yutani',      skins: ['Clássica'] },
-            lucy:   { name: 'Lucy',        skins: ['Clássica', 'Goth', 'Steam'] },
-            tagbot: { name: 'Tagbot',      skins: ['Clássico', 'Space', 'Toy'] },
-            ninja:  { name: 'Ninja',       skins: ['Clássico', 'Flame', 'Yang'] },
-            tasha:  { name: 'Tasha',       skins: ['Clássica', 'Gym', 'Cheer'] },
-            king:   { name: 'King',        skins: ['Clássico', 'Count', 'Royal'] },
-            frizzy: { name: 'Frizzy',      skins: ['Clássica', 'Gold', 'Copper'] },
-            brody:  { name: 'Brody',       skins: ['Clássico', 'Chill', 'Posy'] }
-        };
-        const list = [];
-        const src = (Array.isArray(window.__SW_CHARS_DATA__) && window.__SW_CHARS_DATA__.length)
-            ? window.__SW_CHARS_DATA__
-            : Object.keys(CHAR_META).map(id => ({ id, outfits: new Array(Math.max(0, CHAR_META[id].skins.length - 1)).fill({}) }));
-
-        for (const ch of src) {
-            if (!ch || !ch.id) continue;
-            const meta = CHAR_META[ch.id] || { name: ch.id.toUpperCase(), skins: ['Padrão'] };
-            list.push({
-                charId: ch.id,
-                outfit: 0,
-                title: meta.name,
-                sub: meta.skins[0] || (ch.id === 'stick' ? 'Totalmente Preto' : 'Clássico')
-            });
-            const outs = Array.isArray(ch.outfits) ? ch.outfits : [];
-            for (let oi = 0; oi < outs.length; oi++) {
-                list.push({
-                    charId: ch.id,
-                    outfit: oi + 1,
-                    title: meta.name,
-                    sub: meta.skins[oi + 1] || ('Skin ' + (oi + 2))
-                });
-            }
-        }
-        return list;
+        return [
+            { skinId: 'jake_classic', charId: 'jake',  outfit: 0, tint: null,     title: 'Jake', sub: 'Clássico' },
+            { skinId: 'jake_dark',    charId: 'jake',  outfit: 1, tint: null,     title: 'Jake', sub: 'Dark' },
+            { skinId: 'jake_star',    charId: 'jake',  outfit: 2, tint: null,     title: 'Jake', sub: 'Star' },
+            { skinId: 'jake_stick',   charId: 'stick', outfit: 0, tint: null,     title: 'Jake', sub: 'Stick Preto' },
+            { skinId: 'jake_cyan',    charId: 'jake',  outfit: 0, tint: 0x38bdf8, title: 'Jake', sub: 'Neon Ciano' },
+            { skinId: 'jake_gold',    charId: 'jake',  outfit: 2, tint: 0xffd147, title: 'Jake', sub: 'Dourado' },
+            { skinId: 'jake_crimson', charId: 'jake',  outfit: 1, tint: 0xff4d6d, title: 'Jake', sub: 'Carmesim' },
+            { skinId: 'jake_violet',  charId: 'jake',  outfit: 0, tint: 0xc084fc, title: 'Jake', sub: 'Roxo Violeta' },
+            { skinId: 'jake_emerald', charId: 'jake',  outfit: 0, tint: 0x34d399, title: 'Jake', sub: 'Esmeralda' },
+        ];
     }
 
     async function applySkinSelection(entry, silent) {
         if (!entry || hubSwitching) return;
         hubSwitching = true;
         try {
+            window.__SW_JAKE_TINT__ = typeof entry.tint === 'number' ? entry.tint : null;
+            localStorage.setItem('sw_selected_skin', entry.skinId || '');
             localStorage.setItem('sw_selected_char', entry.charId);
             localStorage.setItem('sw_selected_outfit', String(entry.outfit || 0));
 
             const catalog = getSkinCatalog();
-            const foundIdx = catalog.findIndex(x => x.charId === entry.charId && x.outfit === entry.outfit);
+            const foundIdx = catalog.findIndex(x => (entry.skinId && x.skinId === entry.skinId) || (x.charId === entry.charId && x.outfit === entry.outfit));
             if (foundIdx >= 0) hubSkinIndex = foundIdx;
             updateSkinHubLabels(entry, catalog.length);
 
             const app = window.app;
             if (app && app.user) {
-                const loadId = entry.charId === 'stick' ? 'jake' : entry.charId;
+                const loadId = 'jake';
                 try {
                     if (app.loader && typeof app.loader.loadCharacter === 'function') {
                         await app.loader.loadCharacter(loadId, false);
@@ -5127,15 +5114,16 @@
 
         if (show && !hubSkinAppliedInitial && app && app.user && app.loader) {
             hubSkinAppliedInitial = true;
+            const savedSkin = localStorage.getItem('sw_selected_skin') || '';
             const savedChar = localStorage.getItem('sw_selected_char') || app.user.character || 'jake';
             const savedOutfit = parseInt(localStorage.getItem('sw_selected_outfit') || String(app.user.outfit || 0), 10) || 0;
             const catalog = getSkinCatalog();
-            const idx = catalog.findIndex(x => x.charId === savedChar && x.outfit === savedOutfit);
-            if (idx >= 0) {
+            let idx = savedSkin ? catalog.findIndex(x => x.skinId === savedSkin) : -1;
+            if (idx < 0) idx = catalog.findIndex(x => x.charId === savedChar && x.outfit === savedOutfit);
+            if (idx < 0) idx = 0;
+            if (catalog.length) {
                 hubSkinIndex = idx;
                 applySkinSelection(catalog[idx], true);
-            } else if (catalog.length) {
-                updateSkinHubLabels(catalog[hubSkinIndex], catalog.length);
             }
         }
     }
@@ -5165,10 +5153,13 @@
         document.body.appendChild(hub);
 
         const catalog = getSkinCatalog();
+        const savedSkin = localStorage.getItem('sw_selected_skin') || '';
         const savedChar = localStorage.getItem('sw_selected_char') || 'jake';
         const savedOutfit = parseInt(localStorage.getItem('sw_selected_outfit') || '0', 10) || 0;
-        const idx = catalog.findIndex(x => x.charId === savedChar && x.outfit === savedOutfit);
-        if (idx >= 0) hubSkinIndex = idx;
+        let idx = savedSkin ? catalog.findIndex(x => x.skinId === savedSkin) : -1;
+        if (idx < 0) idx = catalog.findIndex(x => x.charId === savedChar && x.outfit === savedOutfit);
+        if (idx < 0) idx = 0;
+        hubSkinIndex = idx;
         if (catalog.length) updateSkinHubLabels(catalog[hubSkinIndex], catalog.length);
 
         window.addEventListener('keydown', function(e) {
