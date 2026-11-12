@@ -17,21 +17,28 @@
     function nukeNetlifyBadge() {
         try {
             const badElements = document.querySelectorAll(
-                '#nl-badge-frame, iframe[title*="Netlify"], iframe[srcdoc*="Netlify"], script[src*=".netlify/scripts"], [data-netlify-site-id], [data-nf-variant], [class*="netlify"], [id*="netlify"], [href*="netlify.com"], netlify-drawer, #netlify-drawer, .netlify-badge, iframe[src*="netlify"]'
+                '#nl-badge-frame, iframe[title*="Netlify"], iframe[srcdoc*="Netlify"], script[src*=".netlify/scripts"], [data-netlify-site-id], [data-nf-variant], netlify-drawer, #netlify-drawer, .netlify-badge, iframe[src*="netlify"]'
             );
             badElements.forEach(el => el.remove());
-            document.querySelectorAll('div, a, span, button, p, iframe').forEach(el => {
-                if ((el.textContent && el.textContent.toLowerCase().includes('powered by netlify')) ||
-                    (el.title && el.title.toLowerCase().includes('netlify'))) {
-                    el.remove();
-                }
-            });
         } catch(e) {}
     }
     nukeNetlifyBadge();
-    const netlifyObserver = new MutationObserver(nukeNetlifyBadge);
+    const netlifyObserver = new MutationObserver((mutations) => {
+        for (let i = 0; i < mutations.length; i++) {
+            const added = mutations[i].addedNodes;
+            for (let j = 0; j < added.length; j++) {
+                const n = added[j];
+                if (n && n.nodeType === 1) {
+                    const id = (n.id || '').toLowerCase();
+                    const cls = typeof n.className === 'string' ? n.className.toLowerCase() : '';
+                    if (id.includes('netlify') || id === 'nl-badge-frame' || cls.includes('netlify')) {
+                        n.remove();
+                    }
+                }
+            }
+        }
+    });
     netlifyObserver.observe(document.documentElement, { childList: true, subtree: true });
-    setInterval(nukeNetlifyBadge, 250);
 
     // ==========================================
     // 1. DATA & CONSTANTS
@@ -68,18 +75,8 @@
     // ==========================================
     // 2. STATE MANAGEMENT
     // ==========================================
-    window.UNLIMITED_MODE = localStorage.getItem('subway_unlimited_v2') === 'true'; // Default OFF
-    function resetUnlimitedStorage() {
-        try {
-            const gs = JSON.parse(localStorage.getItem('gameSettings') || '{}');
-            if (gs.currencies && gs.currencies.coins >= 999999999) {
-                gs.currencies = { coins: 0, keys: 0 };
-                localStorage.setItem('gameSettings', JSON.stringify(gs));
-                localStorage.removeItem('shopSettings');
-            }
-        } catch(e) {}
-    }
-    if (!window.UNLIMITED_MODE) resetUnlimitedStorage();
+    window.UNLIMITED_MODE = true;
+    try { localStorage.setItem('subway_unlimited_v2', 'true'); } catch(e) {}
     window.GAME_MODE = localStorage.getItem('subway_game_mode') || 'normal'; // 'normal' | 'nocoin'
     window.NO_COIN_MODE = (window.GAME_MODE === 'nocoin');
 
@@ -125,13 +122,31 @@
 
     try { localStorage.removeItem('sw_shader_lighting'); } catch (e) {}
 
+    const _swSavedVol = localStorage.getItem('sw_volume');
     const GFX_SETTINGS = {
         fps: localStorage.getItem('sw_fps') || '240', // '60' | '120' | '240' | 'unlimited'
         showFps: localStorage.getItem('sw_show_fps') === '1',
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 200
+        volume: _swSavedVol !== null ? Math.max(0, Math.min(100, parseInt(_swSavedVol, 10) || 0)) : 30, // 0 - 100 (padrão 30%)
         motionBlur: localStorage.getItem('sw_motion_blur') || 'soft', // 'off' | 'soft' | 'high'
         shaders: localStorage.getItem('sw_shaders') || 'medium', // 'off' | 'medium' | 'ultra'
     };
+    window.__SW_VOLUME_OVERRIDE__ = GFX_SETTINGS.volume / 100;
+
+    function applyGameVolume(pct) {
+        const clamped = Math.max(0, Math.min(100, parseInt(pct, 10) || 0));
+        const norm = clamped / 100;
+        window.__SW_VOLUME_OVERRIDE__ = norm;
+        try {
+            if (window.GAME_CONFIG) window.GAME_CONFIG.volume = norm;
+            if (window.app) {
+                if (window.app.config) window.app.config.volume = norm;
+                if (window.app.sound && typeof window.app.sound.volume === 'function' && !window.app.sound.muted) {
+                    window.app.sound.volume(norm);
+                }
+            }
+        } catch(e) {}
+    }
 
     window.__SW_PRO_HUB__ = false;
     window.__SW_UNLIMITED_TICK__ = (GFX_SETTINGS.fps === 'unlimited');
@@ -148,7 +163,7 @@
 
     function getShaderLabel(val) {
         if (val === 'off') return 'Desativado';
-        if (val === 'ultra') return 'Ultra (Sombras 3D + Luz)';
+        if (val === 'ultra') return 'Ultra (Sombras 3D)';
         return 'Médio (Sombras 3D)';
     }
 
@@ -164,9 +179,9 @@
             const ctx = c.getContext('2d');
             if (ctx) {
                 const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 60);
-                g.addColorStop(0.0, 'rgba(6, 10, 24, 0.94)');
-                g.addColorStop(0.42, 'rgba(10, 16, 36, 0.72)');
-                g.addColorStop(0.76, 'rgba(16, 26, 54, 0.28)');
+                g.addColorStop(0.0, 'rgba(6, 8, 14, 0.72)');
+                g.addColorStop(0.45, 'rgba(8, 10, 18, 0.45)');
+                g.addColorStop(0.78, 'rgba(10, 12, 22, 0.14)');
                 g.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
                 ctx.fillStyle = g;
                 ctx.fillRect(0, 0, 128, 128);
@@ -181,11 +196,13 @@
         window.__SW_SHADER_MODE__ = mode;
         const lv = mode === 'ultra' ? 2.0 : (mode === 'medium' ? 1.0 : 0.0);
         if (!window.__SW_SHADER_VEC__) window.__SW_SHADER_VEC__ = new Float32Array([lv, 0, 0, 0]);
+        if (!window.__SW_OBS_POS__) window.__SW_OBS_POS__ = new Float32Array(12);
+        if (!window.__SW_OBS_DIM__) window.__SW_OBS_DIM__ = new Float32Array(12);
         window.__SW_SHADER_VEC__[0] = lv;
         const tex = ensureReformulatedShadowTexture();
         if (tex) window.__SW_SHADOW_TEX__ = tex;
 
-        // 1) Tune 3D Lights (warm directional key + cool fill shadows)
+        // 1) Tune 3D Lights cleanly (preserve texture albedo without clipping)
         try {
             const systems = (window.__SW_LIGHT_SYSTEMS__ || []).slice();
             const gScene = window.game && window.game.scene && window.game.scene.view3d && window.game.scene.view3d.lights;
@@ -197,11 +214,11 @@
                         ls.ambientLight.color = 0xffffff;
                         ls.ambientLight.intensity = 0.5;
                     } else if (mode === 'ultra') {
-                        ls.ambientLight.color = 0xb9d6ff;
-                        ls.ambientLight.intensity = 0.58;
+                        ls.ambientLight.color = 0xd6e4fa;
+                        ls.ambientLight.intensity = 0.56;
                     } else {
-                        ls.ambientLight.color = 0xdbeeff;
-                        ls.ambientLight.intensity = 0.62;
+                        ls.ambientLight.color = 0xe6effc;
+                        ls.ambientLight.intensity = 0.58;
                     }
                     ls.ambientLight.dirty = true;
                     if (typeof ls.ambientLight.update === 'function') ls.ambientLight.update();
@@ -214,13 +231,13 @@
                             l.color = 0xffffff;
                             l.intensity = 1.0;
                         } else if (mode === 'ultra') {
-                            l.color = 0xffe6c2;
-                            l.intensity = 1.28;
-                            if (l.direction && l.direction.set) l.direction.set(0.42, -0.84, 0.34);
+                            l.color = 0xfff3de;
+                            l.intensity = 1.12;
+                            if (l.direction && l.direction.set) l.direction.set(0.42, -0.86, 0.30);
                         } else {
-                            l.color = 0xfff3dc;
-                            l.intensity = 1.14;
-                            if (l.direction && l.direction.set) l.direction.set(0.32, -0.88, 0.35);
+                            l.color = 0xfff8eb;
+                            l.intensity = 1.06;
+                            if (l.direction && l.direction.set) l.direction.set(0.38, -0.88, 0.30);
                         }
                         if (typeof l.update === 'function') l.update();
                     }
@@ -228,7 +245,7 @@
             }
         } catch(e) {}
 
-        // 2) Reformulate world floor/wagon shadow contrast in active 3D scene
+        // 2) Keep native multiply shadow quads clean neutral white (no dark tinted boxes)
         try {
             const root = (window.game && (window.game.scene || window.game)) || null;
             const visited = new Set();
@@ -241,10 +258,7 @@
                     if (name.includes('shadow')) {
                         const mats = Array.isArray(view.material) ? view.material : [view.material];
                         mats.forEach(m => {
-                            if (!m) return;
-                            if (mode === 'off') { m.color = 0xffffff; }
-                            else if (mode === 'ultra') { m.color = 0x161f38; }
-                            else { m.color = 0x26324f; }
+                            if (m) m.color = 0xffffff;
                         });
                     }
                 }
@@ -269,20 +283,10 @@
             }
         }
 
-        // 5) Depth vignette overlay for Ultra shader (pointer-events:none, zero blur)
+        // 5) Subtle edge depth vignette only (does not crush or tint textures)
         try {
-            let vig = document.getElementById('sw-shader-vignette');
-            if (mode === 'ultra') {
-                if (!vig) {
-                    vig = document.createElement('div');
-                    vig.id = 'sw-shader-vignette';
-                    vig.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9989;background:radial-gradient(ellipse at 50% 42%, rgba(255,232,190,0.03) 48%, rgba(6,12,28,0.38) 100%);transition:opacity .25s ease;';
-                    document.body.appendChild(vig);
-                }
-                vig.style.opacity = '1';
-            } else if (vig) {
-                vig.style.opacity = '0';
-            }
+            const vig = document.getElementById('sw-shader-vignette');
+            if (vig) vig.style.opacity = '0';
         } catch(e) {}
     }
 
@@ -291,9 +295,10 @@
         window.__SW_UNLIMITED_TICK__ = (targetMaxFPS === 0);
         const cfgTicker = (tkr) => {
             if (!tkr) return;
+            const changed = (tkr.maxFPS !== targetMaxFPS || tkr.minFPS !== minFps);
             tkr.maxFPS = targetMaxFPS;
             tkr.minFPS = minFps;
-            if (tkr.started && typeof tkr._cancelIfNeeded === 'function' && typeof tkr._requestIfNeeded === 'function') {
+            if (changed && tkr.started && typeof tkr._cancelIfNeeded === 'function' && typeof tkr._requestIfNeeded === 'function') {
                 tkr._cancelIfNeeded();
                 tkr._requestIfNeeded();
             }
@@ -325,17 +330,66 @@
         const sampleNow = () => {
             try {
                 const sv = window.__SW_SHADER_VEC__;
+                const obsPos = window.__SW_OBS_POS__;
+                const obsDim = window.__SW_OBS_DIM__;
                 if (sv && sv[0] > 0.1) {
-                    const hb = window.game && window.game.hero && window.game.hero.body;
+                    const g = window.game;
+                    const hb = g && g.hero && g.hero.body;
                     if (hb) {
-                        sv[1] = hb.x || 0;
-                        sv[2] = Number.isFinite(hb.bottom) ? hb.bottom : (hb.y || 0);
-                        sv[3] = hb.z || 0;
+                        const hx = hb.x || 0;
+                        const hy = Number.isFinite(hb.bottom) ? hb.bottom : (hb.y || 0);
+                        const hz = hb.z || 0;
+                        sv[1] = hx;
+                        sv[2] = hy;
+                        sv[3] = hz;
+                        if (obsPos && obsDim && g.physics && Array.isArray(g.physics.entities)) {
+                            const ents = g.physics.entities;
+                            let d0 = 1e9, d1 = 1e9, d2 = 1e9;
+                            let i0 = -1, i1 = -1, i2 = -1;
+                            for (let k = 0; k < ents.length; k++) {
+                                const ent = ents[k];
+                                const b = ent && ent.body;
+                                if (!b || b.player || b.deco) continue;
+                                const h = b.height || (Number.isFinite(b.top) && Number.isFinite(b.bottom) ? (b.top - b.bottom) : 0);
+                                if (h < 3.2) continue;
+                                const dz = (b.z || 0) - hz;
+                                if (dz > 125 || dz < -115) continue;
+                                const dx = (b.x || 0) - hx;
+                                const score = dx * dx * 0.45 + dz * dz;
+                                if (score < d0) { d2 = d1; i2 = i1; d1 = d0; i1 = i0; d0 = score; i0 = k; }
+                                else if (score < d1) { d2 = d1; i2 = i1; d1 = score; i1 = k; }
+                                else if (score < d2) { d2 = score; i2 = k; }
+                            }
+                            const picks = [i0, i1, i2];
+                            for (let s = 0; s < 3; s++) {
+                                const o = s * 4;
+                                const ei = picks[s];
+                                if (ei >= 0) {
+                                    const b = ents[ei].body;
+                                    const bot = Number.isFinite(b.bottom) ? b.bottom : (b.y || 0);
+                                    const top = Number.isFinite(b.top) ? b.top : (bot + (b.height || 10));
+                                    obsPos[o] = b.x || 0;
+                                    obsPos[o + 1] = b.z || 0;
+                                    obsPos[o + 2] = Math.max(1.5, (b.width || 12) * 0.5);
+                                    obsPos[o + 3] = Math.max(1.5, (b.depth || 14) * 0.5);
+                                    obsDim[o] = bot;
+                                    obsDim[o + 1] = top;
+                                    obsDim[o + 2] = 1.0;
+                                    obsDim[o + 3] = 0.0;
+                                } else {
+                                    obsDim[o + 2] = 0.0;
+                                }
+                            }
+                        }
                     }
                 }
             } catch(e) {}
-            _fpsTickFrames++;
             const now = performance.now();
+            if (typeof updateNoCoinObstacleEngine === 'function' && (!window.__swLastObsTick || now - window.__swLastObsTick >= 16)) {
+                window.__swLastObsTick = now;
+                try { updateNoCoinObstacleEngine(); } catch(e) {}
+            }
+            _fpsTickFrames++;
             const dt = now - _fpsLastSample;
             if (dt >= 250) {
                 const fps = Math.min(1000, Math.round((_fpsTickFrames * 1000) / dt));
@@ -402,20 +456,16 @@
         // 4. Shaders & Reformulated Shadows
         applyShaderAndShadowPipeline();
 
-        // 5. GPU Velocity + Radial Motion Blur Overlay
+        // 5. Game Volume (default 30%)
+        applyGameVolume(GFX_SETTINGS.volume);
+
+        // 6. GPU Velocity + Radial Motion Blur Overlay
         initMotionBlurEngine();
     }
 
     function applyCanvasGraphicsFilter(canvas, saturation = GFX_SETTINGS.saturation || 100) {
         if (!canvas) return;
-        const sh = GFX_SETTINGS.shaders || 'medium';
-        if (sh === 'ultra') {
-            canvas.style.filter = `contrast(1.16) brightness(1.04) saturate(${Math.round(saturation * 1.08)}%)`;
-        } else if (sh === 'medium') {
-            canvas.style.filter = `contrast(1.08) brightness(1.01) saturate(${saturation}%)`;
-        } else {
-            canvas.style.filter = `saturate(${saturation}%)`;
-        }
+        canvas.style.filter = `saturate(${saturation}%)`;
     }
 
     function optimizeHeroAnimAndFluidity() {
@@ -739,6 +789,18 @@
         if (s && s.value != GFX_SETTINGS.saturation) s.value = GFX_SETTINGS.saturation;
     };
 
+    window.__setGameVolume = function(val) {
+        GFX_SETTINGS.volume = Math.max(0, Math.min(100, parseInt(val, 10) || 0));
+        localStorage.setItem('sw_volume', String(GFX_SETTINGS.volume));
+        applyGameVolume(GFX_SETTINGS.volume);
+        const el = document.getElementById('val-gfx-volume');
+        if (el) {
+            el.textContent = GFX_SETTINGS.volume === 0 ? 'Mudo (0%)' : (GFX_SETTINGS.volume + '%' + (GFX_SETTINGS.volume === 30 ? ' (Padrão)' : ''));
+        }
+        const s = document.getElementById('slider-volume');
+        if (s && s.value != GFX_SETTINGS.volume) s.value = GFX_SETTINGS.volume;
+    };
+
 // Multiplayer State
     const MP = {
         active: false,
@@ -850,7 +912,7 @@
         } catch(e) {}
     }
 
-    // Continuous unlock maintenance
+    // Continuous unlock maintenance (low-frequency check, zero frame impact)
     setInterval(() => {
         if (!window.UNLIMITED_MODE) return;
         applyUnlimitedStorage();
@@ -860,7 +922,7 @@
         if (window.app && window.app.shop) {
             patchShopItems(window.app.shop);
         }
-    }, 1000);
+    }, 4000);
 
     // ==========================================
     // 4. PERFORMANCE & UNLIMITED FPS
@@ -3208,7 +3270,14 @@
         if (overlay) overlay.remove();
     }
 
-    setInterval(updateNoCoinObstacleEngine, 30);
+    // Lockstep with frame ticker in sampleNow; light fallback only if ticker idle
+    setInterval(() => {
+        const now = performance.now();
+        if (!window.__swLastObsTick || now - window.__swLastObsTick > 90) {
+            window.__swLastObsTick = now;
+            updateNoCoinObstacleEngine();
+        }
+    }, 120);
 
     window.__onGameOver = function() {
         stopRunTimer();
@@ -5267,16 +5336,17 @@
                 <div class="modal-header">
                     <div class="modal-header-branding">
                         <span class="modal-brand-title">SUBWAY SURFERS</span>
-                        <span class="modal-brand-tag">ARENA</span>
+                        <span class="modal-brand-sep"></span>
+                        <span class="modal-brand-sub">Configurações & Menu</span>
                     </div>
                     <button class="btn-modal-close" id="btn-close-unified" title="Fechar">✕</button>
                 </div>
 
                 <!-- Tabs Navigation -->
                 <div class="unified-tabs">
-                    <button class="tab-btn" data-tab="modes" id="tab-btn-modes">MODOS DE JOGO</button>
+                    <button class="tab-btn" data-tab="modes" id="tab-btn-modes">MODO DE JOGO</button>
                     <button class="tab-btn" data-tab="skins" id="tab-btn-skins">SKINS</button>
-                    <button class="tab-btn" data-tab="graphics" id="tab-btn-graphics">FLUIDEZ & VÍDEO</button>
+                    <button class="tab-btn" data-tab="graphics" id="tab-btn-graphics">CONFIGURAÇÕES</button>
                     <button class="tab-btn" data-tab="multiplayer" id="tab-btn-multiplayer">MULTIPLAYER</button>
                     <button class="tab-btn" data-tab="records" id="tab-btn-records">RECORDES</button>
                 </div>
@@ -5285,19 +5355,8 @@
                 <div class="tab-pane" id="pane-modes">
                     <div class="mod-card">
                         <div class="mod-info">
-                            <span class="mod-title">Modo Ilimitado</span>
-                            <span class="mod-desc">Moedas, chaves, personagens e skates infinitos liberados</span>
-                        </div>
-                        <button class="btn-clean-toggle ${window.UNLIMITED_MODE ? 'toggle-active' : ''}" id="btn-toggle-unlimited">
-                            <span class="toggle-indicator"></span>
-                            <span class="toggle-label">${window.UNLIMITED_MODE ? 'ATIVADO' : 'DESATIVADO'}</span>
-                        </button>
-                    </div>
-
-                    <div class="mod-card">
-                        <div class="mod-info">
                             <span class="mod-title">Modo No Coin</span>
-                            <span class="mod-desc">Moedas vermelhas — qualquer contato com moedas causa eliminação</span>
+                            <span class="mod-desc">Moedas vermelhas — qualquer contato com moedas causa eliminação imediata</span>
                         </div>
                         <button class="btn-clean-toggle ${window.NO_COIN_MODE ? 'toggle-active-danger' : ''}" id="btn-toggle-nocoin">
                             <span class="toggle-indicator"></span>
@@ -5308,64 +5367,78 @@
 
                 <!-- Dedicated Jake Skins Tab -->
                 <div class="tab-pane" id="pane-skins">
-                    <div class="sw-skins-head">Escolha sua skin exclusiva do Jake</div>
+                    <div class="sw-skins-head">Selecione o visual do personagem</div>
                     <div class="sw-skins-grid" id="sw-skins-grid"></div>
                 </div>
 
-                <!-- Tab 2: Graphics, Display & Fluidity (Native Subway Surfers Aesthetic) -->
+                <!-- Tab 2: Settings, Audio & Graphics -->
                 <div class="tab-pane" id="pane-graphics">
-                    <!-- Unlimited FPS Setting -->
-                    <div class="subway-setting-row" onclick="window.__cycleFPS()" title="Toque para alternar taxa de quadros">
-                        <div class="btn-subway-glossy-box">
-                            <svg class="glossy-icon" viewBox="0 0 24 24" width="26" height="26" fill="#ffffff">
-                                <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
-                            </svg>
+                    <!-- Volume Slider Card (Default 30%) -->
+                    <div class="subway-setting-card">
+                        <div class="setting-row-top">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Volume do Jogo</span>
+                                <span class="setting-desc">Áudio geral da música e efeitos sonoros</span>
+                            </div>
+                            <span class="setting-pill" id="val-gfx-volume">${GFX_SETTINGS.volume === 0 ? 'Mudo (0%)' : (GFX_SETTINGS.volume + '%' + (GFX_SETTINGS.volume === 30 ? ' (Padrão)' : ''))}</span>
                         </div>
-                        <div class="setting-text-col">
-                            <span class="setting-title">Taxa de Quadros (FPS)</span>
-                            <span class="setting-value" id="val-gfx-fps">${getFPSLabel(GFX_SETTINGS.fps)}</span>
+                        <div class="sat-slider-wrap">
+                            <input type="range" id="slider-volume" min="0" max="100" step="1" value="${GFX_SETTINGS.volume}" oninput="window.__setGameVolume(this.value)" />
+                            <div class="sat-presets-row">
+                                <button class="btn-sat-chip" onclick="window.__setGameVolume(0)">0% Mudo</button>
+                                <button class="btn-sat-chip" onclick="window.__setGameVolume(30)">30% Padrão</button>
+                                <button class="btn-sat-chip" onclick="window.__setGameVolume(60)">60%</button>
+                                <button class="btn-sat-chip" onclick="window.__setGameVolume(100)">100%</button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Show FPS Overlay Setting -->
-                    <div class="subway-setting-row" onclick="window.__toggleShowFPS()" title="Mostrar contador de FPS abaixo do timer">
-                        <div>
-                            <div style="font-size:15px;font-weight:800;color:#ffffff">Mostrar FPS na Tela</div>
-                            <div style="font-size:11px;color:#94a3b8;font-weight:600">Exibe contador minimalista abaixo do cronômetro</div>
+                    <div class="settings-grid-rows">
+                        <!-- Unlimited FPS Setting -->
+                        <div class="subway-setting-row" onclick="window.__cycleFPS()" title="Toque para alternar taxa de quadros">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Taxa de Quadros (FPS)</span>
+                                <span class="setting-desc">Limite de renderização por segundo</span>
+                            </div>
+                            <span class="setting-pill" id="val-gfx-fps">${getFPSLabel(GFX_SETTINGS.fps)}</span>
                         </div>
-                        <span class="setting-value" id="val-gfx-showfps">${GFX_SETTINGS.showFps ? 'Ativado' : 'Desativado'}</span>
-                    </div>
 
-                    <!-- Motion Blur Setting -->
-                    <div class="subway-setting-row" onclick="window.__cycleMotionBlur()" title="Toque para alternar o Motion Blur">
-                        <div>
-                            <div style="font-size:15px;font-weight:800;color:#ffffff">Motion Blur (Desfoque)</div>
-                            <div style="font-size:11px;color:#94a3b8;font-weight:600">Desfoque direcional e radial de alta velocidade</div>
+                        <!-- Show FPS Overlay Setting -->
+                        <div class="subway-setting-row" onclick="window.__toggleShowFPS()" title="Mostrar contador de FPS abaixo do timer">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Mostrar FPS na Tela</span>
+                                <span class="setting-desc">Exibe contador discreto abaixo do timer</span>
+                            </div>
+                            <span class="setting-pill" id="val-gfx-showfps">${GFX_SETTINGS.showFps ? 'Ativado' : 'Desativado'}</span>
                         </div>
-                        <span class="setting-value" id="val-gfx-motionblur">${getMotionBlurLabel(GFX_SETTINGS.motionBlur)}</span>
-                    </div>
 
-                    <!-- Shaders & Reformulated Shadows Setting -->
-                    <div class="subway-setting-row" onclick="window.__cycleShaders()" title="Toque para alternar Shaders e Sombras 3D">
-                        <div>
-                            <div style="font-size:15px;font-weight:800;color:#ffffff">Shaders & Sombras 3D</div>
-                            <div style="font-size:11px;color:#94a3b8;font-weight:600">Sombras dinâmicas reformuladas, luz direcional e contraste 3D</div>
+                        <!-- Shaders & Reformulated Shadows Setting -->
+                        <div class="subway-setting-row" onclick="window.__cycleShaders()" title="Toque para alternar Shaders e Sombras 3D">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Shaders & Sombras 3D</span>
+                                <span class="setting-desc">Iluminação direcional e sombras em tempo real</span>
+                            </div>
+                            <span class="setting-pill" id="val-gfx-shaders">${getShaderLabel(GFX_SETTINGS.shaders)}</span>
                         </div>
-                        <span class="setting-value" id="val-gfx-shaders">${getShaderLabel(GFX_SETTINGS.shaders)}</span>
+
+                        <!-- Motion Blur Setting -->
+                        <div class="subway-setting-row" onclick="window.__cycleMotionBlur()" title="Toque para alternar o Motion Blur">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Motion Blur</span>
+                                <span class="setting-desc">Desfoque de movimento em alta velocidade</span>
+                            </div>
+                            <span class="setting-pill" id="val-gfx-motionblur">${getMotionBlurLabel(GFX_SETTINGS.motionBlur)}</span>
+                        </div>
                     </div>
 
                     <!-- Saturation Slider Card -->
                     <div class="subway-setting-card">
-                        <div class="setting-card-header">
-                            <div class="btn-subway-glossy-box small">
-                                <svg class="glossy-icon" viewBox="0 0 24 24" width="20" height="20" fill="#ffffff">
-                                    <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.22 19.64 10.56 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
-                                </svg>
-                            </div>
+                        <div class="setting-row-top">
                             <div class="setting-text-col">
                                 <span class="setting-title">Saturação de Cores</span>
-                                <span class="setting-value" id="val-gfx-saturation">${GFX_SETTINGS.saturation}%</span>
+                                <span class="setting-desc">Intensidade das cores na tela</span>
                             </div>
+                            <span class="setting-pill" id="val-gfx-saturation">${GFX_SETTINGS.saturation}%</span>
                         </div>
                         <div class="sat-slider-wrap">
                             <input type="range" id="slider-saturation" min="50" max="200" step="5" value="${GFX_SETTINGS.saturation}" oninput="window.__setSaturation(this.value)" />
@@ -5490,7 +5563,7 @@
         });
 
         document.getElementById('btn-close-unified').onclick = closeUnifiedModal;
-        document.getElementById('btn-toggle-unlimited').onclick = toggleUnlimitedMode;
+        const btnUnl = document.getElementById('btn-toggle-unlimited'); if (btnUnl) btnUnl.onclick = toggleUnlimitedMode;
         document.getElementById('btn-toggle-nocoin').onclick = toggleNoCoinMode;
         const btnSave = document.getElementById('btn-save-profile'); if (btnSave) btnSave.onclick = saveLobbyProfile;
         document.getElementById('btn-toggle-ready').onclick = toggleReady;
@@ -5969,113 +6042,106 @@
                 box-shadow: 0 0 14px rgba(56,189,248,.22);
             }
 
-            /* Native Subway Surfers Glossy Blue Button System */
+            /* Clean Pro Studio Settings & Controls */
+            .settings-grid-rows {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+                margin-bottom: 10px;
+            }
+            @media (max-width: 600px) {
+                .settings-grid-rows { grid-template-columns: 1fr; }
+            }
             .subway-setting-row {
                 display: flex;
                 align-items: center;
-                gap: 16px;
-                padding: 12px 16px;
-                margin-bottom: 12px;
-                background: rgba(15, 23, 42, 0.65);
+                justify-content: space-between;
+                gap: 12px;
+                padding: 11px 14px;
+                background: #171a21;
                 border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 16px;
+                border-radius: 10px;
                 cursor: pointer;
                 user-select: none;
-                transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+                transition: background 0.14s ease, border-color 0.14s ease;
                 touch-action: manipulation;
             }
             .subway-setting-row:hover {
-                background: rgba(30, 41, 59, 0.85);
-                border-color: rgba(56, 189, 248, 0.3);
+                background: #1d212a;
+                border-color: rgba(255, 255, 255, 0.16);
             }
             .subway-setting-row:active {
-                transform: scale(0.98);
+                transform: scale(0.99);
             }
-
-            /* Exact Subway Surfers Blue Glossy Square Icon Button */
-            .btn-subway-glossy-box {
-                width: 56px;
-                height: 56px;
-                min-width: 56px;
-                border-radius: 14px;
-                background: linear-gradient(180deg, #44a2e8 0%, #1c7cd6 50%, #1562b5 100%);
-                border: 2px solid #ffffff;
-                outline: 3px solid #94b8d7;
-                outline-offset: 0;
-                box-shadow: 0 4px 0 #0d437a, 0 6px 12px rgba(0, 0, 0, 0.35), inset 0 2px 2px rgba(255, 255, 255, 0.65);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                position: relative;
-                flex-shrink: 0;
-                transition: transform 0.1s ease, box-shadow 0.1s ease;
-            }
-            .btn-subway-glossy-box.small {
-                width: 44px;
-                height: 44px;
-                min-width: 44px;
-                border-radius: 11px;
-                outline-width: 2.5px;
-            }
-            .subway-setting-row:active .btn-subway-glossy-box {
-                transform: translateY(2px);
-                box-shadow: 0 2px 0 #0d437a, 0 3px 6px rgba(0, 0, 0, 0.3), inset 0 2px 2px rgba(255, 255, 255, 0.65);
-            }
-            .btn-subway-glossy-box .glossy-icon {
-                filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
-                pointer-events: none;
-            }
-
-            /* Setting Text Column */
             .setting-text-col {
                 display: flex;
                 flex-direction: column;
-                justify-content: center;
+                gap: 2px;
+                min-width: 0;
                 flex: 1;
             }
             .setting-title {
-                font-size: 17px;
-                font-weight: 900;
-                color: #ffffff;
+                font-size: 13px;
+                font-weight: 700;
+                color: #f3f4f6;
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                letter-spacing: -0.2px;
-                line-height: 1.2;
+                line-height: 1.25;
             }
-            .setting-value {
-                font-size: 14px;
-                font-weight: 800;
-                color: #38bdf8;
-                margin-top: 3px;
-                letter-spacing: 0.2px;
+            .setting-desc {
+                font-size: 11px;
+                font-weight: 500;
+                color: #8b94a3;
+                line-height: 1.3;
             }
-
-            /* Saturation Slider Card */
-            .subway-setting-card {
-                padding: 14px 16px;
-                margin-bottom: 12px;
-                background: rgba(15, 23, 42, 0.65);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 16px;
+            .setting-pill {
+                font-size: 11px;
+                font-weight: 700;
+                color: #e2e8f0;
+                background: #232834;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 6px;
+                padding: 4px 9px;
+                white-space: nowrap;
+                font-variant-numeric: tabular-nums;
             }
-            .setting-card-header {
+            .setting-row-top {
                 display: flex;
                 align-items: center;
-                gap: 14px;
-                margin-bottom: 12px;
+                justify-content: space-between;
+                gap: 12px;
+                margin-bottom: 10px;
+            }
+            .subway-setting-card {
+                padding: 12px 14px;
+                margin-bottom: 10px;
+                background: #171a21;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 10px;
             }
             .sat-slider-wrap {
                 display: flex;
                 flex-direction: column;
-                gap: 10px;
-                padding: 0 4px;
+                gap: 8px;
             }
             .sat-slider-wrap input[type="range"] {
+                -webkit-appearance: none;
+                appearance: none;
                 width: 100%;
-                height: 8px;
-                border-radius: 4px;
-                background: #1e293b;
+                height: 6px;
+                border-radius: 999px;
+                background: #262b36;
                 outline: none;
-                accent-color: #38bdf8;
+                cursor: pointer;
+            }
+            .sat-slider-wrap input[type="range"]::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                background: #f8fafc;
+                border: 2px solid #0f172a;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
                 cursor: pointer;
             }
             .sat-presets-row {
@@ -6084,24 +6150,24 @@
                 flex-wrap: wrap;
             }
             .btn-sat-chip {
-                background: rgba(255, 255, 255, 0.08);
-                border: 1px solid rgba(255, 255, 255, 0.12);
+                background: #212630;
+                border: 1px solid rgba(255, 255, 255, 0.09);
                 color: #cbd5e1;
                 font-size: 11px;
-                font-weight: 700;
-                padding: 5px 10px;
-                border-radius: 8px;
+                font-weight: 600;
+                padding: 4px 10px;
+                border-radius: 6px;
                 cursor: pointer;
-                transition: all 0.15s ease;
+                transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
                 font-family: inherit;
             }
             .btn-sat-chip:hover {
-                background: #38bdf8;
-                color: #0f172a;
-                border-color: #38bdf8;
+                background: #f8fafc;
+                color: #111318;
+                border-color: #f8fafc;
             }
 
-            /* Clean Non-AI Stopwatch HUD */
+            /* Lightweight Stopwatch HUD (no GPU blur over WebGL) */
             .subway-top-timer-wrap {
                 position: fixed;
                 top: 14px;
@@ -6112,12 +6178,10 @@
                 align-items: center;
                 gap: 10px;
                 padding: 5px 14px;
-                background: rgba(15, 23, 42, 0.85);
-                backdrop-filter: blur(8px);
-                -webkit-backdrop-filter: blur(8px);
-                border: 1px solid rgba(255, 255, 255, 0.14);
+                background: rgba(16, 18, 24, 0.88);
+                border: 1px solid rgba(255, 255, 255, 0.12);
                 border-radius: 9999px;
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
                 user-select: none;
                 pointer-events: none;
             }
@@ -6365,56 +6429,52 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background: rgba(15, 23, 42, 0.88);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
+                background: #14171d;
                 color: #e2e8f0;
-                border: 1px solid rgba(255, 255, 255, 0.16);
-                border-radius: 21px;
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 12px;
                 cursor: pointer;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.42);
+                transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
             }
             .sw-skins-head {
                 font-size: 12px;
-                font-weight: 700;
-                color: #94a3b8;
+                font-weight: 600;
+                color: #8b94a3;
                 margin-bottom: 10px;
-                letter-spacing: 0.3px;
             }
             .sw-skins-grid {
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
-                gap: 10px;
+                gap: 8px;
             }
             .sw-skin-card {
                 display: flex;
                 align-items: center;
                 gap: 10px;
                 padding: 10px 12px;
-                border-radius: 14px;
-                background: rgba(15, 23, 42, 0.72);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                color: #f8fafc;
+                border-radius: 10px;
+                background: #171a21;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                color: #f3f4f6;
                 cursor: pointer;
                 text-align: left;
-                transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+                transition: border-color 0.14s ease, background 0.14s ease;
             }
             .sw-skin-card:hover {
-                border-color: rgba(56, 189, 248, 0.55);
-                transform: translateY(-1px);
+                background: #1d212a;
+                border-color: rgba(255, 255, 255, 0.22);
             }
             .sw-skin-card.active {
-                background: rgba(30, 58, 138, 0.55);
-                border-color: #38bdf8;
-                box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+                background: #202531;
+                border-color: #f8fafc;
             }
             .sw-skin-swatch {
-                width: 26px;
-                height: 26px;
-                border-radius: 50%;
+                width: 24px;
+                height: 24px;
+                border-radius: 6px;
                 flex-shrink: 0;
-                border: 2px solid rgba(255, 255, 255, 0.28);
+                border: 1px solid rgba(255, 255, 255, 0.25);
             }
             .sw-skin-info {
                 display: flex;
@@ -6423,20 +6483,18 @@
             }
             .sw-skin-name {
                 font-size: 13px;
-                font-weight: 800;
-                color: #fff;
+                font-weight: 700;
+                color: #f9fafb;
             }
             .sw-skin-role {
                 font-size: 10px;
-                font-weight: 700;
-                color: #7dd3fc;
-                letter-spacing: 0.4px;
+                font-weight: 600;
+                color: #9ca3af;
             }
             .btn-subway-unified-menu:hover {
-                background: rgba(30, 41, 59, 0.95);
-                border-color: rgba(255, 255, 255, 0.25);
+                background: #1f242d;
+                border-color: rgba(255, 255, 255, 0.28);
                 color: #fff;
-                transform: translateY(-1px);
             }
             .btn-subway-unified-menu svg {
                 width: 17px;
@@ -6559,9 +6617,7 @@
             .subway-modal-backdrop {
                 position: fixed;
                 top: 0; left: 0; right: 0; bottom: 0;
-                background: rgba(2, 6, 23, 0.82);
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
+                background: rgba(8, 10, 14, 0.80);
                 z-index: 100000;
                 display: flex;
                 align-items: center;
@@ -6569,25 +6625,25 @@
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             }
             .subway-modal-box {
-                background: #090d16;
-                color: #fff;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 14px;
-                box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+                background: #101216;
+                color: #f3f4f6;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                box-shadow: 0 24px 64px rgba(0, 0, 0, 0.78);
                 overflow: hidden;
                 display: flex;
                 flex-direction: column;
-                max-width: 90vw;
+                max-width: 92vw;
                 max-height: 88vh;
             }
-            .unified-box { width: 760px; }
+            .unified-box { width: 720px; }
             .modal-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 14px 20px;
-                background: rgba(255, 255, 255, 0.02);
-                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+                padding: 14px 18px;
+                background: #14171d;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.07);
             }
             .modal-header-branding {
                 display: flex;
@@ -6597,59 +6653,62 @@
             .modal-brand-title {
                 font-size: 13px;
                 font-weight: 800;
-                letter-spacing: 1.2px;
-                color: #f8fafc;
+                letter-spacing: 0.6px;
+                color: #f9fafb;
             }
-            .modal-brand-tag {
-                font-size: 9px;
-                font-weight: 800;
-                letter-spacing: 1px;
-                padding: 2px 6px;
-                border-radius: 4px;
-                background: rgba(56, 189, 248, 0.12);
-                color: #38bdf8;
-                border: 1px solid rgba(56, 189, 248, 0.25);
+            .modal-brand-sep {
+                width: 1px;
+                height: 13px;
+                background: rgba(255, 255, 255, 0.16);
+            }
+            .modal-brand-sub {
+                font-size: 12px;
+                font-weight: 500;
+                color: #8b94a3;
             }
             .btn-modal-close {
-                background: none;
-                border: none;
-                color: #64748b;
-                font-size: 16px;
+                background: transparent;
+                border: 1px solid transparent;
+                color: #9ca3af;
+                font-size: 15px;
                 cursor: pointer;
-                padding: 4px 8px;
+                padding: 4px 9px;
                 border-radius: 6px;
-                transition: all 0.2s;
+                transition: background 0.15s, color 0.15s;
             }
-            .btn-modal-close:hover { color: #fff; background: rgba(255,255,255,0.06); }
+            .btn-modal-close:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
 
             /* Unified Tabs */
             .unified-tabs {
                 display: flex;
-                background: rgba(0, 0, 0, 0.35);
-                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-                padding: 0 10px;
+                background: #121419;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+                padding: 0 12px;
+                gap: 4px;
+                overflow-x: auto;
             }
             .tab-btn {
-                padding: 12px 18px;
+                padding: 11px 14px;
                 background: none;
                 border: none;
-                color: #64748b;
+                color: #8b94a3;
                 font-size: 11px;
                 font-weight: 700;
-                letter-spacing: 0.8px;
+                letter-spacing: 0.5px;
                 cursor: pointer;
                 border-bottom: 2px solid transparent;
-                transition: all 0.2s ease;
+                transition: color 0.15s ease, border-color 0.15s ease;
                 margin-bottom: -1px;
+                white-space: nowrap;
             }
-            .tab-btn:hover { color: #cbd5e1; }
+            .tab-btn:hover { color: #e5e7eb; }
             .tab-btn.active {
-                color: #f8fafc;
-                border-bottom-color: #38bdf8;
+                color: #ffffff;
+                border-bottom-color: #f8fafc;
             }
             .tab-pane {
                 display: none;
-                padding: 14px 18px;
+                padding: 16px 18px;
                 overflow-x: hidden;
                 overflow-y: auto;
             }
@@ -6657,16 +6716,16 @@
 
             /* Modes Tab */
             .mod-card {
-                background: rgba(255, 255, 255, 0.02);
-                border: 1px solid rgba(255, 255, 255, 0.06);
+                background: #171a21;
+                border: 1px solid rgba(255, 255, 255, 0.08);
                 border-radius: 10px;
-                padding: 14px 18px;
+                padding: 14px 16px;
                 margin-bottom: 10px;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 gap: 16px;
-                transition: border-color 0.2s;
+                transition: border-color 0.15s;
             }
             .mod-card:hover {
                 border-color: rgba(255, 255, 255, 0.12);
@@ -7377,8 +7436,8 @@
             /* Live Placement HUD & Ghost Runners */
             .subway-live-rank {
                 position: fixed; top: 68px; right: 16px; z-index: 99998;
-                background: rgba(10, 16, 30, 0.85); backdrop-filter: blur(8px);
-                border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+                background: rgba(14, 17, 23, 0.90);
+                border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
                 padding: 10px 14px; color: #fff; font-size: 11px; min-width: 170px;
                 pointer-events: none; user-select: none;
             }
@@ -7400,7 +7459,7 @@
                 transition: left 0.08s linear, top 0.08s linear, transform 0.08s linear;
             }
             .ghost-tag {
-                background: rgba(10, 20, 40, 0.78); backdrop-filter: blur(4px);
+                background: rgba(14, 17, 23, 0.88);
                 border: 1px solid #00e5ff; border-radius: 14px; padding: 2px 8px;
                 display: flex; align-items: center; gap: 4px; color: #fff; font-size: 10px; font-weight: 700;
                 margin-bottom: 4px; white-space: nowrap;
@@ -8924,20 +8983,32 @@
         }
     };
 
-    function reapplyPersistedGraphicsToSurface() {
+    let _lastSurfaceGame = null;
+    let _lastSurfaceCanvas = null;
+    let _lastSurfaceSoundVolApplied = false;
+    function reapplyPersistedGraphicsToSurface(force) {
+        const curGame = window.game || null;
         const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
+        if (window.app && window.app.sound && !_lastSurfaceSoundVolApplied) {
+            _lastSurfaceSoundVolApplied = true;
+            applyGameVolume(GFX_SETTINGS.volume);
+        }
+        if (!force && curGame === _lastSurfaceGame && canvas === _lastSurfaceCanvas) return;
+        _lastSurfaceGame = curGame;
+        _lastSurfaceCanvas = canvas;
         if (canvas) {
             applyCanvasGraphicsFilter(canvas, GFX_SETTINGS.saturation);
         }
         applyShaderAndShadowPipeline();
+        applyGameVolume(GFX_SETTINGS.volume);
         optimizeHeroAnimAndFluidity();
         initMotionBlurEngine();
         const targetMaxFPS = GFX_SETTINGS.fps === 'unlimited' ? 0 : (parseInt(GFX_SETTINGS.fps, 10) || 240);
         applyTickerMaxFPS(targetMaxFPS);
         updateSkinHubVisibility();
     }
-    window.addEventListener('pageshow', reapplyPersistedGraphicsToSurface);
-    setInterval(reapplyPersistedGraphicsToSurface, 400);
+    window.addEventListener('pageshow', () => reapplyPersistedGraphicsToSurface(true));
+    setInterval(() => reapplyPersistedGraphicsToSurface(false), 1200);
 })();
 
 

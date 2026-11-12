@@ -36065,7 +36065,13 @@
     }
     nextUpdate() {
       const t = performance.now();
-      this._deltaTime = Math.min(t - this._lastTime, this.maxDeltaTime), this._frameTime = this._deltaTime / this._frameDuration, this._lastTime = t;
+      const raw = Math.min(Math.max(0, t - this._lastTime), this.maxDeltaTime);
+      if (this._deltaTime > 0 && raw > 0.2 && Math.abs(raw - this._deltaTime) < 12) {
+        this._deltaTime = this._deltaTime * 0.75 + raw * 0.25;
+      } else {
+        this._deltaTime = raw;
+      }
+      this._frameTime = this._deltaTime / this._frameDuration, this._lastTime = t;
     }
     get deltaTime() {
       return this._deltaTime * this.timeScale;
@@ -38603,17 +38609,17 @@
       const air = Math.max(0, (this.entity.y || 0) - t - (this.entity.body ? .5 * this.entity.body.height : 5.5));
       const dist = Math.min(1, air / 24);
       const isUltra = "ultra" === mode;
-      const baseScale = isUltra ? 1.38 : 1.18;
-      const sc = baseScale * (1 - .42 * dist);
-      this.view.scale && this.view.scale.set(sc * 1.08, sc * 1.22, sc);
-      this.view.x = (isUltra ? .85 : .45) + .12 * air;
-      this.view.z = (isUltra ? 1.45 : 1.15) + .08 * air;
-      this.view.y = -this.entity.y + t + .9;
+      const baseScale = isUltra ? .76 : .86;
+      const sc = baseScale * (1 - .48 * dist);
+      this.view.scale && this.view.scale.set(sc, sc * 1.12, sc);
+      this.view.x = -.32 - .14 * air;
+      this.view.z = -.24 - .10 * air;
+      this.view.y = -this.entity.y + t + .85;
       const mat = this.view.view3d && this.view.view3d.material;
       if (mat) {
         window.__SW_SHADOW_TEX__ && mat.diffuseMap !== window.__SW_SHADOW_TEX__ && (mat.diffuseMap = window.__SW_SHADOW_TEX__);
-        mat.color = isUltra ? 1316375 : 2238262;
-        const a = (isUltra ? .92 : .78) - (.52 * dist);
+        mat.color = 16777215;
+        const a = Math.max(0, (isUltra ? .26 : .34) * (1 - .75 * dist));
         mat.alpha = a;
         mat.uniforms && mat.uniforms.uDiffuseColor && (mat.uniforms.uDiffuseColor[3] = a);
       }
