@@ -106,7 +106,7 @@
   } catch (_0x3b3ce6) {}
   _0x53b1d9.a = new class _0x343d20 {
     constructor() {
-      _0x14a372(this, "fps", 0), _0x14a372(this, 'resolution', 1), _0x14a372(this, "smoothDelta", 0.2), _0x14a372(this, "culling", false), _0x14a372(this, 'vertp', 'highp'), _0x14a372(this, "fragp", "highp"), _0x14a372(this, "maxRenderScale", 1.5), _0x14a372(this, "quality", "default"), _0x14a372(this, "canvasSaturation", 1.24), _0x14a372(this, "grindParticles", true), _0x14a372(this, "baseAnimSpeed", 0.02), _0x14a372(this, "physicsStepsPerSpeed", 1), _0x14a372(this, "physicsExtraSteps", 1), _0x14a372(this, "physicsMaxSteps", 60), _0x14a372(this, "debug", false), _0x14a372(this, 'stats', false), _0x14a372(this, "models", true), _0x14a372(this, "environment", true), _0x14a372(this, "blocks", false), _0x14a372(this, "chunkMarks", false), _0x14a372(this, "route", ''), _0x14a372(this, "chunk", ''), _0x14a372(this, "timeScale", 1), _0x14a372(this, "forceTube", false), _0x14a372(this, "tutorial", false), _0x14a372(this, "loadDelay", 0), _0x14a372(this, 'god', false), _0x14a372(this, "freejump", false), _0x14a372(this, "forcePickup", ''), _0x14a372(this, "modCoins", 0), _0x14a372(this, "gdAwardKeys", 0), _0x14a372(this, 'reset', false), _0x14a372(this, "gdFreeMysteryBox", false), _0x14a372(this, "missionSet", -1), _0x14a372(this, "missionProgress", []), _0x14a372(this, "dayModifier", 0), _0x14a372(this, "laneWidth", 20), _0x14a372(this, "blockSize", 90), _0x14a372(this, "visibleMaxDistance", 1000), _0x14a372(this, "visibleMinDistance", -500), _0x14a372(this, 'fog', true), _0x14a372(this, "bend", true), _0x14a372(this, "bendX", -0.0005), _0x14a372(this, "bendY", -0.0003), _0x14a372(this, 'fillers', true), _0x14a372(this, "ground", true), _0x14a372(this, "prepopulate", false), _0x14a372(this, "speed", 0), _0x14a372(this, "gravity", 0.055), _0x14a372(this, "freeRevivals", 1), _0x14a372(this, "dizzyDuration", 3), _0x14a372(this, "cameraFov", 68), _0x14a372(this, 'cameraPosX', 0), _0x14a372(this, "cameraPosY", 33.8), _0x14a372(this, "cameraPosZ", 33), _0x14a372(this, "cameraModX", 0.75), _0x14a372(this, "cameraRotX", -0.375), _0x14a372(this, "cameraRotY", 0), _0x14a372(this, 'cameraRotZ', 0), _0x14a372(this, "mobile", false), _0x14a372(this, "bundlesPath", "./bundles/"), _0x14a372(this, 'theme', 'oxford'), _0x14a372(this, "backgroundUpperGradient", '#34086A'), _0x14a372(this, "backgroundLowerGradient", "#02B4EB"), _0x14a372(this, "trainLightColor", "#FFA900"), _0x14a372(this, "trainLights", 1), _0x14a372(this, "trainXOffset", 5.6), _0x14a372(this, "trainZOffset", 28), _0x14a372(this, "trainYOffset", 1.6), _0x14a372(this, "subLightColor", "#FFA900"), _0x14a372(this, "subLights", 1), _0x14a372(this, 'subXOffset', 5.2), _0x14a372(this, "subZOffset", 28), _0x14a372(this, 'subYOffset', -4.4), _0x14a372(this, "trainLightTexture", 'trains-tex'), _0x14a372(this, "trainLightModelName", "train_light"), _0x14a372(this, "trainSideLightModelName", void 0), _0x14a372(this, "trainLightScale", 0.8), _0x14a372(this, "iOSUIOffsetY", _0x256400.a.isIOS() ? 60 : 0), _0x14a372(this, "volume", 0.3), _0x14a372(this, "useDefaultPrompt", false), _0x14a372(this, "maxNicknameChars", 15), _0x14a372(this, "assetsPath", "assets/"), _0x14a372(this, "language", 'en'), _0x14a372(this, "leaderboard", "mockup"), _0x14a372(this, "extra", ''), _0x14a372(this, 'loadMode', "progressive-discrete"), _0x14a372(this, 'cacheBust', true), _0x14a372(this, "loadingMbs", true), _0x14a372(this, "useWebWorkers", false), _0x14a372(this, "loadExtraAttempts", 5), _0x14a372(this, "tokens", false), this.mobile = !_0x27b8b9.a.desktop, this.override(window.GAME_CONFIG), this.override(_0x256400.a.getUrlParams());
+      _0x14a372(this, "fps", 0), _0x14a372(this, 'resolution', 1), _0x14a372(this, "smoothDelta", 0.2), _0x14a372(this, "culling", false), _0x14a372(this, 'vertp', 'highp'), _0x14a372(this, "fragp", "mediump"), _0x14a372(this, "maxRenderScale", _0x27b8b9.a.desktop ? 1.25 : 1.0), _0x14a372(this, "quality", "default"), _0x14a372(this, "canvasSaturation", 1.24), _0x14a372(this, "grindParticles", true), _0x14a372(this, "baseAnimSpeed", 0.02), _0x14a372(this, "physicsStepsPerSpeed", 1), _0x14a372(this, "physicsExtraSteps", 1), _0x14a372(this, "physicsMaxSteps", 60), _0x14a372(this, "debug", false), _0x14a372(this, 'stats', false), _0x14a372(this, "models", true), _0x14a372(this, "environment", true), _0x14a372(this, "blocks", false), _0x14a372(this, "chunkMarks", false), _0x14a372(this, "route", ''), _0x14a372(this, "chunk", ''), _0x14a372(this, "timeScale", 1), _0x14a372(this, "forceTube", false), _0x14a372(this, "tutorial", false), _0x14a372(this, "loadDelay", 0), _0x14a372(this, 'god', false), _0x14a372(this, "freejump", false), _0x14a372(this, "forcePickup", ''), _0x14a372(this, "modCoins", 0), _0x14a372(this, "gdAwardKeys", 0), _0x14a372(this, 'reset', false), _0x14a372(this, "gdFreeMysteryBox", false), _0x14a372(this, "missionSet", -1), _0x14a372(this, "missionProgress", []), _0x14a372(this, "dayModifier", 0), _0x14a372(this, "laneWidth", 20), _0x14a372(this, "blockSize", 90), _0x14a372(this, "visibleMaxDistance", 1000), _0x14a372(this, "visibleMinDistance", -500), _0x14a372(this, 'fog', true), _0x14a372(this, "bend", true), _0x14a372(this, "bendX", -0.0005), _0x14a372(this, "bendY", -0.0003), _0x14a372(this, 'fillers', true), _0x14a372(this, "ground", true), _0x14a372(this, "prepopulate", false), _0x14a372(this, "speed", 0), _0x14a372(this, "gravity", 0.055), _0x14a372(this, "freeRevivals", 1), _0x14a372(this, "dizzyDuration", 3), _0x14a372(this, "cameraFov", 68), _0x14a372(this, 'cameraPosX', 0), _0x14a372(this, "cameraPosY", 33.8), _0x14a372(this, "cameraPosZ", 33), _0x14a372(this, "cameraModX", 0.75), _0x14a372(this, "cameraRotX", -0.375), _0x14a372(this, "cameraRotY", 0), _0x14a372(this, 'cameraRotZ', 0), _0x14a372(this, "mobile", false), _0x14a372(this, "bundlesPath", "./bundles/"), _0x14a372(this, 'theme', 'oxford'), _0x14a372(this, "backgroundUpperGradient", '#34086A'), _0x14a372(this, "backgroundLowerGradient", "#02B4EB"), _0x14a372(this, "trainLightColor", "#FFA900"), _0x14a372(this, "trainLights", 1), _0x14a372(this, "trainXOffset", 5.6), _0x14a372(this, "trainZOffset", 28), _0x14a372(this, "trainYOffset", 1.6), _0x14a372(this, "subLightColor", "#FFA900"), _0x14a372(this, "subLights", 1), _0x14a372(this, 'subXOffset', 5.2), _0x14a372(this, "subZOffset", 28), _0x14a372(this, 'subYOffset', -4.4), _0x14a372(this, "trainLightTexture", 'trains-tex'), _0x14a372(this, "trainLightModelName", "train_light"), _0x14a372(this, "trainSideLightModelName", void 0), _0x14a372(this, "trainLightScale", 0.8), _0x14a372(this, "iOSUIOffsetY", _0x256400.a.isIOS() ? 60 : 0), _0x14a372(this, "volume", 0.3), _0x14a372(this, "useDefaultPrompt", false), _0x14a372(this, "maxNicknameChars", 15), _0x14a372(this, "assetsPath", "assets/"), _0x14a372(this, "language", 'en'), _0x14a372(this, "leaderboard", "mockup"), _0x14a372(this, "extra", ''), _0x14a372(this, 'loadMode', "progressive-discrete"), _0x14a372(this, 'cacheBust', true), _0x14a372(this, "loadingMbs", true), _0x14a372(this, "useWebWorkers", false), _0x14a372(this, "loadExtraAttempts", 5), _0x14a372(this, "tokens", false), this.mobile = !_0x27b8b9.a.desktop, this.override(window.GAME_CONFIG), this.override(_0x256400.a.getUrlParams());
     }
     ["override"](_0x59f5e0) {
       const _0x554ee2 = window.PokiSDK;
@@ -6369,6 +6369,16 @@
       });
     }
     ["onOpen"]() {
+      if (window.__SW_NO_REVIVE__ !== false) {
+        this.close();
+        const _pr = _0x483390.game && _0x483390.game.stats ? _0x483390.game.stats.getPrizes() : [];
+        if (_pr && _pr.length) {
+          _0x483390.prizeScreen.open({ prizes: _pr, onExitCallback: () => _0x483390.nav.toGameover() });
+        } else {
+          _0x483390.nav.toGameover();
+        }
+        return;
+      }
       const _0x37d3c8 = _0x483390.game.freeRevivals < _0x52c5e0.a.freeRevivals,
         _0xf90184 = _0x37d3c8 ? this.heightTall : this.heightShort;
       this.clock.run(6, () => this.exit()), this.btnReviveWatch.key = "Space", this.btnReviveKeys.key = 'k', this.btnReviveKeys.setup({
@@ -6394,6 +6404,7 @@
       this.close(), this.onExitCallback();
     }
     ["reviveWithAd"]() {
+      if (window.__SW_NO_REVIVE__ !== false) { this.exit(); return; }
       this.close(), _0x52c5e0.a.debug ? _0x483390.game.revive(1, false) : (_0x483390.sound.volume(0), this.btnReviveWatch.key = null, this.btnReviveKeys.key = null, _0x5aae70.a.SDK.rewardedBreak({
         type: "saveMe"
       }, ["revive", '', 'gameplay']).then(_0x3f0c0a => {
@@ -6401,6 +6412,7 @@
       }));
     }
     ["reviveWithKeys"]() {
+      if (window.__SW_NO_REVIVE__ !== false) { this.exit(); return; }
       this.close(), _0x483390.user.keys >= _0x483390.game.paidRevivalCost() ? _0x483390.game.revive(_0x52c5e0.a.debug ? 1 : 3, true) : (_0x483390.notEnoughCurrency.setup(_0x483390.game.paidRevivalCost(), this.onExitCallback, "keys"), _0x483390.notEnoughCurrency.open());
     }
   }
@@ -7815,6 +7827,10 @@
       void 0 === _0x97dd32 && (_0x97dd32 = false), this.resetUi(), _0x483390.game.onGameover.remove(this), this.onGameplayFinish.dispatch(), _0x483390.game.stats.score > _0x483390.user.highscore || _0x97dd32 ? (_0x483390.highScoreScreen.open(), _0x483390.highScoreScreen.onExit.addOnce(() => _0x483390.gameover.open())) : _0x483390.gameover.open();
     }
     async ['gameover']() {
+      if (window.__SW_NO_REVIVE__ !== false) {
+        await Object(_0x2341a8.a)(0.35), this.toGameover();
+        return;
+      }
       await Object(_0x2341a8.a)(0.75), _0x483390.saveme.open();
     }
   }
@@ -7881,6 +7897,7 @@
           }, _0x5a64ad[_0x362d9a]);
         }
       }
+      window.__SW_SOUND_INST__ = this, window.__SW_AUDIO_MGR__ = _0x399e7a.a;
       this.muted = this.app.user.muted, this.volume("number" == typeof window.__SW_VOLUME_OVERRIDE__ ? window.__SW_VOLUME_OVERRIDE__ : _0x52c5e0.a.volume), this.app.visibility.onVisibilityChange.connect(this.onVisibilityChange.bind(this)), _0x5aae70.a.SDK.onBreakStart.add(() => {
         this.volume(0);
       }), _0x5aae70.a.SDK.onBreakComplete.add(() => {
@@ -9869,6 +9886,7 @@
       return Math.pow(2, this.paidRevivals);
     }
     ["revive"](_0x57110b, _0x414468) {
+      if (window.__SW_NO_REVIVE__ !== false) return;
       void 0 === _0x57110b && (_0x57110b = 0), void 0 === _0x414468 && (_0x414468 = false), this.state !== _0xc92f56.RUNNING && (this.hero.player.reset(this.hero.body.z, this.hero.body.x, this.hero.body.lane), this.hero.active = false, this.guard && this.guard.reset(), _0x57110b ? this.hud.runCountdown(_0x57110b, () => this.revive(0, _0x414468)) : (_0x414468 ? (this.app.user.keys -= this.paidRevivalCost(), this.app.user.keys < 0 && (this.app.user.keys = 0), this.app.user.save(), this.paidRevivals += 1) : this.freeRevivals += 1, this.state = _0xc92f56.RUNNING, this.level.removeObstacles(), this.hero.active = true, this.hero.revive(), this.onRevive.run(), this.hero.player.run(0), this.controller.show(), this.guard && this.guard.run(), _0x3f69f8.a.SDK.gameplayStart()));
     }
     ["playTheme"]() {
@@ -10097,8 +10115,8 @@
     for (let _0x1b2794 = 0; _0x1b2794 < _0x3aefe9.length; _0x1b2794 += 3) _0x11dcda += _0x1f20fe[_0x3aefe9.substr(_0x1b2794, 3)];
     return _0x11dcda;
   }
-  const _0x5d3e57 = ["jake", "tricky", "fresh", "spike", 'yutani', "kiloo", 'sybo', "poki", "coins", "keys", 'mission', "hats", "guitar", "stereo", "surfer", "subway", "magnet", 'pogo', "ufos", 'run', "bye"],
-    _0x2cfa0a = ["mystery-box", "mystery-box", 1050, 2100, "super-mystery-box"],
+  const _0x5d3e57 = ["johnsurf"],
+    _0x2cfa0a = [1050, 2100, 3500, 5000, 10000],
     _0x3c8a43 = new Date('06/28/2021'),
     _0x5ba772 = (((new Date().getTime() - _0x3c8a43.getTime()) / 86400000 | 0) + _0x427dec.a.dayModifier) % _0x5d3e57.length,
     _0x286996 = _0x5d3e57[_0x5ba772];
@@ -11113,8 +11131,8 @@
   const _0xswShaderExt = {
     name: "swShaderLight",
     fragment: {
-      header: "\n            uniform highp vec4 uSwShader;\n            uniform highp vec4 uSwObsPos[3];\n            uniform highp vec4 uSwObsDim[3];\n            float swBoxShadow(vec3 wp, vec4 bPos, vec4 bDim, vec3 sunDir) {\n                if (bDim.z < 0.5 || wp.y >= bDim.y - 0.15) return 0.0;\n                vec2 relSelf = abs(wp.xz - bPos.xy) - bPos.zw;\n                float selfDist = max(relSelf.x, relSelf.y);\n                if (selfDist < 0.05 && wp.y > bDim.x + 0.35) return 0.0;\n                float midH = clamp(wp.y + min(5.0, (bDim.y - wp.y) * 0.45), max(bDim.x, wp.y), bDim.y);\n                float dy = max(0.0, midH - wp.y);\n                float tRay = dy / max(sunDir.y, 0.2);\n                vec2 p = wp.xz + sunDir.xz * tRay;\n                vec2 q = abs(p - bPos.xy) - bPos.zw;\n                float sd = length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0);\n                float pen = 0.55 + tRay * 0.065;\n                float sh = 1.0 - smoothstep(-0.25, pen, sd);\n                float hFade = 1.0 - smoothstep(14.0, 58.0, bDim.y - wp.y);\n                return sh * hFade;\n            }\n            float swBoxAO(vec3 wp, vec4 bPos, vec4 bDim) {\n                if (bDim.z < 0.5 || wp.y > bDim.x + 2.6 || wp.y < bDim.x - 1.2) return 0.0;\n                vec2 q = abs(wp.xz - bPos.xy) - bPos.zw;\n                float edge = length(max(q, vec2(0.0)));\n                if (edge > 3.2) return 0.0;\n                float yW = 1.0 - smoothstep(bDim.x, bDim.x + 2.4, wp.y);\n                float dW = 1.0 - smoothstep(0.0, 3.0, edge);\n                return yW * dW * 0.42;\n            }\n        ",
-      end: "\n            if (uSwShader.x > 0.1 && finalColor.a > 0.01) {\n                float swLv = uSwShader.x;\n                float swIsUltra = step(1.5, swLv);\n                vec3 swN = normalize(vWorldNormal + vec3(0.0, 0.0001, 0.0));\n                vec3 swSun = normalize(vec3(0.42, 0.86, 0.30));\n                float swNdl = clamp(dot(swN, swSun), -1.0, 1.0);\n                float swDiff = smoothstep(-0.30, 0.88, swNdl);\n                vec3 swShadeCol = mix(vec3(0.76, 0.82, 0.92), vec3(0.68, 0.76, 0.90), swIsUltra);\n                vec3 swSunCol = mix(vec3(1.04, 1.01, 0.96), vec3(1.09, 1.04, 0.97), swIsUltra);\n                vec3 swLightTint = mix(swShadeCol, swSunCol, swDiff);\n\n                // Articulated hero directional shadow (projected along -sunDir + foot contact)\n                float swHeroSh = 0.0;\n                float swAo = 0.0;\n                if (swN.y > 0.25 && uSwShader.z >= worldPosition.y - 0.5) {\n                    float swUpMask = smoothstep(0.25, 0.72, swN.y);\n                    float swH = max(0.0, uSwShader.z + 0.8 - worldPosition.y);\n                    float swT = swH / max(swSun.y, 0.2);\n                    vec2 swFootProj = worldPosition.xz + swSun.xz * (swT * 0.55) - vec2(uSwShader.y, uSwShader.w);\n                    float swFootBlur = 0.95 + swH * 0.065;\n                    float swFootDist = length(swFootProj * vec2(1.08, 0.88));\n                    float swFootSh = 1.0 - smoothstep(1.35, 1.35 + swFootBlur * 1.45, swFootDist);\n                    float swTorsoH = swH + 4.4;\n                    float swTorsoT = swTorsoH / max(swSun.y, 0.2);\n                    vec2 swTorsoProj = worldPosition.xz + swSun.xz * swTorsoT - vec2(uSwShader.y, uSwShader.w);\n                    float swTorsoBlur = 1.15 + swTorsoH * 0.075;\n                    float swTorsoDist = length(swTorsoProj * vec2(1.18, 0.68));\n                    float swTorsoSh = 1.0 - smoothstep(1.55, 1.55 + swTorsoBlur * 1.65, swTorsoDist);\n                    float swFadeH = 1.0 - smoothstep(2.0, 36.0, swH);\n                    swHeroSh = max(swFootSh * 0.92, swTorsoSh * 0.78) * swUpMask * swFadeH;\n                }\n\n                // Nearest 3D train / barrier casted directional soft shadows + ground contact AO\n                float swEnvSh = 0.0;\n                for (int si = 0; si < 3; si++) {\n                    swEnvSh = max(swEnvSh, swBoxShadow(worldPosition, uSwObsPos[si], uSwObsDim[si], swSun));\n                    swAo = max(swAo, swBoxAO(worldPosition, uSwObsPos[si], uSwObsDim[si]));\n                }\n                float swShadow = max(swHeroSh, swEnvSh);\n                float swDirectOcc = clamp(swShadow * mix(0.50, 0.62, swIsUltra) + swAo * mix(0.45, 0.72, swIsUltra), 0.0, 0.72);\n\n                float swHalfDot = max(dot(swN, normalize(swSun - eyeToSurfaceDir)), 0.0);\n                float swSpec = pow(swHalfDot + 0.0001, mix(30.0, 22.0, swIsUltra)) * step(0.01, swHalfDot);\n                float swFresBase = clamp(1.0 - max(dot(swN, -eyeToSurfaceDir), 0.0), 0.0, 1.0);\n                float swFres = pow(swFresBase + 0.0001, 3.2) * step(0.01, swFresBase);\n                float swLum = clamp(dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);\n                float swSpecMask = smoothstep(0.025, 0.16, swLum) * finalColor.a;\n                float swStrength = mix(0.55, 0.85, swIsUltra);\n\n                vec3 swShadowTint = mix(vec3(1.0), vec3(0.42, 0.46, 0.56), swDirectOcc);\n                vec3 swLit = max(finalColor.rgb, vec3(0.0)) * mix(vec3(1.0), swLightTint, swStrength) * swShadowTint;\n                swLit += (swSpec * mix(0.07, 0.13, swIsUltra)) * swSunCol * swSpecMask * (1.0 - swShadow * 0.8);\n                swLit += (swFres * mix(0.05, 0.09, swIsUltra)) * mix(vec3(0.55, 0.78, 1.0), vec3(1.0, 0.90, 0.72), swDiff) * swSpecMask * (1.0 - swDirectOcc * 0.5);\n                // Soft highlight roll-off (preserves crystal-clear texture details, zero clipping/NaN)\n                vec3 swOver = max(swLit - vec3(0.88), vec3(0.0));\n                swLit = (swLit - swOver) + swOver / (vec3(1.0) + swOver * 1.15);\n                finalColor.rgb = max(swLit, vec3(0.0));\n            }\n        "
+      header: "\n            uniform vec4 uSwShader;\n        ",
+      end: "\n            if (uSwShader.x > 0.1 && finalColor.a > 0.05) {\n                float swLv = uSwShader.x;\n                float swUltra = step(1.5, swLv);\n                vec3 swN = normalize(vWorldNormal + vec3(0.0, 0.0001, 0.0));\n                vec3 swSun = normalize(vec3(0.54, 0.76, 0.34));\n                float swNdl = clamp(dot(swN, swSun), -1.0, 1.0);\n                float swDiff = smoothstep(-0.42, 0.72, swNdl);\n                float swSky = clamp(swN.y * 0.5 + 0.5, 0.0, 1.0);\n                vec3 swCoolShadow = mix(vec3(0.56, 0.65, 0.86), vec3(0.36, 0.48, 0.78), swUltra);\n                vec3 swWarmSun = mix(vec3(1.22, 1.13, 0.96), vec3(1.42, 1.24, 0.96), swUltra);\n                vec3 swKeyFill = mix(swCoolShadow, swWarmSun, swDiff);\n                vec3 swHemi = mix(mix(vec3(0.88, 0.90, 0.96), vec3(0.76, 0.80, 0.92), swUltra), mix(vec3(1.06, 1.04, 1.00), vec3(1.16, 1.08, 0.96), swUltra), swSky);\n                float swMask = smoothstep(0.03, 0.18, clamp(dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114)), 0.0, 1.0)) * finalColor.a;\n                vec3 swHalf = normalize(swSun - eyeToSurfaceDir + vec3(0.0, 0.0001, 0.0));\n                float swNdH = max(dot(swN, swHalf), 0.0);\n                float swSpec = pow(swNdH + 0.0001, mix(26.0, 18.0, swUltra)) * step(0.02, swNdH);\n                float swFresRaw = clamp(1.0 - max(dot(swN, -eyeToSurfaceDir), 0.0), 0.0, 1.0);\n                float swFres = pow(swFresRaw + 0.0001, 2.8) * step(0.02, swFresRaw);\n                vec3 swRimCol = mix(vec3(0.45, 0.74, 1.0), vec3(1.0, 0.84, 0.54), swDiff);\n                vec3 swLit = max(finalColor.rgb, vec3(0.0)) * mix(vec3(1.0), swKeyFill * swHemi, mix(0.68, 0.96, swUltra));\n                swLit += swWarmSun * (swSpec * mix(0.10, 0.24, swUltra)) * swMask;\n                swLit += swRimCol * (swFres * mix(0.07, 0.18, swUltra)) * swMask;\n                vec3 swOver = max(swLit - vec3(0.85), vec3(0.0));\n                swLit = (swLit - swOver) + swOver / (vec3(1.0) + swOver * 1.15);\n                finalColor.rgb = max(swLit, vec3(0.0));\n            }\n        "
     }
   };
   const _0x245df7 = {
@@ -11146,11 +11164,7 @@
       }
       if (!_0x57788c.isFxBlend && _0x22f742.extensions) {
         window.__SW_SHADER_VEC__ || (window.__SW_SHADER_VEC__ = new Float32Array([1.0, 0.0, 0.0, 0.0]));
-        window.__SW_OBS_POS__ || (window.__SW_OBS_POS__ = new Float32Array(12));
-        window.__SW_OBS_DIM__ || (window.__SW_OBS_DIM__ = new Float32Array(12));
         _0x16bb44.uSwShader = window.__SW_SHADER_VEC__;
-        _0x16bb44.uSwObsPos = window.__SW_OBS_POS__;
-        _0x16bb44.uSwObsDim = window.__SW_OBS_DIM__;
         _0x22f742.extensions.push(_0xswShaderExt);
       }
       _0x57788c.screenMask && _0x22f742.extensions && (_0x22f742.extensions.push(_0x4bb817), _0x16bb44.uScreenMask = _0x57788c.screenMask), _0x57788c.bend && _0x22f742.extensions && _0x22f742.extensions.push(_0x53aa24), _0x57788c.fogMultiplier && _0x22f742.extensions && _0x22f742.extensions.push({
@@ -11193,7 +11207,7 @@
             _0xb2e945 = Object(_0x540f2.a)(_0x208469, _0x52d8e2),
             _0x377ca3 = _0x52d8e2 ? _0x5ab7dd : _0x3b4727,
             _0x2b367a = _0x377ca3.vertex.replace("{{EXTENSIONS}}", _0xb2e945.vertex.extensions).replace("{{PRECISION}}", "precision highp float;"),
-            _0x1ccb06 = _0x377ca3.fragment.replace("{{EXTENSIONS}}", _0xb2e945.fragment.extensions).replace("{{PRECISION}}", "#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif"),
+            _0x1ccb06 = _0x377ca3.fragment.replace("{{EXTENSIONS}}", _0xb2e945.fragment.extensions).replace("{{PRECISION}}", "precision mediump float;"),
             _0x20edda = _0x55cc2d(_0x97090d.vertex),
             _0x1daac6 = _0x55cc2d(_0x97090d.fragment);
           _0x208469.forEach(_0x2ec5f7 => {

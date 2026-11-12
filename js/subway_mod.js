@@ -130,8 +130,10 @@
         volume: _swSavedVol !== null ? Math.max(0, Math.min(100, parseInt(_swSavedVol, 10) || 0)) : 30, // 0 - 100 (padrão 30%)
         motionBlur: localStorage.getItem('sw_motion_blur') || 'soft', // 'off' | 'soft' | 'high'
         shaders: localStorage.getItem('sw_shaders') || 'medium', // 'off' | 'medium' | 'ultra'
+        noRevive: localStorage.getItem('sw_no_revive') !== '0', // true by default
     };
     window.__SW_VOLUME_OVERRIDE__ = GFX_SETTINGS.volume / 100;
+    window.__SW_NO_REVIVE__ = GFX_SETTINGS.noRevive;
 
     function applyGameVolume(pct) {
         const clamped = Math.max(0, Math.min(100, parseInt(pct, 10) || 0));
@@ -139,6 +141,16 @@
         window.__SW_VOLUME_OVERRIDE__ = norm;
         try {
             if (window.GAME_CONFIG) window.GAME_CONFIG.volume = norm;
+            if (window.__SW_CONFIG__) window.__SW_CONFIG__.volume = norm;
+            if (window.Howler && typeof window.Howler.volume === 'function') {
+                window.Howler.volume(norm);
+            }
+            if (window.__SW_AUDIO_MGR__ && (!window.app || !window.app.user || !window.app.user.muted)) {
+                window.__SW_AUDIO_MGR__.volume = norm;
+            }
+            if (window.__SW_SOUND_INST__ && typeof window.__SW_SOUND_INST__.volume === 'function' && !window.__SW_SOUND_INST__.muted) {
+                window.__SW_SOUND_INST__.volume(norm);
+            }
             if (window.app) {
                 if (window.app.config) window.app.config.volume = norm;
                 if (window.app.sound && typeof window.app.sound.volume === 'function' && !window.app.sound.muted) {
@@ -163,8 +175,8 @@
 
     function getShaderLabel(val) {
         if (val === 'off') return 'Desativado';
-        if (val === 'ultra') return 'Ultra (Sombras 3D)';
-        return 'Médio (Sombras 3D)';
+        if (val === 'ultra') return 'Ultra (Iluminação 3D)';
+        return 'Médio (Iluminação 3D)';
     }
 
     function ensureReformulatedShadowTexture() {
@@ -196,13 +208,11 @@
         window.__SW_SHADER_MODE__ = mode;
         const lv = mode === 'ultra' ? 2.0 : (mode === 'medium' ? 1.0 : 0.0);
         if (!window.__SW_SHADER_VEC__) window.__SW_SHADER_VEC__ = new Float32Array([lv, 0, 0, 0]);
-        if (!window.__SW_OBS_POS__) window.__SW_OBS_POS__ = new Float32Array(12);
-        if (!window.__SW_OBS_DIM__) window.__SW_OBS_DIM__ = new Float32Array(12);
         window.__SW_SHADER_VEC__[0] = lv;
         const tex = ensureReformulatedShadowTexture();
         if (tex) window.__SW_SHADOW_TEX__ = tex;
 
-        // 1) Tune 3D Lights cleanly (preserve texture albedo without clipping)
+        // 1) Tune 3D Lights dramatically per mode (cool ambient fill vs warm sun key)
         try {
             const systems = (window.__SW_LIGHT_SYSTEMS__ || []).slice();
             const gScene = window.game && window.game.scene && window.game.scene.view3d && window.game.scene.view3d.lights;
@@ -214,11 +224,11 @@
                         ls.ambientLight.color = 0xffffff;
                         ls.ambientLight.intensity = 0.5;
                     } else if (mode === 'ultra') {
-                        ls.ambientLight.color = 0xd6e4fa;
-                        ls.ambientLight.intensity = 0.56;
+                        ls.ambientLight.color = 0x7ca2ea;
+                        ls.ambientLight.intensity = 0.36;
                     } else {
-                        ls.ambientLight.color = 0xe6effc;
-                        ls.ambientLight.intensity = 0.58;
+                        ls.ambientLight.color = 0xc8ddff;
+                        ls.ambientLight.intensity = 0.46;
                     }
                     ls.ambientLight.dirty = true;
                     if (typeof ls.ambientLight.update === 'function') ls.ambientLight.update();
@@ -231,13 +241,13 @@
                             l.color = 0xffffff;
                             l.intensity = 1.0;
                         } else if (mode === 'ultra') {
-                            l.color = 0xfff3de;
-                            l.intensity = 1.12;
-                            if (l.direction && l.direction.set) l.direction.set(0.42, -0.86, 0.30);
+                            l.color = 0xffd79e;
+                            l.intensity = 1.56;
+                            if (l.direction && l.direction.set) l.direction.set(0.54, -0.76, -0.34);
                         } else {
-                            l.color = 0xfff8eb;
-                            l.intensity = 1.06;
-                            if (l.direction && l.direction.set) l.direction.set(0.38, -0.88, 0.30);
+                            l.color = 0xfff0d4;
+                            l.intensity = 1.24;
+                            if (l.direction && l.direction.set) l.direction.set(0.45, -0.84, -0.28);
                         }
                         if (typeof l.update === 'function') l.update();
                     }
@@ -292,7 +302,8 @@
 
     function applyTickerMaxFPS(targetMaxFPS) {
         const minFps = targetMaxFPS === 0 ? 1 : 10;
-        window.__SW_UNLIMITED_TICK__ = (targetMaxFPS === 0);
+        window.__SW_TARGET_MAX_FPS__ = targetMaxFPS;
+        window.__SW_UNLIMITED_TICK__ = (targetMaxFPS === 0 || targetMaxFPS > 65);
         const cfgTicker = (tkr) => {
             if (!tkr) return;
             const changed = (tkr.maxFPS !== targetMaxFPS || tkr.minFPS !== minFps);
@@ -304,11 +315,14 @@
             }
         };
         try {
+            (window.__SW_ALL_TICKERS__ || []).forEach(cfgTicker);
             cfgTicker(window.__SW_TICKER_SYSTEM__);
             cfgTicker(window.__SW_TICKER_SHARED__);
-            if (window.app && window.app.ticker) {
+            if (window.app) {
                 cfgTicker(window.app.ticker);
-                const TickerCls = window.app.ticker.constructor;
+                if (window.app.stage) cfgTicker(window.app.stage.ticker);
+                const tRef = window.app.ticker || (window.app.stage && window.app.stage.ticker);
+                const TickerCls = tRef && tRef.constructor;
                 if (TickerCls && TickerCls.shared) cfgTicker(TickerCls.shared);
                 if (TickerCls && TickerCls.system) cfgTicker(TickerCls.system);
             }
@@ -326,64 +340,8 @@
     function ensureFPSCounterHook() {
         updateFPSCounterVisibility();
         if (_fpsHooked) return;
-        const ticker = window.__SW_TICKER_SYSTEM__ || window.__SW_TICKER_SHARED__ || (window.app && window.app.ticker);
+        const ticker = (window.app && window.app.stage && window.app.stage.ticker) || window.__SW_TICKER_SYSTEM__ || window.__SW_TICKER_SHARED__ || (window.app && window.app.ticker);
         const sampleNow = () => {
-            try {
-                const sv = window.__SW_SHADER_VEC__;
-                const obsPos = window.__SW_OBS_POS__;
-                const obsDim = window.__SW_OBS_DIM__;
-                if (sv && sv[0] > 0.1) {
-                    const g = window.game;
-                    const hb = g && g.hero && g.hero.body;
-                    if (hb) {
-                        const hx = hb.x || 0;
-                        const hy = Number.isFinite(hb.bottom) ? hb.bottom : (hb.y || 0);
-                        const hz = hb.z || 0;
-                        sv[1] = hx;
-                        sv[2] = hy;
-                        sv[3] = hz;
-                        if (obsPos && obsDim && g.physics && Array.isArray(g.physics.entities)) {
-                            const ents = g.physics.entities;
-                            let d0 = 1e9, d1 = 1e9, d2 = 1e9;
-                            let i0 = -1, i1 = -1, i2 = -1;
-                            for (let k = 0; k < ents.length; k++) {
-                                const ent = ents[k];
-                                const b = ent && ent.body;
-                                if (!b || b.player || b.deco) continue;
-                                const h = b.height || (Number.isFinite(b.top) && Number.isFinite(b.bottom) ? (b.top - b.bottom) : 0);
-                                if (h < 3.2) continue;
-                                const dz = (b.z || 0) - hz;
-                                if (dz > 125 || dz < -115) continue;
-                                const dx = (b.x || 0) - hx;
-                                const score = dx * dx * 0.45 + dz * dz;
-                                if (score < d0) { d2 = d1; i2 = i1; d1 = d0; i1 = i0; d0 = score; i0 = k; }
-                                else if (score < d1) { d2 = d1; i2 = i1; d1 = score; i1 = k; }
-                                else if (score < d2) { d2 = score; i2 = k; }
-                            }
-                            const picks = [i0, i1, i2];
-                            for (let s = 0; s < 3; s++) {
-                                const o = s * 4;
-                                const ei = picks[s];
-                                if (ei >= 0) {
-                                    const b = ents[ei].body;
-                                    const bot = Number.isFinite(b.bottom) ? b.bottom : (b.y || 0);
-                                    const top = Number.isFinite(b.top) ? b.top : (bot + (b.height || 10));
-                                    obsPos[o] = b.x || 0;
-                                    obsPos[o + 1] = b.z || 0;
-                                    obsPos[o + 2] = Math.max(1.5, (b.width || 12) * 0.5);
-                                    obsPos[o + 3] = Math.max(1.5, (b.depth || 14) * 0.5);
-                                    obsDim[o] = bot;
-                                    obsDim[o + 1] = top;
-                                    obsDim[o + 2] = 1.0;
-                                    obsDim[o + 3] = 0.0;
-                                } else {
-                                    obsDim[o + 2] = 0.0;
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch(e) {}
             const now = performance.now();
             if (typeof updateNoCoinObstacleEngine === 'function' && (!window.__swLastObsTick || now - window.__swLastObsTick >= 16)) {
                 window.__swLastObsTick = now;
@@ -409,7 +367,7 @@
         if (typeof requestAnimationFrame === 'function') {
             _fpsHooked = true;
             const rafLoop = () => {
-                const tkr = window.__SW_TICKER_SYSTEM__ || window.__SW_TICKER_SHARED__ || (window.app && window.app.ticker);
+                const tkr = (window.app && window.app.stage && window.app.stage.ticker) || window.__SW_TICKER_SYSTEM__ || window.__SW_TICKER_SHARED__ || (window.app && window.app.ticker);
                 if (tkr && typeof tkr.add === 'function') {
                     tkr.add(sampleNow);
                     return;
@@ -545,13 +503,14 @@
             }
 
             const gl = blurCanvas.getContext('webgl', {
-                alpha: false,
+                alpha: true,
+                premultipliedAlpha: false,
                 antialias: false,
                 depth: false,
                 stencil: false,
                 preserveDrawingBuffer: false,
                 powerPreference: 'high-performance'
-            }) || blurCanvas.getContext('experimental-webgl', { alpha: false, depth: false });
+            }) || blurCanvas.getContext('experimental-webgl', { alpha: true, depth: false });
 
             if (!gl) {
                 blurCanvas.remove();
@@ -568,39 +527,40 @@
             ].join('\n');
 
             const fsSrc = [
-                'precision mediump float;',
+                'precision lowp float;',
                 'uniform sampler2D uTex;',
                 'uniform float uStrength;',
                 'uniform vec2 uVel;',
                 'uniform vec2 uCenter;',
                 'varying vec2 vUv;',
                 'void main(){',
-                '  vec4 base = texture2D(uTex, vUv);',
-                '  if(uStrength <= 0.0008){ gl_FragColor = base; return; }',
-                '  float hudMask = 1.0 - smoothstep(0.75, 0.87, vUv.y);',
-                '  vec2 dFocus = (vUv - vec2(0.5, 0.34)) * vec2(1.25, 0.92);',
-                '  float peripheral = smoothstep(0.14, 0.48, length(dFocus));',
-                '  float zoneMask = hudMask * mix(0.12, 1.0, peripheral);',
-                '  vec2 radial = (vUv - uCenter) * vec2(1.05, 1.22);',
-                '  vec2 dir = radial * (uStrength * 1.45) + uVel * (uStrength * 0.95);',
-                '  dir *= zoneMask;',
-                '  float maxLen = 0.085;',
+                '  if(uStrength <= 0.002){ gl_FragColor = vec4(0.0); return; }',
+                '  float hudMask = 1.0 - smoothstep(0.76, 0.90, vUv.y);',
+                '  vec2 dFocus = (vUv - vec2(0.5, 0.38)) * vec2(1.18, 0.95);',
+                '  float peripheral = smoothstep(0.20, 0.62, length(dFocus));',
+                '  float zoneMask = hudMask * peripheral;',
+                '  if(zoneMask <= 0.01){ gl_FragColor = vec4(0.0); return; }',
+                '  vec2 radial = (vUv - uCenter) * vec2(1.12, 1.28);',
+                '  vec2 dir = radial * (uStrength * 1.95) + uVel * (uStrength * 1.15);',
+                '  dir *= (0.35 + 0.65 * peripheral);',
+                '  float maxLen = 0.175;',
                 '  float dLen = length(dir);',
                 '  if(dLen > maxLen) dir *= (maxLen / dLen);',
-                '  vec3 acc = base.rgb * 1.15;',
-                '  float totalW = 1.15;',
-                '  const int TAPS = 10;',
+                '  vec3 acc = texture2D(uTex, vUv).rgb * 0.8;',
+                '  float totalW = 0.8;',
+                '  const int TAPS = 6;',
                 '  for(int i = 1; i <= TAPS; i++){',
                 '    float t = float(i) / float(TAPS);',
-                '    float w = (1.0 - t * 0.55);',
+                '    float w = (1.15 - t * 0.55);',
                 '    vec2 uvFwd = clamp(vUv + dir * t, vec2(0.002), vec2(0.998));',
-                '    vec2 uvBwd = clamp(vUv - dir * (t * 0.65), vec2(0.002), vec2(0.998));',
+                '    vec2 uvBwd = clamp(vUv - dir * (t * 0.72), vec2(0.002), vec2(0.998));',
                 '    acc += texture2D(uTex, uvFwd).rgb * w;',
-                '    acc += texture2D(uTex, uvBwd).rgb * (w * 0.75);',
-                '    totalW += w * 1.75;',
+                '    acc += texture2D(uTex, uvBwd).rgb * (w * 0.82);',
+                '    totalW += w * 1.82;',
                 '  }',
                 '  vec3 blurred = acc / totalW;',
-                '  gl_FragColor = vec4(mix(base.rgb, blurred, clamp(zoneMask * 1.2, 0.0, 1.0)), 1.0);',
+                '  float edgeAlpha = clamp(zoneMask * min(1.0, uStrength * 11.5), 0.0, 0.92);',
+                '  gl_FragColor = vec4(blurred, edgeAlpha);',
                 '}'
             ].join('\n');
 
@@ -641,8 +601,9 @@
             let smoothStrength = 0;
             let smoothVx = 0;
             let smoothVy = 0;
-            let lastHeroZ = null;
             let lastTime = performance.now();
+            let cachedRect = null;
+            let cachedCw = 0, cachedCh = 0, cachedIw = 0, cachedIh = 0;
 
             app.renderer.on('postrender', () => {
                 try {
@@ -661,8 +622,7 @@
                     const hero = game && game.hero;
                     const body = hero && hero.body;
                     const posZ = (body && typeof body.z === 'number') ? body.z : null;
-                    const activeModal = document.getElementById('subway-mod-modal');
-                    const modalOpen = activeModal && activeModal.style.display === 'flex';
+                    const modalOpen = !!document.getElementById('modal-unified-menu');
                     const clip = (hero && hero.anim && hero.anim.currentAnimationClipName) || '';
                     const statePlaying = !!(hero && hero.state && hero.state.playing);
                     const heroAlive = hero && hero.isAlive !== false && !/crash|die|caught|idle/i.test(clip);
@@ -673,48 +633,57 @@
                     let targetVy = 0;
 
                     if (isRunning) {
-                        const speedRatio = (game && game.stats && typeof game.stats.speedRatio === 'number') ? game.stats.speedRatio : 0.35;
-                        const dashBoost = (typeof window.__dashSpeedMult === 'number' && window.__dashSpeedMult > 1) ? (window.__dashSpeedMult - 1) * 0.65 : 0;
+                        const speedRatio = (game && game.stats && typeof game.stats.speedRatio === 'number') ? game.stats.speedRatio : 0.45;
+                        const dashBoost = (typeof window.__dashSpeedMult === 'number' && window.__dashSpeedMult > 1) ? (window.__dashSpeedMult - 1) * 0.9 : 0;
                         const vx = body && body.velocity ? (body.velocity.x || 0) : 0;
                         const vy = body && body.velocity ? (body.velocity.y || 0) : 0;
-                        const mult = mode === 'high' ? 0.056 : 0.032;
+                        const mult = mode === 'high' ? 0.135 : 0.072;
 
-                        targetStrength = mult * (0.55 + speedRatio * 0.95 + dashBoost + Math.min(0.75, Math.abs(vx) * 0.025));
-                        targetVx = Math.max(-1.4, Math.min(1.4, -vx * 0.032));
-                        targetVy = Math.max(-0.9, Math.min(0.9, -vy * 0.018));
+                        targetStrength = mult * (0.70 + speedRatio * 1.10 + dashBoost + Math.min(0.85, Math.abs(vx) * 0.032));
+                        targetVx = Math.max(-1.6, Math.min(1.6, -vx * 0.042));
+                        targetVy = Math.max(-1.0, Math.min(1.0, -vy * 0.022));
                     }
 
-                    const lerpRate = Math.min(1, dt * (targetStrength > smoothStrength ? 14 : 18));
+                    const lerpRate = Math.min(1, dt * (targetStrength > smoothStrength ? 16 : 22));
                     smoothStrength += (targetStrength - smoothStrength) * lerpRate;
-                    smoothVx += (targetVx - smoothVx) * Math.min(1, dt * 16);
-                    smoothVy += (targetVy - smoothVy) * Math.min(1, dt * 16);
+                    smoothVx += (targetVx - smoothVx) * Math.min(1, dt * 18);
+                    smoothVy += (targetVy - smoothVy) * Math.min(1, dt * 18);
 
-                    if (smoothStrength < 0.0012 || gameCanvas.width < 2 || gameCanvas.height < 2) {
+                    if (smoothStrength < 0.002 || gameCanvas.width < 2 || gameCanvas.height < 2) {
                         if (blurCanvas.style.display !== 'none') blurCanvas.style.display = 'none';
                         return;
                     }
 
-                    const rect = gameCanvas.getBoundingClientRect();
-                    if (rect.width < 10 || rect.height < 10) return;
-
-                    if (blurCanvas.width !== gameCanvas.width || blurCanvas.height !== gameCanvas.height) {
-                        blurCanvas.width = gameCanvas.width;
-                        blurCanvas.height = gameCanvas.height;
+                    const cw = gameCanvas.clientWidth, ch = gameCanvas.clientHeight;
+                    const iw = window.innerWidth, ih = window.innerHeight;
+                    if (!cachedRect || cw !== cachedCw || ch !== cachedCh || iw !== cachedIw || ih !== cachedIh) {
+                        cachedRect = gameCanvas.getBoundingClientRect();
+                        cachedCw = cw; cachedCh = ch; cachedIw = iw; cachedIh = ih;
+                        if (cachedRect.width >= 10 && cachedRect.height >= 10) {
+                            blurCanvas.style.left = cachedRect.left + 'px';
+                            blurCanvas.style.top = cachedRect.top + 'px';
+                            blurCanvas.style.width = cachedRect.width + 'px';
+                            blurCanvas.style.height = cachedRect.height + 'px';
+                        }
                     }
-                    blurCanvas.style.left = rect.left + 'px';
-                    blurCanvas.style.top = rect.top + 'px';
-                    blurCanvas.style.width = rect.width + 'px';
-                    blurCanvas.style.height = rect.height + 'px';
+                    if (!cachedRect || cachedRect.width < 10 || cachedRect.height < 10) return;
+
+                    const bw = Math.max(64, (gameCanvas.width * 0.55) | 0);
+                    const bh = Math.max(64, (gameCanvas.height * 0.55) | 0);
+                    if (blurCanvas.width !== bw || blurCanvas.height !== bh) {
+                        blurCanvas.width = bw;
+                        blurCanvas.height = bh;
+                    }
                     if (blurCanvas.style.display !== 'block') blurCanvas.style.display = 'block';
 
-                    gl.viewport(0, 0, blurCanvas.width, blurCanvas.height);
+                    gl.viewport(0, 0, bw, bh);
                     gl.activeTexture(gl.TEXTURE0);
                     gl.bindTexture(gl.TEXTURE_2D, tex);
                     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, gameCanvas);
 
                     gl.uniform1f(uStrength, smoothStrength);
                     gl.uniform2f(uVel, smoothVx, smoothVy);
-                    gl.uniform2f(uCenter, 0.5, 0.62);
+                    gl.uniform2f(uCenter, 0.5, 0.58);
                     gl.drawArrays(gl.TRIANGLES, 0, 6);
                 } catch(e) {}
             });
@@ -753,6 +722,15 @@
         ensureFPSCounterHook();
         updateFPSCounterVisibility();
         showHUDNotification('Mostrar FPS: ' + (GFX_SETTINGS.showFps ? 'Ativado' : 'Desativado'));
+    };
+
+    window.__toggleNoRevive = function() {
+        GFX_SETTINGS.noRevive = !GFX_SETTINGS.noRevive;
+        window.__SW_NO_REVIVE__ = GFX_SETTINGS.noRevive;
+        localStorage.setItem('sw_no_revive', GFX_SETTINGS.noRevive ? '1' : '0');
+        const el = document.getElementById('val-gfx-norevive');
+        if (el) el.textContent = GFX_SETTINGS.noRevive ? 'Ativado' : 'Desativado';
+        showHUDNotification('Sem Revive: ' + (GFX_SETTINGS.noRevive ? 'Ativado' : 'Desativado'));
     };
 
     window.__cycleShaders = function() {
@@ -5106,17 +5084,84 @@
     let hubSkinAppliedInitial = false;
     let hubSwitching = false;
 
+    const SKIN_THEMES = {
+        jake_stick:   { base: '#09090b', accent: '#64748b', hi: '#e2e8f0', sat: 0.15, con: 1.35, bri: 0.35, swatch: 'linear-gradient(135deg,#09090b,#27272a 60%,#52525b)' },
+        jake_cyan:    { base: '#0284c7', accent: '#22d3ee', hi: '#a5f3fc', sat: 1.45, con: 1.18, bri: 1.06, swatch: 'linear-gradient(135deg,#0369a1,#22d3ee 65%,#e0f2fe)' },
+        jake_gold:    { base: '#d97706', accent: '#fbbf24', hi: '#fef08a', sat: 1.50, con: 1.20, bri: 1.08, swatch: 'linear-gradient(135deg,#92400e,#f59e0b 55%,#fef08a)' },
+        jake_crimson: { base: '#be123c', accent: '#fb7185', hi: '#ffe4e6', sat: 1.48, con: 1.18, bri: 1.04, swatch: 'linear-gradient(135deg,#881337,#f43f5e 60%,#fecdd3)' },
+        jake_violet:  { base: '#7c3aed', accent: '#c084fc', hi: '#f3e8ff', sat: 1.48, con: 1.18, bri: 1.06, swatch: 'linear-gradient(135deg,#4c1d95,#a855f7 60%,#f3e8ff)' },
+        jake_emerald: { base: '#059669', accent: '#34d399', hi: '#d1fae5', sat: 1.45, con: 1.16, bri: 1.05, swatch: 'linear-gradient(135deg,#065f46,#10b981 60%,#d1fae5)' },
+        jake_arctic:  { base: '#0ea5e9', accent: '#e0f2fe', hi: '#ffffff', sat: 1.25, con: 1.22, bri: 1.14, swatch: 'linear-gradient(135deg,#0284c7,#7dd3fc 55%,#ffffff)' },
+        jake_lava:    { base: '#ea580c', accent: '#f97316', hi: '#fde047', sat: 1.55, con: 1.25, bri: 1.02, swatch: 'linear-gradient(135deg,#431407,#ea580c 55%,#fde047)' }
+    };
+
+    window.__SW_SKIN_TEX_CACHE__ = window.__SW_SKIN_TEX_CACHE__ || new Map();
+    window.__SW_BUILD_SKIN_TEX__ = function(origTex, skinId) {
+        if (!origTex || !skinId || !SKIN_THEMES[skinId]) return null;
+        const img = origTex.image;
+        if (!img || (!img.width && !img.naturalWidth)) return null;
+        const key = `${skinId}_${origTex.uuid || origTex.id || 'tex'}`;
+        if (window.__SW_SKIN_TEX_CACHE__.has(key)) return window.__SW_SKIN_TEX_CACHE__.get(key);
+        const THREE_REF = window.THREE;
+        if (!THREE_REF || !THREE_REF.CanvasTexture) return null;
+
+        const w = Math.min(512, img.naturalWidth || img.width || 256);
+        const h = Math.min(512, img.naturalHeight || img.height || 256);
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d');
+        if (!ctx) return null;
+
+        const t = SKIN_THEMES[skinId];
+        ctx.filter = `contrast(${t.con}) saturate(${t.sat}) brightness(${t.bri})`;
+        ctx.drawImage(img, 0, 0, w, h);
+        ctx.filter = 'none';
+
+        ctx.globalCompositeOperation = 'color';
+        ctx.globalAlpha = skinId === 'jake_stick' ? 0.85 : 0.62;
+        const grad = ctx.createLinearGradient(0, 0, w, h);
+        grad.addColorStop(0, t.base);
+        grad.addColorStop(0.55, t.accent);
+        grad.addColorStop(1, t.hi);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.globalAlpha = skinId === 'jake_stick' ? 0.35 : 0.30;
+        const sheen = ctx.createLinearGradient(0, h, w, 0);
+        sheen.addColorStop(0, t.base);
+        sheen.addColorStop(0.5, t.accent);
+        sheen.addColorStop(1, t.hi);
+        ctx.fillStyle = sheen;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
+
+        const tex = new THREE_REF.CanvasTexture(cv);
+        tex.flipY = origTex.flipY;
+        if (origTex.colorSpace !== undefined) tex.colorSpace = origTex.colorSpace;
+        if (origTex.encoding !== undefined) tex.encoding = origTex.encoding;
+        tex.wrapS = origTex.wrapS;
+        tex.wrapT = origTex.wrapT;
+        tex.needsUpdate = true;
+        window.__SW_SKIN_TEX_CACHE__.set(key, tex);
+        return tex;
+    };
+
     function getSkinCatalog() {
         return [
-            { skinId: 'jake_classic', charId: 'jake', outfit: 0, blackTex: false, tint: null,     title: 'Jake', sub: 'Clássico',     swatch: '#3b82f6' },
-            { skinId: 'jake_dark',    charId: 'jake', outfit: 1, blackTex: false, tint: null,     title: 'Jake', sub: 'Dark',         swatch: '#334155' },
-            { skinId: 'jake_star',    charId: 'jake', outfit: 2, blackTex: false, tint: null,     title: 'Jake', sub: 'Star',         swatch: '#f59e0b' },
-            { skinId: 'jake_stick',   charId: 'jake', outfit: 0, blackTex: true,  tint: 0x050507, title: 'Jake', sub: 'Preto Total',  swatch: '#09090b' },
-            { skinId: 'jake_cyan',    charId: 'jake', outfit: 0, blackTex: false, tint: 0x38bdf8, title: 'Jake', sub: 'Neon Ciano',   swatch: '#38bdf8' },
-            { skinId: 'jake_gold',    charId: 'jake', outfit: 2, blackTex: false, tint: 0xffd147, title: 'Jake', sub: 'Dourado',      swatch: '#ffd147' },
-            { skinId: 'jake_crimson', charId: 'jake', outfit: 1, blackTex: false, tint: 0xff4d6d, title: 'Jake', sub: 'Carmesim',     swatch: '#ff4d6d' },
-            { skinId: 'jake_violet',  charId: 'jake', outfit: 0, blackTex: false, tint: 0xc084fc, title: 'Jake', sub: 'Roxo Violeta', swatch: '#c084fc' },
-            { skinId: 'jake_emerald', charId: 'jake', outfit: 0, blackTex: false, tint: 0x34d399, title: 'Jake', sub: 'Esmeralda',    swatch: '#34d399' },
+            { skinId: 'jake_classic', charId: 'jake', outfit: 0, blackTex: false, tint: null,     title: 'Jake', sub: 'Clássico',      swatch: 'linear-gradient(135deg,#1d4ed8,#3b82f6 60%,#93c5fd)' },
+            { skinId: 'jake_dark',    charId: 'jake', outfit: 1, blackTex: false, tint: null,     title: 'Jake', sub: 'Dark Edition',  swatch: 'linear-gradient(135deg,#0f172a,#334155 60%,#94a3b8)' },
+            { skinId: 'jake_star',    charId: 'jake', outfit: 2, blackTex: false, tint: null,     title: 'Jake', sub: 'Star Jacket',   swatch: 'linear-gradient(135deg,#b45309,#f59e0b 60%,#fde68a)' },
+            { skinId: 'jake_stick',   charId: 'jake', outfit: 0, blackTex: true,  tint: 0x09090b, title: 'Jake', sub: 'Obsidian',      swatch: SKIN_THEMES.jake_stick.swatch },
+            { skinId: 'jake_cyan',    charId: 'jake', outfit: 0, blackTex: false, tint: 0xe6f9ff, title: 'Jake', sub: 'Cyber Ciano',   swatch: SKIN_THEMES.jake_cyan.swatch },
+            { skinId: 'jake_gold',    charId: 'jake', outfit: 2, blackTex: false, tint: 0xfff8dc, title: 'Jake', sub: 'Ouro 24K',      swatch: SKIN_THEMES.jake_gold.swatch },
+            { skinId: 'jake_crimson', charId: 'jake', outfit: 1, blackTex: false, tint: 0xffeef2, title: 'Jake', sub: 'Carmesim Pro',  swatch: SKIN_THEMES.jake_crimson.swatch },
+            { skinId: 'jake_violet',  charId: 'jake', outfit: 0, blackTex: false, tint: 0xf7edff, title: 'Jake', sub: 'Ultravioleta',  swatch: SKIN_THEMES.jake_violet.swatch },
+            { skinId: 'jake_emerald', charId: 'jake', outfit: 0, blackTex: false, tint: 0xebfff6, title: 'Jake', sub: 'Esmeralda',     swatch: SKIN_THEMES.jake_emerald.swatch },
+            { skinId: 'jake_arctic',  charId: 'jake', outfit: 2, blackTex: false, tint: 0xf0f9ff, title: 'Jake', sub: 'Ártico Gelo',   swatch: SKIN_THEMES.jake_arctic.swatch },
+            { skinId: 'jake_lava',    charId: 'jake', outfit: 1, blackTex: false, tint: 0xfff2e6, title: 'Jake', sub: 'Magma Forge',   swatch: SKIN_THEMES.jake_lava.swatch },
         ];
     }
 
@@ -5137,6 +5182,7 @@
         try {
             window.__SW_JAKE_BLACK__ = !!entry.blackTex;
             window.__SW_JAKE_TINT__ = typeof entry.tint === 'number' ? entry.tint : null;
+            window.__SW_JAKE_SKIN_ID__ = entry.skinId || 'jake_classic';
             localStorage.setItem('sw_selected_skin', entry.skinId || 'jake_classic');
             localStorage.setItem('sw_selected_char', 'jake');
             localStorage.setItem('sw_selected_outfit', String(entry.outfit || 0));
@@ -5429,6 +5475,15 @@
                             </div>
                             <span class="setting-pill" id="val-gfx-motionblur">${getMotionBlurLabel(GFX_SETTINGS.motionBlur)}</span>
                         </div>
+
+                        <!-- No Revive (Hardcore) Setting -->
+                        <div class="subway-setting-row" onclick="window.__toggleNoRevive()" title="Bloqueia reviver por chave/moeda ou anúncio">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Sem Revive</span>
+                                <span class="setting-desc">Bloqueia reviver após colisão (chaves e ad)</span>
+                            </div>
+                            <span class="setting-pill" id="val-gfx-norevive">${GFX_SETTINGS.noRevive ? 'Ativado' : 'Desativado'}</span>
+                        </div>
                     </div>
 
                     <!-- Saturation Slider Card -->
@@ -5452,9 +5507,8 @@
                     </div>
                 </div>
 
-                <!-- Tab 2: Online Multiplayer -->
+                <!-- Tab 2: Online Multiplayer (Clean Obsidian Hub) -->
                 <div class="tab-pane" id="pane-multiplayer">
-                    <!-- Clean Pro Top Bar: Room Status + User Profile + Quick Join -->
                     <div class="lobby-header-bar">
                         <div class="lobby-room-badge">
                             <span class="live-dot"></span>
@@ -5463,75 +5517,67 @@
                             <button class="btn-copy-code" onclick="window.__copyRoomLink()" title="Copiar link da sala">Copiar</button>
                         </div>
 
+                        <div class="lobby-join-box">
+                            <input type="text" id="input-join-room" placeholder="Código da sala..." maxlength="15" />
+                            <button class="btn-join-room" onclick="window.__joinRoomByInput()">Entrar</button>
+                        </div>
+
                         <div class="lobby-user-profile">
-                            <div class="user-avatar-wrap" onclick="window.__promptAvatarUrl()" title="Clique para alterar foto por URL">
+                            <div class="user-avatar-wrap" onclick="window.__promptAvatarUrl()" title="Alterar foto por URL">
                                 <img id="lobby-my-avatar" src="${myProfile.avatar}" alt="Avatar" />
-                                <span class="avatar-edit-icon" title="Inserir URL">✎</span>
                             </div>
                             <div class="user-meta-wrap">
                                 <div class="user-fields-row">
-                                    <input type="text" id="input-my-nick" value="${myProfile.nick}" maxlength="14" placeholder="Seu Nick" title="Clique para editar seu nick" onchange="window.__saveMyNick(this.value)" onblur="window.__saveMyNick(this.value)" />
-                                    <input type="text" id="input-my-avatar-url" value="${myProfile.avatar.startsWith('http') ? myProfile.avatar : ''}" placeholder="URL da foto..." title="Cole o link da foto de perfil" onchange="window.__saveAvatarUrl(this.value)" onblur="window.__saveAvatarUrl(this.value)" />
+                                    <input type="text" id="input-my-nick" value="${myProfile.nick}" maxlength="14" placeholder="Seu Nick" onchange="window.__saveMyNick(this.value)" onblur="window.__saveMyNick(this.value)" />
+                                    <input type="text" id="input-my-avatar-url" value="${myProfile.avatar.startsWith('http') ? myProfile.avatar : ''}" placeholder="URL da foto..." onchange="window.__saveAvatarUrl(this.value)" onblur="window.__saveAvatarUrl(this.value)" />
                                 </div>
                                 <div class="avatar-dots-bar">
                                     ${DEFAULT_AVATARS.map(av => `
                                         <img class="avatar-dot-chip ${av.url === myProfile.avatar ? 'active' : ''}" src="${av.url}" title="${av.name}" onclick="window.__selectPresetAvatar('${av.url}')" />
                                     `).join('')}
-                                    <button class="btn-avatar-url-chip" onclick="window.__promptAvatarUrl()" title="Inserir URL da foto">+ URL</button>
+                                    <button class="btn-avatar-url-chip" onclick="window.__promptAvatarUrl()" title="Inserir URL">+ URL</button>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="lobby-join-box">
-                            <input type="text" id="input-join-room" placeholder="Código..." maxlength="15" />
-                            <button class="btn-join-room" onclick="window.__joinRoomByInput()">Entrar</button>
-                        </div>
                     </div>
 
-                    <!-- Main Grid: Party Slots & Online List -->
                     <div class="lobby-grid">
-                        <!-- Left: Party Roster (2-4 players) -->
                         <div class="lobby-column party-col">
                             <div class="mp-mode-toggle-group">
-                                <button type="button" class="btn-mp-mode ${MP.matchType === '1v1' ? 'active' : ''}" data-mode="1v1" onclick="window.__setMPMatchType('1v1')">⚔️ Duelo 1v1</button>
-                                <button type="button" class="btn-mp-mode ${MP.matchType === 'tournament' ? 'active' : ''}" data-mode="tournament" onclick="window.__setMPMatchType('tournament')">🏆 Torneio (5P)</button>
+                                <button type="button" class="btn-mp-mode ${MP.matchType === '1v1' ? 'active' : ''}" data-mode="1v1" onclick="window.__setMPMatchType('1v1')">Duelo 1v1</button>
+                                <button type="button" class="btn-mp-mode ${MP.matchType === 'tournament' ? 'active' : ''}" data-mode="tournament" onclick="window.__setMPMatchType('tournament')">Torneio (5P)</button>
                             </div>
 
                             <div class="col-header">
                                 <div class="col-title-wrap">
                                     <h3 id="lobby-party-title">${MP.matchType === '1v1' ? `DUELO 1V1 (${MP.party.length}/2)` : `TORNEIO (${MP.party.length}/5)`}</h3>
-                                    <span class="party-hint" id="lobby-party-desc">${MP.matchType === '1v1' ? 'Duelo Direto 1v1 · 1 Rodada Única · Maior sobrevivência vence' : 'Torneio Competitivo · 3 Rodadas · Até 5 Jogadores · 5s entre rodadas'}</span>
+                                    <span class="party-hint" id="lobby-party-desc">${MP.matchType === '1v1' ? '1 Rodada · Maior sobrevivência vence' : '3 Rodadas · Até 5 jogadores · 5s de intervalo'}</span>
                                 </div>
                                 <button class="btn-add-bot" onclick="window.__addTestBot()" title="Adicionar bot para treinar">+ Bot</button>
                             </div>
 
-                            <div class="party-slots-container" id="party-slots">
-                                <!-- Injected by renderPartySlots -->
-                            </div>
+                            <div class="party-slots-container" id="party-slots"></div>
 
                             <div class="party-bottom-actions">
                                 <button id="btn-toggle-ready" class="btn-ready ${MP.isReady ? 'ready-on' : 'ready-off'}">
-                                    ${MP.isReady ? 'ESTOU PRONTO ✓' : 'DAR PRONTO'}
+                                    ${MP.isReady ? 'Pronto ✓' : 'Dar Pronto'}
                                 </button>
                                 <button id="btn-start-match" class="btn-start-match" ${checkCanStartMatch() ? '' : 'disabled'}>
-                                    ${MP.matchType === '1v1' ? 'INICIAR DUELO 1V1' : 'INICIAR TORNEIO'}
+                                    ${MP.matchType === '1v1' ? 'Iniciar 1v1' : 'Iniciar Torneio'}
                                 </button>
-                                <button id="btn-leave-party" class="btn-leave-room" onclick="window.__leaveParty()" title="Sair da sala">Sair</button>
+                                <button id="btn-leave-party" class="btn-leave-room" onclick="window.__leaveParty()">Sair</button>
                             </div>
                         </div>
 
-                        <!-- Right: Online Players -->
                         <div class="lobby-column players-col">
                             <div class="col-header">
                                 <div class="col-title-wrap">
-                                    <h3>JOGADORES ONLINE</h3>
+                                    <h3>Jogadores Online</h3>
                                     <span class="party-hint">Convide corredores para a sala</span>
                                 </div>
-                                <button class="btn-refresh-online" onclick="window.__refreshOnline()" title="Atualizar lista">Atualizar</button>
+                                <button class="btn-refresh-online" onclick="window.__refreshOnline()">Atualizar</button>
                             </div>
-                            <div class="online-players-list" id="online-players-list">
-                                <!-- Injected by renderOnlinePlayersList -->
-                            </div>
+                            <div class="online-players-list" id="online-players-list"></div>
                         </div>
                     </div>
                 </div>
@@ -6367,32 +6413,29 @@
                 bottom: auto;
                 z-index: 99998;
                 height: 36px;
-                padding: 0 14px 0 10px;
+                padding: 0 13px 0 10px;
                 display: flex;
                 align-items: center;
-                gap: 8px;
-                background: rgba(15, 23, 42, 0.8);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-                color: #e2e8f0;
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                border-radius: 18px;
+                gap: 7px;
+                background: #14171d;
+                color: #e5e7eb;
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 10px;
                 cursor: pointer;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.42);
                 font-weight: 700;
                 font-size: 11px;
-                letter-spacing: 0.8px;
+                letter-spacing: 0.6px;
                 text-transform: uppercase;
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
                 user-select: none;
                 -webkit-user-select: none;
             }
             .btn-subway-online-lobby:hover {
-                background: rgba(30, 41, 59, 0.95);
-                border-color: rgba(56, 189, 248, 0.5);
+                background: #1f242d;
+                border-color: rgba(255, 255, 255, 0.28);
                 color: #fff;
-                box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
                 transform: translateY(-1px);
             }
             .status-dot {
@@ -6787,184 +6830,208 @@
                 box-shadow: 0 0 6px #f43f5e;
             }
 
-            /* Modern Elimination Hub Header & Room Connect */
+            /* Obsidian Minimalist Lobby & Room Connect */
             .lobby-header-bar {
-                display: flex;
+                display: grid;
+                grid-template-columns: auto 1fr auto;
                 align-items: center;
-                justify-content: space-between;
-                gap: 12px;
-                background: rgba(15, 23, 42, 0.7);
+                gap: 10px;
+                background: #171a21;
                 border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 12px;
-                padding: 8px 14px;
+                border-radius: 10px;
+                padding: 10px 12px;
                 margin-bottom: 12px;
             }
             .lobby-room-badge {
                 display: flex;
                 align-items: center;
-                gap: 8px;
+                gap: 7px;
             }
             .live-dot {
-                width: 8px;
-                height: 8px;
+                width: 7px;
+                height: 7px;
                 border-radius: 50%;
                 background: #10b981;
-                box-shadow: 0 0 8px #10b981;
             }
             .room-lbl {
-                color: #64748b;
+                color: #8b94a3;
                 font-size: 10px;
-                font-weight: 800;
+                font-weight: 700;
                 letter-spacing: 0.5px;
             }
             .room-code-tag {
-                background: rgba(56, 189, 248, 0.1);
-                border: 1px solid rgba(56, 189, 248, 0.3);
+                background: #101216;
+                border: 1px solid rgba(255, 255, 255, 0.14);
                 border-radius: 6px;
                 padding: 3px 8px;
-                color: #38bdf8;
-                font-weight: 800;
-                font-family: monospace;
-                letter-spacing: 1px;
+                color: #f8fafc;
+                font-weight: 700;
+                font-family: ui-monospace, SFMono-Regular, monospace;
+                letter-spacing: 0.6px;
                 font-size: 12px;
             }
             .btn-copy-code {
-                background: rgba(255, 255, 255, 0.06);
+                background: #202531;
                 border: 1px solid rgba(255, 255, 255, 0.12);
-                color: #cbd5e1;
+                color: #e5e7eb;
                 border-radius: 6px;
                 padding: 4px 10px;
                 font-size: 11px;
-                font-weight: 700;
+                font-weight: 600;
                 cursor: pointer;
-                transition: all 0.2s;
+                transition: background 0.15s, border-color 0.15s;
             }
             .btn-copy-code:hover {
-                background: rgba(255, 255, 255, 0.12);
+                background: #2b3140;
+                border-color: rgba(255, 255, 255, 0.25);
                 color: #fff;
             }
 
             .lobby-user-profile {
+                grid-column: 1 / -1;
                 display: flex;
                 align-items: center;
                 gap: 10px;
-                background: rgba(255, 255, 255, 0.03);
+                background: #12151b;
                 border: 1px solid rgba(255, 255, 255, 0.06);
-                border-radius: 10px;
-                padding: 4px 10px;
+                border-radius: 8px;
+                padding: 8px 10px;
             }
             .user-avatar-wrap img {
-                width: 34px;
-                height: 34px;
+                width: 36px;
+                height: 36px;
                 border-radius: 50%;
-                border: 2px solid #38bdf8;
+                border: 1.5px solid rgba(255, 255, 255, 0.28);
                 object-fit: cover;
                 display: block;
+                cursor: pointer;
             }
             .user-meta-wrap {
                 display: flex;
                 flex-direction: column;
-                gap: 2px;
+                gap: 5px;
+                flex: 1;
+                min-width: 0;
             }
-            #input-my-nick {
-                background: transparent;
-                border: none;
-                border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+            .user-fields-row {
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+            #input-my-nick, #input-my-avatar-url {
+                background: #101216;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 6px;
                 color: #f8fafc;
                 font-size: 12px;
-                font-weight: 800;
-                padding: 1px 4px;
-                width: 105px;
+                font-weight: 600;
+                padding: 4px 8px;
                 outline: none;
-                transition: border-color 0.2s;
+                transition: border-color 0.15s;
             }
-            #input-my-nick:focus {
-                border-bottom-color: #38bdf8;
+            #input-my-nick { width: 120px; }
+            #input-my-avatar-url { flex: 1; min-width: 120px; color: #9ca3af; font-weight: 500; }
+            #input-my-nick:focus, #input-my-avatar-url:focus {
+                border-color: rgba(255, 255, 255, 0.4);
             }
             .avatar-dots-bar {
                 display: flex;
-                gap: 5px;
+                align-items: center;
+                gap: 6px;
+                flex-wrap: wrap;
             }
             .avatar-dot-chip {
-                width: 16px;
-                height: 16px;
+                width: 18px;
+                height: 18px;
                 border-radius: 50%;
-                opacity: 0.5;
+                opacity: 0.55;
                 cursor: pointer;
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                transition: all 0.15s;
+                border: 1px solid rgba(255, 255, 255, 0.22);
+                transition: opacity 0.15s, border-color 0.15s, transform 0.15s;
             }
             .avatar-dot-chip:hover, .avatar-dot-chip.active {
                 opacity: 1;
-                border-color: #38bdf8;
-                transform: scale(1.15);
-                box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+                border-color: #ffffff;
+                transform: scale(1.12);
+            }
+            .btn-avatar-url-chip {
+                background: #1c2029;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                color: #9ca3af;
+                border-radius: 5px;
+                padding: 2px 7px;
+                font-size: 10px;
+                font-weight: 600;
+                cursor: pointer;
             }
 
             .lobby-join-box {
                 display: flex;
                 align-items: center;
                 gap: 6px;
+                justify-self: end;
             }
             .lobby-join-box input {
-                background: rgba(0, 0, 0, 0.35);
-                border: 1px solid rgba(255, 255, 255, 0.15);
+                background: #101216;
+                border: 1px solid rgba(255, 255, 255, 0.12);
                 border-radius: 6px;
-                padding: 5px 8px;
+                padding: 5px 9px;
                 color: #fff;
-                font-size: 11px;
-                width: 95px;
+                font-size: 12px;
+                width: 118px;
                 outline: none;
             }
             .lobby-join-box input:focus {
-                border-color: #38bdf8;
+                border-color: rgba(255, 255, 255, 0.4);
             }
             .btn-join-room {
-                background: #0284c7;
-                color: #fff;
+                background: #f8fafc;
+                color: #0b0d10;
                 border: none;
                 border-radius: 6px;
-                padding: 5px 10px;
+                padding: 6px 12px;
                 font-size: 11px;
                 font-weight: 700;
                 cursor: pointer;
-                transition: background 0.2s;
+                transition: opacity 0.15s;
             }
-            .btn-join-room:hover { background: #0369a1; }
+            .btn-join-room:hover { opacity: 0.9; }
 
             /* Grid Layout */
             .lobby-grid {
-                display: flex;
-                gap: 14px;
+                display: grid;
+                grid-template-columns: 1.15fr 0.85fr;
+                gap: 12px;
             }
             .lobby-column {
-                flex: 1;
-                background: rgba(15, 23, 42, 0.55);
-                border: 1px solid rgba(255, 255, 255, 0.06);
-                border-radius: 12px;
-                padding: 12px 14px;
+                background: #171a21;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 10px;
+                padding: 12px;
                 display: flex;
                 flex-direction: column;
+                min-width: 0;
             }
             .col-header {
                 display: flex;
                 justify-content: space-between;
-                align-items: flex-start;
-                margin-bottom: 12px;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 10px;
                 padding-bottom: 8px;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             }
             .col-title-wrap h3 {
                 margin: 0;
                 font-size: 12px;
-                font-weight: 800;
-                letter-spacing: 0.5px;
-                color: #f1f5f9;
+                font-weight: 700;
+                letter-spacing: 0.4px;
+                color: #f9fafb;
             }
             .party-hint {
                 display: block;
-                font-size: 10px;
-                color: #94a3b8;
+                font-size: 11px;
+                color: #8b94a3;
                 margin-top: 2px;
             }
             .btn-add-bot, .btn-refresh-online {
@@ -7137,61 +7204,59 @@
                 flex: 1.1;
                 height: 38px;
                 border-radius: 8px;
-                border: none;
+                border: 1px solid rgba(255, 255, 255, 0.12);
                 font-size: 12px;
-                font-weight: 800;
-                letter-spacing: 0.5px;
+                font-weight: 700;
                 cursor: pointer;
-                transition: all 0.2s;
+                transition: background 0.15s, border-color 0.15s;
             }
             .btn-ready.ready-on {
                 background: #10b981;
-                color: #fff;
-                box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+                border-color: #10b981;
+                color: #062118;
             }
             .btn-ready.ready-off {
-                background: #334155;
-                color: #cbd5e1;
+                background: #202531;
+                color: #e5e7eb;
             }
             .btn-ready.ready-off:hover {
-                background: #475569;
+                background: #293040;
             }
             .btn-start-match {
                 flex: 1.4;
                 height: 38px;
                 border-radius: 8px;
-                border: none;
+                border: 1px solid rgba(255, 255, 255, 0.08);
                 font-size: 12px;
-                font-weight: 800;
-                letter-spacing: 0.5px;
+                font-weight: 700;
                 cursor: not-allowed;
-                background: #1e293b;
-                color: #64748b;
-                transition: all 0.2s;
+                background: #14171d;
+                color: #6b7280;
+                transition: background 0.15s, color 0.15s;
             }
             .btn-start-match.can-start {
                 cursor: pointer;
-                background: linear-gradient(135deg, #f43f5e, #e11d48);
-                color: #fff;
-                box-shadow: 0 0 14px rgba(244, 63, 94, 0.4);
+                background: #f8fafc;
+                border-color: #f8fafc;
+                color: #0b0d10;
             }
             .btn-start-match.can-start:hover {
-                filter: brightness(1.1);
+                background: #e5e7eb;
             }
             .btn-leave-room {
                 height: 38px;
                 padding: 0 12px;
                 border-radius: 8px;
                 border: 1px solid rgba(255, 255, 255, 0.1);
-                background: rgba(255, 255, 255, 0.05);
-                color: #94a3b8;
+                background: #12151b;
+                color: #9ca3af;
                 font-size: 11px;
-                font-weight: 700;
+                font-weight: 600;
                 cursor: pointer;
-                transition: all 0.2s;
+                transition: background 0.15s, color 0.15s;
             }
             .btn-leave-room:hover {
-                background: rgba(255, 255, 255, 0.1);
+                background: #1f242d;
                 color: #fff;
             }
 
@@ -7414,10 +7479,13 @@
             }
             @keyframes flashFade { 0% { opacity: 1; } 100% { opacity: 0; } }
             .subway-hud-alert {
-                position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
-                z-index: 100000; background: #e53935; color: #fff; padding: 10px 20px;
-                border-radius: 20px; font-weight: 800; font-size: 13px;
-                box-shadow: 0 4px 16px rgba(0,0,0,0.5); pointer-events: none;
+                position: fixed; top: calc(env(safe-area-inset-top, 0px) + 64px); left: 50%; transform: translateX(-50%);
+                z-index: 100000; background: rgba(16, 18, 22, 0.94); color: #f4f5f7;
+                border: 1px solid rgba(255, 255, 255, 0.14); padding: 9px 18px;
+                border-radius: 10px; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+                font-weight: 600; font-size: 13px; letter-spacing: 0.2px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.45); pointer-events: none;
+                max-width: calc(100vw - 32px); text-align: center; white-space: nowrap;
             }
 
             /* Invite Popup */
@@ -8411,107 +8479,117 @@
                 transform: translateX(-50%) translateY(0);
             }
 
-            /* Responsive Mobile & Small-Screen Adaptation */
+            /* Responsive Mobile & Small-Screen Adaptation (Unified Obsidian UI) */
             @media (max-width: 768px) {
                 * {
                     -webkit-tap-highlight-color: transparent !important;
                 }
                 .subway-modal-backdrop {
-                    padding: 12px !important;
+                    padding: 8px !important;
                     align-items: center !important;
                     justify-content: center !important;
                     backdrop-filter: none !important;
                     -webkit-backdrop-filter: none !important;
-                    background: rgba(2, 6, 23, 0.92) !important;
+                    background: rgba(7, 9, 12, 0.88) !important;
                 }
                 .subway-modal-box, .unified-box {
-                    width: 94vw !important;
-                    max-width: 420px !important;
+                    width: 96vw !important;
+                    max-width: 500px !important;
                     height: auto !important;
-                    max-height: 84vh !important;
+                    max-height: 90dvh !important;
                     margin: auto !important;
-                    border-radius: 16px !important;
+                    border-radius: 14px !important;
                     border: 1px solid rgba(255, 255, 255, 0.12) !important;
                     box-sizing: border-box !important;
                     overflow: hidden !important;
                     display: flex !important;
                     flex-direction: column !important;
-                    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9) !important;
+                    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85) !important;
                     backdrop-filter: none !important;
                     -webkit-backdrop-filter: none !important;
-                    background: #090e1a !important;
+                    background: #101216 !important;
                 }
                 .modal-header {
-                    padding: 12px 16px !important;
+                    padding: 12px 14px !important;
                     flex-shrink: 0 !important;
-                    background: #0f172a !important;
+                    background: #14171d !important;
                 }
-                .modal-brand-title {
-                    font-size: 13px !important;
-                }
+                .modal-brand-title { font-size: 13px !important; }
                 .btn-modal-close {
                     font-size: 20px !important;
-                    padding: 4px 10px !important;
+                    min-width: 36px !important;
+                    min-height: 36px !important;
                 }
 
-                /* Tabs: Touch-Friendly Segmented Control */
                 .unified-tabs {
                     display: flex !important;
-                    gap: 6px !important;
-                    padding: 8px 12px !important;
+                    gap: 4px !important;
+                    padding: 6px 10px !important;
                     flex-shrink: 0 !important;
-                    background: #0b1120 !important;
+                    background: #121419 !important;
+                    overflow-x: auto !important;
+                    scrollbar-width: none !important;
                 }
+                .unified-tabs::-webkit-scrollbar { display: none !important; }
                 .tab-btn {
-                    padding: 8px 6px !important;
+                    padding: 8px 10px !important;
                     font-size: 11px !important;
-                    font-weight: 800 !important;
-                    flex: 1 !important;
-                    height: 38px !important;
+                    font-weight: 700 !important;
+                    flex: 1 0 auto !important;
+                    min-height: 36px !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    text-align: center !important;
-                    border-radius: 8px !important;
-                    background: rgba(255, 255, 255, 0.05) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-                    touch-action: manipulation !important;
+                    border-radius: 7px !important;
+                    border-bottom: none !important;
+                    margin-bottom: 0 !important;
+                    background: transparent !important;
                 }
                 .tab-btn.active {
-                    background: rgba(56, 189, 248, 0.22) !important;
-                    border-color: #38bdf8 !important;
-                    color: #fff !important;
+                    background: #202531 !important;
+                    color: #ffffff !important;
+                    border: 1px solid rgba(255, 255, 255, 0.16) !important;
                 }
 
-                /* Scrollable Tab Pane */
                 .tab-pane {
                     flex: 1 !important;
                     overflow-y: auto !important;
                     -webkit-overflow-scrolling: touch !important;
-                    padding: 12px 14px 20px 14px !important;
+                    padding: 12px !important;
                     box-sizing: border-box !important;
                 }
+                .settings-grid-rows {
+                    grid-template-columns: 1fr !important;
+                    gap: 8px !important;
+                }
+                .sw-skins-grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                    gap: 8px !important;
+                }
+                input[type="range"] { height: 8px !important; }
+                input[type="range"]::-webkit-slider-thumb { width: 22px !important; height: 22px !important; }
+                input[type="text"], #input-my-nick, #input-my-avatar-url, .lobby-join-box input {
+                    font-size: 16px !important;
+                    min-height: 36px !important;
+                }
 
-                /* Single Menu Button at Bottom-Left */
                 .btn-subway-unified-menu {
                     width: 42px !important;
                     height: 42px !important;
-                    top: auto !important;
-                    bottom: max(18px, env(safe-area-inset-bottom, 18px)) !important;
-                    left: 16px !important;
-                    border-radius: 21px !important;
-                    z-index: 99998 !important;
+                    bottom: max(14px, env(safe-area-inset-bottom, 14px)) !important;
+                    left: max(12px, env(safe-area-inset-left, 12px)) !important;
                 }
                 .btn-subway-online-lobby {
-                    height: 38px !important;
-                    padding: 0 12px !important;
+                    height: 36px !important;
+                    padding: 0 11px !important;
                     top: max(12px, env(safe-area-inset-top, 12px)) !important;
-                    bottom: auto !important;
-                    left: 56px !important;
+                    left: max(56px, env(safe-area-inset-left, 56px)) !important;
                     font-size: 11px !important;
-                    font-weight: 800 !important;
-                    border-radius: 19px !important;
-                    z-index: 99998 !important;
+                }
+                .subway-hud-alert {
+                    top: calc(env(safe-area-inset-top, 0px) + 56px) !important;
+                    font-size: 12px !important;
+                    padding: 8px 14px !important;
                 }
                 
                 .subway-live-rank {
@@ -8611,41 +8689,39 @@
             /* Mode Switcher: 1v1 vs Torneio (Professional Esports Design) */
             .mp-mode-toggle-group {
                 display: flex;
-                gap: 6px;
-                margin-bottom: 12px;
-                background: #090d14;
+                gap: 4px;
+                margin-bottom: 10px;
+                background: #101216;
                 padding: 4px;
-                border-radius: 10px;
+                border-radius: 8px;
                 border: 1px solid rgba(255, 255, 255, 0.08);
             }
             .btn-mp-mode {
                 flex: 1;
-                padding: 10px 14px;
+                padding: 8px 12px;
                 background: transparent;
                 border: 1px solid transparent;
-                border-radius: 8px;
-                color: #7b8c9d;
+                border-radius: 6px;
+                color: #8b94a3;
                 font-family: inherit;
                 font-size: 11px;
-                font-weight: 800;
-                letter-spacing: 0.8px;
-                text-transform: uppercase;
+                font-weight: 700;
+                letter-spacing: 0.4px;
                 cursor: pointer;
                 touch-action: manipulation;
-                transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+                transition: background 0.15s ease, color 0.15s ease;
             }
             .btn-mp-mode:hover {
-                color: #e2e8f0;
+                color: #f3f4f6;
                 background: rgba(255, 255, 255, 0.04);
             }
             .btn-mp-mode:active {
                 transform: scale(0.97);
             }
             .btn-mp-mode.active {
-                background: linear-gradient(135deg, #00d2ff, #0055ff);
+                background: #202531;
                 color: #ffffff;
-                border-color: rgba(0, 210, 255, 0.6);
-                box-shadow: 0 2px 12px rgba(0, 210, 255, 0.35);
+                border-color: rgba(255, 255, 255, 0.22);
             }
 
             /* Professional In-game Match HUD */
@@ -8750,57 +8826,46 @@
                 margin-top: -1px;
             }
 
-            /* Professional Mobile First Responsiveness & Instant Touch */
+            /* Mobile Lobby & Touch Overrides */
             @media (max-width: 680px) {
                 .subway-modal-box, .unified-box {
-                    width: 95vw !important;
-                    max-width: 95vw !important;
+                    width: 96vw !important;
+                    max-width: 96vw !important;
                     max-height: 92dvh !important;
                     border-radius: 12px !important;
                 }
                 .lobby-grid {
-                    flex-direction: column !important;
+                    display: grid !important;
+                    grid-template-columns: 1fr !important;
                     gap: 10px !important;
                 }
                 .lobby-column {
                     width: 100% !important;
                 }
                 .lobby-header-bar {
-                    flex-wrap: wrap !important;
+                    grid-template-columns: 1fr !important;
                     gap: 8px !important;
-                    padding: 8px 10px !important;
-                }
-                .lobby-room-badge {
-                    flex: 1 1 auto !important;
-                }
-                .lobby-user-profile {
-                    width: 100% !important;
-                    justify-content: flex-start !important;
+                    padding: 10px !important;
                 }
                 .lobby-join-box {
                     width: 100% !important;
+                    justify-self: stretch !important;
                 }
                 .lobby-join-box input {
                     flex: 1 !important;
                 }
+                #input-my-nick { width: 100px !important; }
                 .party-slot {
-                    height: 42px !important;
-                    padding: 0 8px !important;
-                }
-                .slot-avatar {
-                    width: 26px !important;
-                    height: 26px !important;
+                    height: 44px !important;
+                    padding: 0 10px !important;
                 }
                 .btn-ready, .btn-start-match, .btn-leave-room {
                     min-height: 44px !important;
-                    font-size: 11px !important;
+                    font-size: 12px !important;
                     touch-action: manipulation !important;
                 }
-                .party-bottom-actions {
-                    gap: 6px !important;
-                }
                 .online-players-list {
-                    max-height: 140px !important;
+                    max-height: 160px !important;
                 }
             }
 

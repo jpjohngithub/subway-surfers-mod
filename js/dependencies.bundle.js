@@ -14990,40 +14990,53 @@
     a = function () {
       function t() {
         var t = this;
-        this._head = new o(null, null, 1 / 0), this._requestId = null, this._unlimToken = 0, this._unlimChannel = null, this._unlimTimer = null, this._lastUnlimRun = 0, this._maxElapsedMS = 100, this._minElapsedMS = 0, this.autoStart = !1, this.deltaTime = 1, this.deltaMS = 1 / r.b.TARGET_FPMS, this.elapsedMS = 1 / r.b.TARGET_FPMS, this.lastTime = -1, this.speed = 1, this.started = !1, this._protected = !1, this._lastFrame = -1;
+        var initFps = "undefined" != typeof window && "number" == typeof window.__SW_TARGET_MAX_FPS__ ? window.__SW_TARGET_MAX_FPS__ : null;
+        this._head = new o(null, null, 1 / 0), this._requestId = null, this._unlimToken = 0, this._unlimChannel = null, this._unlimTimer = null, this._lastUnlimRun = 0, this._maxElapsedMS = 100, this._minElapsedMS = null !== initFps && initFps > 0 ? 1e3 / initFps : 0, this.autoStart = !1, this.deltaTime = 1, this.deltaMS = 1 / r.b.TARGET_FPMS, this.elapsedMS = 1 / r.b.TARGET_FPMS, this.lastTime = -1, this.speed = 1, this.started = !1, this._protected = !1, this._lastFrame = -1;
+        if ("undefined" != typeof window) {
+          window.__SW_ALL_TICKERS__ = window.__SW_ALL_TICKERS__ || [];
+          window.__SW_ALL_TICKERS__.push(this);
+        }
+        var postMC = function () {
+          if (!t._unlimChannel) {
+            t._unlimChannel = new MessageChannel();
+            t._unlimChannel.port1.onmessage = function () {
+              if (0 === t._requestId) return;
+              t._requestId = null;
+              if (!t.started || !t._head.next) return;
+              var now = performance.now();
+              if (now <= t.lastTime) {
+                t._scheduleNext();
+                return;
+              }
+              t._lastUnlimRun = now;
+              t._tick(now);
+            };
+          }
+          var token = ++t._unlimToken;
+          t._requestId = token;
+          t._unlimChannel.port2.postMessage(null);
+        };
         var scheduleNext = function () {
           if (!t.started || null !== t._requestId || !t._head.next) return;
-          var unlim = "undefined" != typeof window && window.__SW_UNLIMITED_TICK__ && 0 === t._minElapsedMS && ("undefined" == typeof document || !document.hidden);
-          if (unlim && "undefined" != typeof MessageChannel) {
-            if (!t._unlimChannel) {
-              t._unlimChannel = new MessageChannel();
-              t._unlimChannel.port1.onmessage = function () {
-                if (0 === t._requestId) return;
-                t._requestId = null;
-                if (!t.started || !t._head.next) return;
-                var now = performance.now();
-                if (now - t._lastUnlimRun < 0.98) {
-                  t._unlimTimer = setTimeout(function () { t._tick(performance.now()); }, 0);
-                  t._requestId = -1;
-                  return;
-                }
-                t._lastUnlimRun = now;
-                t._tick(now);
-              };
-            }
-            var token = ++t._unlimToken;
-            t._requestId = token;
-            if (performance.now() - t._lastUnlimRun < 0.98) {
-              t._unlimTimer = setTimeout(function () {
-                if (t._requestId === token) {
+          var targetHz = 0 === t._minElapsedMS ? 0 : 1e3 / t._minElapsedMS;
+          var highRate = "undefined" != typeof window && (0 === targetHz ? !!window.__SW_UNLIMITED_TICK__ : targetHz > 65) && ("undefined" == typeof document || !document.hidden);
+          if (highRate && "undefined" != typeof MessageChannel) {
+            if (t._minElapsedMS > 0 && t._lastFrame > 0) {
+              var rem = t._minElapsedMS - (performance.now() - t._lastFrame);
+              if (rem > 2.0) {
+                var tok = ++t._unlimToken;
+                t._requestId = tok;
+                t._unlimTimer = setTimeout(function () {
+                  t._unlimTimer = null;
+                  if (t._requestId !== tok) return;
                   t._requestId = null;
-                  t._lastUnlimRun = performance.now();
-                  t._tick(t._lastUnlimRun);
-                }
-              }, 0);
-            } else {
-              t._unlimChannel.port2.postMessage(null);
+                  if (!t.started || !t._head.next) return;
+                  t._tick(performance.now());
+                }, Math.floor(rem - 1.2));
+                return;
+              }
             }
+            postMC();
           } else {
             t._requestId = requestAnimationFrame(t._tick);
           }
@@ -15083,14 +15096,14 @@
         if (void 0 === t && (t = performance.now()), t > this.lastTime) {
           if ((e = this.elapsedMS = t - this.lastTime) > this._maxElapsedMS && (e = this._maxElapsedMS), e *= this.speed, this._minElapsedMS) {
             var i = t - this._lastFrame;
-            if (i + 0.05 < this._minElapsedMS) return;
-            this._lastFrame = t - i % this._minElapsedMS;
+            if (this._lastFrame > 0 && i + 0.05 < this._minElapsedMS) return;
+            this._lastFrame = this._lastFrame > 0 ? (t - Math.min(i % this._minElapsedMS, 0.5 * this._minElapsedMS)) : t;
           }
           this.deltaMS = e, this.deltaTime = this.deltaMS * r.b.TARGET_FPMS;
           for (var n = this._head, o = n.next; o;) o = o.emit(this.deltaTime);
           n.next || this._cancelIfNeeded();
-        } else this.deltaTime = this.deltaMS = this.elapsedMS = 0;
-        this.lastTime = t;
+          this.lastTime = t;
+        }
       }, Object.defineProperty(t.prototype, "FPS", {
         get: function () {
           return 1e3 / this.elapsedMS;
@@ -16917,11 +16930,11 @@
       }
       if (o.a.forcePickup && _[o.a.forcePickup] && (l = _[o.a.forcePickup]), !l) return;
       if (l === Pickup_PickupJetpack && !t.game.route.canSpawn("jetpack", u)) return;
-      if (l === Pickup_PickupMysteryBox && !t.game.route.canSpawn("mysteryBox", u)) return;
+      if (l === Pickup_PickupMysteryBox) return;
       const f = t.game.pool.get(l),
         m = e.components.Transform.position.x,
         g = e.components.Transform.position.y;
-      f.body.z = u, f.body.x = null !== i.offsetX ? i.offsetX : m, f.body.y = g, f.removableOnCrash = g > 2, i.flip && (f.body.x *= -1), f.awake(), t._collectibles && t._collectibles.push(f), t.game.addChild(f), t.game.route.setSpawn("pickup", u - 1800), l === Pickup_PickupJetpack && t.game.route.setSpawn("jetpack", u - 2700), l === Pickup_PickupMysteryBox && t.game.route.setSpawn("mysteryBox", u - 9999);
+      f.body.z = u, f.body.x = null !== i.offsetX ? i.offsetX : m, f.body.y = g, f.removableOnCrash = g > 2, i.flip && (f.body.x *= -1), f.awake(), t._collectibles && t._collectibles.push(f), t.game.addChild(f), t.game.route.setSpawn("pickup", u - 2600), l === Pickup_PickupJetpack && t.game.route.setSpawn("jetpack", u - 3200);
     }
     static spawnRandomType(t, e) {
       const i = e || Object.keys(_),
@@ -17040,10 +17053,8 @@
       magnet: 29,
       multiplier: 29,
       sneakers: 26,
-      mysteryBox: 18,
       jetpack: 14,
-      pogo: 14,
-      key: 2
+      pogo: 14
     },
     S = [];
   for (const t in x) {
@@ -35485,12 +35496,7 @@
   }
   class PickupSystem extends a.a {
     constructor(t) {
-      if (super(t), s(this, "letters", 0), s(this, "timedPickups", [{
-        type: "mysteryBox",
-        Class: o.b,
-        timer: 0,
-        targetTime: 180
-      }]), !Object(r.h)()) {
+      if (super(t), s(this, "letters", 0), s(this, "timedPickups", []), !Object(r.h)()) {
         const t = {
           type: "letter",
           Class: o.a,
@@ -37789,7 +37795,7 @@
       const h = -this.entity.body.z,
         l = h + this.calculateDistance(),
         u = this.entity.game.level.setSafeLanding(l);
-      this.distanceTotal = u - h, this.distance = this.distanceTotal, this.takeOffStartY = this.entity.body.y, this.takeOffEndY = 100, this.takeOffTime = 0, this.takeOffDuration = 2, this.rig = this.entity.game.camera.takeControl(), this.rigStartY = this.rig.mainY, this.rigStartZ = this.rig.mainZ, this.show(), t ? this.spawnPickups(this.entity.game, this.takeOffEndY, -u) : (this.entity.game.hud.addItemTimer("jetpack"), this.spawnCoins(this.entity.game, this.takeOffEndY, this.distance));
+      this.distanceTotal = u - h, this.distance = this.distanceTotal, this.takeOffStartY = this.entity.body.y, this.takeOffEndY = 100, this.takeOffTime = 0, this.takeOffDuration = 2, this.rig = this.entity.game.camera.takeControl(), this.rigStartY = this.rig.mainY, this.rigStartZ = this.rig.mainZ, this.show(), t ? this.spawnPickups(this.entity.game, this.takeOffEndY, -u) : (this.entity.game.hud.addItemTimer("jetpack"), !window.__SW_NO_COINS__ && this.spawnCoins(this.entity.game, this.takeOffEndY, this.distance));
     }
     turnOff(t) {
       var e, i, n, o;
@@ -38312,7 +38318,7 @@
         if (s < 1) continue;
         const h = s / a,
           l = this.jumpCurveEvaluate(h);
-        r = S.a.lerp(t, e, l), o = S.a.lerp(i, n, h), s < a ? this.spawnCoinsRow(r, o) : this.spawnPowerup(r, o);
+        r = S.a.lerp(t, e, l), o = S.a.lerp(i, n, h), s < a ? (!window.__SW_NO_COINS__ && this.spawnCoinsRow(r, o)) : this.spawnPowerup(r, o);
       }
     }
     spawnCoinsRow(t, e) {
@@ -39134,27 +39140,35 @@
           paintBlack(t);
           return;
         }
+        const skinId = window.__SW_JAKE_SKIN_ID__ || "jake_classic";
         const jakeTint = "number" == typeof window.__SW_JAKE_TINT__ ? window.__SW_JAKE_TINT__ : 16777215;
+        const customSkinTex = window.__SW_BUILD_SKIN_TEX__ && origTex ? window.__SW_BUILD_SKIN_TEX__(origTex, skinId) : null;
+        const targetTex = customSkinTex || origTex;
         const blkRef = r.a.library.getMap("stick-black-tex") || window.__SW_STICK_TEX__;
-        const applyTint = obj => {
+        const applySkinMats = obj => {
           if (!obj) return;
           const v = obj.view3d;
           if (v && v.material) {
             const mats = Array.isArray(v.material) ? v.material : [v.material];
             mats.forEach(m => {
               if (!m) return;
-              if (origTex && (!m.diffuseMap || m.diffuseMap === blkRef)) m.diffuseMap = origTex;
+              if (targetTex) m.diffuseMap = targetTex;
+              else if (origTex && (!m.diffuseMap || m.diffuseMap === blkRef)) m.diffuseMap = origTex;
               const isEye = m.name && /eye/i.test(m.name);
-              m.color = isEye ? 16777215 : jakeTint;
+              m.color = isEye ? 16777215 : (customSkinTex ? 16777215 : jakeTint);
             });
           }
           const ch = obj.children || (obj.container && obj.container.children);
-          if (ch) for (let k = 0; k < ch.length; k++) applyTint(ch[k]);
+          if (ch) for (let k = 0; k < ch.length; k++) applySkinMats(ch[k]);
         };
-        applyTint(t);
+        applySkinMats(t);
       }
       const s = o.a.findEntity(t, "SkeletalMeshComponent0", 4, a.features);
-      s && o.a.setMap(s, "diffuseMap", origTex);
+      if (s) {
+        const skinId = window.__SW_JAKE_SKIN_ID__ || "jake_classic";
+        const customSkinTex = !window.__SW_JAKE_BLACK__ && window.__SW_BUILD_SKIN_TEX__ && origTex ? window.__SW_BUILD_SKIN_TEX__(origTex, skinId) : null;
+        o.a.setMap(s, "diffuseMap", customSkinTex || origTex);
+      }
     }
     resetModel() {
       this.model.ry = Math.PI, this.model.rx = 0, this.model.rz = 0, this.model.x = 0, this.model.y = .5 * -this.body.height + 1, this.model.z = 0;
