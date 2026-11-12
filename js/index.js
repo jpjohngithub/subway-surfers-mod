@@ -105,7 +105,7 @@
   } catch (_0x3b3ce6) {}
   _0x53b1d9.a = new class _0x343d20 {
     constructor() {
-      _0x14a372(this, "fps", 60), _0x14a372(this, 'resolution', 1), _0x14a372(this, "smoothDelta", 0.2), _0x14a372(this, "culling", false), _0x14a372(this, 'vertp', 'highp'), _0x14a372(this, "fragp", "lowp"), _0x14a372(this, "maxRenderScale", 1.5), _0x14a372(this, "quality", "default"), _0x14a372(this, "canvasSaturation", 1.24), _0x14a372(this, "grindParticles", true), _0x14a372(this, "baseAnimSpeed", 0.02), _0x14a372(this, "physicsStepsPerSpeed", 1), _0x14a372(this, "physicsExtraSteps", 1), _0x14a372(this, "physicsMaxSteps", 60), _0x14a372(this, "debug", false), _0x14a372(this, 'stats', false), _0x14a372(this, "models", true), _0x14a372(this, "environment", true), _0x14a372(this, "blocks", false), _0x14a372(this, "chunkMarks", false), _0x14a372(this, "route", ''), _0x14a372(this, "chunk", ''), _0x14a372(this, "timeScale", 1), _0x14a372(this, "forceTube", false), _0x14a372(this, "tutorial", false), _0x14a372(this, "loadDelay", 0), _0x14a372(this, 'god', false), _0x14a372(this, "freejump", false), _0x14a372(this, "forcePickup", ''), _0x14a372(this, "modCoins", 0), _0x14a372(this, "gdAwardKeys", 0), _0x14a372(this, 'reset', false), _0x14a372(this, "gdFreeMysteryBox", false), _0x14a372(this, "missionSet", -1), _0x14a372(this, "missionProgress", []), _0x14a372(this, "dayModifier", 0), _0x14a372(this, "laneWidth", 20), _0x14a372(this, "blockSize", 90), _0x14a372(this, "visibleMaxDistance", 1000), _0x14a372(this, "visibleMinDistance", -500), _0x14a372(this, 'fog', true), _0x14a372(this, "bend", true), _0x14a372(this, "bendX", -0.0005), _0x14a372(this, "bendY", -0.0003), _0x14a372(this, 'fillers', true), _0x14a372(this, "ground", true), _0x14a372(this, "prepopulate", false), _0x14a372(this, "speed", 0), _0x14a372(this, "gravity", 0.055), _0x14a372(this, "freeRevivals", 1), _0x14a372(this, "dizzyDuration", 3), _0x14a372(this, "cameraFov", 68), _0x14a372(this, 'cameraPosX', 0), _0x14a372(this, "cameraPosY", 33.8), _0x14a372(this, "cameraPosZ", 33), _0x14a372(this, "cameraModX", 0.75), _0x14a372(this, "cameraRotX", -0.375), _0x14a372(this, "cameraRotY", 0), _0x14a372(this, 'cameraRotZ', 0), _0x14a372(this, "mobile", false), _0x14a372(this, "bundlesPath", "./bundles/"), _0x14a372(this, 'theme', 'oxford'), _0x14a372(this, "backgroundUpperGradient", '#34086A'), _0x14a372(this, "backgroundLowerGradient", "#02B4EB"), _0x14a372(this, "trainLightColor", "#FFA900"), _0x14a372(this, "trainLights", 1), _0x14a372(this, "trainXOffset", 5.6), _0x14a372(this, "trainZOffset", 28), _0x14a372(this, "trainYOffset", 1.6), _0x14a372(this, "subLightColor", "#FFA900"), _0x14a372(this, "subLights", 1), _0x14a372(this, 'subXOffset', 5.2), _0x14a372(this, "subZOffset", 28), _0x14a372(this, 'subYOffset', -4.4), _0x14a372(this, "trainLightTexture", 'trains-tex'), _0x14a372(this, "trainLightModelName", "train_light"), _0x14a372(this, "trainSideLightModelName", void 0), _0x14a372(this, "trainLightScale", 0.8), _0x14a372(this, "iOSUIOffsetY", _0x256400.a.isIOS() ? 60 : 0), _0x14a372(this, "volume", 0.25), _0x14a372(this, "useDefaultPrompt", false), _0x14a372(this, "maxNicknameChars", 15), _0x14a372(this, "assetsPath", "assets/"), _0x14a372(this, "language", 'en'), _0x14a372(this, "leaderboard", "mockup"), _0x14a372(this, "extra", ''), _0x14a372(this, 'loadMode', "progressive-discrete"), _0x14a372(this, 'cacheBust', true), _0x14a372(this, "loadingMbs", true), _0x14a372(this, "useWebWorkers", false), _0x14a372(this, "loadExtraAttempts", 5), _0x14a372(this, "tokens", false), this.mobile = !_0x27b8b9.a.desktop, this.override(window.GAME_CONFIG), this.override(_0x256400.a.getUrlParams());
+      _0x14a372(this, "fps", 0), _0x14a372(this, 'resolution', 1), _0x14a372(this, "smoothDelta", 0.2), _0x14a372(this, "culling", false), _0x14a372(this, 'vertp', 'highp'), _0x14a372(this, "fragp", "lowp"), _0x14a372(this, "maxRenderScale", 1.5), _0x14a372(this, "quality", "default"), _0x14a372(this, "canvasSaturation", 1.24), _0x14a372(this, "grindParticles", true), _0x14a372(this, "baseAnimSpeed", 0.02), _0x14a372(this, "physicsStepsPerSpeed", 1), _0x14a372(this, "physicsExtraSteps", 1), _0x14a372(this, "physicsMaxSteps", 60), _0x14a372(this, "debug", false), _0x14a372(this, 'stats', false), _0x14a372(this, "models", true), _0x14a372(this, "environment", true), _0x14a372(this, "blocks", false), _0x14a372(this, "chunkMarks", false), _0x14a372(this, "route", ''), _0x14a372(this, "chunk", ''), _0x14a372(this, "timeScale", 1), _0x14a372(this, "forceTube", false), _0x14a372(this, "tutorial", false), _0x14a372(this, "loadDelay", 0), _0x14a372(this, 'god', false), _0x14a372(this, "freejump", false), _0x14a372(this, "forcePickup", ''), _0x14a372(this, "modCoins", 0), _0x14a372(this, "gdAwardKeys", 0), _0x14a372(this, 'reset', false), _0x14a372(this, "gdFreeMysteryBox", false), _0x14a372(this, "missionSet", -1), _0x14a372(this, "missionProgress", []), _0x14a372(this, "dayModifier", 0), _0x14a372(this, "laneWidth", 20), _0x14a372(this, "blockSize", 90), _0x14a372(this, "visibleMaxDistance", 1000), _0x14a372(this, "visibleMinDistance", -500), _0x14a372(this, 'fog', true), _0x14a372(this, "bend", true), _0x14a372(this, "bendX", -0.0005), _0x14a372(this, "bendY", -0.0003), _0x14a372(this, 'fillers', true), _0x14a372(this, "ground", true), _0x14a372(this, "prepopulate", false), _0x14a372(this, "speed", 0), _0x14a372(this, "gravity", 0.055), _0x14a372(this, "freeRevivals", 1), _0x14a372(this, "dizzyDuration", 3), _0x14a372(this, "cameraFov", 68), _0x14a372(this, 'cameraPosX', 0), _0x14a372(this, "cameraPosY", 33.8), _0x14a372(this, "cameraPosZ", 33), _0x14a372(this, "cameraModX", 0.75), _0x14a372(this, "cameraRotX", -0.375), _0x14a372(this, "cameraRotY", 0), _0x14a372(this, 'cameraRotZ', 0), _0x14a372(this, "mobile", false), _0x14a372(this, "bundlesPath", "./bundles/"), _0x14a372(this, 'theme', 'oxford'), _0x14a372(this, "backgroundUpperGradient", '#34086A'), _0x14a372(this, "backgroundLowerGradient", "#02B4EB"), _0x14a372(this, "trainLightColor", "#FFA900"), _0x14a372(this, "trainLights", 1), _0x14a372(this, "trainXOffset", 5.6), _0x14a372(this, "trainZOffset", 28), _0x14a372(this, "trainYOffset", 1.6), _0x14a372(this, "subLightColor", "#FFA900"), _0x14a372(this, "subLights", 1), _0x14a372(this, 'subXOffset', 5.2), _0x14a372(this, "subZOffset", 28), _0x14a372(this, 'subYOffset', -4.4), _0x14a372(this, "trainLightTexture", 'trains-tex'), _0x14a372(this, "trainLightModelName", "train_light"), _0x14a372(this, "trainSideLightModelName", void 0), _0x14a372(this, "trainLightScale", 0.8), _0x14a372(this, "iOSUIOffsetY", _0x256400.a.isIOS() ? 60 : 0), _0x14a372(this, "volume", 0.25), _0x14a372(this, "useDefaultPrompt", false), _0x14a372(this, "maxNicknameChars", 15), _0x14a372(this, "assetsPath", "assets/"), _0x14a372(this, "language", 'en'), _0x14a372(this, "leaderboard", "mockup"), _0x14a372(this, "extra", ''), _0x14a372(this, 'loadMode', "progressive-discrete"), _0x14a372(this, 'cacheBust', true), _0x14a372(this, "loadingMbs", true), _0x14a372(this, "useWebWorkers", false), _0x14a372(this, "loadExtraAttempts", 5), _0x14a372(this, "tokens", false), this.mobile = !_0x27b8b9.a.desktop, this.override(window.GAME_CONFIG), this.override(_0x256400.a.getUrlParams());
     }
     ["override"](_0x59f5e0) {
       const _0x554ee2 = window.PokiSDK;
@@ -7450,7 +7450,7 @@
         const srcGroup = candidates.find(k => this.geometryGroups[k] && this.geometryGroups[k].length);
         if (!srcGroup) return;
         const srcHashes = this.geometryGroups[srcGroup];
-        let minZ = Infinity, maxZ = -Infinity, bodyMinX = Infinity, bodyMaxX = -Infinity, bodyMinY = Infinity, bodyMaxY = -Infinity;
+        let minY = Infinity, maxY = -Infinity, bodyMinX = Infinity, bodyMaxX = -Infinity, bodyMinZ = Infinity, bodyMaxZ = -Infinity;
         let refBase = null;
         const parts = [];
         for (let hi = 0; hi < srcHashes.length; hi++) {
@@ -7476,32 +7476,30 @@
           for (let k = 0; k < indices.length; k++) {
             const vi = indices[k];
             const px = pos[vi * 3], py = pos[vi * 3 + 1], pz = pos[vi * 3 + 2];
-            if (pz < minZ) minZ = pz;
-            if (pz > maxZ) maxZ = pz;
             if (!isShadow) {
+              if (py < minY) minY = py;
+              if (py > maxY) maxY = py;
               if (px < bodyMinX) bodyMinX = px;
               if (px > bodyMaxX) bodyMaxX = px;
-              if (py < bodyMinY) bodyMinY = py;
-              if (py > bodyMaxY) bodyMaxY = py;
+              if (pz < bodyMinZ) bodyMinZ = pz;
+              if (pz > bodyMaxZ) bodyMaxZ = pz;
             }
           }
           parts.push({ hash, base, baseName, matName, isShadow, pos, norm, uv, indices });
         }
-        if (!parts.length || !refBase || !isFinite(minZ) || maxZ - minZ < 10) return;
-        const cutZ = (minZ + maxZ) * 0.5;
-        const zShift = -(cutZ + maxZ) * 0.5;
-        const halfDepth = maxZ - cutZ;
+        if (!parts.length || !refBase || !isFinite(minY) || maxY - minY < 6) return;
+        const cutY = minY + (maxY - minY) * 0.5;
         const GeomCls = refBase.constructor;
         const BufCls = refBase.getBuffer("aPosition").constructor;
         const BoxCls = refBase.boundingBox && refBase.boundingBox.constructor;
         const VecCls = refBase.boundingBox && refBase.boundingBox.min && refBase.boundingBox.min.constructor;
         const SphereCls = refBase.boundingSphere && refBase.boundingSphere.constructor;
-        const lerpVtx = (a, b, zPlane) => {
-          const dz = b.z - a.z;
-          const t = Math.abs(dz) < 1e-6 ? 0.5 : Math.max(0, Math.min(1, (zPlane - a.z) / dz));
+        const lerpVtxY = (a, b, yPlane) => {
+          const dy = b.y - a.y;
+          const t = Math.abs(dy) < 1e-6 ? 0.5 : Math.max(0, Math.min(1, (yPlane - a.y) / dy));
           let nx = a.nx + (b.nx - a.nx) * t, ny = a.ny + (b.ny - a.ny) * t, nz = a.nz + (b.nz - a.nz) * t;
           const nl = Math.hypot(nx, ny, nz) || 1;
-          return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: zPlane, nx: nx / nl, ny: ny / nl, nz: nz / nl, u: a.u + (b.u - a.u) * t, v: a.v + (b.v - a.v) * t };
+          return { x: a.x + (b.x - a.x) * t, y: yPlane, z: a.z + (b.z - a.z) * t, nx: nx / nl, ny: ny / nl, nz: nz / nl, u: a.u + (b.u - a.u) * t, v: a.v + (b.v - a.v) * t };
         };
         const outHashes = [];
         let capAdded = false;
@@ -7510,7 +7508,7 @@
           const outPos = [], outNorm = [], outUv = [], outIdx = [];
           const pushVtx = (v) => {
             const idx = outPos.length / 3;
-            outPos.push(v.x, v.y, v.z + zShift);
+            outPos.push(v.x, v.y, v.z);
             outNorm.push(v.nx, v.ny, v.nz);
             outUv.push(v.u, v.v);
             return idx;
@@ -7525,10 +7523,10 @@
             const clipped = [];
             for (let e = 0; e < 3; e++) {
               const cur = poly[e], nxt = poly[(e + 1) % 3];
-              const curIn = cur.z >= cutZ - 1e-4, nxtIn = nxt.z >= cutZ - 1e-4;
+              const curIn = cur.y <= cutY + 1e-4, nxtIn = nxt.y <= cutY + 1e-4;
               if (curIn && nxtIn) clipped.push(nxt);
-              else if (curIn && !nxtIn) clipped.push(lerpVtx(cur, nxt, cutZ));
-              else if (!curIn && nxtIn) { clipped.push(lerpVtx(cur, nxt, cutZ)); clipped.push(nxt); }
+              else if (curIn && !nxtIn) clipped.push(lerpVtxY(cur, nxt, cutY));
+              else if (!curIn && nxtIn) { clipped.push(lerpVtxY(cur, nxt, cutY)); clipped.push(nxt); }
             }
             if (clipped.length >= 3) {
               const i0 = pushVtx(clipped[0]);
@@ -7537,20 +7535,20 @@
               }
             }
           }
-          if (!p.isShadow && !capAdded && isFinite(bodyMinX) && isFinite(bodyMinY)) {
+          if (!p.isShadow && !capAdded && isFinite(bodyMinX) && isFinite(bodyMinZ)) {
             capAdded = true;
-            const x0 = Math.max(-8.7, bodyMinX * 0.94), x1 = Math.min(8.7, bodyMaxX * 0.94);
-            const y0 = bodyMinY + 1.0, y1 = bodyMaxY - 0.3;
-            if (x1 > x0 + 2 && y1 > y0 + 2) {
-              const addCapQuad = (ax0, ay0, ax1, ay1, az, uvX, uvY) => {
-                const a = pushVtx({ x: ax0, y: ay0, z: az, nx: 0, ny: 0, nz: -1, u: uvX, v: uvY });
-                const b = pushVtx({ x: ax0, y: ay1, z: az, nx: 0, ny: 0, nz: -1, u: uvX, v: uvY });
-                const c = pushVtx({ x: ax1, y: ay1, z: az, nx: 0, ny: 0, nz: -1, u: uvX, v: uvY });
-                const d = pushVtx({ x: ax1, y: ay0, z: az, nx: 0, ny: 0, nz: -1, u: uvX, v: uvY });
+            const x0 = Math.max(-8.7, bodyMinX * 0.96), x1 = Math.min(8.7, bodyMaxX * 0.96);
+            const z0 = bodyMinZ + 0.4, z1 = bodyMaxZ - 0.4;
+            if (x1 > x0 + 2 && z1 > z0 + 2) {
+              const addTopCap = (ax0, az0, ax1, az1, ay, uvX, uvY) => {
+                const a = pushVtx({ x: ax0, y: ay, z: az0, nx: 0, ny: 1, nz: 0, u: uvX, v: uvY });
+                const b = pushVtx({ x: ax0, y: ay, z: az1, nx: 0, ny: 1, nz: 0, u: uvX, v: uvY });
+                const c = pushVtx({ x: ax1, y: ay, z: az1, nx: 0, ny: 1, nz: 0, u: uvX, v: uvY });
+                const d = pushVtx({ x: ax1, y: ay, z: az0, nx: 0, ny: 1, nz: 0, u: uvX, v: uvY });
                 outIdx.push(a, b, c, a, c, d);
               };
-              addCapQuad(x0, y0, x1, y1, cutZ, 0.02, 0.02);
-              addCapQuad(x0 + 1.1, y0 + 1.6, x1 - 1.1, y1 - 1.2, cutZ - 0.08, 0.04, 0.04);
+              addTopCap(x0, z0, x1, z1, cutY, 0.02, 0.02);
+              addTopCap(x0 + 1.0, z0 + 1.4, x1 - 1.0, z1 - 1.4, cutY + 0.08, 0.04, 0.04);
             }
           }
           if (!outIdx.length) continue;
@@ -7561,8 +7559,8 @@
           newGeom.addIndex(new BufCls(new Uint16Array(outIdx)));
           if (BoxCls && VecCls) {
             newGeom.boundingBox = new BoxCls(
-              new VecCls(isFinite(bodyMinX) ? bodyMinX : -9, isFinite(bodyMinY) ? bodyMinY : 0, -halfDepth * 0.5),
-              new VecCls(isFinite(bodyMaxX) ? bodyMaxX : 9, isFinite(bodyMaxY) ? bodyMaxY : 29, halfDepth * 0.5)
+              new VecCls(isFinite(bodyMinX) ? bodyMinX : -9, minY, isFinite(bodyMinZ) ? bodyMinZ : -29),
+              new VecCls(isFinite(bodyMaxX) ? bodyMaxX : 9, cutY, isFinite(bodyMaxZ) ? bodyMaxZ : 29)
             );
             if (SphereCls) newGeom.boundingSphere = newGeom.boundingBox.getBoundingSphere(new SphereCls());
           }
@@ -8325,7 +8323,10 @@
       super(...arguments), _0x59d60d(this, "extensions", []), _0x59d60d(this, "stage", void 0), _0x59d60d(this, 'resources', void 0), _0x59d60d(this, "i18n", void 0), _0x59d60d(this, "visibility", void 0), _0x59d60d(this, "resize", void 0), _0x59d60d(this, "nav", void 0), _0x59d60d(this, "library", void 0), _0x59d60d(this, "sound", void 0), _0x59d60d(this, "game", void 0), _0x59d60d(this, 'ui', void 0), _0x59d60d(this, "user", void 0), _0x59d60d(this, "gameover", void 0), _0x59d60d(this, "title", void 0), _0x59d60d(this, 'viewer', void 0), _0x59d60d(this, "saveme", void 0), _0x59d60d(this, "topRun", void 0), _0x59d60d(this, "boostShop", void 0), _0x59d60d(this, "mePanel", void 0), _0x59d60d(this, "myTourPanel", void 0), _0x59d60d(this, "settings", void 0), _0x59d60d(this, "loader", void 0), _0x59d60d(this, "extras", void 0), _0x59d60d(this, "data", void 0), _0x59d60d(this, 'shop', void 0), _0x59d60d(this, "notEnoughCurrency", void 0), _0x59d60d(this, "buyBoards", void 0), _0x59d60d(this, "prizesPanel", void 0), _0x59d60d(this, "prizeScreen", void 0), _0x59d60d(this, "ageGatePanel", void 0), _0x59d60d(this, "consentPanel", void 0), _0x59d60d(this, "boostPanel", void 0), _0x59d60d(this, "screenBlocker", void 0), _0x59d60d(this, "notification", void 0), _0x59d60d(this, "awards", void 0), _0x59d60d(this, "highScoreScreen", void 0), _0x59d60d(this, "message", void 0);
     }
     async ["run"]() {
-      _0x2a24d4.Ticker.system.maxFPS = _0x52c5e0.a.fps, _0x2a24d4.utils.isWebGLSupported() ? (this.user = this.addExtension(new _0x49c27b()), this.data = this.addExtension(new _0x2c62bd()), this.stage = this.add(_0x2e9427.a, {
+      window.__SW_TICKER_SYSTEM__ = _0x2a24d4.Ticker.system, window.__SW_TICKER_SHARED__ = _0x2a24d4.Ticker.shared;
+      const _savedFps = (() => { try { return localStorage.getItem('sw_fps'); } catch (e) { return null; } })();
+      const _bootMaxFps = _savedFps === 'unlimited' ? 0 : (_savedFps ? (parseInt(_savedFps, 10) || 0) : _0x52c5e0.a.fps);
+      _0x2a24d4.Ticker.system.maxFPS = _bootMaxFps, _0x2a24d4.Ticker.shared.maxFPS = _bootMaxFps, _0x2a24d4.Ticker.system.minFPS = 1, _0x2a24d4.utils.isWebGLSupported() ? (this.user = this.addExtension(new _0x49c27b()), this.data = this.addExtension(new _0x2c62bd()), this.stage = this.add(_0x2e9427.a, {
         backgroundColor: 0,
         width: window.innerWidth,
         height: window.innerHeight,
@@ -13541,19 +13542,14 @@
       const halfSpans = this._trainSpans.filter(s => s && s.isHalf);
       if (!halfSpans.length) return;
       for (const span of halfSpans) {
-        const safeMin = span.minZ + 5, safeMax = span.maxZ - 5;
-        if (safeMax <= safeMin) continue;
-        const fullRange = Math.max(1, span.fullMaxZ - span.fullMinZ);
         for (const item of this._collectibles) {
           if (!item || !item.body) continue;
           if (Math.abs(item.body.x - span.laneX) > 6) continue;
           const btm = item.body.bottom;
-          if (btm < 23 || btm > 56) continue;
+          if (btm < 10 || btm > 46) continue;
           const z = item.body.z;
-          if (z < span.fullMinZ - 8 || z > span.fullMaxZ + 8) continue;
-          const t = Math.max(0, Math.min(1, (span.fullMaxZ - z) / fullRange));
-          item.body.z = safeMax - t * (safeMax - safeMin);
-          if (btm < 44) item.body.bottom = span.topY + 5;
+          if (z < span.minZ - 8 || z > span.maxZ + 8) continue;
+          item.body.bottom = span.topY + 5;
           if (span.speed && item.movable && typeof item.movable.run === "function") item.movable.run(span.speed, span.target);
         }
       }

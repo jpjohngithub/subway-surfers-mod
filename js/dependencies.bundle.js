@@ -15043,8 +15043,8 @@
         var e;
         if (void 0 === t && (t = performance.now()), t > this.lastTime) {
           if ((e = this.elapsedMS = t - this.lastTime) > this._maxElapsedMS && (e = this._maxElapsedMS), e *= this.speed, this._minElapsedMS) {
-            var i = t - this._lastFrame | 0;
-            if (i < this._minElapsedMS) return;
+            var i = t - this._lastFrame;
+            if (i + 0.05 < this._minElapsedMS) return;
             this._lastFrame = t - i % this._minElapsedMS;
           }
           this.deltaMS = e, this.deltaTime = this.deltaMS * r.b.TARGET_FPMS;
@@ -19748,7 +19748,7 @@
       n !== this.currentScene && (this.nextScene = n);
       const a = n.getComponent(r.a),
         s = a._animations[i];
-      s.loop = o.loop, a.play(i, o.restart), this.speed = o.speed, this.currentAnimation = s, this.currentController = a, o.sudden ? (a._mixRatio = 1, a.lastAnimation = null, a._mixing = !1, this.swapScene(n), a.updateAnimation(.1), a.render()) : (a.allowMixing = !0, a.mixAmount = o.mixRatio), this.currentAnimationClipName = t, this.currentAnimationLoop = o.loop;
+      s.loop = o.loop, o.sudden && (a._mixRatio = 1, a.lastAnimation = null, a._mixing = !1, a._nextAnimation = null), a.play(i, o.restart), this.speed = o.speed, this.currentAnimation = s, this.currentController = a, o.sudden ? (a._mixRatio = 1, a.lastAnimation = null, a._mixing = !1, a._nextAnimation = null, this.swapScene(n), a.updateAnimation(.1), a.render()) : (a.allowMixing = !0, a.mixAmount = o.mixRatio), this.currentAnimationClipName = t, this.currentAnimationLoop = o.loop;
     }
     swapScene(t, e) {
       void 0 === e && (e = null), this.currentScene !== t && (e || (e = this.currentScene), this.currentScene = t, this.nextScene = null, t.scale.set(1), t.active = !0, this.container.addChild(t), e && (e.scale.set(1e-6), e.active = !1));
@@ -23118,7 +23118,7 @@
       }), this.body.width = 18, this.body.height = 29, this.body.depth = 58, this.body.deco = !0, this.removableOnCrash = !0;
     }
     build() {
-      this.body.depth = this.isHalfWagon ? 29 : 58;
+      this.body.height = this.isHalfWagon ? 14.5 : 29, this.body.depth = 58;
       let t = this.locomotiveModelName;
       if (!this.isHalfWagon && this.modelIndex > 0) {
         var e;
@@ -23195,25 +23195,13 @@
         });
       }
       if (c && w) {
-        if (n === TrainHalf) {
-          const safeMin = minFront + 5,
-            safeMax = b - 5,
-            roofSpan = Math.max(8, safeMax - safeMin),
-            coinCount = Math.max(2, Math.min(Math.ceil(1.1 * u), Math.floor(roofSpan / 11) + 1)),
-            step = coinCount > 1 ? roofSpan / (coinCount - 1) : 0,
-            startZ = coinCount > 1 ? safeMax : .5 * (safeMin + safeMax);
-          for (let a = 0; a < coinCount; a++) {
-            const cn = d.a.spawn(t, e, i);
-            cn && (cn.body.x = w.body.x, cn.body.bottom = w.body.top + 5, cn.body.z = startZ - a * step, cn.movable.run(_, m));
-          }
-        } else {
-          const n = Math.ceil(1.1 * u),
-            r = 30,
-            o = b - 50;
-          for (let a = 0; a < n; a++) {
-            const cn = d.a.spawn(t, e, i);
-            cn && (cn.body.x = w.body.x, cn.body.bottom = 34, cn.body.z = o - a * r, cn.movable.run(_, m));
-          }
+        const n = Math.ceil(1.1 * u),
+          r = 30,
+          o = b - 50,
+          coinY = w.isHalfWagon ? w.body.top + 5 : 34;
+        for (let a = 0; a < n; a++) {
+          const cn = d.a.spawn(t, e, i);
+          cn && (cn.body.x = w.body.x, cn.body.bottom = coinY, cn.body.z = o - a * r, cn.movable.run(_, m));
         }
       }
     }
@@ -23280,7 +23268,7 @@
   }
   class TrainHalf extends Train {
     constructor() {
-      super(), this.isHalfWagon = !0, this.body.depth = 29, this.locomotiveModelName = "train_halfwagon01", this.wagonModelName = "train_halfwagon01";
+      super(), this.isHalfWagon = !0, this.body.height = 14.5, this.body.depth = 58, this.locomotiveModelName = "train_halfwagon01", this.wagonModelName = "train_halfwagon01";
     }
   }
   const v = [TrainStandard, TrainCargo, TrainSub, TrainHalf];
@@ -24577,11 +24565,12 @@
       this._animationTick = 0, this._defaultMix = .045, this.mixAmount = this._defaultMix, this.lastAnimation = null, this._lastAnimationTick = 0, this._mixRatio = 0, this._mixing = !1, this.allowMixing = !0, this._nextAnimation = null;
     }
     play(t, e) {
-      if (void 0 === e && (e = !1), e || this._animations[t] !== this.animation) if (this._mixing) this._nextAnimation = t;else {
+      if (void 0 === e && (e = !1), e || this._animations[t] !== this.animation) {
+        this._nextAnimation = null;
         if (this.allowMixing && (this.lastAnimation = this.animation, this._lastAnimationTick = this._animationTick, this.animation)) {
-          const e = this.lastAnimation.name + t;
-          this.mixAmount = this._mixedMap[e] || this._defaultMix, this._mixRatio = 0, this._mixing = !0;
-        }
+          const n = this.lastAnimation.name + t;
+          this.mixAmount = this._mixedMap[n] || this._defaultMix, this._mixRatio = 0, this._mixing = !0;
+        } else this._mixing = !1;
         this._animationTick = 0, this.animation = this._animations[t];
       }
     }
@@ -34710,22 +34699,22 @@
       this.pressing = !1;
     }
     pressUp(t) {
-      t.preventDefault(), this.vertical = 1;
+      t.preventDefault(), this.game.state === o.a.RUNNING ? this.onSwipeVertical.dispatch(1) : this.vertical = 1;
     }
     pressDown(t) {
-      t.preventDefault(), this.vertical = -1;
+      t.preventDefault(), this.game.state === o.a.RUNNING ? this.onSwipeVertical.dispatch(-1) : this.vertical = -1;
     }
     pressLeft(t) {
-      t.preventDefault(), this.horizontal = -1;
+      t.preventDefault(), this.game.state === o.a.RUNNING ? this.onSwipeHorizontal.dispatch(-1) : this.horizontal = -1;
     }
     pressRight(t) {
-      t.preventDefault(), this.horizontal = 1;
+      t.preventDefault(), this.game.state === o.a.RUNNING ? this.onSwipeHorizontal.dispatch(1) : this.horizontal = 1;
     }
     pressAction(t) {
-      this.game.state === o.a.RUNNING && (t.preventDefault(), this.action = 1);
+      this.game.state === o.a.RUNNING && (t.preventDefault(), this.onDoubleTap.dispatch());
     }
     update() {
-      this.game.state === o.a.RUNNING && (1 === this.vertical || -1 === this.vertical ? this.onSwipeVertical.dispatch(this.vertical) : this.horizontal ? this.onSwipeHorizontal.dispatch(this.horizontal) : this.action && this.onDoubleTap.dispatch()), this.vertical = 0, this.horizontal = 0, this.action = 0;
+      this.game.state === o.a.RUNNING && (this.vertical && this.onSwipeVertical.dispatch(this.vertical), this.horizontal && this.onSwipeHorizontal.dispatch(this.horizontal), this.action && this.onDoubleTap.dispatch()), this.vertical = 0, this.horizontal = 0, this.action = 0;
     }
     reset() {
       this.hide();
@@ -37846,7 +37835,7 @@
         if (this.isJumping) {
           if (!i) return void (this.entity.body.velocity.y < 0 && (this.shouldJumpAgain = !0));
           this.isDoubleJumping = !0;
-        } else if (!this.entity.body.canJump) return;
+        } else if (!this.entity.body.canJump) return void (!this.entity.body.landed && (this.shouldJumpAgain = !0));
       }
       this.entity.roll && this.entity.roll.cancel(), this.entity.body.resetGroundChangeTolerance(), this.isJumping = !0, this.entity.body.velocity.y = 0, this.entity.body.y += 1, this.startY = this.entity.body.y, this.endY = Math.min(this.startY + (t || this.jumpHeight) - 1, 70 + this.entity.body.ground), this.time = 0, this.duration = .41, this.goingUpwards = !0, this.smoothDriftTick = 0, this.entity.game.sfx.play("hero-jump"), this.entity.game.missions.addStat(1, "mission-jump"), this.gravity = this.boardGravity, this.lastJumped = performance.now();
     }
@@ -38497,7 +38486,7 @@
     perform() {
       var t;
       if (this.locked || this.isRolling) return;
-      this.onStart.dispatch(), this.entity.jump && this.entity.jump.cancel(), null !== (t = this.entity.sneakers) && void 0 !== t && t.isOn() && this.entity.sneakers.jumpCancel(), this.isRolling = !0, this.time = 0, this.entity.body.landed || (this.entity.body.velocity.y = -2);
+      this.onStart.dispatch(), this.entity.jump && (this.entity.jump.shouldJumpAgain = !1, this.entity.jump.cancel()), null !== (t = this.entity.sneakers) && void 0 !== t && t.isOn() && this.entity.sneakers.jumpCancel(), this.isRolling = !0, this.time = 0, this.entity.body.landed || (this.entity.body.velocity.y = -2);
       const e = this.entity.body.bottom;
       this.entity.body.height = this.rollingHeight, this.entity.body.bottom = e, this.entity.game.sfx.play("hero-roll"), this.entity.game.missions.addStat(1, "mission-roll");
     }

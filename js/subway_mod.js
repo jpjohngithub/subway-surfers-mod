@@ -121,30 +121,46 @@
 
     // Ultra-responsive native swipe threshold
     window.__swipeT = 9;
-
-    // Zero-delay keyboard response (WASD & Arrows) without hijacking touch
-    window.addEventListener('keydown', function(e) {
-        const g = window.game || (window.app && window.app.game);
-        const ctrl = g && g.controls;
-        if (!ctrl) return;
-        if (e.key === 'ArrowLeft' || e.code === 'KeyA') {
-            if (ctrl.onSwipeHorizontal) ctrl.onSwipeHorizontal.dispatch(-1);
-        } else if (e.key === 'ArrowRight' || e.code === 'KeyD') {
-            if (ctrl.onSwipeHorizontal) ctrl.onSwipeHorizontal.dispatch(1);
-        } else if (e.key === 'ArrowUp' || e.code === 'KeyW' || e.key === ' ') {
-            if (ctrl.onSwipeVertical) ctrl.onSwipeVertical.dispatch(1);
-        } else if (e.key === 'ArrowDown' || e.code === 'KeyS') {
-            if (ctrl.onSwipeVertical) ctrl.onSwipeVertical.dispatch(-1);
-        }
-    }, true);
+    // Keyboard routing is handled synchronously inside ControllerSystem (dependencies.bundle.js).
 
     try { localStorage.removeItem('sw_shader_lighting'); } catch (e) {}
 
     const GFX_SETTINGS = {
-        fps: localStorage.getItem('sw_fps') || 'unlimited', // '60' | '120' | 'unlimited'
+        fps: localStorage.getItem('sw_fps') || '240', // '60' | '120' | '240' | 'unlimited'
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 200
         motionBlur: localStorage.getItem('sw_motion_blur') || 'soft', // 'off' | 'soft' | 'high'
     };
+
+    function getFPSLabel(val) {
+        if (val === 'unlimited') return 'Ilimitado (240Hz+)';
+        return val + ' FPS';
+    }
+
+    function applyTickerMaxFPS(targetMaxFPS) {
+        const minFps = targetMaxFPS === 0 ? 1 : 10;
+        try {
+            if (window.__SW_TICKER_SYSTEM__) {
+                window.__SW_TICKER_SYSTEM__.maxFPS = targetMaxFPS;
+                window.__SW_TICKER_SYSTEM__.minFPS = minFps;
+            }
+            if (window.__SW_TICKER_SHARED__) {
+                window.__SW_TICKER_SHARED__.maxFPS = targetMaxFPS;
+                window.__SW_TICKER_SHARED__.minFPS = minFps;
+            }
+            if (window.app && window.app.ticker) {
+                window.app.ticker.maxFPS = targetMaxFPS;
+                window.app.ticker.minFPS = minFps;
+                const TickerCls = window.app.ticker.constructor;
+                if (TickerCls && TickerCls.shared) {
+                    TickerCls.shared.maxFPS = targetMaxFPS;
+                    TickerCls.shared.minFPS = minFps;
+                }
+                if (TickerCls && TickerCls.system) {
+                    TickerCls.system.maxFPS = targetMaxFPS;
+                }
+            }
+        } catch(e) {}
+    }
 
     function getMotionBlurLabel(val) {
         if (val === 'off') return 'Desativado';
@@ -171,22 +187,9 @@
             if (GFX_SETTINGS.motionBlur === 'off') blurCanvas.style.display = 'none';
         }
 
-        // 2. Ultra-Fluid Framerate (Unlock Pixi Ticker FPS for 120Hz / 144Hz / 240Hz screens)
-        const targetMaxFPS = GFX_SETTINGS.fps === 'unlimited' ? 0 : (parseInt(GFX_SETTINGS.fps, 10) || 60);
-        if (window.app && window.app.ticker) {
-            window.app.ticker.maxFPS = targetMaxFPS; // 0 = unlimited FPS in Pixi Ticker
-            window.app.ticker.minFPS = targetMaxFPS === 0 ? 1 : 10;
-            try {
-                const TickerCls = window.app.ticker.constructor;
-                if (TickerCls && TickerCls.shared) {
-                    TickerCls.shared.maxFPS = targetMaxFPS;
-                    TickerCls.shared.minFPS = targetMaxFPS === 0 ? 1 : 10;
-                }
-                if (TickerCls && TickerCls.system) {
-                    TickerCls.system.maxFPS = targetMaxFPS;
-                }
-            } catch(e) {}
-        }
+        // 2. Ultra-Fluid Framerate (Unlock Pixi System & Shared Tickers up to 240Hz / Unlimited)
+        const targetMaxFPS = GFX_SETTINGS.fps === 'unlimited' ? 0 : (parseInt(GFX_SETTINGS.fps, 10) || 240);
+        applyTickerMaxFPS(targetMaxFPS);
 
         // 3. Smooth Hero Character Skeletal Animation & Snappy Movement
         optimizeHeroAnimAndFluidity();
@@ -210,7 +213,7 @@
             }
             if (hero && hero.anim && !hero.anim.__swFluidPatched) {
                 hero.anim.__swFluidPatched = true;
-                hero.anim.fpsGame = 120;
+                hero.anim.fpsGame = 240;
 
                 const isGameplayClip = (name) => {
                     const s = Array.isArray(name) ? String(name[0] || '') : String(name || '');
@@ -221,14 +224,11 @@
                 if (typeof hero.anim.play === 'function') {
                     const origPlay = hero.anim.play.bind(hero.anim);
                     hero.anim.play = function(clip, opts) {
-                        if (opts && typeof opts === 'object') {
-                            const cfg = Object.assign({}, opts);
-                            if (isGameplayClip(clip) && !cfg.sudden) {
-                                cfg.mixRatio = Math.max(cfg.mixRatio || 0, 0.52);
-                            }
-                            return origPlay(clip, cfg);
+                        const cfg = (opts && typeof opts === 'object') ? Object.assign({}, opts) : {};
+                        if (isGameplayClip(clip) && !cfg.sudden) {
+                            cfg.mixRatio = Math.max(cfg.mixRatio || 0, 0.62);
                         }
-                        return origPlay(clip, opts);
+                        return origPlay(clip, Object.keys(cfg).length ? cfg : opts);
                     };
                 }
 
@@ -469,14 +469,15 @@
     };
 
     window.__cycleFPS = function() {
-        const order = ['unlimited', '60', '120'];
+        const order = ['240', 'unlimited', '120', '60'];
         const curIdx = order.indexOf(GFX_SETTINGS.fps);
         GFX_SETTINGS.fps = order[(curIdx + 1) % order.length];
         localStorage.setItem('sw_fps', GFX_SETTINGS.fps);
         applyGraphicsSettings();
+        const label = getFPSLabel(GFX_SETTINGS.fps);
         const el = document.getElementById('val-gfx-fps');
-        if (el) el.textContent = GFX_SETTINGS.fps === 'unlimited' ? 'Ilimitado (120Hz+)' : (GFX_SETTINGS.fps + ' FPS');
-        showHUDNotification('Taxa de FPS: ' + (GFX_SETTINGS.fps === 'unlimited' ? 'Ilimitado' : GFX_SETTINGS.fps + ' FPS'));
+        if (el) el.textContent = label;
+        showHUDNotification('Taxa de FPS: ' + label);
     };
 
     window.__setSaturation = function(val) {
@@ -818,15 +819,77 @@
         return false;
     }
 
+    let energyCoinGeoCache = null;
+
+    function createEnergyCoinAtlas(TextureClass) {
+        if (energyCoinBlueTexture) return energyCoinBlueTexture;
+        try {
+            if (typeof document !== 'undefined' && TextureClass && typeof TextureClass.from === 'function') {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // TL (0..128, 0..128): Glowing energy plasma core disc
+                    const gCore = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
+                    gCore.addColorStop(0.0, '#ffffff');
+                    gCore.addColorStop(0.28, '#8df8ff');
+                    gCore.addColorStop(0.62, '#1498ff');
+                    gCore.addColorStop(0.88, '#083a8f');
+                    gCore.addColorStop(1.0, '#04163d');
+                    ctx.fillStyle = gCore;
+                    ctx.fillRect(0, 0, 128, 128);
+                    ctx.strokeStyle = 'rgba(185, 249, 255, 0.72)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(64, 64, 42, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // TR (128..256, 0..128): Brushed chrome-sapphire beveled frame
+                    const gRim = ctx.createLinearGradient(128, 0, 256, 128);
+                    gRim.addColorStop(0.0, '#9aefff');
+                    gRim.addColorStop(0.32, '#1c63c7');
+                    gRim.addColorStop(0.65, '#0b2256');
+                    gRim.addColorStop(1.0, '#4dd2ff');
+                    ctx.fillStyle = gRim;
+                    ctx.fillRect(128, 0, 128, 128);
+                    ctx.fillStyle = 'rgba(215, 252, 255, 0.45)';
+                    for (let k = 0; k < 4; k++) ctx.fillRect(128 + k * 32, 46, 14, 36);
+
+                    // BL (0..128, 128..256): High-contrast 3D extruded lightning crystal
+                    const gBolt = ctx.createLinearGradient(0, 128, 128, 256);
+                    gBolt.addColorStop(0.0, '#ffffff');
+                    gBolt.addColorStop(0.5, '#c7fcff');
+                    gBolt.addColorStop(1.0, '#3fdcff');
+                    ctx.fillStyle = gBolt;
+                    ctx.fillRect(0, 128, 128, 128);
+
+                    // BR (128..256, 128..256): Orbital gyro ring with plasma segments
+                    const gRing = ctx.createLinearGradient(128, 128, 256, 256);
+                    gRing.addColorStop(0.0, '#3ec8ff');
+                    gRing.addColorStop(0.45, '#b8faff');
+                    gRing.addColorStop(0.75, '#7e6bff');
+                    gRing.addColorStop(1.0, '#2ab4ff');
+                    ctx.fillStyle = gRing;
+                    ctx.fillRect(128, 128, 128, 128);
+
+                    energyCoinBlueTexture = TextureClass.from(canvas);
+                }
+            }
+            if (!energyCoinBlueTexture && TextureClass && typeof TextureClass.from === 'function') {
+                energyCoinBlueTexture = TextureClass.from(new URL('assets/energy-coin-blue.svg', window.location.href).href);
+            }
+        } catch(e) {}
+        return energyCoinBlueTexture;
+    }
+
     function applyEnergyCoinTexture(mesh) {
         try {
             if (!mesh || !window.__lib || !window.__lib.getMap) return false;
             const originalMap = window.__lib.getMap('props-tex');
             const TextureClass = originalMap && originalMap.constructor;
-            if (!energyCoinBlueTexture && TextureClass && typeof TextureClass.from === 'function') {
-                energyCoinBlueTexture = TextureClass.from(new URL('assets/energy-coin-blue.svg', window.location.href).href);
-            }
-            if (!energyCoinBlueTexture) return false;
+            const tex = createEnergyCoinAtlas(TextureClass);
+            if (!tex) return false;
             let applied = false;
             const visit = obj => {
                 if (!obj) return;
@@ -835,9 +898,14 @@
                 const materials = Array.isArray(source) ? source : (source ? [source] : []);
                 materials.forEach(material => {
                     if (!material) return;
-                    material.diffuseMap = energyCoinBlueTexture;
-                    if ('map' in material) material.map = energyCoinBlueTexture;
+                    material.diffuseMap = tex;
+                    if ('map' in material) material.map = tex;
                     material.color = 0xffffff;
+                    try {
+                        material.emissive = 0x168dff;
+                        material.emissiveColor = 0x168dff;
+                        material.emission = 0.22;
+                    } catch(e) {}
                     applied = true;
                 });
                 const children = obj.children || (obj.container && obj.container.children);
@@ -848,39 +916,264 @@
         } catch(e) { return false; }
     }
 
+    function buildEnergyCoinGeometries(protoView) {
+        if (energyCoinGeoCache) return energyCoinGeoCache;
+        try {
+            const baseGeom = protoView && protoView.geometry;
+            if (!baseGeom || typeof baseGeom.addAttribute !== 'function') return null;
+            const posBuf = baseGeom.getBuffer && baseGeom.getBuffer('aPosition');
+            if (!posBuf) return null;
+            const GeomCls = baseGeom.constructor;
+            const BufCls = posBuf.constructor;
+            const BoxCls = baseGeom.boundingBox && baseGeom.boundingBox.constructor;
+            const SphereCls = baseGeom.boundingSphere && baseGeom.boundingSphere.constructor;
+            const VecCls = baseGeom.boundingBox && baseGeom.boundingBox.min && baseGeom.boundingBox.min.constructor;
+
+            const box = baseGeom.boundingBox;
+            const min = box ? box.min : { x: -2.2, y: -2.2, z: -0.45 };
+            const max = box ? box.max : { x: 2.2, y: 2.2, z: 0.45 };
+            const cx = (min.x + max.x) * 0.5;
+            const cy = (min.y + max.y) * 0.5;
+            const cz = (min.z + max.z) * 0.5;
+            const dx = Math.max(0.01, max.x - min.x);
+            const dy = Math.max(0.01, max.y - min.y);
+            const dz = Math.max(0.01, max.z - min.z);
+            const nAxis = dx <= dy && dx <= dz ? 0 : (dy <= dz ? 1 : 2);
+            const uAxis = nAxis === 0 ? 1 : 0;
+            const vAxis = nAxis === 2 ? 1 : 2;
+            const R = Math.max(dx, dy, dz, 1.0) * 0.5;
+            const mapPt = (lx, ly, lz) => {
+                const out = [0, 0, 0];
+                out[uAxis] = lx;
+                out[vAxis] = ly;
+                out[nAxis] = lz;
+                return [cx + out[0], cy + out[1], cz + out[2]];
+            };
+            const mapNorm = (nx, ny, nz) => {
+                const len = Math.hypot(nx, ny, nz) || 1;
+                const out = [0, 0, 0];
+                out[uAxis] = nx / len;
+                out[vAxis] = ny / len;
+                out[nAxis] = nz / len;
+                return out;
+            };
+            const createBuilder = () => {
+                const pos = [], norm = [], uv = [], idx = [];
+                const pushV = (lx, ly, lz, nx, ny, nz, u, v) => {
+                    const p = mapPt(lx, ly, lz);
+                    const n = mapNorm(nx, ny, nz);
+                    const id = pos.length / 3;
+                    pos.push(p[0], p[1], p[2]);
+                    norm.push(n[0], n[1], n[2]);
+                    uv.push(u, v);
+                    return id;
+                };
+                const addTri = (a, b, c, nrm, u, v) => {
+                    const i0 = pushV(a[0], a[1], a[2], nrm[0], nrm[1], nrm[2], u, v);
+                    const i1 = pushV(b[0], b[1], b[2], nrm[0], nrm[1], nrm[2], u, v);
+                    const i2 = pushV(c[0], c[1], c[2], nrm[0], nrm[1], nrm[2], u, v);
+                    idx.push(i0, i1, i2);
+                };
+                const addQuad = (a, b, c, d, nrm, u, v) => {
+                    const i0 = pushV(a[0], a[1], a[2], nrm[0], nrm[1], nrm[2], u, v);
+                    const i1 = pushV(b[0], b[1], b[2], nrm[0], nrm[1], nrm[2], u, v);
+                    const i2 = pushV(c[0], c[1], c[2], nrm[0], nrm[1], nrm[2], u, v);
+                    const i3 = pushV(d[0], d[1], d[2], nrm[0], nrm[1], nrm[2], u, v);
+                    idx.push(i0, i1, i2, i0, i2, i3);
+                };
+                const finish = radiusMul => {
+                    const g = new GeomCls();
+                    g.addAttribute('aPosition', new BufCls(new Float32Array(pos)), 3);
+                    g.addAttribute('aNormal', new BufCls(new Float32Array(norm)), 3);
+                    g.addAttribute('aUv', new BufCls(new Float32Array(uv)), 2);
+                    g.addIndex(new BufCls(new Uint16Array(idx)));
+                    const rad = R * radiusMul;
+                    if (BoxCls && VecCls) {
+                        g.boundingBox = new BoxCls(new VecCls(cx - rad, cy - rad, cz - rad), new VecCls(cx + rad, cy + rad, cz + rad));
+                        if (SphereCls) g.boundingSphere = g.boundingBox.getBoundingSphere(new SphereCls());
+                    }
+                    return g;
+                };
+                return { pushV, addTri, addQuad, finish };
+            };
+
+            // 1) Sculpted 16-tooth notched beveled core + recessed plasma core + 3D extruded lightning bolt
+            const core = createBuilder();
+            const segs = 16;
+            const rInner = 0.72 * R;
+            const rBevel = 0.90 * R;
+            const zRimFace = 0.21 * R;
+            const zRimEdge = 0.13 * R;
+            const zCore = 0.11 * R;
+
+            for (let i = 0; i < segs; i++) {
+                const a0 = (i / segs) * Math.PI * 2;
+                const a1 = ((i + 1) / segs) * Math.PI * 2;
+                const am = (a0 + a1) * 0.5;
+                const rOut0 = (i % 2 === 0 ? 1.07 : 0.96) * R;
+                const rOut1 = ((i + 1) % 2 === 0 ? 1.07 : 0.96) * R;
+                const c0 = Math.cos(a0), s0 = Math.sin(a0);
+                const c1 = Math.cos(a1), s1 = Math.sin(a1);
+                const nxOut = Math.cos(am), nyOut = Math.sin(am);
+
+                // Recessed glowing energy disc (front & back)
+                core.addTri([0, 0, zCore], [c0 * rInner, s0 * rInner, zCore], [c1 * rInner, s1 * rInner, zCore], [0, 0, 1], 0.25, 0.25);
+                core.addTri([0, 0, -zCore], [c1 * rInner, s1 * rInner, -zCore], [c0 * rInner, s0 * rInner, -zCore], [0, 0, -1], 0.25, 0.25);
+
+                // Inner core-to-rim step wall
+                core.addQuad([c0 * rInner, s0 * rInner, zCore], [c0 * rInner, s0 * rInner, zRimFace], [c1 * rInner, s1 * rInner, zRimFace], [c1 * rInner, s1 * rInner, zCore], [-nxOut, -nyOut, 0.25], 0.65, 0.25);
+                core.addQuad([c1 * rInner, s1 * rInner, -zCore], [c1 * rInner, s1 * rInner, -zRimFace], [c0 * rInner, s0 * rInner, -zRimFace], [c0 * rInner, s0 * rInner, -zCore], [-nxOut, -nyOut, -0.25], 0.65, 0.25);
+
+                // Rim top face & chamfer bevel (front & back)
+                core.addQuad([c0 * rInner, s0 * rInner, zRimFace], [c0 * rBevel, s0 * rBevel, zRimFace], [c1 * rBevel, s1 * rBevel, zRimFace], [c1 * rInner, s1 * rInner, zRimFace], [0, 0, 1], 0.72, 0.22);
+                core.addQuad([c0 * rBevel, s0 * rBevel, zRimFace], [c0 * rOut0, s0 * rOut0, zRimEdge], [c1 * rOut1, s1 * rOut1, zRimEdge], [c1 * rBevel, s1 * rBevel, zRimFace], [nxOut * 0.55, nyOut * 0.55, 0.84], 0.85, 0.30);
+
+                core.addQuad([c1 * rInner, s1 * rInner, -zRimFace], [c1 * rBevel, s1 * rBevel, -zRimFace], [c0 * rBevel, s0 * rBevel, -zRimFace], [c0 * rInner, s0 * rInner, -zRimFace], [0, 0, -1], 0.72, 0.22);
+                core.addQuad([c1 * rBevel, s1 * rBevel, -zRimFace], [c1 * rOut1, s1 * rOut1, -zRimEdge], [c0 * rOut0, s0 * rOut0, -zRimEdge], [c0 * rBevel, s0 * rBevel, -zRimFace], [nxOut * 0.55, nyOut * 0.55, -0.84], 0.85, 0.30);
+
+                // Thick gear-notched outer rim wall
+                core.addQuad([c0 * rOut0, s0 * rOut0, zRimEdge], [c0 * rOut0, s0 * rOut0, -zRimEdge], [c1 * rOut1, s1 * rOut1, -zRimEdge], [c1 * rOut1, s1 * rOut1, zRimEdge], [nxOut, nyOut, 0], 0.88, 0.20);
+            }
+
+            // 4 raised turbine stabilizer ribs connecting rim & plasma core
+            const strutT = 0.075 * R, zStrut = 0.17 * R;
+            for (let k = 0; k < 4; k++) {
+                const ang = (k / 4) * Math.PI * 2 + Math.PI * 0.25;
+                const ux = Math.cos(ang), uy = Math.sin(ang);
+                const vx = -uy, vy = ux;
+                const rA = 0.34 * R, rB = 0.74 * R;
+                const aF = [ux * rA - vx * strutT, uy * rA - vy * strutT, zStrut];
+                const bF = [ux * rA + vx * strutT, uy * rA + vy * strutT, zStrut];
+                const cF = [ux * rB + vx * strutT, uy * rB + vy * strutT, zStrut];
+                const dF = [ux * rB - vx * strutT, uy * rB - vy * strutT, zStrut];
+                core.addQuad(aF, bF, cF, dF, [0, 0, 1], 0.80, 0.28);
+                core.addQuad([aF[0], aF[1], -zStrut], [dF[0], dF[1], -zStrut], [cF[0], cF[1], -zStrut], [bF[0], bF[1], -zStrut], [0, 0, -1], 0.80, 0.28);
+            }
+
+            // Double-sided protruding 3D Lightning Bolt crystal
+            const boltScale = R * 0.58;
+            const zBoltTip = 0.34 * R;
+            const boltTris = [
+                [[0.12, 1.00], [-0.46, 0.08], [0.02, 0.08]],
+                [[0.12, 1.00], [0.02, 0.08], [0.34, 0.34]],
+                [[0.02, 0.08], [-0.46, 0.08], [-0.04, -0.08]],
+                [[0.02, 0.08], [-0.04, -0.08], [0.52, -0.08]],
+                [[0.52, -0.08], [-0.04, -0.08], [-0.14, -1.00]],
+                [[0.02, 0.08], [0.52, -0.08], [-0.14, -1.00]]
+            ];
+            for (const tri of boltTris) {
+                const a = [tri[0][0] * boltScale, tri[0][1] * boltScale, zBoltTip];
+                const b = [tri[1][0] * boltScale, tri[1][1] * boltScale, zBoltTip];
+                const c = [tri[2][0] * boltScale, tri[2][1] * boltScale, zBoltTip];
+                core.addTri(a, b, c, [0, 0, 1], 0.22, 0.76);
+                core.addTri([a[0], a[1], -zBoltTip], [c[0], c[1], -zBoltTip], [b[0], b[1], -zBoltTip], [0, 0, -1], 0.22, 0.76);
+            }
+            const boltRing = [
+                [0.12, 1.00], [0.34, 0.34], [0.02, 0.08], [0.52, -0.08],
+                [-0.14, -1.00], [-0.04, -0.08], [-0.46, 0.08]
+            ];
+            for (let i = 0; i < boltRing.length; i++) {
+                const p0 = boltRing[i];
+                const p1 = boltRing[(i + 1) % boltRing.length];
+                const ex = (p1[0] - p0[0]) * boltScale;
+                const ey = (p1[1] - p0[1]) * boltScale;
+                const x0 = p0[0] * boltScale, y0 = p0[1] * boltScale;
+                const x1 = p1[0] * boltScale, y1 = p1[1] * boltScale;
+                core.addQuad([x0, y0, zBoltTip], [x0, y0, -zBoltTip], [x1, y1, -zBoltTip], [x1, y1, zBoltTip], [ey, -ex, 0], 0.16, 0.78);
+            }
+
+            // 2) Tilted 3D Torus Gyro-Ring (24x8 segments)
+            const ring = createBuilder();
+            const majSeg = 24, minSeg = 8;
+            const majR = 1.32 * R, minR = 0.08 * R;
+            for (let i = 0; i < majSeg; i++) {
+                const u0 = (i / majSeg) * Math.PI * 2;
+                const u1 = ((i + 1) / majSeg) * Math.PI * 2;
+                const cu0 = Math.cos(u0), su0 = Math.sin(u0);
+                const cu1 = Math.cos(u1), su1 = Math.sin(u1);
+                for (let j = 0; j < minSeg; j++) {
+                    const v0 = (j / minSeg) * Math.PI * 2;
+                    const v1 = ((j + 1) / minSeg) * Math.PI * 2;
+                    const pt = (cu, su, v) => {
+                        const cv = Math.cos(v), sv = Math.sin(v);
+                        const rr = majR + minR * cv;
+                        return {
+                            p: [cu * rr, su * rr, minR * sv],
+                            n: [cu * cv, su * cv, sv]
+                        };
+                    };
+                    const q00 = pt(cu0, su0, v0);
+                    const q10 = pt(cu1, su1, v0);
+                    const q11 = pt(cu1, su1, v1);
+                    const q01 = pt(cu0, su0, v1);
+                    const i0 = ring.pushV(q00.p[0], q00.p[1], q00.p[2], q00.n[0], q00.n[1], q00.n[2], 0.76, 0.76);
+                    const i1 = ring.pushV(q10.p[0], q10.p[1], q10.p[2], q10.n[0], q10.n[1], q10.n[2], 0.76, 0.76);
+                    const i2 = ring.pushV(q11.p[0], q11.p[1], q11.p[2], q11.n[0], q11.n[1], q11.n[2], 0.76, 0.76);
+                    const i3 = ring.pushV(q01.p[0], q01.p[1], q01.p[2], q01.n[0], q01.n[1], q01.n[2], 0.76, 0.76);
+                    // push triangle indices manually
+                    const triA = [q00.p, q10.p, q11.p], triB = [q00.p, q11.p, q01.p];
+                    void(i0); void(i1); void(i2); void(i3); void(triA); void(triB);
+                    ring.addQuad(q00.p, q10.p, q11.p, q01.p, q00.n, 0.76, 0.76);
+                }
+            }
+
+            energyCoinGeoCache = { coreGeom: core.finish(1.12), ringGeom: ring.finish(1.42) };
+            return energyCoinGeoCache;
+        } catch(e) { return null; }
+    }
+
+    function setFirstViewGeometry(entity, geom) {
+        if (!entity || !geom) return false;
+        const queue = [entity];
+        while (queue.length) {
+            const cur = queue.shift();
+            const view = cur && cur.view3d;
+            if (view && view.geometry) {
+                view.geometry = geom;
+                return view;
+            }
+            const children = cur && (cur.children || (cur.container && cur.container.children));
+            if (children) for (let i = 0; i < children.length; i++) queue.push(children[i]);
+        }
+        return false;
+    }
+
     function buildEnergyCoinModel() {
         if (!window.__lib || !window.__lib.getEntity) return null;
-        let face, rim, back;
+        let face, ring;
         try {
             face = window.__lib.getEntity('currency_coin');
-            rim = window.__lib.getEntity('currency_coin');
-            back = window.__lib.getEntity('currency_coin');
+            ring = window.__lib.getEntity('currency_coin');
         } catch(e) { return face || null; }
         if (!face) return null;
-        const orientCoin = coin => { coin.rx = 0; coin.ry = 0; coin.rz = 0; };
-        orientCoin(face);
-        if (face.scale) face.scale.set(1.36, 1.36, 1.2);
+        face.rx = 0; face.ry = 0; face.rz = 0;
+        if (face.scale) face.scale.set(1.32, 1.32, 1.32);
+
+        const protoView = setFirstViewGeometry(face, null) || (() => {
+            const q = [face];
+            while (q.length) {
+                const c = q.shift();
+                if (c && c.view3d && c.view3d.geometry) return c.view3d;
+                const ch = c && (c.children || (c.container && c.container.children));
+                if (ch) for (let i = 0; i < ch.length; i++) q.push(ch[i]);
+            }
+            return null;
+        })();
+        const geos = protoView ? buildEnergyCoinGeometries(protoView) : null;
+        if (geos) {
+            setFirstViewGeometry(face, geos.coreGeom);
+            if (ring) setFirstViewGeometry(ring, geos.ringGeom);
+        }
         applyEnergyCoinTexture(face);
 
         const parts = [];
-        if (rim) {
-            orientCoin(rim);
-            if (rim.scale) rim.scale.set(1.51, 1.51, 1.55);
-            // This renderer turns unmapped materials black, so keep the blue
-            // albedo texture on the thicker edge and tint it cyan for contrast.
-            applyEnergyCoinTexture(rim);
-            setEntityHexColor(rim, 0x38baff);
-            rim._energyCoinDepthOffset = -0.12;
-            parts.push(rim);
-        }
-        if (back) {
-            orientCoin(back);
-            if (back.scale) back.scale.set(1.33, 1.33, 1.18);
-            applyEnergyCoinTexture(back);
-            back.ry = Math.PI;
-            back._energyCoinDepthOffset = -0.23;
-            back._energyCoinRotationOffset = Math.PI;
-            parts.push(back);
+        if (ring) {
+            ring.rx = 0.42; ring.ry = 0; ring.rz = 0.24;
+            if (ring.scale) ring.scale.set(1.34, 1.34, 1.34);
+            applyEnergyCoinTexture(ring);
+            ring._energyCoinDepthOffset = 0;
+            ring._energyCoinRing = true;
+            parts.push(ring);
         }
         face._energyCoinParts = parts;
         return face;
@@ -1888,6 +2181,8 @@
         for (const train of trains) {
             const body = train.body;
             if (Math.abs(body.z - startZ) > 190) continue;
+            const trainSpeed = Math.abs((train.movable && train.movable.speed) || (body.velocity && body.velocity.z) || 0);
+            if (trainSpeed > 0.05) continue;
             const lane = lanes.reduce((best, current) => Math.abs(current - body.x) < Math.abs(best - body.x) ? current : best, lanes[0]);
             if (Math.abs(lane - body.x) > Math.max(8, (body.width || 18) / 2)) continue;
             const depth = body.depth || 60;
@@ -1895,7 +2190,7 @@
             const bottom = Number.isFinite(body.bottom) ? body.bottom : (body.y || 0);
             const top = Number.isFinite(body.top) ? body.top : bottom + (body.height || 18);
             if (!isPositionBlocked(lane, top, z, 12, train)) {
-                return { lane, x: body.x, y: top, z, platformEntity: train, platformDepth: depth, platformWidth: body.width || 18, platformCenterZ: body.z };
+                return { lane, x: lane, y: top, z, platformEntity: train, platformDepth: depth, platformWidth: body.width || 18, platformCenterZ: body.z };
             }
         }
         return null;
@@ -1912,29 +2207,21 @@
             spot.platformCenterZ - spot.platformDepth / 2 + 16,
             Math.min(startZ - span / 2, spot.platformCenterZ + spot.platformDepth / 2 - 16 - span)
         );
-        const pattern = Math.floor(Math.random() * 7);
-        const lateralRange = Math.max(0, Math.min(5, spot.platformWidth / 2 - 4));
-        const offsets = [0, -1, 1, -1, 0];
+        const pattern = Math.floor(Math.random() * 5);
         const heights = [0, 2.5, 4.5, 2.5, 0];
-        const coinBaseY = spot.y + 7;
+        const coinBaseY = spot.y + 6.5;
         let spawned = 0;
 
         for (let i = 0; i < count; i++) {
-            let x = spot.x;
+            const x = spot.lane;
             let y = coinBaseY;
-            if (pattern === 1) x += offsets[Math.round(i * 4 / Math.max(1, count - 1))] * lateralRange;
-            if (pattern === 2) y += (i / Math.max(1, count - 1)) * 4;
-            if (pattern === 3) y += heights[Math.round(i * 4 / Math.max(1, count - 1))];
-            if (pattern === 4) {
+            if (pattern === 1) y += (i / Math.max(1, count - 1)) * 4;
+            if (pattern === 2) y += heights[Math.round(i * 4 / Math.max(1, count - 1))];
+            if (pattern === 3) {
                 const t = i / Math.max(1, count - 1);
-                x += Math.sin(t * Math.PI * 2) * lateralRange * 0.7;
                 y += 1.5 + Math.sin(t * Math.PI) * 4;
             }
-            if (pattern === 5) {
-                x += (i % 2 ? 1 : -1) * lateralRange * 0.65;
-                y += i % 2 ? 4 : 0;
-            }
-            if (pattern === 6) {
+            if (pattern === 4) {
                 const t = i / Math.max(1, count - 1);
                 y += Math.sin(t * Math.PI * 2) * 2.2 + 2.2;
             }
@@ -1971,7 +2258,13 @@
 
         const choice = choices[0];
         if (!choice || choice.clear < 3) return 0;
-        const makeWave = obstacleChunkCount % 3 === 0;
+        const physics = window.game && window.game.physics;
+        const nearTrain = !!(physics && Array.isArray(physics.entities) && physics.entities.some(ent => {
+            const b = ent && ent.body;
+            const lbl = `${(ent && ent.name) || ''} ${(ent && ent.type) || ''} ${(ent && ent.model && ent.model.name) || ''}`.toLowerCase();
+            return b && !b.deco && !b.player && /train|wagon|freight/.test(lbl) && Math.abs(b.z - firstZ) < 150;
+        }));
+        const makeWave = !nearTrain && obstacleChunkCount % 3 === 0;
         let spawned = 0;
         for (let i = 0; i < 4; i++) {
             const z = firstZ - i * spacing;
@@ -2275,8 +2568,12 @@
         }
     }
 
+    let lastObstacleTickMs = 0;
+
     function updateNoCoinObstacleEngine() {
         const frameNow = Date.now();
+        const dtFactor = lastObstacleTickMs ? Math.min(3, Math.max(0.15, (frameNow - lastObstacleTickMs) / 16.6667)) : 1;
+        lastObstacleTickMs = frameNow;
         updateCoinShatterFragments(frameNow);
         if (!window.game || !window.game.hero || !window.game.hero.body) {
             if (customObstacles.length) cleanupCustomObstacles();
@@ -2404,7 +2701,8 @@
                 const mdz = targetZ - obs.z;
                 const distance = Math.sqrt(mdx * mdx + mdy * mdy + mdz * mdz);
                 if (distance < 110) {
-                    const pull = 0.11 + (1 - distance / 110) * 0.1;
+                    const basePull = 0.11 + (1 - distance / 110) * 0.1;
+                    const pull = 1 - Math.pow(Math.max(0.01, 1 - basePull), dtFactor);
                     obs.x += mdx * pull;
                     obs.y += mdy * pull;
                     obs.z += mdz * pull;
@@ -2414,12 +2712,21 @@
 
             // Spin coin
             if ((obs.type === 'coin' || obs.type === 'energyCoin') && obs.mesh && obs.mesh.rotation) {
-                obs.mesh.rotation.y += 0.09;
+                obs.mesh.rotation.y += (obs.type === 'energyCoin' ? 0.065 : 0.09) * dtFactor;
                 if (obs.type === 'energyCoin') {
                     for (const part of (obs.parts || [])) {
-                        const rotationY = obs.mesh.rotation.y + (part._energyCoinRotationOffset || 0);
-                        if (part.rotation) part.rotation.y = rotationY;
-                        else part.ry = rotationY;
+                        if (part._energyCoinRing) {
+                            if (part.rotation) {
+                                part.rotation.y -= 0.11 * dtFactor;
+                                part.rotation.x = 0.42 + Math.sin(now * 0.004) * 0.18;
+                            } else {
+                                part.ry = (part.ry || 0) - 0.11 * dtFactor;
+                            }
+                        } else {
+                            const rotationY = obs.mesh.rotation.y + (part._energyCoinRotationOffset || 0);
+                            if (part.rotation) part.rotation.y = rotationY;
+                            else part.ry = rotationY;
+                        }
                     }
                 }
             }
@@ -4499,7 +4806,7 @@
                         </div>
                         <div class="setting-text-col">
                             <span class="setting-title">Taxa de Quadros (FPS)</span>
-                            <span class="setting-value" id="val-gfx-fps">${GFX_SETTINGS.fps === 'unlimited' ? 'Ilimitado (120Hz+)' : (GFX_SETTINGS.fps + ' FPS')}</span>
+                            <span class="setting-value" id="val-gfx-fps">${getFPSLabel(GFX_SETTINGS.fps)}</span>
                         </div>
                     </div>
 
@@ -7818,9 +8125,8 @@
         }
         optimizeHeroAnimAndFluidity();
         initMotionBlurEngine();
-        if (GFX_SETTINGS.fps === 'unlimited' && window.app && window.app.ticker && window.app.ticker.maxFPS !== 0) {
-            window.app.ticker.maxFPS = 0;
-        }
+        const targetMaxFPS = GFX_SETTINGS.fps === 'unlimited' ? 0 : (parseInt(GFX_SETTINGS.fps, 10) || 240);
+        applyTickerMaxFPS(targetMaxFPS);
     }
     window.addEventListener('pageshow', reapplyPersistedGraphicsToSurface);
     setInterval(reapplyPersistedGraphicsToSurface, 600);
