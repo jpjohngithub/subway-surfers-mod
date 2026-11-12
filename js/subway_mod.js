@@ -783,23 +783,24 @@
 
     function applyRenderResolution(val) {
         const pct = parseInt(val, 10) || 100;
-        const scale = pct / 100;
+        const scale = pct === 100 ? Math.min(window.devicePixelRatio || 1, 2) : (pct / 100);
+        window.__SW_RES_SCALE__ = scale;
         try {
-            const renderer = (window.app && window.app.renderer) || (window.game && window.game.renderer);
+            const stagePlugin = window.app && window.app.stage;
+            const renderer = (stagePlugin && stagePlugin.renderer) || (window.app && window.app.renderer) || (window.game && window.game.renderer);
             if (renderer) {
+                renderer.resolution = scale;
                 const baseW = window.innerWidth || 800;
                 const baseH = window.innerHeight || 600;
-                const rw = Math.max(320, Math.round(baseW * scale));
-                const rh = Math.max(240, Math.round(baseH * scale));
                 if (typeof renderer.resize === 'function') {
-                    renderer.resize(rw, rh);
+                    renderer.resize(baseW, baseH);
                 }
-                const view = renderer.view;
-                if (view) {
-                    view.style.width = '100vw';
-                    view.style.height = '100vh';
-                    view.style.imageRendering = scale < 1 ? 'pixelated' : 'auto';
-                }
+            }
+            const view = document.getElementById('pixi-canvas') || (renderer && renderer.view) || document.querySelector('canvas');
+            if (view) {
+                view.style.width = '100vw';
+                view.style.height = '100vh';
+                view.style.imageRendering = pct < 100 ? 'pixelated' : 'auto';
             }
             applyScreenAspectRatio(GFX_SETTINGS.aspectRatio);
         } catch(e) {}
@@ -2040,6 +2041,11 @@
         }
         coin._isDashItem = false;
         coin.visible = true;
+        if (coin._strokeHull) {
+            coin._strokeHull.active = false;
+            coin._strokeHull.visible = false;
+            if (coin._strokeHull.scale) coin._strokeHull.scale.set(0, 0, 0);
+        }
         if (coin.model) {
             coin.model.active = true;
             coin.model.visible = true;
@@ -2161,21 +2167,58 @@
         if (coin.model) {
             setEntityHexColor(coin.model, isNoCoin ? 0xff1e1e : 0xffffff);
         }
-        if (coin.shine) {
-            if (isNoCoin) {
-                if (GFX_SETTINGS.coinOutline) {
-                    coin.shine.active = true;
-                    if (coin.shine.view) {
-                        setEntityHexColor(coin.shine.view, 0x000000);
-                        if (coin.shine.view.scale) coin.shine.view.scale.set(1.10, 1.10, 1.10);
+        if (GFX_SETTINGS.coinOutline) {
+            try {
+                if (!coin._strokeHull && window.__lib && window.__lib.getEntity) {
+                    const ol = window.__lib.getEntity('currency_coin');
+                    if (ol) {
+                        ol.rx = 0; ol.ry = 0; ol.rz = 0;
+                        const setupHull = obj => {
+                            if (!obj) return;
+                            const v = obj.view3d;
+                            if (v) {
+                                if (v.state) {
+                                    const st = Object.assign(Object.create(Object.getPrototypeOf(v.state)), v.state);
+                                    st.culling = true;
+                                    st.clockwiseFrontFace = !v.state.clockwiseFrontFace;
+                                    v.state = st;
+                                }
+                                if (v.material) {
+                                    const makeBlk = m => {
+                                        if (!m) return m;
+                                        const cm = (typeof m.clone === 'function') ? m.clone() : Object.assign(Object.create(Object.getPrototypeOf(m)), m);
+                                        cm.diffuseMap = null;
+                                        if ('map' in cm) cm.map = null;
+                                        cm.color = 0x040404;
+                                        cm.emissive = 0x000000;
+                                        return cm;
+                                    };
+                                    v.material = Array.isArray(v.material) ? v.material.map(makeBlk) : makeBlk(v.material);
+                                }
+                            }
+                            const ch = obj.children || (obj.container && obj.container.children);
+                            if (ch) for (let i = 0; i < ch.length; i++) setupHull(ch[i]);
+                        };
+                        setupHull(ol);
+                        if (ol.scale) ol.scale.set(1.10, 1.10, 1.10);
+                        coin.addChild(ol);
+                        coin._strokeHull = ol;
                     }
-                } else {
-                    coin.shine.active = false;
                 }
-            } else {
-                coin.shine.active = true;
-                if (coin.shine.view) setEntityHexColor(coin.shine.view, 0xffffff);
-            }
+                if (coin._strokeHull) {
+                    coin._strokeHull.active = true;
+                    coin._strokeHull.visible = true;
+                    if (coin._strokeHull.scale) coin._strokeHull.scale.set(1.10, 1.10, 1.10);
+                }
+            } catch(e) {}
+        } else if (coin._strokeHull) {
+            coin._strokeHull.active = false;
+            coin._strokeHull.visible = false;
+            if (coin._strokeHull.scale) coin._strokeHull.scale.set(0, 0, 0);
+        }
+        if (coin.shine) {
+            coin.shine.active = !isNoCoin;
+            if (!isNoCoin && coin.shine.view) setEntityHexColor(coin.shine.view, 0xffffff);
         }
     };
 
@@ -2919,52 +2962,6 @@
                     speed: options.speed || 1.8,
                     phase: options.phase || 0
                 };
-                if (window.game && window.game.physics && Array.isArray(window.game.physics.entities)) {
-                    if (type === 'wooden_ramp') {
-                        const physRamp = {
-                            _custom: true,
-                            ramp: true,
-                            body: {
-                                x: x, y: y + bounds.height * 0.5, z: z,
-                                width: bounds.width, height: bounds.height, depth: bounds.depth,
-                                top: y + bounds.height, bottom: y,
-                                left: x - bounds.width * 0.5, right: x + bounds.width * 0.5,
-                                front: z - bounds.depth * 0.5, back: z + bounds.depth * 0.5,
-                                box: {
-                                    center: { x, y: y + bounds.height * 0.5, z },
-                                    size: { x: bounds.width, y: bounds.height, z: bounds.depth },
-                                    left: x - bounds.width * 0.5, right: x + bounds.width * 0.5,
-                                    top: y + bounds.height, bottom: y,
-                                    front: z - bounds.depth * 0.5, back: z + bounds.depth * 0.5
-                                },
-                                deco: false, ghost: false, player: false
-                            }
-                        };
-                        window.game.physics.entities.push(physRamp);
-                        obsObj.physicsEntity = physRamp;
-                    } else if (type === 'double_train') {
-                        const physTrain = {
-                            _custom: true,
-                            body: {
-                                x: x, y: y + 29, z: z,
-                                width: 18, height: 58, depth: 60,
-                                top: y + 58, bottom: y,
-                                left: x - 9, right: x + 9,
-                                front: z - 30, back: z + 30,
-                                box: {
-                                    center: { x, y: y + 29, z },
-                                    size: { x: 18, y: 58, z: 60 },
-                                    left: x - 9, right: x + 9,
-                                    top: y + 58, bottom: y,
-                                    front: z - 30, back: z + 30
-                                },
-                                deco: false, ghost: false, player: false
-                            }
-                        };
-                        window.game.physics.entities.push(physTrain);
-                        obsObj.physicsEntity = physTrain;
-                    }
-                }
                 return obsObj;
             }
         } catch(e) {}
@@ -3338,7 +3335,12 @@
                     if (r) { customObstacles.push(r); return; }
                 } else {
                     const dt = createObstacle3D('double_train', lane, 0, centerZ);
-                    if (dt) { customObstacles.push(dt); return; }
+                    if (dt) {
+                        customObstacles.push(dt);
+                        const ramp = createObstacle3D('wooden_ramp', lane, 0, centerZ + 65);
+                        if (ramp) customObstacles.push(ramp);
+                        return;
+                    }
                 }
             }
         }
@@ -3551,7 +3553,11 @@
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             if (!isPositionBlocked(lane, 0, centerZ, 40)) {
                 const dt = createObstacle3D('double_train', lane, 0, centerZ);
-                if (dt) customObstacles.push(dt);
+                if (dt) {
+                    customObstacles.push(dt);
+                    const ramp = createObstacle3D('wooden_ramp', lane, 0, centerZ + 65);
+                    if (ramp) customObstacles.push(ramp);
+                }
             }
         } else {
             // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
@@ -3609,9 +3615,9 @@
             }
         }
 
-        // Check spawn ahead of runner (abundant, regular obstacles)
+        // Check spawn ahead of runner at full native horizon distance
         if (heroZ < nextObstacleZ) {
-            spawnNoCoinObstaclePattern(heroZ - 320);
+            spawnNoCoinObstaclePattern(heroZ - 950);
             nextObstacleZ = heroZ - (130 + Math.random() * 70);
         }
 
@@ -3809,6 +3815,26 @@
                     if (obs.type === 'trampoline') {
                         if (!obs.used) activateTrampoline(obs, hero, heroBody, heroY, now);
                         continue;
+                    }
+                    if (obs.type === 'wooden_ramp') {
+                        const progress = Math.max(0, Math.min(1, ((obs.z + 35) - heroZ) / 70));
+                        const rampY = progress * 29;
+                        if (heroY >= rampY - 12) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, rampY);
+                            heroBody.bottom = Math.max(heroBody.bottom || 0, rampY);
+                            heroBody.landed = true;
+                        }
+                        continue;
+                    }
+                    if (obs.type === 'double_train') {
+                        if (heroY >= 52) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, 58);
+                            continue;
+                        }
+                        if (heroY >= 24 && heroY < 34) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, 29);
+                            continue;
+                        }
                     }
 
                     if (obs.type === 'blocker_jump' && isJumping) {
@@ -5788,17 +5814,18 @@
 
         ctx.drawImage(img, 0, 0, w, h);
 
-        // Replace Subway Surfers logo on Jake's clothes with John Surf logo across all skins
+        // Replace Subway Surfers logo on Jake's clothes with John Surf logo without white box
         try {
             const bx = Math.round(w * (67 / 256));
             const by = Math.round(h * (174 / 256));
             const bw = Math.round(w * (103 / 256));
             const bh = Math.round(h * (80 / 256));
-            let patchBg = '#e6e8ee';
+            const sx = Math.min(w - 1, Math.max(0, bx + Math.floor(bw * 0.5)));
+            const sy = Math.max(0, by - 4);
+            const px = ctx.getImageData(sx, sy, 1, 1).data;
+            let patchBg = `rgb(${px[0]}, ${px[1]}, ${px[2]})`;
             if (skinId === 'jake_stick') patchBg = '#09090b';
             else if (skinId === 'jake_white') patchBg = '#ffffff';
-            else if (skinId === 'jake_dark') patchBg = '#22252c';
-            else if (skinId === 'jake_star') patchBg = '#f3f4f6';
             ctx.fillStyle = patchBg;
             ctx.fillRect(bx, by, bw, bh);
 

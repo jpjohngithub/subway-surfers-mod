@@ -1258,6 +1258,7 @@
             var n = e._resizeTo;
             t = n.clientWidth, i = n.clientHeight;
           }
+          if (window.__SW_RES_SCALE__) e.renderer.resolution = window.__SW_RES_SCALE__;
           e.renderer.resize(t, i);
         }
       }, this._resizeId = null, this._resizeTo = null, this.resizeTo = t.resizeTo || null;
@@ -37611,7 +37612,7 @@
     }
     turnOff(t) {
       var e, i, n, o, a, s, h, l, u, c;
-      void 0 === t && (t = !1), this.hide(), this.count && (this.entity.game.hud.removeItemTimer("hoverboard"), this.count = 0, null === (e = this.entity.state) || void 0 === e || e.set("empty"), null !== (i = this.powers) && void 0 !== i && i.includes("super-jump") && (null === (n = this.entity.jump) || void 0 === n || n.disableSuperJump()), null !== (o = this.powers) && void 0 !== o && o.includes("double-jump") && (null === (a = this.entity.jump) || void 0 === a || a.disableDoubleJump()), null !== (s = this.powers) && void 0 !== s && s.includes("smooth-drift") && (null === (h = this.entity.jump) || void 0 === h || h.disableSmoothDrift()), null !== (l = this.powers) && void 0 !== l && l.includes("zap-sideways") && (this.entity.lane.zapping = !1), null !== (u = this.powers) && void 0 !== u && u.includes("stay-low") && (this.entity.regularHeight = 11), null !== (c = this.powers) && void 0 !== c && c.includes("speed-up") && (this.entity.game.stats.data.speedIncrease.min = 0, this.entity.game.stats.data.speedIncrease.max = 0), t && r.a.sound.play("pickup-powerdown"));
+      void 0 === t && (t = !1), this.hide(), this.count && (this.entity.game.hud.removeItemTimer("hoverboard"), this.count = 0, null === (e = this.entity.state) || void 0 === e || e.set("empty"), this.entity.jump && this.entity.jump.disableDoubleJump && this.entity.jump.disableDoubleJump(), null !== (i = this.powers) && void 0 !== i && i.includes("super-jump") && (null === (n = this.entity.jump) || void 0 === n || n.disableSuperJump()), null !== (o = this.powers) && void 0 !== o && o.includes("double-jump") && (null === (a = this.entity.jump) || void 0 === a || a.disableDoubleJump()), null !== (s = this.powers) && void 0 !== s && s.includes("smooth-drift") && (null === (h = this.entity.jump) || void 0 === h || h.disableSmoothDrift()), null !== (l = this.powers) && void 0 !== l && l.includes("zap-sideways") && (this.entity.lane.zapping = !1), null !== (u = this.powers) && void 0 !== u && u.includes("stay-low") && (this.entity.regularHeight = 11), null !== (c = this.powers) && void 0 !== c && c.includes("speed-up") && (this.entity.game.stats.data.speedIncrease.min = 0, this.entity.game.stats.data.speedIncrease.max = 0), t && r.a.sound.play("pickup-powerdown"));
     }
     cancel() {
       this.count && (this.turnOff(), this.returnHoverboard(), this.entity.game.missions.addStat(-1, "mission-hoverboard"));
