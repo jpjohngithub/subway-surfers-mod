@@ -129,7 +129,7 @@
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 300
         contrast: parseInt(localStorage.getItem('sw_contrast') || '100', 10), // 50 - 300
         aspectRatio: localStorage.getItem('sw_aspect_ratio') || 'native', // 'native' | 'stretched_4_3' | 'stretched_16_10' | 'square_1_1'
-        coinOutline: localStorage.getItem('sw_coin_outline') === '1',
+        coinOutline: localStorage.getItem('sw_coin_outline') || '0', // '0' | '1' (contorno) | '2' (preta)
         volume: _swSavedVol !== null ? Math.max(0, Math.min(100, parseInt(_swSavedVol, 10) || 0)) : 30, // 0 - 100 (padrão 30%)
         motionBlur: localStorage.getItem('sw_motion_blur') || 'soft', // 'off' | 'soft' | 'high'
         shaders: (localStorage.getItem('sw_shaders') === 'off') ? 'off' : 'medium', // 'off' | 'medium' (Ativado)
@@ -197,9 +197,9 @@
             const ctx = c.getContext('2d');
             if (ctx) {
                 const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 60);
-                g.addColorStop(0.0, 'rgba(6, 8, 14, 0.72)');
-                g.addColorStop(0.45, 'rgba(8, 10, 18, 0.45)');
-                g.addColorStop(0.78, 'rgba(10, 12, 22, 0.14)');
+                g.addColorStop(0.0, 'rgba(2, 4, 12, 0.90)');
+                g.addColorStop(0.45, 'rgba(4, 6, 16, 0.65)');
+                g.addColorStop(0.78, 'rgba(6, 10, 22, 0.22)');
                 g.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
                 ctx.fillStyle = g;
                 ctx.fillRect(0, 0, 128, 128);
@@ -230,8 +230,8 @@
                         ls.ambientLight.color = 0xffffff;
                         ls.ambientLight.intensity = 0.5;
                     } else {
-                        ls.ambientLight.color = 0xc8ddff;
-                        ls.ambientLight.intensity = 0.46;
+                        ls.ambientLight.color = 0x9bbdff;
+                        ls.ambientLight.intensity = 0.34;
                     }
                     ls.ambientLight.dirty = true;
                     if (typeof ls.ambientLight.update === 'function') ls.ambientLight.update();
@@ -244,9 +244,9 @@
                             l.color = 0xffffff;
                             l.intensity = 1.0;
                         } else {
-                            l.color = 0xfff0d4;
-                            l.intensity = 1.24;
-                            if (l.direction && l.direction.set) l.direction.set(0.45, -0.84, -0.28);
+                            l.color = 0xffebd2;
+                            l.intensity = 1.58;
+                            if (l.direction && l.direction.set) l.direction.set(0.48, -0.80, -0.36);
                         }
                         if (typeof l.update === 'function') l.update();
                     }
@@ -279,23 +279,70 @@
             if (root) tuneObj(root, 0);
         } catch(e) {}
 
-        // 3) Sync Hero shadow right away
+        // 3) Sync Hero shadow right away (more evident when shaders active)
         try {
             const hero = window.game && window.game.hero;
-            if (hero && hero.shadow && typeof hero.shadow.update === 'function') hero.shadow.update();
+            if (hero && hero.shadow) {
+                if (hero.shadow.scale && hero.shadow.scale.set) {
+                    const hs = mode === 'off' ? 1.0 : 1.24;
+                    hero.shadow.scale.set(hs, hs, hs);
+                }
+                if (typeof hero.shadow.update === 'function') hero.shadow.update();
+            }
         } catch(e) {}
 
         // 4) Sync obstacle contact shadows
         for (const obs of customObstacles) {
             if (obs && obs.shadowPart) {
                 obs.shadowPart.active = mode !== 'off';
+                if (obs.shadowPart.scale && obs.shadowPart.scale.set) {
+                    const ss = mode === 'off' ? 1.0 : 1.26;
+                    obs.shadowPart.scale.set(ss, ss, ss);
+                }
             }
         }
 
-        // 5) Subtle edge depth vignette only (does not crush or tint textures)
+        // 5) Real-Time Bloom + Cinematic Post-Processing Overlay
         try {
-            const vig = document.getElementById('sw-shader-vignette');
-            if (vig) vig.style.opacity = '0';
+            let vig = document.getElementById('sw-shader-vignette');
+            if (!vig && document.body) {
+                vig = document.createElement('div');
+                vig.id = 'sw-shader-vignette';
+                vig.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:5;transition:opacity 0.25s ease;background:radial-gradient(ellipse at 50% 42%, rgba(255,244,224,0.06) 0%, rgba(0,0,0,0) 56%, rgba(4,6,16,0.34) 100%);';
+                document.body.appendChild(vig);
+            }
+            if (vig) vig.style.opacity = mode === 'off' ? '0' : '1';
+
+            let bloom = document.getElementById('sw-bloom-canvas');
+            const src = document.getElementById('pixi-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
+            if (mode !== 'off' && src && document.body) {
+                if (!bloom) {
+                    bloom = document.createElement('canvas');
+                    bloom.id = 'sw-bloom-canvas';
+                    bloom.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:4;mix-blend-mode:screen;opacity:0.42;filter:blur(12px) contrast(230%) brightness(135%) saturate(130%);transform:var(--sw-canvas-transform, none);transform-origin:center center;';
+                    if (src.parentNode) src.parentNode.insertBefore(bloom, src.nextSibling);
+                    else document.body.appendChild(bloom);
+                }
+                bloom.style.display = 'block';
+                if (!window.__swBloomLoopStarted) {
+                    window.__swBloomLoopStarted = true;
+                    const tickBloom = () => {
+                        requestAnimationFrame(tickBloom);
+                        const bc = document.getElementById('sw-bloom-canvas');
+                        if (!bc || GFX_SETTINGS.shaders === 'off') return;
+                        const gc = document.getElementById('pixi-canvas') || (window.app && window.app.view);
+                        if (!gc || !gc.width || !gc.height) return;
+                        const bw = Math.max(120, Math.floor(gc.width / 6));
+                        const bh = Math.max(80, Math.floor(gc.height / 6));
+                        if (bc.width !== bw || bc.height !== bh) { bc.width = bw; bc.height = bh; }
+                        const bctx = bc.getContext('2d');
+                        if (bctx) bctx.drawImage(gc, 0, 0, bw, bh);
+                    };
+                    requestAnimationFrame(tickBloom);
+                }
+            } else if (bloom) {
+                bloom.style.display = 'none';
+            }
         } catch(e) {}
     }
 
@@ -786,12 +833,22 @@
         showHUDNotification('Proporção: ' + getAspectRatioLabel(GFX_SETTINGS.aspectRatio));
     };
 
+    function getCoinOutlineLabel(val) {
+        if (String(val) === '1') return 'Só Contorno';
+        if (String(val) === '2') return 'Moeda Preta';
+        return 'Desativado';
+    }
+
     window.__toggleCoinOutline = function() {
-        GFX_SETTINGS.coinOutline = !GFX_SETTINGS.coinOutline;
-        localStorage.setItem('sw_coin_outline', GFX_SETTINGS.coinOutline ? '1' : '0');
+        const seq = ['0', '1', '2'];
+        const cur = String(GFX_SETTINGS.coinOutline || '0');
+        const idx = seq.indexOf(cur);
+        GFX_SETTINGS.coinOutline = seq[(idx + 1) % seq.length];
+        localStorage.setItem('sw_coin_outline', GFX_SETTINGS.coinOutline);
+        const label = getCoinOutlineLabel(GFX_SETTINGS.coinOutline);
         const el = document.getElementById('val-gfx-coinoutline');
-        if (el) el.textContent = GFX_SETTINGS.coinOutline ? 'Ativado' : 'Desativado';
-        showHUDNotification('Contorno nas Moedas: ' + (GFX_SETTINGS.coinOutline ? 'Ativado' : 'Desativado'));
+        if (el) el.textContent = label;
+        showHUDNotification('Estilo das Moedas: ' + label);
     };
 
     window.__setSaturation = function(val) {
@@ -1976,49 +2033,72 @@
     }
 
     function applyCoinCelOutline(targetModel, holder) {
-        if (!targetModel || !holder || !GFX_SETTINGS.coinOutline) return;
+        const mode = String(GFX_SETTINGS.coinOutline || '0');
+        if (!targetModel || !holder || mode === '0') return;
         try {
+            const getShaderForMode = (m, mMode) => {
+                if (!m || !m.program) return null;
+                const ProgramCls = m.program.constructor;
+                if (mMode === '2') {
+                    if (!window.__SW_COIN_BLACK_PROG__) {
+                        window.__SW_COIN_BLACK_PROG__ = ProgramCls.from(
+                            "attribute vec3 aPosition;\nuniform mat4 uModelMatrix;\nuniform mat4 uViewMatrix;\nuniform mat4 uProjectionMatrix;\nvoid main() {\n  vec4 viewPos = uViewMatrix * uModelMatrix * vec4(aPosition, 1.0);\n  viewPos.z += 0.25;\n  gl_Position = uProjectionMatrix * viewPos;\n}\n",
+                            "void main() {\n  gl_FragColor = vec4(0.02, 0.02, 0.02, 1.0);\n}\n",
+                            "sw_coin_solid_black"
+                        );
+                    }
+                    const ShaderCls = (window.PIXI && window.PIXI.Shader) || Object.getPrototypeOf(m.constructor);
+                    return new ShaderCls(window.__SW_COIN_BLACK_PROG__, {});
+                }
+                if (!window.__SW_COIN_OUTLINE_PROG__) {
+                    window.__SW_COIN_OUTLINE_PROG__ = ProgramCls.from(
+                        "attribute vec3 aPosition;\nuniform mat4 uModelMatrix;\nuniform mat4 uViewMatrix;\nuniform mat4 uProjectionMatrix;\nvoid main() {\n  vec4 viewPos = uViewMatrix * uModelMatrix * vec4(aPosition, 1.0);\n  viewPos.z -= 1.5;\n  gl_Position = uProjectionMatrix * viewPos;\n}\n",
+                        "void main() {\n  gl_FragColor = vec4(0.02, 0.02, 0.02, 1.0);\n}\n",
+                        "sw_coin_cel_outline"
+                    );
+                }
+                const ShaderCls = (window.PIXI && window.PIXI.Shader) || Object.getPrototypeOf(m.constructor);
+                return new ShaderCls(window.__SW_COIN_OUTLINE_PROG__, {});
+            };
+
+            const applyToHull = (obj, mMode) => {
+                if (!obj) return;
+                const v = obj.view3d;
+                if (v) {
+                    const st = v._state || v.state;
+                    if (st) {
+                        st.culling = false;
+                        st.depthTest = true;
+                    }
+                    const baseMat = v._origOutlineMat || (Array.isArray(v.material) ? v.material[0] : v.material);
+                    if (baseMat && baseMat.program) {
+                        v._origOutlineMat = baseMat;
+                        const sh = getShaderForMode(baseMat, mMode);
+                        if (sh) v.material = sh;
+                    }
+                }
+                const ch = obj.children || (obj.container && obj.container.children);
+                if (ch) for (let i = 0; i < ch.length; i++) applyToHull(ch[i], mMode);
+            };
+
             if (!holder._strokeHull && window.__lib && window.__lib.getEntity) {
                 const ol = window.__lib.getEntity('currency_coin');
                 if (ol) {
                     ol.rx = 0; ol.ry = 0; ol.rz = 0;
-                    const setupHull = obj => {
-                        if (!obj) return;
-                        const v = obj.view3d;
-                        if (v) {
-                            const st = v._state || v.state;
-                            if (st) {
-                                st.culling = true;
-                                st.depthTest = true;
-                                st.clockwiseFrontFace = false;
-                            }
-                            if (v.material) {
-                                const makeBlk = m => {
-                                    if (!m) return m;
-                                    const cm = (typeof m.clone === 'function') ? m.clone() : Object.assign(Object.create(Object.getPrototypeOf(m)), m);
-                                    cm.diffuseMap = null;
-                                    if ('map' in cm) cm.map = null;
-                                    if ('doubleSided' in cm) cm.doubleSided = false;
-                                    cm.color = 0x050505;
-                                    cm.emissive = 0x000000;
-                                    return cm;
-                                };
-                                v.material = Array.isArray(v.material) ? v.material.map(makeBlk) : makeBlk(v.material);
-                            }
-                        }
-                        const ch = obj.children || (obj.container && obj.container.children);
-                        if (ch) for (let i = 0; i < ch.length; i++) setupHull(ch[i]);
-                    };
-                    setupHull(ol);
-                    if (ol.scale) ol.scale.set(1.11, 1.11, 1.11);
+                    applyToHull(ol, mode);
                     targetModel.addChild(ol);
                     holder._strokeHull = ol;
+                    holder._strokeHullMode = mode;
                 }
+            } else if (holder._strokeHull && holder._strokeHullMode !== mode) {
+                applyToHull(holder._strokeHull, mode);
+                holder._strokeHullMode = mode;
             }
             if (holder._strokeHull) {
                 holder._strokeHull.active = true;
                 holder._strokeHull.visible = true;
-                if (holder._strokeHull.scale) holder._strokeHull.scale.set(1.11, 1.11, 1.11);
+                const sc = mode === '2' ? 1.03 : 1.13;
+                if (holder._strokeHull.scale) holder._strokeHull.scale.set(sc, sc, sc);
             }
         } catch(e) {}
     }
@@ -2173,7 +2253,7 @@
         if (coin.model) {
             setEntityHexColor(coin.model, isNoCoin ? 0xff1e1e : 0xffffff);
         }
-        if (GFX_SETTINGS.coinOutline && coin.model) {
+        if (String(GFX_SETTINGS.coinOutline || '0') !== '0' && coin.model) {
             applyCoinCelOutline(coin.model, coin);
         } else if (coin._strokeHull) {
             coin._strokeHull.active = false;
@@ -6156,7 +6236,7 @@
                                 <span class="setting-title">Contorno Preto nas Moedas</span>
                                 <span class="setting-desc">Destaca as moedas com borda nítida</span>
                             </div>
-                            <span class="setting-pill" id="val-gfx-coinoutline">${GFX_SETTINGS.coinOutline ? 'Ativado' : 'Desativado'}</span>
+                            <span class="setting-pill" id="val-gfx-coinoutline">${getCoinOutlineLabel(GFX_SETTINGS.coinOutline)}</span>
                         </div>
 
                         <!-- No Revive (Hardcore) Setting -->
