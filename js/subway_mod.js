@@ -1975,6 +1975,54 @@
         return false;
     }
 
+    function applyCoinCelOutline(targetModel, holder) {
+        if (!targetModel || !holder || !GFX_SETTINGS.coinOutline) return;
+        try {
+            if (!holder._strokeHull && window.__lib && window.__lib.getEntity) {
+                const ol = window.__lib.getEntity('currency_coin');
+                if (ol) {
+                    ol.rx = 0; ol.ry = 0; ol.rz = 0;
+                    const setupHull = obj => {
+                        if (!obj) return;
+                        const v = obj.view3d;
+                        if (v) {
+                            const st = v._state || v.state;
+                            if (st) {
+                                st.culling = true;
+                                st.depthTest = true;
+                                st.clockwiseFrontFace = false;
+                            }
+                            if (v.material) {
+                                const makeBlk = m => {
+                                    if (!m) return m;
+                                    const cm = (typeof m.clone === 'function') ? m.clone() : Object.assign(Object.create(Object.getPrototypeOf(m)), m);
+                                    cm.diffuseMap = null;
+                                    if ('map' in cm) cm.map = null;
+                                    if ('doubleSided' in cm) cm.doubleSided = false;
+                                    cm.color = 0x050505;
+                                    cm.emissive = 0x000000;
+                                    return cm;
+                                };
+                                v.material = Array.isArray(v.material) ? v.material.map(makeBlk) : makeBlk(v.material);
+                            }
+                        }
+                        const ch = obj.children || (obj.container && obj.container.children);
+                        if (ch) for (let i = 0; i < ch.length; i++) setupHull(ch[i]);
+                    };
+                    setupHull(ol);
+                    if (ol.scale) ol.scale.set(1.11, 1.11, 1.11);
+                    targetModel.addChild(ol);
+                    holder._strokeHull = ol;
+                }
+            }
+            if (holder._strokeHull) {
+                holder._strokeHull.active = true;
+                holder._strokeHull.visible = true;
+                if (holder._strokeHull.scale) holder._strokeHull.scale.set(1.11, 1.11, 1.11);
+            }
+        } catch(e) {}
+    }
+
     window.__onCoinAwake = function(coin) {
         if (!coin) return;
         if (!window.__activeCoins) window.__activeCoins = new Set();
@@ -2126,49 +2174,7 @@
             setEntityHexColor(coin.model, isNoCoin ? 0xff1e1e : 0xffffff);
         }
         if (GFX_SETTINGS.coinOutline && coin.model) {
-            try {
-                if (!coin._strokeHull && window.__lib && window.__lib.getEntity) {
-                    const ol = window.__lib.getEntity('currency_coin');
-                    if (ol) {
-                        ol.rx = 0; ol.ry = 0; ol.rz = 0;
-                        const setupHull = obj => {
-                            if (!obj) return;
-                            const v = obj.view3d;
-                            if (v && v.material) {
-                                const makeBlk = m => {
-                                    if (!m) return m;
-                                    const cm = (typeof m.clone === 'function') ? m.clone() : Object.assign(Object.create(Object.getPrototypeOf(m)), m);
-                                    if (cm.state) {
-                                        const st = Object.assign(Object.create(Object.getPrototypeOf(cm.state)), cm.state);
-                                        st.culling = true;
-                                        st.depthTest = true;
-                                        st.clockwiseFrontFace = !cm.state.clockwiseFrontFace;
-                                        cm.state = st;
-                                    }
-                                    cm.diffuseMap = null;
-                                    if ('map' in cm) cm.map = null;
-                                    if ('doubleSided' in cm) cm.doubleSided = false;
-                                    cm.color = 0x050505;
-                                    cm.emissive = 0x000000;
-                                    return cm;
-                                };
-                                v.material = Array.isArray(v.material) ? v.material.map(makeBlk) : makeBlk(v.material);
-                            }
-                            const ch = obj.children || (obj.container && obj.container.children);
-                            if (ch) for (let i = 0; i < ch.length; i++) setupHull(ch[i]);
-                        };
-                        setupHull(ol);
-                        if (ol.scale) ol.scale.set(1.10, 1.10, 1.10);
-                        coin.model.addChild(ol);
-                        coin._strokeHull = ol;
-                    }
-                }
-                if (coin._strokeHull) {
-                    coin._strokeHull.active = true;
-                    coin._strokeHull.visible = true;
-                    if (coin._strokeHull.scale) coin._strokeHull.scale.set(1.10, 1.10, 1.10);
-                }
-            } catch(e) {}
+            applyCoinCelOutline(coin.model, coin);
         } else if (coin._strokeHull) {
             coin._strokeHull.active = false;
             coin._strokeHull.visible = false;
@@ -2791,6 +2797,7 @@
                     if (!energyCoin && mesh.scale) mesh.scale.set(1.15, 1.15, 1.15);
                     if (!energyCoin) {
                         setEntityHexColor(mesh, window.NO_COIN_MODE ? 0xff1e1e : 0xffc928);
+                        applyCoinCelOutline(mesh, mesh);
                     }
                     bounds = energyCoin ? { depth: 9, width: 8, height: 11 } : { depth: 5, width: 4, height: 6 };
                 }
