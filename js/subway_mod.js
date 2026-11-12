@@ -3283,25 +3283,6 @@
         }
         if (freeGroundLanes.length === 0) return;
 
-        // Guaranteed Parkour: Wooden Ramp or Double Train every 3 chunks
-        if (obstacleChunkCount % 3 === 1 && freeGroundLanes.length > 0) {
-            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            if (!isPositionBlocked(lane, 0, centerZ, 45)) {
-                if (Math.random() > 0.45) {
-                    const r = createObstacle3D('wooden_ramp', lane, 0, centerZ, { targetHeight: 29 });
-                    if (r) { customObstacles.push(r); return; }
-                } else {
-                    const dt = createObstacle3D('double_train', lane, 0, centerZ);
-                    if (dt) {
-                        customObstacles.push(dt);
-                        const ramp = createObstacle3D('wooden_ramp', lane, 0, centerZ + 65);
-                        if (ramp) customObstacles.push(ramp);
-                        return;
-                    }
-                }
-            }
-        }
-
         // Pattern selector: readable coin formations across tracks and rooftops.
         // 0: Moeda Móvel Oscilante (desliza de um lado pro outro continuamente)
         // 1: Muro de Moedas (2 pistas bloqueadas com moedas no chão e no ar, 1 brecha)
@@ -3316,11 +3297,9 @@
         // 13: trampoline; the only new solid obstacle
         // 14: familiar native obstacle
         // 15–17: new coin formations (diamond, fork merge and triple wave)
-        // 18: wooden_ramp
-        // 19: double_train
         const pattern = Math.random() < 0.20
             ? [0, 6, 7][Math.floor(Math.random() * 3)]
-            : Math.floor(Math.random() * 20);
+            : Math.floor(Math.random() * 18);
 
         if (pattern === 0) {
             // 1. MOEDA MÓVEL OSCILANTE: Desliza de -20 a +20 através das 3 pistas
@@ -3498,24 +3477,6 @@
                     if (coin) customObstacles.push(coin);
                 }
             });
-        } else if (pattern === 18) {
-            // RAMPA DE MADEIRA PARKOUR
-            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            if (!isPositionBlocked(lane, 0, centerZ, 40)) {
-                const r = createObstacle3D('wooden_ramp', lane, 0, centerZ, { targetHeight: 29 });
-                if (r) customObstacles.push(r);
-            }
-        } else if (pattern === 19) {
-            // VAGÃO DUPLO (DOUBLE TRAIN)
-            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            if (!isPositionBlocked(lane, 0, centerZ, 40)) {
-                const dt = createObstacle3D('double_train', lane, 0, centerZ);
-                if (dt) {
-                    customObstacles.push(dt);
-                    const ramp = createObstacle3D('wooden_ramp', lane, 0, centerZ + 65);
-                    if (ramp) customObstacles.push(ramp);
-                }
-            }
         } else {
             // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
