@@ -2221,7 +2221,7 @@
                 restoreCoinNativeTexture(coin.model, isNoCoin);
             }
         }
-        if (coinStyle === '1' && coin.model && !isNoCoin) {
+        if (coinStyle === '1' && coin.model) {
             applyCoinCelOutline(coin.model, coin);
         } else if (coin._strokeHull) {
             coin._strokeHull.active = false;
@@ -2849,7 +2849,7 @@
                             setEntityHexColor(mesh, 0x020202);
                         } else {
                             restoreCoinNativeTexture(mesh, window.NO_COIN_MODE);
-                            if (coinStyle === '1' && !window.NO_COIN_MODE) applyCoinCelOutline(mesh, mesh);
+                            if (coinStyle === '1') applyCoinCelOutline(mesh, mesh);
                         }
                     }
                     bounds = energyCoin ? { depth: 9, width: 8, height: 11 } : { depth: 5, width: 4, height: 6 };
