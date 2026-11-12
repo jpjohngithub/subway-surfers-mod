@@ -901,19 +901,6 @@
       _0xc.purchased = true;
       (_0xc.outfits || []).forEach(_0xo => { _0xo.available = true; _0xo.purchased = true; _0xo.locked = false; });
     });
-    if (!_0x1a7b10.some(_0xc => _0xc && _0xc.id === 'stick')) {
-      _0x1a7b10.unshift({
-        id: 'stick',
-        colors: ['#111116', '#030305'],
-        texture: 'stick-black-tex',
-        features: ['Default_Material', 'eye_shader'],
-        available: true,
-        purchased: true,
-        cost: 0,
-        currency: 'coins',
-        outfits: []
-      });
-    }
   }
   try {
     window.__SW_CHARS_DATA__ = _0x1a7b10;
@@ -6948,22 +6935,27 @@
       if (!this.opened) return;
       const _0x43d34f = _0x483390.resources.manager.areManifestsLoaded(['game-basic']);
       const _0xpro = window.__SW_PRO_HUB__ !== false;
-      this.btnPlay.visible = _0x43d34f && !_0xpro, this.tapArea.interactive = _0x43d34f, this.btnMe.visible = !_0xpro && _0x483390.loader.areAllIdleCharactersLoaded(), this.btnMyTour.visible = !_0xpro, this.freeStuffButton.visible = !_0xpro, this.bottomMenu.visible = !_0xpro, this.btnBoards.visible = !_0xpro, this.bottomMenu.organise(), this.updateBadges();
+      this.btnPlay.visible = _0x43d34f && !_0xpro, this.tapArea.interactive = _0x43d34f, this.btnMe.visible = !_0xpro && _0x483390.loader.areAllIdleCharactersLoaded(), this.btnMyTour.visible = !_0xpro, this.freeStuffButton.visible = !_0xpro, this.bottomMenu.visible = !_0xpro, this.btnBoards.visible = !_0xpro, this.btnSettings && (this.btnSettings.visible = false), this.bottomMenu.organise(), this.updateBadges();
+      window.__syncProHubVisibility && window.__syncProHubVisibility();
     }
     ["updateBadges"]() {
       _0x483390.awards.hasPrizeToCollect() ? this.btnMe.showBadge() : this.btnMe.hideBadge();
     }
     ["onOpen"]() {
       this.tapArea.interactive = true, this.updateLoadingState(), this.updateBadges(), document.addEventListener("keydown", this.onKeyDown);
+      window.__syncProHubVisibility && window.__syncProHubVisibility();
     }
     ['onClose']() {
       this.tapArea.interactive = false, document.removeEventListener("keydown", this.onKeyDown);
+      window.__hideProHubNow && window.__hideProHubNow();
     }
     ["onResize"]() {
       this.tapArea.width = this.tapArea.height = 5000, this.btnSound.x = this.viewportWidth - 60, this.btnSound.y = 60 + _0x52c5e0.a.iOSUIOffsetY, this.btnSettings.x = 60, this.btnSettings.y = (_0x1010d7.a.isPoki() && _0x2eecb3.a.mobile ? 142 : 60) + _0x52c5e0.a.iOSUIOffsetY, this.btnMyTour.x = this.viewportWidth / 2, this.btnMyTour.y = 60 + _0x52c5e0.a.iOSUIOffsetY, this.btnBoards.x = this.btnSettings.x, this.btnBoards.y = this.btnSettings.y + 110, this.btnPlay.position.x = this.viewportWidth / 2, this.btnPlay.position.y = this.viewportHeight - 350, this.bottomMenu.x = this.viewportWidth / 2, this.bottomMenu.y = this.viewportHeight - 120, this.btnSound.x - this.btnMyTour.x - this.btnSound.width / 2 - this.btnMyTour.width / 2 - this.freeStuffButton.width >= 20 ? (this.freeStuffButton.x = this.btnSound.x - this.freeStuffButton.width / 2 - this.btnSound.width / 2 - 10, this.freeStuffButton.y = this.btnSettings.y) : (this.freeStuffButton.x = this.btnMyTour.x, this.freeStuffButton.y = this.btnMyTour.y + this.btnMyTour.height / 2 + this.freeStuffButton.height / 2 + 10);
     }
     ["startGame"]() {
-      _0x483390.prizeScreen.opened || _0x483390.buyBoards.opened || _0x483390.settings.opened || _0x483390.screenBlocker.isOn() || (_0x483390.sound.play("gui-tap"), _0x483390.nav.toGame());
+      if (_0x483390.prizeScreen.opened || _0x483390.buyBoards.opened || _0x483390.settings.opened || _0x483390.screenBlocker.isOn()) return;
+      window.__hideProHubNow && window.__hideProHubNow();
+      _0x483390.sound.play("gui-tap"), _0x483390.nav.toGame();
     }
   }
   function _0x1ace30(_0x4edfd3, _0x469531, _0x254532) {
@@ -11122,7 +11114,7 @@
     name: "swShaderLight",
     fragment: {
       header: "\n            uniform vec4 uSwShader;\n        ",
-      end: "\n            if (uSwShader.x > 0.1) {\n                float swLv = uSwShader.x;\n                vec3 swN = normalize(vWorldNormal + vec3(0.0, 0.0001, 0.0));\n                vec3 swSun = normalize(vec3(0.42, 0.84, 0.34));\n                float swNdl = clamp(dot(swN, swSun), -1.0, 1.0);\n                float swDiff = smoothstep(-0.35, 0.85, swNdl);\n                vec3 swShadeCol = swLv > 1.5 ? vec3(0.32, 0.42, 0.72) : vec3(0.48, 0.57, 0.78);\n                vec3 swSunCol = swLv > 1.5 ? vec3(1.22, 1.12, 0.96) : vec3(1.12, 1.06, 0.96);\n                vec3 swLightTint = mix(swShadeCol, swSunCol, swDiff);\n                float swSpec = pow(max(dot(swN, normalize(swSun - eyeToSurfaceDir)), 0.0), swLv > 1.5 ? 24.0 : 32.0);\n                float swFres = pow(1.0 - max(dot(swN, -eyeToSurfaceDir), 0.0), 3.0);\n                vec3 swRim = mix(vec3(0.28, 0.72, 1.0), vec3(1.0, 0.86, 0.56), clamp(swNdl * 0.5 + 0.5, 0.0, 1.0));\n                vec2 swHoriz = (worldPosition.xz - vec2(uSwShader.y + 0.6, uSwShader.w + 0.85));\n                float swH = max(0.0, uSwShader.z - worldPosition.y);\n                float swRad = 4.6 + swH * 0.12;\n                float swSpot = 1.0 - smoothstep(swRad * 0.35, swRad, length(swHoriz * vec2(1.05, 0.82)));\n                float swFadeH = 1.0 - smoothstep(0.0, 30.0, swH);\n                float swProj = (swN.y > 0.65 && uSwShader.z >= worldPosition.y - 0.5) ? swSpot * swFadeH * (swLv > 1.5 ? 0.68 : 0.48) : 0.0;\n                float swStrength = swLv > 1.5 ? 1.0 : 0.62;\n                vec3 swLit = finalColor.rgb * mix(vec3(1.0), swLightTint, swStrength) * (1.0 - swProj);\n                swLit += (swSpec * (swLv > 1.5 ? 0.22 : 0.10)) * swSunCol * diffuseColor.a;\n                swLit += (swFres * (swLv > 1.5 ? 0.18 : 0.08)) * swRim * diffuseColor.a;\n                if (swLv > 1.5) {\n                    swLit = pow(max(swLit, vec3(0.0)), vec3(0.94)) * vec3(1.04, 1.02, 1.01);\n                }\n                finalColor.rgb = swLit;\n            }\n        "
+      end: "\n            if (uSwShader.x > 0.1) {\n                float swLv = uSwShader.x;\n                vec3 swN = normalize(vWorldNormal + vec3(0.0, 0.0001, 0.0));\n                vec3 swSun = normalize(vec3(0.42, 0.84, 0.34));\n                float swNdl = clamp(dot(swN, swSun), -1.0, 1.0);\n                float swDiff = smoothstep(-0.35, 0.85, swNdl);\n                vec3 swShadeCol = swLv > 1.5 ? vec3(0.32, 0.42, 0.72) : vec3(0.48, 0.57, 0.78);\n                vec3 swSunCol = swLv > 1.5 ? vec3(1.22, 1.12, 0.96) : vec3(1.12, 1.06, 0.96);\n                vec3 swLightTint = mix(swShadeCol, swSunCol, swDiff);\n                float swSpec = pow(max(dot(swN, normalize(swSun - eyeToSurfaceDir)), 0.0), swLv > 1.5 ? 24.0 : 32.0);\n                float swFres = pow(1.0 - max(dot(swN, -eyeToSurfaceDir), 0.0), 3.0);\n                vec3 swRim = mix(vec3(0.28, 0.72, 1.0), vec3(1.0, 0.86, 0.56), clamp(swNdl * 0.5 + 0.5, 0.0, 1.0));\n                vec2 swHoriz = (worldPosition.xz - vec2(uSwShader.y + 0.6, uSwShader.w + 0.85));\n                float swH = max(0.0, uSwShader.z - worldPosition.y);\n                float swRad = 4.6 + swH * 0.12;\n                float swSpot = 1.0 - smoothstep(swRad * 0.35, swRad, length(swHoriz * vec2(1.05, 0.82)));\n                float swFadeH = 1.0 - smoothstep(0.0, 30.0, swH);\n                float swProj = (swN.y > 0.65 && uSwShader.z >= worldPosition.y - 0.5) ? swSpot * swFadeH * (swLv > 1.5 ? 0.68 : 0.48) : 0.0;\n                float swSpecMask = smoothstep(0.03, 0.14, dot(diffuseColor.rgb, vec3(0.333)));\n                float swStrength = swLv > 1.5 ? 1.0 : 0.62;\n                vec3 swLit = finalColor.rgb * mix(vec3(1.0), swLightTint, swStrength) * (1.0 - swProj);\n                swLit += (swSpec * (swLv > 1.5 ? 0.22 : 0.10)) * swSunCol * diffuseColor.a * swSpecMask;\n                swLit += (swFres * (swLv > 1.5 ? 0.18 : 0.08)) * swRim * diffuseColor.a * swSpecMask;\n                if (swLv > 1.5) {\n                    swLit = pow(max(swLit, vec3(0.0)), vec3(0.94)) * mix(vec3(1.0), vec3(1.04, 1.02, 1.01), swSpecMask);\n                }\n                finalColor.rgb = swLit;\n            }\n        "
     }
   };
   const _0x245df7 = {

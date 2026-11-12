@@ -38144,10 +38144,21 @@
         e = null == t ? void 0 : t.getLastCheckpointByPosition(this.entity.body.z);
       e && (this.rewindEndPoint = e.body.center);
     }
+    trampolineBounceSurvive() {
+      this.entity.game.camera.shake(3);
+      this.dizzyStart();
+      this.bumpCount = 24;
+      try {
+        this.entity.jump && this.entity.jump.perform ? this.entity.jump.perform(58, !0) : this.entity.body && this.entity.body.velocity && (this.entity.body.velocity.y = 56);
+        window.__SW_TRAMPOLINE_AIR_UNTIL__ = Date.now() + 2600;
+      } catch (t) {}
+    }
     stumble(t, e, i) {
-      void 0 === e && (e = "lower"), void 0 === i && (i = !1), this.bumpCount && i || (this.entity.game.camera.shake(3), this.processBumpMission(t), this.dizzy ? this.die(e) : (this.dizzyStart(), this.bumpCount = 20));
+      if (void 0 === e && (e = "lower"), void 0 === i && (i = !1), window.__SW_TRAMPOLINE_AIR_UNTIL__ && Date.now() < window.__SW_TRAMPOLINE_AIR_UNTIL__) return void (this.bumpCount || this.trampolineBounceSurvive());
+      this.bumpCount && i || (this.entity.game.camera.shake(3), this.processBumpMission(t), this.dizzy ? this.die(e) : (this.dizzyStart(), this.bumpCount = 20));
     }
     crash(t, e) {
+      if (window.__SW_TRAMPOLINE_AIR_UNTIL__ && Date.now() < window.__SW_TRAMPOLINE_AIR_UNTIL__) return void (this.bumpCount || this.trampolineBounceSurvive());
       void 0 === e && (e = "train"), this.cameraLow = 0, this.tunnel = !1, this.entity.game.camera.shake(5), this.processBumpMission(t), this.die(e);
     }
     processBumpMission(t) {
@@ -38155,6 +38166,7 @@
       t.includes("light") ? e.missions.addStat(1, "mission-bump-lights") : t.includes("train") ? e.missions.addStat(1, "mission-bump-trains-onerun") : t.includes("blocker") && e.missions.addStat(1, "mission-bump-barriers");
     }
     die(t) {
+      if (window.__SW_TRAMPOLINE_AIR_UNTIL__ && Date.now() < window.__SW_TRAMPOLINE_AIR_UNTIL__) return void (this.bumpCount || this.trampolineBounceSurvive());
       if (!f.a.god) {
         if (this.entity.hoverboard.isOn()) return this.dizzyEnd(), this.entity.hoverboard.explode(), this.entity.game.level.removeObstacles(), void setTimeout(() => {
           this.entity.hoverboard.explode(), this.entity.hoverboard.turnOff(), this.entity.game.exitTunnel(), this.entity.game.sfx.play("hero-hoverboard-crash");
@@ -39090,10 +39102,13 @@
       void 0 === i && (i = 0);
       const n = r.a.data.getCharData(e);
       if (!n) throw new Error("[Character] Character data not found: " + e);
+      const a = i ? n.outfits[i - 1] : n;
+      const origTex = r.a.library.getMap(a.texture);
       if (t) {
         t.__swBaseScale || (t.__swBaseScale = { x: t.scale.x || 1, y: t.scale.y || 1, z: t.scale.z || 1 });
-        if ("stick" === e) {
-          t.scale.set(t.__swBaseScale.x * .72, t.__swBaseScale.y * 1.04, t.__swBaseScale.z * .72);
+        t.scale.set(t.__swBaseScale.x, t.__swBaseScale.y, t.__swBaseScale.z);
+        const isBlack = !!window.__SW_JAKE_BLACK__ || "stick" === e;
+        if (isBlack) {
           const blk = r.a.library.getMap("stick-black-tex") || window.__SW_STICK_TEX__;
           const paintBlack = obj => {
             if (!obj) return;
@@ -39113,8 +39128,8 @@
           paintBlack(t);
           return;
         }
-        t.__swBaseScale && t.scale.set(t.__swBaseScale.x, t.__swBaseScale.y, t.__swBaseScale.z);
         const jakeTint = "number" == typeof window.__SW_JAKE_TINT__ ? window.__SW_JAKE_TINT__ : 16777215;
+        const blkRef = r.a.library.getMap("stick-black-tex") || window.__SW_STICK_TEX__;
         const applyTint = obj => {
           if (!obj) return;
           const v = obj.view3d;
@@ -39122,6 +39137,7 @@
             const mats = Array.isArray(v.material) ? v.material : [v.material];
             mats.forEach(m => {
               if (!m) return;
+              if (origTex && (!m.diffuseMap || m.diffuseMap === blkRef)) m.diffuseMap = origTex;
               const isEye = m.name && /eye/i.test(m.name);
               m.color = isEye ? 16777215 : jakeTint;
             });
@@ -39131,9 +39147,8 @@
         };
         applyTint(t);
       }
-      const a = i ? n.outfits[i - 1] : n,
-        s = o.a.findEntity(t, "SkeletalMeshComponent0", 4, a.features);
-      s && o.a.setMap(s, "diffuseMap", r.a.library.getMap(a.texture));
+      const s = o.a.findEntity(t, "SkeletalMeshComponent0", 4, a.features);
+      s && o.a.setMap(s, "diffuseMap", origTex);
     }
     resetModel() {
       this.model.ry = Math.PI, this.model.rx = 0, this.model.rz = 0, this.model.x = 0, this.model.y = .5 * -this.body.height + 1, this.model.z = 0;

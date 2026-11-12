@@ -133,7 +133,7 @@
         shaders: localStorage.getItem('sw_shaders') || 'medium', // 'off' | 'medium' | 'ultra'
     };
 
-    window.__SW_PRO_HUB__ = true;
+    window.__SW_PRO_HUB__ = false;
     window.__SW_UNLIMITED_TICK__ = (GFX_SETTINGS.fps === 'unlimited');
     window.__SW_TUNING__ = Object.assign({
         halfWagonChance: 0.1,
@@ -1153,7 +1153,7 @@
         } catch(e) { return false; }
     }
 
-    function buildEnergyCoinGeometries(protoView) {
+    function buildEnergyCoinGeometries(protoView, childScale = 1) {
         if (energyCoinGeoCache) return energyCoinGeoCache;
         try {
             const baseGeom = protoView && protoView.geometry;
@@ -1166,9 +1166,19 @@
             const SphereCls = baseGeom.boundingSphere && baseGeom.boundingSphere.constructor;
             const VecCls = baseGeom.boundingBox && baseGeom.boundingBox.min && baseGeom.boundingBox.min.constructor;
 
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity;
+            const rawData = posBuf.data;
+            if (rawData && rawData.length >= 3) {
+                for (let k = 0; k + 2 < rawData.length; k += 3) {
+                    const vx = rawData[k], vy = rawData[k + 1], vz = rawData[k + 2];
+                    if (vx < minX) minX = vx; if (vx > maxX) maxX = vx;
+                    if (vy < minY) minY = vy; if (vy > maxY) maxY = vy;
+                    if (vz < minZ) minZ = vz; if (vz > maxZ) maxZ = vz;
+                }
+            }
             const box = baseGeom.boundingBox;
-            const min = box ? box.min : { x: -2.2, y: -2.2, z: -0.45 };
-            const max = box ? box.max : { x: 2.2, y: 2.2, z: 0.45 };
+            const min = isFinite(minX) ? { x: minX, y: minY, z: minZ } : (box ? box.min : { x: -2.2, y: -2.2, z: -0.45 });
+            const max = isFinite(maxX) ? { x: maxX, y: maxY, z: maxZ } : (box ? box.max : { x: 2.2, y: 2.2, z: 0.45 });
             const cx = (min.x + max.x) * 0.5;
             const cy = (min.y + max.y) * 0.5;
             const cz = (min.z + max.z) * 0.5;
@@ -1178,7 +1188,9 @@
             const nAxis = dx <= dy && dx <= dz ? 0 : (dy <= dz ? 1 : 2);
             const uAxis = nAxis === 0 ? 1 : 0;
             const vAxis = nAxis === 2 ? 1 : 2;
-            const R = Math.max(dx, dy, dz, 1.0) * 0.5;
+            const worldHalf = Math.max(dx, dy, dz) * 0.5 * Math.max(0.001, childScale);
+            const targetWorldR = Math.max(worldHalf * 1.15, 2.75);
+            const R = targetWorldR / Math.max(0.001, childScale);
             const mapPt = (lx, ly, lz) => {
                 const out = [0, 0, 0];
                 out[uAxis] = lx;
@@ -1393,20 +1405,26 @@
         } catch(e) { return face || null; }
         if (!face) return null;
         face.rx = 0; face.ry = 0; face.rz = 0;
-        const ecScale = (window.__SW_TUNING__ && window.__SW_TUNING__.energyCoinScale) || 2.05;
-        if (face.scale) face.scale.set(ecScale, ecScale, ecScale);
+        if (face.scale) face.scale.set(1, 1, 1);
 
-        const protoView = setFirstViewGeometry(face, null) || (() => {
-            const q = [face];
+        let protoView = null;
+        let protoChildScale = 1;
+        {
+            const q = [{ node: face, s: 1 }];
             while (q.length) {
-                const c = q.shift();
-                if (c && c.view3d && c.view3d.geometry) return c.view3d;
+                const cur = q.shift();
+                const c = cur.node;
+                const sc = cur.s * (c && c.scale && Number.isFinite(c.scale.x) ? c.scale.x : 1);
+                if (c && c.view3d && c.view3d.geometry) {
+                    protoView = c.view3d;
+                    protoChildScale = sc;
+                    break;
+                }
                 const ch = c && (c.children || (c.container && c.container.children));
-                if (ch) for (let i = 0; i < ch.length; i++) q.push(ch[i]);
+                if (ch) for (let i = 0; i < ch.length; i++) q.push({ node: ch[i], s: sc });
             }
-            return null;
-        })();
-        const geos = protoView ? buildEnergyCoinGeometries(protoView) : null;
+        }
+        const geos = protoView ? buildEnergyCoinGeometries(protoView, protoChildScale) : null;
         if (geos) {
             setFirstViewGeometry(face, geos.coreGeom);
             if (ring) setFirstViewGeometry(ring, geos.ringGeom);
@@ -1416,7 +1434,7 @@
         const parts = [];
         if (ring) {
             ring.rx = 0.42; ring.ry = 0; ring.rz = 0.24;
-            if (ring.scale) ring.scale.set(ecScale + 0.04, ecScale + 0.04, ecScale + 0.04);
+            if (ring.scale) ring.scale.set(1.03, 1.03, 1.03);
             applyEnergyCoinTexture(ring);
             ring._energyCoinDepthOffset = 0;
             ring._energyCoinRing = true;
@@ -2104,6 +2122,7 @@
     let nextObstacleZ = -300;
     let obstacleChunkCount = 0;
     let trampolineCameraUntil = 0;
+    let trampolineLaunchAt = 0;
 
     function cleanupCustomObstacles() {
         for (let i = 0; i < customObstacles.length; i++) {
@@ -2113,6 +2132,8 @@
         customObstacles = [];
         obstacleChunkCount = 0;
         trampolineCameraUntil = 0;
+        trampolineLaunchAt = 0;
+        window.__SW_TRAMPOLINE_AIR_UNTIL__ = 0;
         nextObstacleZ = (window.game && window.game.hero && window.game.hero.body ? window.game.hero.body.z : 0) - 350;
     }
 
@@ -2456,17 +2477,16 @@
         } : { x: 1, y: 1, z: 1, yPos: part.y });
         breakRedCoinsNearTrampoline(obs);
         try {
-            if (hero.jump && hero.jump.perform) hero.jump.perform(56, true);
-            else if (heroBody.velocity) heroBody.velocity.y = 53;
-            // Move body and camera anchor together for a brief forward launch.
-            heroBody.z -= 55;
-            const game = window.game;
-            if (game && game.stats && Number.isFinite(game.stats.z)) game.stats.z -= 55;
-            trampolineCameraUntil = now + 2400;
+            if (hero.jump && hero.jump.perform) hero.jump.perform(72, true);
+            else if (heroBody.velocity) heroBody.velocity.y = 68;
+            trampolineLaunchAt = now;
+            trampolineCameraUntil = now + 4200;
+            window.__SW_TRAMPOLINE_AIR_UNTIL__ = trampolineCameraUntil;
             if (hero.player) {
-                hero.player.cameraTargetY = Number.isFinite(heroBody.bottom) ? heroBody.bottom : heroY;
-                hero.player.cameraY = hero.player.cameraTargetY;
+                const groundNow = Number.isFinite(heroBody.ground) ? heroBody.ground : 0;
+                hero.player.cameraTargetY = groundNow;
             }
+            const game = window.game;
             if (game && game.sfx && game.sfx.play) game.sfx.play('pickup-super-sneakers');
         } catch(e) {}
         showEnergyToast('MEGA PULÃO!');
@@ -2911,7 +2931,17 @@
 
         if (Date.now() < trampolineCameraUntil && hero.player) {
             const feetY = Number.isFinite(heroBody.bottom) ? heroBody.bottom : heroY;
-            hero.player.cameraTargetY = feetY;
+            const groundY = Number.isFinite(heroBody.ground) ? heroBody.ground : 0;
+            const elapsedAir = Date.now() - trampolineLaunchAt;
+            if (elapsedAir > 180 && (heroBody.landed || feetY <= groundY + 0.55)) {
+                trampolineCameraUntil = 0;
+                trampolineLaunchAt = 0;
+                window.__SW_TRAMPOLINE_AIR_UNTIL__ = 0;
+                hero.player.cameraTargetY = groundY;
+                hero.player.cameraY = groundY;
+            } else {
+                hero.player.cameraTargetY = groundY + Math.max(0, feetY - groundY) * 0.55;
+            }
         }
 
         // Check spawn ahead of runner (abundant, regular obstacles)
@@ -3118,6 +3148,22 @@
                     }
                     if (obs.type === 'bush' && isJumping) {
                         continue; // Cleared bush jump
+                    }
+
+                    if (now < trampolineCameraUntil) {
+                        obs.destroyed = true;
+                        playCoinShatterEffect(obs, 0xffd84a, 1.2);
+                        removeObstacleViews(obs);
+                        customObstacles.splice(i, 1);
+                        try {
+                            if (hero && hero.player && typeof hero.player.dizzyStart === 'function') hero.player.dizzyStart();
+                            if (hero.jump && hero.jump.perform) hero.jump.perform(58, true);
+                            else if (heroBody.velocity) heroBody.velocity.y = 56;
+                            trampolineLaunchAt = now;
+                            trampolineCameraUntil = now + 2600;
+                            window.__SW_TRAMPOLINE_AIR_UNTIL__ = trampolineCameraUntil;
+                        } catch(e) {}
+                        continue;
                     }
 
                     obs.destroyed = true;
@@ -4968,33 +5014,24 @@
             ensureFPSCounterHook();
         }
 
-        // Blue Settings Icon Button (Bottom Left)
+        // Single Clean Menu Button (Bottom Left)
+        const oldOnl = document.getElementById('btn-subway-online-lobby');
+        if (oldOnl) oldOnl.remove();
         if (!document.getElementById('btn-subway-unified-menu')) {
             const menuBtn = document.createElement('button');
             menuBtn.id = 'btn-subway-unified-menu';
             menuBtn.className = 'btn-subway-unified-menu';
-            menuBtn.title = 'Configurações Mod Menu';
+            menuBtn.title = 'Configurações, Skins & Mod Menu';
             menuBtn.innerHTML = `<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>`;
             menuBtn.onclick = () => openUnifiedModal('modes');
             document.body.appendChild(menuBtn);
-        }
-
-        // Direct Online Mode Button
-        if (!document.getElementById('btn-subway-online-lobby')) {
-            const onlBtn = document.createElement('button');
-            onlBtn.id = 'btn-subway-online-lobby';
-            onlBtn.className = 'btn-subway-online-lobby';
-            onlBtn.title = 'Lobby Multiplayer Online';
-            onlBtn.innerHTML = '<span class="status-dot"></span><span class="btn-text">ONLINE</span>';
-            onlBtn.onclick = () => openUnifiedModal('multiplayer');
-            document.body.appendChild(onlBtn);
         }
 
         initProSkinHub();
     }
 
     // ==========================================
-    // PROFESSIONAL 3D SKIN / CHARACTER HUB
+    // DEDICATED JAKE SKINS MANAGER (MENU-BASED)
     // ==========================================
     let hubSkinIndex = 0;
     let hubSkinAppliedInitial = false;
@@ -5002,45 +5039,59 @@
 
     function getSkinCatalog() {
         return [
-            { skinId: 'jake_classic', charId: 'jake',  outfit: 0, tint: null,     title: 'Jake', sub: 'Clássico' },
-            { skinId: 'jake_dark',    charId: 'jake',  outfit: 1, tint: null,     title: 'Jake', sub: 'Dark' },
-            { skinId: 'jake_star',    charId: 'jake',  outfit: 2, tint: null,     title: 'Jake', sub: 'Star' },
-            { skinId: 'jake_stick',   charId: 'stick', outfit: 0, tint: null,     title: 'Jake', sub: 'Stick Preto' },
-            { skinId: 'jake_cyan',    charId: 'jake',  outfit: 0, tint: 0x38bdf8, title: 'Jake', sub: 'Neon Ciano' },
-            { skinId: 'jake_gold',    charId: 'jake',  outfit: 2, tint: 0xffd147, title: 'Jake', sub: 'Dourado' },
-            { skinId: 'jake_crimson', charId: 'jake',  outfit: 1, tint: 0xff4d6d, title: 'Jake', sub: 'Carmesim' },
-            { skinId: 'jake_violet',  charId: 'jake',  outfit: 0, tint: 0xc084fc, title: 'Jake', sub: 'Roxo Violeta' },
-            { skinId: 'jake_emerald', charId: 'jake',  outfit: 0, tint: 0x34d399, title: 'Jake', sub: 'Esmeralda' },
+            { skinId: 'jake_classic', charId: 'jake', outfit: 0, blackTex: false, tint: null,     title: 'Jake', sub: 'Clássico',     swatch: '#3b82f6' },
+            { skinId: 'jake_dark',    charId: 'jake', outfit: 1, blackTex: false, tint: null,     title: 'Jake', sub: 'Dark',         swatch: '#334155' },
+            { skinId: 'jake_star',    charId: 'jake', outfit: 2, blackTex: false, tint: null,     title: 'Jake', sub: 'Star',         swatch: '#f59e0b' },
+            { skinId: 'jake_stick',   charId: 'jake', outfit: 0, blackTex: true,  tint: 0x050507, title: 'Jake', sub: 'Preto Total',  swatch: '#09090b' },
+            { skinId: 'jake_cyan',    charId: 'jake', outfit: 0, blackTex: false, tint: 0x38bdf8, title: 'Jake', sub: 'Neon Ciano',   swatch: '#38bdf8' },
+            { skinId: 'jake_gold',    charId: 'jake', outfit: 2, blackTex: false, tint: 0xffd147, title: 'Jake', sub: 'Dourado',      swatch: '#ffd147' },
+            { skinId: 'jake_crimson', charId: 'jake', outfit: 1, blackTex: false, tint: 0xff4d6d, title: 'Jake', sub: 'Carmesim',     swatch: '#ff4d6d' },
+            { skinId: 'jake_violet',  charId: 'jake', outfit: 0, blackTex: false, tint: 0xc084fc, title: 'Jake', sub: 'Roxo Violeta', swatch: '#c084fc' },
+            { skinId: 'jake_emerald', charId: 'jake', outfit: 0, blackTex: false, tint: 0x34d399, title: 'Jake', sub: 'Esmeralda',    swatch: '#34d399' },
         ];
+    }
+
+    function getCurrentSkinEntry() {
+        const catalog = getSkinCatalog();
+        const savedSkin = localStorage.getItem('sw_selected_skin') || '';
+        const savedOutfit = parseInt(localStorage.getItem('sw_selected_outfit') || '0', 10) || 0;
+        let idx = savedSkin ? catalog.findIndex(x => x.skinId === savedSkin) : -1;
+        if (idx < 0) idx = catalog.findIndex(x => x.outfit === savedOutfit && !x.blackTex && x.tint == null);
+        if (idx < 0) idx = 0;
+        hubSkinIndex = idx;
+        return catalog[idx];
     }
 
     async function applySkinSelection(entry, silent) {
         if (!entry || hubSwitching) return;
         hubSwitching = true;
         try {
+            window.__SW_JAKE_BLACK__ = !!entry.blackTex;
             window.__SW_JAKE_TINT__ = typeof entry.tint === 'number' ? entry.tint : null;
-            localStorage.setItem('sw_selected_skin', entry.skinId || '');
-            localStorage.setItem('sw_selected_char', entry.charId);
+            localStorage.setItem('sw_selected_skin', entry.skinId || 'jake_classic');
+            localStorage.setItem('sw_selected_char', 'jake');
             localStorage.setItem('sw_selected_outfit', String(entry.outfit || 0));
 
             const catalog = getSkinCatalog();
-            const foundIdx = catalog.findIndex(x => (entry.skinId && x.skinId === entry.skinId) || (x.charId === entry.charId && x.outfit === entry.outfit));
+            const foundIdx = catalog.findIndex(x => x.skinId === entry.skinId);
             if (foundIdx >= 0) hubSkinIndex = foundIdx;
-            updateSkinHubLabels(entry, catalog.length);
+            renderSkinsPane();
 
             const app = window.app;
             if (app && app.user) {
-                const loadId = 'jake';
-                try {
-                    if (app.loader && typeof app.loader.loadCharacter === 'function') {
-                        await app.loader.loadCharacter(loadId, false);
-                        app.loader.loadCharacter(loadId, true).catch(() => {});
-                    }
-                    if (app.library && typeof app.library.refresh === 'function') {
-                        app.library.refresh();
-                    }
-                } catch(e) {}
-                app.user.character = entry.charId;
+                const alreadyLoaded = !!(app.library && typeof app.library.hasScene === 'function' && app.library.hasScene('jake-idle') && app.library.hasScene('jake-game'));
+                if (!alreadyLoaded) {
+                    try {
+                        if (app.loader && typeof app.loader.loadCharacter === 'function') {
+                            await app.loader.loadCharacter('jake', false);
+                            app.loader.loadCharacter('jake', true).catch(() => {});
+                        }
+                        if (app.library && typeof app.library.refresh === 'function') {
+                            app.library.refresh();
+                        }
+                    } catch(e) {}
+                }
+                app.user.character = 'jake';
                 app.user.outfit = entry.outfit || 0;
                 try {
                     if (app.user.onCharacterSettingsChange && app.user.onCharacterSettingsChange.dispatch) {
@@ -5064,114 +5115,57 @@
         }
     }
 
-    function updateSkinHubLabels(entry, total) {
-        const nameEl = document.getElementById('sw-hub-name');
-        const subEl = document.getElementById('sw-hub-sub');
-        const countEl = document.getElementById('sw-hub-count');
-        if (nameEl && entry) nameEl.textContent = entry.title;
-        if (subEl && entry) subEl.textContent = entry.sub;
-        if (countEl) countEl.textContent = (hubSkinIndex + 1) + ' / ' + Math.max(1, total || 1);
-    }
-
-    window.__cycleHubSkin = function(dir) {
-        const catalog = getSkinCatalog();
-        if (!catalog.length) return;
-        hubSkinIndex = (hubSkinIndex + (dir >= 0 ? 1 : -1) + catalog.length) % catalog.length;
-        applySkinSelection(catalog[hubSkinIndex], false);
+    window.__selectJakeSkin = function(skinId) {
+        const entry = getSkinCatalog().find(x => x.skinId === skinId);
+        if (entry) applySkinSelection(entry, false);
     };
 
-    window.__startRunFromHub = function() {
-        try {
-            const app = window.app;
-            if (app && app.title && typeof app.title.startGame === 'function') {
-                app.title.startGame();
-            } else if (app && app.nav && typeof app.nav.toGame === 'function') {
-                app.nav.toGame();
-            }
-        } catch(e) {}
+    function renderSkinsPane() {
+        const grid = document.getElementById('sw-skins-grid');
+        if (!grid) return;
+        const catalog = getSkinCatalog();
+        const cur = getCurrentSkinEntry();
+        grid.innerHTML = catalog.map(s => {
+            const active = cur && cur.skinId === s.skinId;
+            return `
+                <button class="sw-skin-card ${active ? 'active' : ''}" onclick="window.__selectJakeSkin('${s.skinId}')">
+                    <span class="sw-skin-swatch" style="background:${s.swatch}"></span>
+                    <span class="sw-skin-info">
+                        <span class="sw-skin-name">${s.sub}</span>
+                        <span class="sw-skin-role">${active ? 'EQUIPADA' : 'JAKE'}</span>
+                    </span>
+                </button>
+            `;
+        }).join('');
+    }
+
+    window.__hideProHubNow = function() {
+        const hub = document.getElementById('sw-skin-hub');
+        if (hub) hub.remove();
+        document.body.classList.remove('sw-hub-visible');
     };
 
     function updateSkinHubVisibility() {
         const hub = document.getElementById('sw-skin-hub');
-        if (!hub) return;
-        const app = window.app;
-        const g = window.game || (app && app.game);
-        const onTitle = !!(app && app.nav && app.title && app.nav.opened === app.title);
-        const isIdle = !g || g.state === 0;
-        const modalOpen = !!(
-            document.getElementById('modal-unified-menu') ||
-            (app && app.settings && app.settings.opened) ||
-            (app && app.buyBoards && app.buyBoards.opened) ||
-            (app && app.mePanel && app.mePanel.opened) ||
-            (app && app.prizeScreen && app.prizeScreen.opened) ||
-            (app && app.topRun && app.topRun.opened) ||
-            (app && app.myTourPanel && app.myTourPanel.opened) ||
-            (app && app.boostShop && app.boostShop.opened)
-        );
-        const show = window.__SW_PRO_HUB__ !== false && onTitle && isIdle && !isRunActive && !modalOpen;
-        hub.style.display = show ? 'block' : 'none';
-        document.body.classList.toggle('sw-hub-visible', show);
+        if (hub) hub.remove();
+        document.body.classList.remove('sw-hub-visible');
 
-        if (show && !hubSkinAppliedInitial && app && app.user && app.loader) {
+        const app = window.app;
+        if (!hubSkinAppliedInitial && app && app.user && app.loader) {
             hubSkinAppliedInitial = true;
-            const savedSkin = localStorage.getItem('sw_selected_skin') || '';
-            const savedChar = localStorage.getItem('sw_selected_char') || app.user.character || 'jake';
-            const savedOutfit = parseInt(localStorage.getItem('sw_selected_outfit') || String(app.user.outfit || 0), 10) || 0;
-            const catalog = getSkinCatalog();
-            let idx = savedSkin ? catalog.findIndex(x => x.skinId === savedSkin) : -1;
-            if (idx < 0) idx = catalog.findIndex(x => x.charId === savedChar && x.outfit === savedOutfit);
-            if (idx < 0) idx = 0;
-            if (catalog.length) {
-                hubSkinIndex = idx;
-                applySkinSelection(catalog[idx], true);
-            }
+            const entry = getCurrentSkinEntry();
+            if (entry) applySkinSelection(entry, true);
         }
     }
+    window.__syncProHubVisibility = updateSkinHubVisibility;
 
     function initProSkinHub() {
-        if (document.getElementById('sw-skin-hub')) return;
-        const hub = document.createElement('div');
-        hub.id = 'sw-skin-hub';
-        hub.innerHTML = `
-            <button id="sw-hub-prev" class="sw-hub-arrow sw-hub-prev" onclick="window.__cycleHubSkin(-1)" title="Skin anterior">
-                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-            <button id="sw-hub-next" class="sw-hub-arrow sw-hub-next" onclick="window.__cycleHubSkin(1)" title="Próxima skin">
-                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-            <div id="sw-hub-bar" class="sw-hub-bar">
-                <div class="sw-hub-meta">
-                    <span id="sw-hub-name" class="sw-hub-name">Jake</span>
-                    <div class="sw-hub-sub-row">
-                        <span id="sw-hub-sub" class="sw-hub-sub">Clássico</span>
-                        <span id="sw-hub-count" class="sw-hub-count">1 / 33</span>
-                    </div>
-                </div>
-                <button id="sw-hub-play" class="sw-hub-play" onclick="window.__startRunFromHub()">JOGAR</button>
-            </div>
-        `;
-        document.body.appendChild(hub);
-
-        const catalog = getSkinCatalog();
-        const savedSkin = localStorage.getItem('sw_selected_skin') || '';
-        const savedChar = localStorage.getItem('sw_selected_char') || 'jake';
-        const savedOutfit = parseInt(localStorage.getItem('sw_selected_outfit') || '0', 10) || 0;
-        let idx = savedSkin ? catalog.findIndex(x => x.skinId === savedSkin) : -1;
-        if (idx < 0) idx = catalog.findIndex(x => x.charId === savedChar && x.outfit === savedOutfit);
-        if (idx < 0) idx = 0;
-        hubSkinIndex = idx;
-        if (catalog.length) updateSkinHubLabels(catalog[hubSkinIndex], catalog.length);
-
-        window.addEventListener('keydown', function(e) {
-            if (!document.body.classList.contains('sw-hub-visible')) return;
-            if (e.key === 'ArrowLeft' || e.code === 'KeyA') {
-                e.preventDefault();
-                window.__cycleHubSkin(-1);
-            } else if (e.key === 'ArrowRight' || e.code === 'KeyD') {
-                e.preventDefault();
-                window.__cycleHubSkin(1);
-            }
-        });
+        window.__hideProHubNow();
+        const entry = getCurrentSkinEntry();
+        if (entry) {
+            window.__SW_JAKE_BLACK__ = !!entry.blackTex;
+            window.__SW_JAKE_TINT__ = typeof entry.tint === 'number' ? entry.tint : null;
+        }
         updateSkinHubVisibility();
     }
 
@@ -5281,6 +5275,7 @@
                 <!-- Tabs Navigation -->
                 <div class="unified-tabs">
                     <button class="tab-btn" data-tab="modes" id="tab-btn-modes">MODOS DE JOGO</button>
+                    <button class="tab-btn" data-tab="skins" id="tab-btn-skins">SKINS</button>
                     <button class="tab-btn" data-tab="graphics" id="tab-btn-graphics">FLUIDEZ & VÍDEO</button>
                     <button class="tab-btn" data-tab="multiplayer" id="tab-btn-multiplayer">MULTIPLAYER</button>
                     <button class="tab-btn" data-tab="records" id="tab-btn-records">RECORDES</button>
@@ -5309,6 +5304,12 @@
                             <span class="toggle-label">${window.NO_COIN_MODE ? 'ATIVADO' : 'DESATIVADO'}</span>
                         </button>
                     </div>
+                </div>
+
+                <!-- Dedicated Jake Skins Tab -->
+                <div class="tab-pane" id="pane-skins">
+                    <div class="sw-skins-head">Escolha sua skin exclusiva do Jake</div>
+                    <div class="sw-skins-grid" id="sw-skins-grid"></div>
                 </div>
 
                 <!-- Tab 2: Graphics, Display & Fluidity (Native Subway Surfers Aesthetic) -->
@@ -5496,6 +5497,7 @@
         document.getElementById('btn-start-match').onclick = requestStartMatch;
 
         switchTab(defaultTab || 'modes');
+        renderSkinsPane();
         renderPartySlots();
         renderOnlinePlayersList();
         renderRecordsTable('global');
@@ -6353,25 +6355,82 @@
             body.sw-in-run #btn-subway-unified-menu { display: none !important; }
             .btn-subway-unified-menu {
                 position: fixed;
-                top: max(14px, env(safe-area-inset-top, 14px));
-                left: 14px;
-                bottom: auto;
+                top: auto;
+                bottom: max(18px, env(safe-area-inset-bottom, 18px));
+                left: 16px;
                 z-index: 99998;
-                width: 36px;
-                height: 36px;
+                width: 42px;
+                height: 42px;
                 padding: 0;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background: rgba(15, 23, 42, 0.8);
+                background: rgba(15, 23, 42, 0.88);
                 backdrop-filter: blur(12px);
                 -webkit-backdrop-filter: blur(12px);
-                color: #94a3b8;
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                border-radius: 18px;
+                color: #e2e8f0;
+                border: 1px solid rgba(255, 255, 255, 0.16);
+                border-radius: 21px;
                 cursor: pointer;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
                 transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .sw-skins-head {
+                font-size: 12px;
+                font-weight: 700;
+                color: #94a3b8;
+                margin-bottom: 10px;
+                letter-spacing: 0.3px;
+            }
+            .sw-skins-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+                gap: 10px;
+            }
+            .sw-skin-card {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 12px;
+                border-radius: 14px;
+                background: rgba(15, 23, 42, 0.72);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: #f8fafc;
+                cursor: pointer;
+                text-align: left;
+                transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+            }
+            .sw-skin-card:hover {
+                border-color: rgba(56, 189, 248, 0.55);
+                transform: translateY(-1px);
+            }
+            .sw-skin-card.active {
+                background: rgba(30, 58, 138, 0.55);
+                border-color: #38bdf8;
+                box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+            }
+            .sw-skin-swatch {
+                width: 26px;
+                height: 26px;
+                border-radius: 50%;
+                flex-shrink: 0;
+                border: 2px solid rgba(255, 255, 255, 0.28);
+            }
+            .sw-skin-info {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+            }
+            .sw-skin-name {
+                font-size: 13px;
+                font-weight: 800;
+                color: #fff;
+            }
+            .sw-skin-role {
+                font-size: 10px;
+                font-weight: 700;
+                color: #7dd3fc;
+                letter-spacing: 0.4px;
             }
             .btn-subway-unified-menu:hover {
                 background: rgba(30, 41, 59, 0.95);
@@ -8374,14 +8433,14 @@
                     box-sizing: border-box !important;
                 }
 
-                /* Buttons at Top-Left (Never overlap bottom Home / Back to start) */
+                /* Single Menu Button at Bottom-Left */
                 .btn-subway-unified-menu {
-                    width: 38px !important;
-                    height: 38px !important;
-                    top: max(12px, env(safe-area-inset-top, 12px)) !important;
-                    bottom: auto !important;
-                    left: 12px !important;
-                    border-radius: 19px !important;
+                    width: 42px !important;
+                    height: 42px !important;
+                    top: auto !important;
+                    bottom: max(18px, env(safe-area-inset-bottom, 18px)) !important;
+                    left: 16px !important;
+                    border-radius: 21px !important;
                     z-index: 99998 !important;
                 }
                 .btn-subway-online-lobby {
