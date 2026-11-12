@@ -3572,9 +3572,9 @@
             }
         }
 
-        // Check spawn ahead of runner at full native horizon distance
+        // Check spawn ahead of runner at native train horizon distance
         if (heroZ < nextObstacleZ) {
-            spawnNoCoinObstaclePattern(heroZ - 950);
+            spawnNoCoinObstaclePattern(heroZ - 480);
             nextObstacleZ = heroZ - (130 + Math.random() * 70);
         }
 
