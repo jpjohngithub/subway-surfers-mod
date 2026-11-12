@@ -14990,14 +14990,53 @@
     a = function () {
       function t() {
         var t = this;
-        this._head = new o(null, null, 1 / 0), this._requestId = null, this._maxElapsedMS = 100, this._minElapsedMS = 0, this.autoStart = !1, this.deltaTime = 1, this.deltaMS = 1 / r.b.TARGET_FPMS, this.elapsedMS = 1 / r.b.TARGET_FPMS, this.lastTime = -1, this.speed = 1, this.started = !1, this._protected = !1, this._lastFrame = -1, this._tick = function (e) {
-          t._requestId = null, t.started && (t.update(e), t.started && null === t._requestId && t._head.next && (t._requestId = requestAnimationFrame(t._tick)));
+        this._head = new o(null, null, 1 / 0), this._requestId = null, this._unlimToken = 0, this._unlimChannel = null, this._unlimTimer = null, this._lastUnlimRun = 0, this._maxElapsedMS = 100, this._minElapsedMS = 0, this.autoStart = !1, this.deltaTime = 1, this.deltaMS = 1 / r.b.TARGET_FPMS, this.elapsedMS = 1 / r.b.TARGET_FPMS, this.lastTime = -1, this.speed = 1, this.started = !1, this._protected = !1, this._lastFrame = -1;
+        var scheduleNext = function () {
+          if (!t.started || null !== t._requestId || !t._head.next) return;
+          var unlim = "undefined" != typeof window && window.__SW_UNLIMITED_TICK__ && 0 === t._minElapsedMS && ("undefined" == typeof document || !document.hidden);
+          if (unlim && "undefined" != typeof MessageChannel) {
+            if (!t._unlimChannel) {
+              t._unlimChannel = new MessageChannel();
+              t._unlimChannel.port1.onmessage = function () {
+                if (0 === t._requestId) return;
+                t._requestId = null;
+                if (!t.started || !t._head.next) return;
+                var now = performance.now();
+                if (now - t._lastUnlimRun < 0.98) {
+                  t._unlimTimer = setTimeout(function () { t._tick(performance.now()); }, 0);
+                  t._requestId = -1;
+                  return;
+                }
+                t._lastUnlimRun = now;
+                t._tick(now);
+              };
+            }
+            var token = ++t._unlimToken;
+            t._requestId = token;
+            if (performance.now() - t._lastUnlimRun < 0.98) {
+              t._unlimTimer = setTimeout(function () {
+                if (t._requestId === token) {
+                  t._requestId = null;
+                  t._lastUnlimRun = performance.now();
+                  t._tick(t._lastUnlimRun);
+                }
+              }, 0);
+            } else {
+              t._unlimChannel.port2.postMessage(null);
+            }
+          } else {
+            t._requestId = requestAnimationFrame(t._tick);
+          }
+        };
+        this._scheduleNext = scheduleNext;
+        this._tick = function (e) {
+          t._requestId = null, t.started && (t.update(e), t.started && null === t._requestId && t._head.next && scheduleNext());
         };
       }
       return t.prototype._requestIfNeeded = function () {
-        null === this._requestId && this._head.next && (this.lastTime = performance.now(), this._lastFrame = this.lastTime, this._requestId = requestAnimationFrame(this._tick));
+        null === this._requestId && this._head.next && (this.lastTime = performance.now(), this._lastFrame = this.lastTime, this._lastUnlimRun = this.lastTime, this._scheduleNext());
       }, t.prototype._cancelIfNeeded = function () {
-        null !== this._requestId && (cancelAnimationFrame(this._requestId), this._requestId = null);
+        null !== this._requestId && (this._unlimToken++, this._unlimTimer && (clearTimeout(this._unlimTimer), this._unlimTimer = null), cancelAnimationFrame(this._requestId), this._requestId = null);
       }, t.prototype._startIfPossible = function () {
         this.started ? this._requestIfNeeded() : this.autoStart && this.start();
       }, t.prototype.add = function (t, e, i) {
@@ -16670,8 +16709,8 @@
       if (void 0 === r && (r = 5), !Coin_Coin.hasNecessaryResources()) return;
       const o = 29 * r * .5 - 15;
       for (let a = 0; a < r; a++) {
-        const r = t.game.pool.get(Coin_Coin);
-        r.body.z = n - 30 * a + o, r.body.bottom = i + 5, r.body.x = e, r.awake(), r.arc = 0, r.removableOnCrash = i > 1, t.game.addChild(r);
+        const cn = t.game.pool.get(Coin_Coin);
+        cn.body.z = n - 30 * a + o, cn.body.bottom = i + 5, cn.body.x = e, cn.awake(), cn.arc = 0, cn.removableOnCrash = i > 1, t._collectibles && t._collectibles.push(cn), t.game.addChild(cn);
       }
     }
     static spawnCurve(t, e, i, n) {
@@ -16683,7 +16722,7 @@
         h = Math.PI / (o - 1);
       for (let r = 0; r < o; r++) {
         const o = t.game.pool.get(Coin_Coin);
-        o.body.z = n - r * a + s, o.body.bottom = i + 22 * Math.sin(h * r) + 5, o.body.x = e, o.awake(), o.arc = r + 1, o.removableOnCrash = !0, t.game.addChild(o);
+        o.body.z = n - r * a + s, o.body.bottom = i + 22 * Math.sin(h * r) + 5, o.body.x = e, o.awake(), o.arc = r + 1, o.removableOnCrash = !0, t._collectibles && t._collectibles.push(o), t.game.addChild(o);
       }
     }
     static spawnJumpCurve(t, e, i) {
@@ -23151,7 +23190,8 @@
         u = l ? parseInt(l[1], 10) : 0,
         c = e.name.match(/coins/),
         p = 60 * u;
-      if (!e.name.match("intro") && hasHalf && n !== TrainHalf && Math.random() < 0.25) n = TrainHalf;
+      const halfChance = (window.__SW_TUNING__ && typeof window.__SW_TUNING__.halfWagonChance === "number") ? window.__SW_TUNING__.halfWagonChance : 0.1;
+      if (!e.name.match("intro") && hasHalf && n !== TrainHalf && Math.random() < halfChance) n = TrainHalf;
       let cursorPos = t.z - e.components.Transform.position.z,
         m = (t.z - e.components.Transform.position.z) - 24 * u + 90,
         b = Number.NEGATIVE_INFINITY,
@@ -23271,7 +23311,8 @@
       super(), this.isHalfWagon = !0, this.body.height = 14.5, this.body.depth = 58, this.locomotiveModelName = "train_halfwagon01", this.wagonModelName = "train_halfwagon01";
     }
   }
-  const v = [TrainStandard, TrainCargo, TrainSub, TrainHalf];
+  const v = [TrainStandard, TrainCargo, TrainSub];
+  window.__SW_CLASSES__ = Object.assign(window.__SW_CLASSES__ || {}, { Train, TrainStandard, TrainCargo, TrainSub, TrainHalf });
   function b(t, e) {
     return t + (e + 1).toString().padStart(2, "0");
   }
@@ -38534,11 +38575,36 @@
       if (this.view) return;
       this.view = o.a.plane(8, 8, .5, "shadow"), this.view.name = "shadow", this.view.rx = S.a.PI_HALF, this.view.z = 1, this.entity.addChild(this.view);
       this.view.view3d.orderBias = 999;
+      this._origShadowMap = this.view.view3d && this.view.view3d.material ? this.view.view3d.material.diffuseMap : null;
     }
     update() {
       if (!this.view || !this.view.active) return;
       const t = this.entity.body ? this.entity.body.ground : 0;
-      this.view.y = -this.entity.y + t + 1;
+      const mode = window.__SW_SHADER_MODE__ || "off";
+      if ("off" === mode) {
+        this.view.x = 0, this.view.z = 1, this.view.y = -this.entity.y + t + 1;
+        this.view.scale && this.view.scale.set(1, 1, 1);
+        const m = this.view.view3d && this.view.view3d.material;
+        m && (this._origShadowMap && m.diffuseMap !== this._origShadowMap && (m.diffuseMap = this._origShadowMap), m.color = 16777215, m.alpha = .75);
+        return;
+      }
+      const air = Math.max(0, (this.entity.y || 0) - t - (this.entity.body ? .5 * this.entity.body.height : 5.5));
+      const dist = Math.min(1, air / 24);
+      const isUltra = "ultra" === mode;
+      const baseScale = isUltra ? 1.38 : 1.18;
+      const sc = baseScale * (1 - .42 * dist);
+      this.view.scale && this.view.scale.set(sc * 1.08, sc * 1.22, sc);
+      this.view.x = (isUltra ? .85 : .45) + .12 * air;
+      this.view.z = (isUltra ? 1.45 : 1.15) + .08 * air;
+      this.view.y = -this.entity.y + t + .9;
+      const mat = this.view.view3d && this.view.view3d.material;
+      if (mat) {
+        window.__SW_SHADOW_TEX__ && mat.diffuseMap !== window.__SW_SHADOW_TEX__ && (mat.diffuseMap = window.__SW_SHADOW_TEX__);
+        mat.color = isUltra ? 1316375 : 2238262;
+        const a = (isUltra ? .92 : .78) - (.52 * dist);
+        mat.alpha = a;
+        mat.uniforms && mat.uniforms.uDiffuseColor && (mat.uniforms.uDiffuseColor[3] = a);
+      }
     }
     turnOn() {
       this.createView(), this.view && (this.view.active = !0);
@@ -38550,6 +38616,7 @@
       return !(!this.view || !this.view.active);
     }
   }
+  window.__SW_CLASSES__ = Object.assign(window.__SW_CLASSES__ || {}, { Shadow: Shadow_Shadow });
   function J(t, e, i) {
     return (e = function (t) {
       var e = function (t, e) {
@@ -38986,9 +39053,10 @@
           outfit: e
         } = r.a.user;
         if (this.anim.character !== t || this.outfit !== e) {
+          const m = "stick" === t ? "jake" : t;
           for (const e in $.a.avatar) {
             const i = $.a.avatar[e];
-            i.file = t + "-" + e, i.texture = t + "-tex";
+            i.file = m + "-" + e, i.texture = "stick" === t ? "stick-black-tex" : t + "-tex";
           }
           this.outfit = e, this.anim.character = t, this.refreshScenes();
         }
@@ -39010,16 +39078,54 @@
         character: i,
         outfit: n
       } = r.a.user;
-      if (this.idleScene = this.anim.getSceneEntity(i + "-idle"), this.gameScene = this.anim.getSceneEntity(i + "-game"), this.idleScene) {
+      const mId = "stick" === i ? "jake" : i;
+      if (this.idleScene = this.anim.getSceneEntity(mId + "-idle"), this.gameScene = this.anim.getSceneEntity(mId + "-game"), this.idleScene) {
         const t = o.a.findEntity(this.idleScene, "R_Hand_jnt", 10);
         t && t.addChild(this.sprayCan);
       }
       this.idleScene && this.updateScene(this.idleScene, i, n), this.gameScene && this.updateScene(this.gameScene, i, n), this.anim.updateCurrentAnimation();
+      this.game && 0 === this.game.state && this.idleScene && this.anim.swapScene && this.anim.swapScene(this.idleScene);
     }
     updateScene(t, e, i) {
       void 0 === i && (i = 0);
       const n = r.a.data.getCharData(e);
       if (!n) throw new Error("[Character] Character data not found: " + e);
+      if (t) {
+        t.__swBaseScale || (t.__swBaseScale = { x: t.scale.x || 1, y: t.scale.y || 1, z: t.scale.z || 1 });
+        if ("stick" === e) {
+          t.scale.set(t.__swBaseScale.x * .72, t.__swBaseScale.y * 1.04, t.__swBaseScale.z * .72);
+          const blk = r.a.library.getMap("stick-black-tex") || window.__SW_STICK_TEX__;
+          const paintBlack = obj => {
+            if (!obj) return;
+            const v = obj.view3d;
+            if (v && v.material) {
+              const mats = Array.isArray(v.material) ? v.material : [v.material];
+              mats.forEach(m => {
+                if (!m) return;
+                blk && (m.diffuseMap = blk);
+                m.color = 328965;
+                try { m.emissiveColor = 0, m.emissive = 0; } catch (err) {}
+              });
+            }
+            const ch = obj.children || (obj.container && obj.container.children);
+            if (ch) for (let k = 0; k < ch.length; k++) paintBlack(ch[k]);
+          };
+          paintBlack(t);
+          return;
+        }
+        t.__swBaseScale && t.scale.set(t.__swBaseScale.x, t.__swBaseScale.y, t.__swBaseScale.z);
+        const resetTint = obj => {
+          if (!obj) return;
+          const v = obj.view3d;
+          if (v && v.material) {
+            const mats = Array.isArray(v.material) ? v.material : [v.material];
+            mats.forEach(m => { m && (m.color = 16777215); });
+          }
+          const ch = obj.children || (obj.container && obj.container.children);
+          if (ch) for (let k = 0; k < ch.length; k++) resetTint(ch[k]);
+        };
+        resetTint(t);
+      }
       const a = i ? n.outfits[i - 1] : n,
         s = o.a.findEntity(t, "SkeletalMeshComponent0", 4, a.features);
       s && o.a.setMap(s, "diffuseMap", r.a.library.getMap(a.texture));
@@ -51917,6 +52023,7 @@
       this._uid = I++, this.lightsDirtyTick = 0, this._lightsDirtyTick = -1, this.lightEntities = [], this.freezeLights = !1, this.ambientLight = new AmbientLight_AmbientLight(16777215, .5), this.lightUniforms = new d.UniformGroup({
         uGlobalAmbient: this.ambientLight.output
       }, !0), e.view3d.globalUniforms.uniforms.lights = this.lightUniforms;
+      (window.__SW_LIGHT_SYSTEMS__ = window.__SW_LIGHT_SYSTEMS__ || []).push(this);
     }
     renderBegin() {
       this.ambientLight.update(), this.lightUniforms.update();
@@ -51951,6 +52058,7 @@
     }
   }
   LightSystem_LightSystem.DEFAULT_NAME = "lights";
+  window.__SW_CLASSES__ = Object.assign(window.__SW_CLASSES__ || {}, { LightSystem: LightSystem_LightSystem });
   var R = i(79);
   let D = !1;
   function L() {

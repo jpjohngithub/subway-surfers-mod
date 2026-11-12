@@ -127,39 +127,230 @@
 
     const GFX_SETTINGS = {
         fps: localStorage.getItem('sw_fps') || '240', // '60' | '120' | '240' | 'unlimited'
+        showFps: localStorage.getItem('sw_show_fps') === '1',
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 200
         motionBlur: localStorage.getItem('sw_motion_blur') || 'soft', // 'off' | 'soft' | 'high'
+        shaders: localStorage.getItem('sw_shaders') || 'medium', // 'off' | 'medium' | 'ultra'
     };
 
+    window.__SW_PRO_HUB__ = true;
+    window.__SW_UNLIMITED_TICK__ = (GFX_SETTINGS.fps === 'unlimited');
+    window.__SW_TUNING__ = Object.assign({
+        halfWagonChance: 0.1,
+        energyCoinScale: 2.05,
+        shadowSoftness: 1.0,
+    }, window.__SW_TUNING__ || {});
+
     function getFPSLabel(val) {
-        if (val === 'unlimited') return 'Ilimitado (240Hz+)';
+        if (val === 'unlimited') return 'Ilimitado (1000 FPS)';
         return val + ' FPS';
+    }
+
+    function getShaderLabel(val) {
+        if (val === 'off') return 'Desativado';
+        if (val === 'ultra') return 'Ultra (Sombras 3D + Luz)';
+        return 'Médio (Sombras 3D)';
+    }
+
+    function ensureReformulatedShadowTexture() {
+        if (window.__SW_SHADOW_TEX__) return window.__SW_SHADOW_TEX__;
+        try {
+            const lib = window.__lib || (window.app && window.app.library);
+            const originalMap = lib && lib.getMap && (lib.getMap('shadow') || lib.getMap('props-tex'));
+            const TextureClass = originalMap && originalMap.constructor;
+            if (!TextureClass || typeof TextureClass.from !== 'function' || typeof document === 'undefined') return null;
+            const c = document.createElement('canvas');
+            c.width = 128; c.height = 128;
+            const ctx = c.getContext('2d');
+            if (ctx) {
+                const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 60);
+                g.addColorStop(0.0, 'rgba(6, 10, 24, 0.94)');
+                g.addColorStop(0.42, 'rgba(10, 16, 36, 0.72)');
+                g.addColorStop(0.76, 'rgba(16, 26, 54, 0.28)');
+                g.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+                ctx.fillStyle = g;
+                ctx.fillRect(0, 0, 128, 128);
+            }
+            window.__SW_SHADOW_TEX__ = TextureClass.from(c);
+            return window.__SW_SHADOW_TEX__;
+        } catch(e) { return null; }
+    }
+
+    function applyShaderAndShadowPipeline() {
+        const mode = GFX_SETTINGS.shaders || 'medium';
+        window.__SW_SHADER_MODE__ = mode;
+        const tex = ensureReformulatedShadowTexture();
+        if (tex) window.__SW_SHADOW_TEX__ = tex;
+
+        // 1) Tune 3D Lights (warm directional key + cool fill shadows)
+        try {
+            const systems = (window.__SW_LIGHT_SYSTEMS__ || []).slice();
+            const gScene = window.game && window.game.scene && window.game.scene.view3d && window.game.scene.view3d.lights;
+            if (gScene && !systems.includes(gScene)) systems.push(gScene);
+            for (const ls of systems) {
+                if (!ls) continue;
+                if (ls.ambientLight) {
+                    if (mode === 'off') {
+                        ls.ambientLight.color = 0xffffff;
+                        ls.ambientLight.intensity = 0.5;
+                    } else if (mode === 'ultra') {
+                        ls.ambientLight.color = 0xb9d6ff;
+                        ls.ambientLight.intensity = 0.58;
+                    } else {
+                        ls.ambientLight.color = 0xdbeeff;
+                        ls.ambientLight.intensity = 0.62;
+                    }
+                    ls.ambientLight.dirty = true;
+                    if (typeof ls.ambientLight.update === 'function') ls.ambientLight.update();
+                }
+                if (Array.isArray(ls.lightEntities)) {
+                    for (const le of ls.lightEntities) {
+                        const l = le && le.light;
+                        if (!l) continue;
+                        if (mode === 'off') {
+                            l.color = 0xffffff;
+                            l.intensity = 1.0;
+                        } else if (mode === 'ultra') {
+                            l.color = 0xffe6c2;
+                            l.intensity = 1.28;
+                            if (l.direction && l.direction.set) l.direction.set(0.42, -0.84, 0.34);
+                        } else {
+                            l.color = 0xfff3dc;
+                            l.intensity = 1.14;
+                            if (l.direction && l.direction.set) l.direction.set(0.32, -0.88, 0.35);
+                        }
+                        if (typeof l.update === 'function') l.update();
+                    }
+                }
+            }
+        } catch(e) {}
+
+        // 2) Reformulate world floor/wagon shadow contrast in active 3D scene
+        try {
+            const root = (window.game && (window.game.scene || window.game)) || null;
+            const visited = new Set();
+            const tuneObj = (obj, depth) => {
+                if (!obj || depth > 4 || visited.has(obj)) return;
+                visited.add(obj);
+                const view = obj.view3d;
+                if (view && view.material) {
+                    const name = ((obj.name || '') + ' ' + (obj.materialName || '') + ' ' + (obj.groupName || '')).toLowerCase();
+                    if (name.includes('shadow')) {
+                        const mats = Array.isArray(view.material) ? view.material : [view.material];
+                        mats.forEach(m => {
+                            if (!m) return;
+                            if (mode === 'off') { m.color = 0xffffff; }
+                            else if (mode === 'ultra') { m.color = 0x161f38; }
+                            else { m.color = 0x26324f; }
+                        });
+                    }
+                }
+                const ch = obj.children || (obj.container && obj.container.children);
+                if (ch && ch.length && depth < 3) {
+                    for (let i = 0; i < Math.min(ch.length, 160); i++) tuneObj(ch[i], depth + 1);
+                }
+            };
+            if (root) tuneObj(root, 0);
+        } catch(e) {}
+
+        // 3) Sync Hero shadow right away
+        try {
+            const hero = window.game && window.game.hero;
+            if (hero && hero.shadow && typeof hero.shadow.update === 'function') hero.shadow.update();
+        } catch(e) {}
+
+        // 4) Sync obstacle contact shadows
+        for (const obs of customObstacles) {
+            if (obs && obs.shadowPart) {
+                obs.shadowPart.active = mode !== 'off';
+            }
+        }
+
+        // 5) Depth vignette overlay for Ultra shader (pointer-events:none, zero blur)
+        try {
+            let vig = document.getElementById('sw-shader-vignette');
+            if (mode === 'ultra') {
+                if (!vig) {
+                    vig = document.createElement('div');
+                    vig.id = 'sw-shader-vignette';
+                    vig.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9989;background:radial-gradient(ellipse at 50% 42%, rgba(255,232,190,0.03) 48%, rgba(6,12,28,0.38) 100%);transition:opacity .25s ease;';
+                    document.body.appendChild(vig);
+                }
+                vig.style.opacity = '1';
+            } else if (vig) {
+                vig.style.opacity = '0';
+            }
+        } catch(e) {}
     }
 
     function applyTickerMaxFPS(targetMaxFPS) {
         const minFps = targetMaxFPS === 0 ? 1 : 10;
+        window.__SW_UNLIMITED_TICK__ = (targetMaxFPS === 0);
+        const cfgTicker = (tkr) => {
+            if (!tkr) return;
+            tkr.maxFPS = targetMaxFPS;
+            tkr.minFPS = minFps;
+            if (tkr.started && typeof tkr._cancelIfNeeded === 'function' && typeof tkr._requestIfNeeded === 'function') {
+                tkr._cancelIfNeeded();
+                tkr._requestIfNeeded();
+            }
+        };
         try {
-            if (window.__SW_TICKER_SYSTEM__) {
-                window.__SW_TICKER_SYSTEM__.maxFPS = targetMaxFPS;
-                window.__SW_TICKER_SYSTEM__.minFPS = minFps;
-            }
-            if (window.__SW_TICKER_SHARED__) {
-                window.__SW_TICKER_SHARED__.maxFPS = targetMaxFPS;
-                window.__SW_TICKER_SHARED__.minFPS = minFps;
-            }
+            cfgTicker(window.__SW_TICKER_SYSTEM__);
+            cfgTicker(window.__SW_TICKER_SHARED__);
             if (window.app && window.app.ticker) {
-                window.app.ticker.maxFPS = targetMaxFPS;
-                window.app.ticker.minFPS = minFps;
+                cfgTicker(window.app.ticker);
                 const TickerCls = window.app.ticker.constructor;
-                if (TickerCls && TickerCls.shared) {
-                    TickerCls.shared.maxFPS = targetMaxFPS;
-                    TickerCls.shared.minFPS = minFps;
-                }
-                if (TickerCls && TickerCls.system) {
-                    TickerCls.system.maxFPS = targetMaxFPS;
+                if (TickerCls && TickerCls.shared) cfgTicker(TickerCls.shared);
+                if (TickerCls && TickerCls.system) cfgTicker(TickerCls.system);
+            }
+            ensureFPSCounterHook();
+        } catch(e) {}
+    }
+
+    let _fpsTickFrames = 0;
+    let _fpsLastSample = performance.now();
+    let _fpsHooked = false;
+    function updateFPSCounterVisibility() {
+        const el = document.getElementById('sw-fps-counter');
+        if (el) el.style.display = GFX_SETTINGS.showFps ? 'inline-flex' : 'none';
+    }
+    function ensureFPSCounterHook() {
+        updateFPSCounterVisibility();
+        if (_fpsHooked) return;
+        const ticker = window.__SW_TICKER_SYSTEM__ || window.__SW_TICKER_SHARED__ || (window.app && window.app.ticker);
+        const sampleNow = () => {
+            _fpsTickFrames++;
+            const now = performance.now();
+            const dt = now - _fpsLastSample;
+            if (dt >= 250) {
+                const fps = Math.min(1000, Math.round((_fpsTickFrames * 1000) / dt));
+                _fpsTickFrames = 0;
+                _fpsLastSample = now;
+                if (GFX_SETTINGS.showFps) {
+                    const valEl = document.getElementById('sw-fps-val');
+                    if (valEl) valEl.textContent = fps + ' FPS';
                 }
             }
-        } catch(e) {}
+        };
+        if (ticker && typeof ticker.add === 'function') {
+            _fpsHooked = true;
+            ticker.add(sampleNow);
+            return;
+        }
+        if (typeof requestAnimationFrame === 'function') {
+            _fpsHooked = true;
+            const rafLoop = () => {
+                const tkr = window.__SW_TICKER_SYSTEM__ || window.__SW_TICKER_SHARED__ || (window.app && window.app.ticker);
+                if (tkr && typeof tkr.add === 'function') {
+                    tkr.add(sampleNow);
+                    return;
+                }
+                sampleNow();
+                requestAnimationFrame(rafLoop);
+            };
+            requestAnimationFrame(rafLoop);
+        }
     }
 
     function getMotionBlurLabel(val) {
@@ -194,13 +385,23 @@
         // 3. Smooth Hero Character Skeletal Animation & Snappy Movement
         optimizeHeroAnimAndFluidity();
 
-        // 4. GPU Velocity + Radial Motion Blur Overlay
+        // 4. Shaders & Reformulated Shadows
+        applyShaderAndShadowPipeline();
+
+        // 5. GPU Velocity + Radial Motion Blur Overlay
         initMotionBlurEngine();
     }
 
     function applyCanvasGraphicsFilter(canvas, saturation = GFX_SETTINGS.saturation || 100) {
         if (!canvas) return;
-        canvas.style.filter = `saturate(${saturation}%)`;
+        const sh = GFX_SETTINGS.shaders || 'medium';
+        if (sh === 'ultra') {
+            canvas.style.filter = `contrast(1.13) brightness(1.03) saturate(${Math.round(saturation * 1.06)}%)`;
+        } else if (sh === 'medium') {
+            canvas.style.filter = `contrast(1.06) brightness(1.01) saturate(${saturation}%)`;
+        } else {
+            canvas.style.filter = `saturate(${saturation}%)`;
+        }
     }
 
     function optimizeHeroAnimAndFluidity() {
@@ -478,6 +679,28 @@
         const el = document.getElementById('val-gfx-fps');
         if (el) el.textContent = label;
         showHUDNotification('Taxa de FPS: ' + label);
+    };
+
+    window.__toggleShowFPS = function() {
+        GFX_SETTINGS.showFps = !GFX_SETTINGS.showFps;
+        localStorage.setItem('sw_show_fps', GFX_SETTINGS.showFps ? '1' : '0');
+        const el = document.getElementById('val-gfx-showfps');
+        if (el) el.textContent = GFX_SETTINGS.showFps ? 'Ativado' : 'Desativado';
+        ensureFPSCounterHook();
+        updateFPSCounterVisibility();
+        showHUDNotification('Mostrar FPS: ' + (GFX_SETTINGS.showFps ? 'Ativado' : 'Desativado'));
+    };
+
+    window.__cycleShaders = function() {
+        const order = ['off', 'medium', 'ultra'];
+        const curIdx = order.indexOf(GFX_SETTINGS.shaders);
+        GFX_SETTINGS.shaders = order[(curIdx + 1) % order.length];
+        localStorage.setItem('sw_shaders', GFX_SETTINGS.shaders);
+        applyGraphicsSettings();
+        const label = getShaderLabel(GFX_SETTINGS.shaders);
+        const el = document.getElementById('val-gfx-shaders');
+        if (el) el.textContent = label;
+        showHUDNotification('Shaders & Sombras: ' + label);
     };
 
     window.__setSaturation = function(val) {
@@ -1000,18 +1223,18 @@
             // 1) Sculpted 16-tooth notched beveled core + recessed plasma core + 3D extruded lightning bolt
             const core = createBuilder();
             const segs = 16;
-            const rInner = 0.72 * R;
-            const rBevel = 0.90 * R;
-            const zRimFace = 0.21 * R;
-            const zRimEdge = 0.13 * R;
-            const zCore = 0.11 * R;
+            const rInner = 0.78 * R;
+            const rBevel = 0.96 * R;
+            const zRimFace = 0.25 * R;
+            const zRimEdge = 0.16 * R;
+            const zCore = 0.12 * R;
 
             for (let i = 0; i < segs; i++) {
                 const a0 = (i / segs) * Math.PI * 2;
                 const a1 = ((i + 1) / segs) * Math.PI * 2;
                 const am = (a0 + a1) * 0.5;
-                const rOut0 = (i % 2 === 0 ? 1.07 : 0.96) * R;
-                const rOut1 = ((i + 1) % 2 === 0 ? 1.07 : 0.96) * R;
+                const rOut0 = (i % 2 === 0 ? 1.15 : 1.01) * R;
+                const rOut1 = ((i + 1) % 2 === 0 ? 1.15 : 1.01) * R;
                 const c0 = Math.cos(a0), s0 = Math.sin(a0);
                 const c1 = Math.cos(a1), s1 = Math.sin(a1);
                 const nxOut = Math.cos(am), nyOut = Math.sin(am);
@@ -1051,8 +1274,8 @@
             }
 
             // Double-sided protruding 3D Lightning Bolt crystal
-            const boltScale = R * 0.58;
-            const zBoltTip = 0.34 * R;
+            const boltScale = R * 0.68;
+            const zBoltTip = 0.41 * R;
             const boltTris = [
                 [[0.12, 1.00], [-0.46, 0.08], [0.02, 0.08]],
                 [[0.12, 1.00], [0.02, 0.08], [0.34, 0.34]],
@@ -1085,7 +1308,7 @@
             // 2) Tilted 3D Torus Gyro-Ring (24x8 segments)
             const ring = createBuilder();
             const majSeg = 24, minSeg = 8;
-            const majR = 1.32 * R, minR = 0.08 * R;
+            const majR = 1.40 * R, minR = 0.11 * R;
             for (let i = 0; i < majSeg; i++) {
                 const u0 = (i / majSeg) * Math.PI * 2;
                 const u1 = ((i + 1) / majSeg) * Math.PI * 2;
@@ -1106,18 +1329,27 @@
                     const q10 = pt(cu1, su1, v0);
                     const q11 = pt(cu1, su1, v1);
                     const q01 = pt(cu0, su0, v1);
-                    const i0 = ring.pushV(q00.p[0], q00.p[1], q00.p[2], q00.n[0], q00.n[1], q00.n[2], 0.76, 0.76);
-                    const i1 = ring.pushV(q10.p[0], q10.p[1], q10.p[2], q10.n[0], q10.n[1], q10.n[2], 0.76, 0.76);
-                    const i2 = ring.pushV(q11.p[0], q11.p[1], q11.p[2], q11.n[0], q11.n[1], q11.n[2], 0.76, 0.76);
-                    const i3 = ring.pushV(q01.p[0], q01.p[1], q01.p[2], q01.n[0], q01.n[1], q01.n[2], 0.76, 0.76);
-                    // push triangle indices manually
-                    const triA = [q00.p, q10.p, q11.p], triB = [q00.p, q11.p, q01.p];
-                    void(i0); void(i1); void(i2); void(i3); void(triA); void(triB);
                     ring.addQuad(q00.p, q10.p, q11.p, q01.p, q00.n, 0.76, 0.76);
                 }
             }
 
-            energyCoinGeoCache = { coreGeom: core.finish(1.12), ringGeom: ring.finish(1.42) };
+            // 3) Ground contact shadow disc (flat XZ quad in local space)
+            const shadowB = createBuilder();
+            const sR = 2.4 * R;
+            shadowB.addQuad([-sR, -sR, 0], [sR, -sR, 0], [sR, sR, 0], [-sR, sR, 0], [0, 0, 1], 0.5, 0.5);
+            // Replace push with explicit UVs [0..1] for full shadow gradient sampling
+            const shadowGeom = new GeomCls();
+            shadowGeom.addAttribute('aPosition', new BufCls(new Float32Array([-sR, 0, -sR,  sR, 0, -sR,  sR, 0, sR,  -sR, 0, sR])), 3);
+            shadowGeom.addAttribute('aNormal', new BufCls(new Float32Array([0,1,0, 0,1,0, 0,1,0, 0,1,0])), 3);
+            shadowGeom.addAttribute('aUv', new BufCls(new Float32Array([0,0, 1,0, 1,1, 0,1])), 2);
+            shadowGeom.addIndex(new BufCls(new Uint16Array([0, 1, 2, 0, 2, 3])));
+            if (BoxCls && VecCls) {
+                shadowGeom.boundingBox = new BoxCls(new VecCls(-sR, -0.5, -sR), new VecCls(sR, 0.5, sR));
+                if (SphereCls) shadowGeom.boundingSphere = shadowGeom.boundingBox.getBoundingSphere(new SphereCls());
+            }
+            void(shadowB);
+
+            energyCoinGeoCache = { coreGeom: core.finish(1.22), ringGeom: ring.finish(1.56), shadowGeom };
             return energyCoinGeoCache;
         } catch(e) { return null; }
     }
@@ -1147,7 +1379,8 @@
         } catch(e) { return face || null; }
         if (!face) return null;
         face.rx = 0; face.ry = 0; face.rz = 0;
-        if (face.scale) face.scale.set(1.32, 1.32, 1.32);
+        const ecScale = (window.__SW_TUNING__ && window.__SW_TUNING__.energyCoinScale) || 2.05;
+        if (face.scale) face.scale.set(ecScale, ecScale, ecScale);
 
         const protoView = setFirstViewGeometry(face, null) || (() => {
             const q = [face];
@@ -1169,7 +1402,7 @@
         const parts = [];
         if (ring) {
             ring.rx = 0.42; ring.ry = 0; ring.rz = 0.24;
-            if (ring.scale) ring.scale.set(1.34, 1.34, 1.34);
+            if (ring.scale) ring.scale.set(ecScale + 0.04, ecScale + 0.04, ecScale + 0.04);
             applyEnergyCoinTexture(ring);
             ring._energyCoinDepthOffset = 0;
             ring._energyCoinRing = true;
@@ -1225,6 +1458,8 @@
     function updateEnergyHud() {
         const widget = document.getElementById('subway-energy-widget');
         if (!widget) return;
+        const inMatch = !!(isRunActive && !deathFrozen && !document.body.classList.contains('sw-hub-visible'));
+        widget.style.display = inMatch ? '' : 'none';
         const fill = document.getElementById('subway-energy-fill');
         if (fill) fill.style.width = `${(skateEnergy / ENERGY_MAX) * 100}%`;
         const hero = window.game && window.game.hero;
@@ -1711,6 +1946,7 @@
         if (!isRunActive) return;
         isRunActive = false;
         document.body.classList.remove('sw-in-run');
+        updateEnergyHud();
         if (!MP.inMatch) {
             clearInterval(runTimerInterval);
         }
@@ -1739,6 +1975,7 @@
         clearInterval(runTimerInterval);
         const timerWrap = document.getElementById('subway-top-timer-wrap');
         if (timerWrap) timerWrap.style.display = 'none';
+        updateEnergyHud();
     }
 
     function saveRecord(record) {
@@ -1925,6 +2162,32 @@
     function createObstacle3D(type, x, y, z, options = {}) {
         if (!window.__lib || !window.__lib.getEntity) return null;
         const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20;
+        try {
+            if ((type === 'coin' || type === 'energyCoin') && !options.platformEntity && window.game && window.game.physics && Array.isArray(window.game.physics.entities)) {
+                const ents = window.game.physics.entities;
+                for (let i = 0; i < ents.length; i++) {
+                    const ent = ents[i];
+                    const b = ent && ent.body;
+                    if (!b || b.deco || b.player) continue;
+                    const lbl = `${ent.name || ''} ${ent.type || ''} ${(ent.constructor && ent.constructor.name) || ''} ${(ent.model && ent.model.name) || ''}`.toLowerCase();
+                    if (!/train|wagon|freight/.test(lbl)) continue;
+                    const hw = (b.width || 18) * 0.5 + 1.5;
+                    const hd = (b.depth || 58) * 0.5 + 8;
+                    if (Math.abs(b.x - x) <= hw && Math.abs(b.z - z) <= hd) {
+                        const topY = Number.isFinite(b.top) ? b.top : ((b.bottom || 0) + (b.height || 29));
+                        if (topY > 0 && topY < 22) {
+                            const halfRoof = topY + 5.5;
+                            y = (y >= 24) ? Math.max(halfRoof, y - Math.max(0, 29 - topY)) : Math.max(y, halfRoof);
+                            options = Object.assign({}, options, { platformEntity: ent });
+                        } else if (topY >= 22 && y < topY + 4.5) {
+                            y = topY + 5.5;
+                            options = Object.assign({}, options, { platformEntity: ent });
+                        }
+                        break;
+                    }
+                }
+            }
+        } catch(e) {}
         if (isPositionBlocked(x, y, z, margin, options.platformEntity || null)) return null;
 
         try {
@@ -1974,7 +2237,7 @@
                     if (!energyCoin) {
                         setEntityHexColor(mesh, window.NO_COIN_MODE ? 0xff1e1e : 0xffc928);
                     }
-                    bounds = { depth: 5, width: 4, height: 6 };
+                    bounds = energyCoin ? { depth: 7, width: 6, height: 8 } : { depth: 5, width: 4, height: 6 };
                 }
             }
 
@@ -1990,12 +2253,55 @@
             mesh.x = x;
             mesh.y = y;
             mesh.z = z;
-            const parts = mesh._energyCoinParts || mesh._trampolineTargetParts || [];
+            const parts = (mesh._energyCoinParts || mesh._trampolineTargetParts || []).slice();
             for (const part of parts) {
                 part.x = x;
                 part.y = y;
                 part.z = z + (part._energyCoinDepthOffset || 0);
             }
+
+            // Reformulated dynamic ground/platform contact shadow for Shaders mode
+            let shadowPart = null;
+            try {
+                const shadTex = ensureReformulatedShadowTexture();
+                if (energyCoinGeoCache && energyCoinGeoCache.shadowGeom && shadTex && window.__lib && window.__lib.getEntity) {
+                    shadowPart = window.__lib.getEntity('currency_coin');
+                    if (shadowPart) {
+                        setFirstViewGeometry(shadowPart, energyCoinGeoCache.shadowGeom);
+                        const visitSh = obj => {
+                            if (!obj) return;
+                            const v = obj.view3d;
+                            if (v && v.material) {
+                                const mats = Array.isArray(v.material) ? v.material : [v.material];
+                                mats.forEach(m => {
+                                    if (!m) return;
+                                    m.diffuseMap = shadTex;
+                                    if ('map' in m) m.map = shadTex;
+                                    m.color = (GFX_SETTINGS.shaders === 'ultra') ? 0x10182e : 0x1e2944;
+                                    const alpha = (type === 'coin' || type === 'energyCoin') ? 0.56 : 0.72;
+                                    m.alpha = alpha;
+                                    if (m.uniforms && m.uniforms.uDiffuseColor) m.uniforms.uDiffuseColor[3] = alpha;
+                                });
+                                try { v.orderBias = 997; } catch(e) {}
+                            }
+                            const ch = obj.children || (obj.container && obj.container.children);
+                            if (ch) for (let i = 0; i < ch.length; i++) visitSh(ch[i]);
+                        };
+                        visitSh(shadowPart);
+                        const sw = Math.max(0.55, ((bounds && bounds.width) || 6) / 6.2);
+                        const sd = Math.max(0.55, ((bounds && bounds.depth) || 6) / 6.2);
+                        if (shadowPart.scale) shadowPart.scale.set(sw, 1, sd);
+                        shadowPart.rx = 0; shadowPart.ry = 0; shadowPart.rz = 0;
+                        shadowPart.x = x + 0.35;
+                        const surfY = (options.platformEntity && options.platformEntity.body && Number.isFinite(options.platformEntity.body.top)) ? options.platformEntity.body.top : 0.35;
+                        shadowPart.y = Math.max(0.35, (type === 'coin' || type === 'energyCoin') ? surfY + 0.35 : y + 0.3);
+                        shadowPart.z = z + 0.65;
+                        shadowPart._isContactShadow = true;
+                        shadowPart.active = (GFX_SETTINGS.shaders !== 'off');
+                        parts.push(shadowPart);
+                    }
+                }
+            } catch(e) {}
 
             const hero = window.game && window.game.hero;
             if (hero && hero.parent) {
@@ -2008,6 +2314,7 @@
                     x, y, z,
                     mesh,
                     parts,
+                    shadowPart,
                     bounds,
                     destroyed: false,
                     isOscillating: !!options.isOscillating,
@@ -2572,7 +2879,7 @@
 
     function updateNoCoinObstacleEngine() {
         const frameNow = Date.now();
-        const dtFactor = lastObstacleTickMs ? Math.min(3, Math.max(0.15, (frameNow - lastObstacleTickMs) / 16.6667)) : 1;
+        const dtFactor = lastObstacleTickMs ? Math.min(3, Math.max(0.02, (frameNow - lastObstacleTickMs) / 16.6667)) : 1;
         lastObstacleTickMs = frameNow;
         updateCoinShatterFragments(frameNow);
         if (!window.game || !window.game.hero || !window.game.hero.body) {
@@ -2679,6 +2986,7 @@
             if (obs.isOscillating && obs.mesh) {
                 obs.x = Math.sin(now * 0.003 * obs.speed + obs.phase) * 20;
                 obs.mesh.x = obs.x;
+                if (obs.shadowPart) obs.shadowPart.x = obs.x + 0.35;
             }
 
             // Vertical floating wave movement in air
@@ -4611,6 +4919,7 @@
         if (!document.getElementById('subway-energy-widget')) {
             const meter = document.createElement('div');
             meter.id = 'subway-energy-widget';
+            meter.style.display = 'none';
             meter.setAttribute('aria-label', 'Energia do skate: 0 de 8');
             meter.innerHTML = `
                 <div class="energy-track"><div class="energy-fill" id="subway-energy-fill"></div><div class="energy-ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
@@ -4632,6 +4941,17 @@
                 </span>
             `;
             document.body.appendChild(timer);
+        }
+
+        // Minimalist FPS Overlay Pill right below the timer (matching timer aesthetic)
+        if (!document.getElementById('sw-fps-counter')) {
+            const fpsEl = document.createElement('div');
+            fpsEl.id = 'sw-fps-counter';
+            fpsEl.className = 'sw-fps-counter';
+            fpsEl.style.display = GFX_SETTINGS.showFps ? 'inline-flex' : 'none';
+            fpsEl.innerHTML = `<span id="sw-fps-val" class="fps-value">0 FPS</span>`;
+            document.body.appendChild(fpsEl);
+            ensureFPSCounterHook();
         }
 
         // Blue Settings Icon Button (Bottom Left)
@@ -4656,7 +4976,212 @@
             document.body.appendChild(onlBtn);
         }
 
-        
+        initProSkinHub();
+    }
+
+    // ==========================================
+    // PROFESSIONAL 3D SKIN / CHARACTER HUB
+    // ==========================================
+    let hubSkinIndex = 0;
+    let hubSkinAppliedInitial = false;
+    let hubSwitching = false;
+
+    function getSkinCatalog() {
+        const CHAR_META = {
+            stick:  { name: 'Stick Preto', skins: ['Totalmente Preto'] },
+            jake:   { name: 'Jake',        skins: ['Clássico', 'Dark', 'Star'] },
+            tricky: { name: 'Tricky',      skins: ['Clássica', 'Camo', 'Heart'] },
+            fresh:  { name: 'Fresh',       skins: ['Clássico', 'Sport', 'Funk'] },
+            spike:  { name: 'Spike',       skins: ['Clássico', 'Punk', 'Rock'] },
+            yutani: { name: 'Yutani',      skins: ['Clássica'] },
+            lucy:   { name: 'Lucy',        skins: ['Clássica', 'Goth', 'Steam'] },
+            tagbot: { name: 'Tagbot',      skins: ['Clássico', 'Space', 'Toy'] },
+            ninja:  { name: 'Ninja',       skins: ['Clássico', 'Flame', 'Yang'] },
+            tasha:  { name: 'Tasha',       skins: ['Clássica', 'Gym', 'Cheer'] },
+            king:   { name: 'King',        skins: ['Clássico', 'Count', 'Royal'] },
+            frizzy: { name: 'Frizzy',      skins: ['Clássica', 'Gold', 'Copper'] },
+            brody:  { name: 'Brody',       skins: ['Clássico', 'Chill', 'Posy'] }
+        };
+        const list = [];
+        const src = (Array.isArray(window.__SW_CHARS_DATA__) && window.__SW_CHARS_DATA__.length)
+            ? window.__SW_CHARS_DATA__
+            : Object.keys(CHAR_META).map(id => ({ id, outfits: new Array(Math.max(0, CHAR_META[id].skins.length - 1)).fill({}) }));
+
+        for (const ch of src) {
+            if (!ch || !ch.id) continue;
+            const meta = CHAR_META[ch.id] || { name: ch.id.toUpperCase(), skins: ['Padrão'] };
+            list.push({
+                charId: ch.id,
+                outfit: 0,
+                title: meta.name,
+                sub: meta.skins[0] || (ch.id === 'stick' ? 'Totalmente Preto' : 'Clássico')
+            });
+            const outs = Array.isArray(ch.outfits) ? ch.outfits : [];
+            for (let oi = 0; oi < outs.length; oi++) {
+                list.push({
+                    charId: ch.id,
+                    outfit: oi + 1,
+                    title: meta.name,
+                    sub: meta.skins[oi + 1] || ('Skin ' + (oi + 2))
+                });
+            }
+        }
+        return list;
+    }
+
+    async function applySkinSelection(entry, silent) {
+        if (!entry || hubSwitching) return;
+        hubSwitching = true;
+        try {
+            localStorage.setItem('sw_selected_char', entry.charId);
+            localStorage.setItem('sw_selected_outfit', String(entry.outfit || 0));
+
+            const catalog = getSkinCatalog();
+            const foundIdx = catalog.findIndex(x => x.charId === entry.charId && x.outfit === entry.outfit);
+            if (foundIdx >= 0) hubSkinIndex = foundIdx;
+            updateSkinHubLabels(entry, catalog.length);
+
+            const app = window.app;
+            if (app && app.user) {
+                const loadId = entry.charId === 'stick' ? 'jake' : entry.charId;
+                try {
+                    if (app.loader && typeof app.loader.loadCharacter === 'function') {
+                        await app.loader.loadCharacter(loadId, false);
+                        app.loader.loadCharacter(loadId, true).catch(() => {});
+                    }
+                    if (app.library && typeof app.library.refresh === 'function') {
+                        app.library.refresh();
+                    }
+                } catch(e) {}
+                app.user.character = entry.charId;
+                app.user.outfit = entry.outfit || 0;
+                try {
+                    if (app.user.onCharacterSettingsChange && app.user.onCharacterSettingsChange.dispatch) {
+                        app.user.onCharacterSettingsChange.dispatch();
+                    }
+                } catch(e) {}
+                try {
+                    const hero = app.game && app.game.hero;
+                    if (hero && hero.refreshScenes) {
+                        hero.refreshScenes();
+                        if (hero.anim && app.game.state === 0) {
+                            hero.anim.play('paintIdle', { loop: true, sudden: true });
+                        }
+                    }
+                } catch(e) {}
+                try { app.user.save && app.user.save(); } catch(e) {}
+                if (!silent) showHUDNotification(entry.title + ' — ' + entry.sub);
+            }
+        } finally {
+            hubSwitching = false;
+        }
+    }
+
+    function updateSkinHubLabels(entry, total) {
+        const nameEl = document.getElementById('sw-hub-name');
+        const subEl = document.getElementById('sw-hub-sub');
+        const countEl = document.getElementById('sw-hub-count');
+        if (nameEl && entry) nameEl.textContent = entry.title;
+        if (subEl && entry) subEl.textContent = entry.sub;
+        if (countEl) countEl.textContent = (hubSkinIndex + 1) + ' / ' + Math.max(1, total || 1);
+    }
+
+    window.__cycleHubSkin = function(dir) {
+        const catalog = getSkinCatalog();
+        if (!catalog.length) return;
+        hubSkinIndex = (hubSkinIndex + (dir >= 0 ? 1 : -1) + catalog.length) % catalog.length;
+        applySkinSelection(catalog[hubSkinIndex], false);
+    };
+
+    window.__startRunFromHub = function() {
+        try {
+            const app = window.app;
+            if (app && app.title && typeof app.title.startGame === 'function') {
+                app.title.startGame();
+            } else if (app && app.nav && typeof app.nav.toGame === 'function') {
+                app.nav.toGame();
+            }
+        } catch(e) {}
+    };
+
+    function updateSkinHubVisibility() {
+        const hub = document.getElementById('sw-skin-hub');
+        if (!hub) return;
+        const app = window.app;
+        const g = window.game || (app && app.game);
+        const onTitle = !!(app && app.nav && app.title && app.nav.opened === app.title);
+        const isIdle = !g || g.state === 0;
+        const modalOpen = !!(
+            document.getElementById('modal-unified-menu') ||
+            (app && app.settings && app.settings.opened) ||
+            (app && app.buyBoards && app.buyBoards.opened) ||
+            (app && app.mePanel && app.mePanel.opened) ||
+            (app && app.prizeScreen && app.prizeScreen.opened) ||
+            (app && app.topRun && app.topRun.opened) ||
+            (app && app.myTourPanel && app.myTourPanel.opened) ||
+            (app && app.boostShop && app.boostShop.opened)
+        );
+        const show = window.__SW_PRO_HUB__ !== false && onTitle && isIdle && !isRunActive && !modalOpen;
+        hub.style.display = show ? 'block' : 'none';
+        document.body.classList.toggle('sw-hub-visible', show);
+
+        if (show && !hubSkinAppliedInitial && app && app.user && app.loader) {
+            hubSkinAppliedInitial = true;
+            const savedChar = localStorage.getItem('sw_selected_char') || app.user.character || 'jake';
+            const savedOutfit = parseInt(localStorage.getItem('sw_selected_outfit') || String(app.user.outfit || 0), 10) || 0;
+            const catalog = getSkinCatalog();
+            const idx = catalog.findIndex(x => x.charId === savedChar && x.outfit === savedOutfit);
+            if (idx >= 0) {
+                hubSkinIndex = idx;
+                applySkinSelection(catalog[idx], true);
+            } else if (catalog.length) {
+                updateSkinHubLabels(catalog[hubSkinIndex], catalog.length);
+            }
+        }
+    }
+
+    function initProSkinHub() {
+        if (document.getElementById('sw-skin-hub')) return;
+        const hub = document.createElement('div');
+        hub.id = 'sw-skin-hub';
+        hub.innerHTML = `
+            <button id="sw-hub-prev" class="sw-hub-arrow sw-hub-prev" onclick="window.__cycleHubSkin(-1)" title="Skin anterior">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button id="sw-hub-next" class="sw-hub-arrow sw-hub-next" onclick="window.__cycleHubSkin(1)" title="Próxima skin">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <div id="sw-hub-bar" class="sw-hub-bar">
+                <div class="sw-hub-meta">
+                    <span id="sw-hub-name" class="sw-hub-name">Jake</span>
+                    <div class="sw-hub-sub-row">
+                        <span id="sw-hub-sub" class="sw-hub-sub">Clássico</span>
+                        <span id="sw-hub-count" class="sw-hub-count">1 / 33</span>
+                    </div>
+                </div>
+                <button id="sw-hub-play" class="sw-hub-play" onclick="window.__startRunFromHub()">JOGAR</button>
+            </div>
+        `;
+        document.body.appendChild(hub);
+
+        const catalog = getSkinCatalog();
+        const savedChar = localStorage.getItem('sw_selected_char') || 'jake';
+        const savedOutfit = parseInt(localStorage.getItem('sw_selected_outfit') || '0', 10) || 0;
+        const idx = catalog.findIndex(x => x.charId === savedChar && x.outfit === savedOutfit);
+        if (idx >= 0) hubSkinIndex = idx;
+        if (catalog.length) updateSkinHubLabels(catalog[hubSkinIndex], catalog.length);
+
+        window.addEventListener('keydown', function(e) {
+            if (!document.body.classList.contains('sw-hub-visible')) return;
+            if (e.key === 'ArrowLeft' || e.code === 'KeyA') {
+                e.preventDefault();
+                window.__cycleHubSkin(-1);
+            } else if (e.key === 'ArrowRight' || e.code === 'KeyD') {
+                e.preventDefault();
+                window.__cycleHubSkin(1);
+            }
+        });
+        updateSkinHubVisibility();
     }
 
     function updateModeBadgeUI() {
@@ -4810,6 +5335,15 @@
                         </div>
                     </div>
 
+                    <!-- Show FPS Overlay Setting -->
+                    <div class="subway-setting-row" onclick="window.__toggleShowFPS()" title="Mostrar contador de FPS abaixo do timer">
+                        <div>
+                            <div style="font-size:15px;font-weight:800;color:#ffffff">Mostrar FPS na Tela</div>
+                            <div style="font-size:11px;color:#94a3b8;font-weight:600">Exibe contador minimalista abaixo do cronômetro</div>
+                        </div>
+                        <span class="setting-value" id="val-gfx-showfps">${GFX_SETTINGS.showFps ? 'Ativado' : 'Desativado'}</span>
+                    </div>
+
                     <!-- Motion Blur Setting -->
                     <div class="subway-setting-row" onclick="window.__cycleMotionBlur()" title="Toque para alternar o Motion Blur">
                         <div>
@@ -4817,6 +5351,15 @@
                             <div style="font-size:11px;color:#94a3b8;font-weight:600">Desfoque direcional e radial de alta velocidade</div>
                         </div>
                         <span class="setting-value" id="val-gfx-motionblur">${getMotionBlurLabel(GFX_SETTINGS.motionBlur)}</span>
+                    </div>
+
+                    <!-- Shaders & Reformulated Shadows Setting -->
+                    <div class="subway-setting-row" onclick="window.__cycleShaders()" title="Toque para alternar Shaders e Sombras 3D">
+                        <div>
+                            <div style="font-size:15px;font-weight:800;color:#ffffff">Shaders & Sombras 3D</div>
+                            <div style="font-size:11px;color:#94a3b8;font-weight:600">Sombras dinâmicas reformuladas, luz direcional e contraste 3D</div>
+                        </div>
+                        <span class="setting-value" id="val-gfx-shaders">${getShaderLabel(GFX_SETTINGS.shaders)}</span>
                     </div>
 
                     <!-- Saturation Slider Card -->
@@ -5723,6 +6266,30 @@
                 letter-spacing: 0.5px;
                 text-transform: uppercase;
             }
+            .sw-fps-counter {
+                position: fixed;
+                top: 58px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 99998;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                padding: 3px 12px;
+                background: rgba(15, 23, 42, 0.82);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 16px;
+                color: #f8fafc;
+                font-family: monospace;
+                font-size: 12px;
+                font-weight: 800;
+                letter-spacing: 0.5px;
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+                user-select: none;
+                pointer-events: none;
+            }
             .badge-nocoin {
                 background: rgba(244, 63, 94, 0.18);
                 border: 1px solid rgba(244, 63, 94, 0.4);
@@ -5824,6 +6391,118 @@
             .btn-subway-unified-menu svg {
                 width: 17px;
                 height: 17px;
+            }
+
+            /* Clean Professional 3D Skin Showcase Hub */
+            body.sw-hub-visible #subway-top-timer-wrap { display: none !important; }
+            body.sw-hub-visible #btn-subway-online-lobby { display: none !important; }
+            body.sw-hub-visible #btn-subway-unified-menu { opacity: 0.65; }
+            #sw-skin-hub {
+                position: fixed;
+                inset: 0;
+                z-index: 9992;
+                pointer-events: none;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+            .sw-hub-arrow {
+                position: fixed;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 54px;
+                height: 54px;
+                border-radius: 50%;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                background: rgba(10, 16, 32, 0.56);
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+                color: #ffffff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                pointer-events: auto;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+                transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+            }
+            .sw-hub-prev { left: 22px; }
+            .sw-hub-next { right: 22px; }
+            .sw-hub-arrow:hover {
+                background: rgba(30, 58, 118, 0.85);
+                border-color: rgba(125, 211, 252, 0.65);
+                transform: translateY(-50%) scale(1.07);
+            }
+            .sw-hub-arrow:active {
+                transform: translateY(-50%) scale(0.94);
+            }
+            .sw-hub-bar {
+                position: fixed;
+                left: 50%;
+                bottom: 24px;
+                transform: translateX(-50%);
+                display: flex;
+                align-items: center;
+                gap: 18px;
+                padding: 10px 14px 10px 22px;
+                min-width: 290px;
+                max-width: calc(100vw - 32px);
+                border-radius: 999px;
+                background: rgba(10, 16, 32, 0.68);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border: 1px solid rgba(255, 255, 255, 0.16);
+                box-shadow: 0 14px 36px rgba(0, 0, 0, 0.52);
+                pointer-events: auto;
+            }
+            .sw-hub-meta {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                flex: 1;
+                min-width: 0;
+            }
+            .sw-hub-name {
+                color: #ffffff;
+                font-size: 16px;
+                font-weight: 800;
+                letter-spacing: 0.2px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .sw-hub-sub-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .sw-hub-sub {
+                color: #7dd3fc;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            .sw-hub-count {
+                color: rgba(255, 255, 255, 0.55);
+                font-size: 11px;
+                font-weight: 700;
+            }
+            .sw-hub-play {
+                border: none;
+                border-radius: 999px;
+                padding: 10px 26px;
+                font-size: 14px;
+                font-weight: 900;
+                letter-spacing: 0.7px;
+                color: #062814;
+                background: linear-gradient(135deg, #4ade80, #22c55e);
+                box-shadow: 0 6px 18px rgba(34, 197, 94, 0.42);
+                cursor: pointer;
+                transition: transform 0.15s ease, filter 0.15s ease;
+            }
+            .sw-hub-play:hover {
+                filter: brightness(1.08);
+                transform: translateY(-1px);
+            }
+            .sw-hub-play:active {
+                transform: scale(0.96);
             }
 
             /* Modal Backdrop & Structure */
@@ -8116,20 +8795,99 @@
     }
     applyGraphicsSettings();
 
-    // Reapply saved saturation when the game creates or replaces its canvas.
+    // Reapply saved settings & expose full Total-Unlock Engine API (window.__SW__)
+    window.__SW_UNLOCK_ALL__ = function(coinsAmount = 9999999, keysAmount = 9999) {
+        try {
+            const app = window.app;
+            (window.__SW_CHARS_DATA__ || []).forEach(c => {
+                if (!c) return;
+                c.available = true;
+                c.purchased = true;
+                c.cost = 0;
+                (c.outfits || []).forEach(o => { o.available = true; o.purchased = true; o.locked = false; o.cost = 0; });
+            });
+            (window.__SW_BOARDS_DATA__ || []).forEach(b => {
+                if (!b) return;
+                b.available = true;
+                b.purchased = true;
+                b.cost = 0;
+                (b.powerups || []).forEach(p => { p.purchased = true; p.locked = false; p.cost = 0; });
+            });
+            if (app && app.user) {
+                app.user.coins = Math.max(app.user.coins || 0, coinsAmount);
+                app.user.keys = Math.max(app.user.keys || 0, keysAmount);
+                app.user.hoverboards = Math.max(app.user.hoverboards || 0, 999);
+                if (app.user.boosts && app.user.boosts.permanents) {
+                    Object.keys(app.user.boosts.permanents).forEach(k => { app.user.boosts.permanents[k] = 5; });
+                }
+                if (app.user.shopSettings && app.user.shopSettings.purchased) {
+                    app.user.shopSettings.purchased.characters = (window.__SW_CHARS_DATA__ || []).map(c => c.id);
+                    app.user.shopSettings.purchased.boards = (window.__SW_BOARDS_DATA__ || []).map(b => b.id);
+                }
+                app.user.save && app.user.save();
+            }
+            return true;
+        } catch(e) { return false; }
+    };
+
+    window.__SW__ = {
+        get app() { return window.app || window.__SW_APP__; },
+        get game() { return window.game || (window.app && window.app.game); },
+        get hero() { return (this.game && this.game.hero) || null; },
+        get scene() { return (this.game && this.game.scene) || (this.app && this.app.scene) || null; },
+        get physics() { return (this.game && this.game.physics) || null; },
+        get camera() { return (this.game && this.game.camera) || null; },
+        get controller() { return (this.game && this.game.controller) || null; },
+        get stats() { return (this.game && this.game.stats) || null; },
+        get user() { return (this.app && this.app.user) || null; },
+        get library() { return window.__lib || (this.app && this.app.library) || null; },
+        get config() { return window.__SW_CONFIG__ || null; },
+        get classes() { return window.__SW_CLASSES__ || {}; },
+        get modules() { return window.__SW_MODULES__ || null; },
+        get cache() { return window.__SW_CACHE__ || null; },
+        get require() { return window.__SW_REQUIRE__ || null; },
+        get lights() { return window.__SW_LIGHT_SYSTEMS__ || []; },
+        get chars() { return window.__SW_CHARS_DATA__ || []; },
+        get boards() { return window.__SW_BOARDS_DATA__ || []; },
+        get tuning() { return window.__SW_TUNING__; },
+        gfx: GFX_SETTINGS,
+        unlockAll: window.__SW_UNLOCK_ALL__,
+        getSkins: getSkinCatalog,
+        selectSkin: (charId, outfit = 0) => {
+            const list = getSkinCatalog();
+            const found = list.find(s => s.charId === charId && s.outfit === outfit) || list.find(s => s.charId === charId);
+            if (found) return applySkinSelection(found, false);
+        },
+        setShader: mode => {
+            if (!['off', 'medium', 'ultra'].includes(mode)) return;
+            GFX_SETTINGS.shaders = mode;
+            localStorage.setItem('sw_shaders', mode);
+            applyGraphicsSettings();
+        },
+        setFPS: fpsVal => {
+            GFX_SETTINGS.fps = String(fpsVal);
+            localStorage.setItem('sw_fps', GFX_SETTINGS.fps);
+            applyGraphicsSettings();
+        },
+        setHalfWagonChance: prob => {
+            window.__SW_TUNING__.halfWagonChance = Math.max(0, Math.min(1, Number(prob) || 0));
+        }
+    };
+
     function reapplyPersistedGraphicsToSurface() {
         const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
-        const saturationFilter = `saturate(${GFX_SETTINGS.saturation || 100}%)`;
-        if (canvas && !(canvas.style.filter || '').includes(saturationFilter)) {
+        if (canvas) {
             applyCanvasGraphicsFilter(canvas, GFX_SETTINGS.saturation);
         }
+        applyShaderAndShadowPipeline();
         optimizeHeroAnimAndFluidity();
         initMotionBlurEngine();
         const targetMaxFPS = GFX_SETTINGS.fps === 'unlimited' ? 0 : (parseInt(GFX_SETTINGS.fps, 10) || 240);
         applyTickerMaxFPS(targetMaxFPS);
+        updateSkinHubVisibility();
     }
     window.addEventListener('pageshow', reapplyPersistedGraphicsToSurface);
-    setInterval(reapplyPersistedGraphicsToSurface, 600);
+    setInterval(reapplyPersistedGraphicsToSurface, 400);
 })();
 
 

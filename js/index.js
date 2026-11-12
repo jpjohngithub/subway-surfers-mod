@@ -32,6 +32,7 @@
   _0x2907bd.m = _0x61ef5e, _0x2907bd.c = _0x254cad, _0x2907bd.d = function (_0x2ca804, _0x51da5f, _0x2db816) {
     _0x2907bd.o(_0x2ca804, _0x51da5f) || Object.defineProperty(_0x2ca804, _0x51da5f, {
       enumerable: true,
+      configurable: true,
       get: _0x2db816
     });
   }, _0x2907bd.r = function (_0x11b56d) {
@@ -893,16 +894,42 @@
     _0x334d56 = _0x5148ae,
     _0x437bf1 = _0x5165ba,
     _0x35d8c9 = [];
+  if (Array.isArray(_0x1a7b10)) {
+    _0x1a7b10.forEach(_0xc => {
+      if (!_0xc) return;
+      _0xc.available = true;
+      _0xc.purchased = true;
+      (_0xc.outfits || []).forEach(_0xo => { _0xo.available = true; _0xo.purchased = true; _0xo.locked = false; });
+    });
+    if (!_0x1a7b10.some(_0xc => _0xc && _0xc.id === 'stick')) {
+      _0x1a7b10.unshift({
+        id: 'stick',
+        colors: ['#111116', '#030305'],
+        texture: 'stick-black-tex',
+        features: ['Default_Material', 'eye_shader'],
+        available: true,
+        purchased: true,
+        cost: 0,
+        currency: 'coins',
+        outfits: []
+      });
+    }
+  }
+  try {
+    window.__SW_CHARS_DATA__ = _0x1a7b10;
+    window.__SW_BOARDS_DATA__ = _0x334d56;
+  } catch(e) {}
   class _0x2c62bd {
     constructor() {
       (function () {
         function _0x5d207d(_0x29a3cc) {
+          const _0xbase = _0x29a3cc === 'stick' ? 'jake' : _0x29a3cc;
           return {
-            fbxIdle: "assets/characters-idle/" + _0x29a3cc + '-idle.fbx',
-            fbxBasic: "assets/characters-basic/" + _0x29a3cc + '-game.fbx',
-            tex0: "assets/characters-idle/" + _0x29a3cc + "-tex.png",
-            tex1: "assets/characters-idle/" + _0x29a3cc + "-tex-1.png",
-            tex2: "assets/characters-idle/" + _0x29a3cc + '-tex-2.png'
+            fbxIdle: "assets/characters-idle/" + _0xbase + '-idle.fbx',
+            fbxBasic: "assets/characters-basic/" + _0xbase + '-game.fbx',
+            tex0: "assets/characters-idle/" + _0xbase + "-tex.png",
+            tex1: "assets/characters-idle/" + _0xbase + "-tex-1.png",
+            tex2: "assets/characters-idle/" + _0xbase + '-tex-2.png'
           };
         }
         for (var _0x308185 = arguments.length, _0x617300 = new Array(_0x308185), _0x944611 = 0; _0x944611 < _0x308185; _0x944611++) _0x617300[_0x944611] = arguments[_0x944611];
@@ -6920,7 +6947,8 @@
     ["updateLoadingState"]() {
       if (!this.opened) return;
       const _0x43d34f = _0x483390.resources.manager.areManifestsLoaded(['game-basic']);
-      this.btnPlay.visible = _0x43d34f, this.tapArea.interactive = _0x43d34f, this.btnMe.visible = _0x483390.loader.areAllIdleCharactersLoaded(), this.bottomMenu.organise(), this.updateBadges();
+      const _0xpro = window.__SW_PRO_HUB__ !== false;
+      this.btnPlay.visible = _0x43d34f && !_0xpro, this.tapArea.interactive = _0x43d34f, this.btnMe.visible = !_0xpro && _0x483390.loader.areAllIdleCharactersLoaded(), this.btnMyTour.visible = !_0xpro, this.freeStuffButton.visible = !_0xpro, this.bottomMenu.visible = !_0xpro, this.btnBoards.visible = !_0xpro, this.bottomMenu.organise(), this.updateBadges();
     }
     ["updateBadges"]() {
       _0x483390.awards.hasPrizeToCollect() ? this.btnMe.showBadge() : this.btnMe.hideBadge();
@@ -7410,6 +7438,16 @@
     }
     ['refresh']() {
       this.completeCharData();
+      try {
+        if (!this.maps["stick-black-tex"] && typeof document !== "undefined") {
+          const _c = document.createElement("canvas");
+          _c.width = 64; _c.height = 64;
+          const _ctx = _c.getContext("2d");
+          if (_ctx) { _ctx.fillStyle = "#050507"; _ctx.fillRect(0, 0, 64, 64); }
+          this.maps["stick-black-tex"] = _0x2a24d4.Texture.from(_c);
+          window.__SW_STICK_TEX__ = this.maps["stick-black-tex"];
+        }
+      } catch (e) {}
       for (const _0x2545b5 in this.cache) {
         const _0x42eba9 = _0x2545b5.split('?').shift() || _0x2545b5;
         if (_0x42eba9.endsWith(".gb")) {
@@ -8391,6 +8429,8 @@
   }
   const _0x483390 = new _0xb19647();
   window.app = _0x483390;
+  window.__SW_APP__ = _0x483390;
+  window.__SW_CONFIG__ = _0x52c5e0.a;
   if (window.__onAppCreated) window.__onAppCreated(_0x483390);
 },,,,,,,,, function (_0xf2246d, _0x5bb03a, _0x110934) {
   'use strict';
@@ -13542,14 +13582,25 @@
       const halfSpans = this._trainSpans.filter(s => s && s.isHalf);
       if (!halfSpans.length) return;
       for (const span of halfSpans) {
+        const halfRoofY = span.topY + 5;
+        const roofDelta = Math.max(0, 29 - span.topY);
+        const minZ = Math.min(span.minZ, Number.isFinite(span.fullMinZ) ? span.fullMinZ : span.minZ);
+        const maxZ = Math.max(span.maxZ, Number.isFinite(span.fullMaxZ) ? span.fullMaxZ : span.maxZ);
         for (const item of this._collectibles) {
           if (!item || !item.body) continue;
-          if (Math.abs(item.body.x - span.laneX) > 6) continue;
-          const btm = item.body.bottom;
-          if (btm < 10 || btm > 46) continue;
+          if (Math.abs(item.body.x - span.laneX) > 6.5) continue;
           const z = item.body.z;
-          if (z < span.minZ - 8 || z > span.maxZ + 8) continue;
-          item.body.bottom = span.topY + 5;
+          if (z < minZ - 14 || z > maxZ + 18) continue;
+          const btm = item.body.bottom;
+          if (btm >= 24 && btm <= 85) {
+            item.body.bottom = Math.max(halfRoofY, btm - roofDelta);
+          } else if (btm >= 8 && btm < 24) {
+            item.body.bottom = Math.min(btm * (halfRoofY / 34), halfRoofY);
+          } else if (btm >= 0 && btm < 8 && z >= minZ - 4 && z <= maxZ + 4) {
+            item.body.bottom = halfRoofY;
+          } else {
+            continue;
+          }
           if (span.speed && item.movable && typeof item.movable.run === "function") item.movable.run(span.speed, span.target);
         }
       }
