@@ -2579,6 +2579,10 @@
             }
         } catch(e) {}
 
+        if (MP.inMatch && MPX.roundActive) {
+            startCoopRenderLoop();
+        }
+
         const timerWrap = document.getElementById('subway-top-timer-wrap');
         const timerVal = document.getElementById('subway-top-timer-val');
         updateModeBadgeUI();
@@ -4173,7 +4177,7 @@
                 handlePlayerDeath(msg);
                 break;
             case 'coop_pos':
-                // Legacy real-time avatar packets are intentionally ignored.
+                handleCoopPos(msg);
                 break;
             case 'mp_mode_change':
                 handleMPModeChange(msg);
@@ -4354,6 +4358,14 @@
         const id = msg.sender.id;
         const incomingSeq = Number(msg.seq) || 0;
         if (incomingSeq && coopTeammates[id] && incomingSeq <= (coopTeammates[id].lastSeq || 0)) return;
+
+        // Also update match live progress & timeline
+        if (msg.t !== undefined && MPX.dead[id] === undefined) {
+            MPX.live[id] = msg.t;
+            MPX.lastTick[id] = Date.now();
+            renderTimeline();
+        }
+
         let tm = coopTeammates[id];
         if (!tm) {
             tm = {
@@ -4367,7 +4379,7 @@
                 targetX: msg.x || 0,
                 targetY: msg.y || 0,
                 targetZ: msg.z || 0,
-                anim: msg.anim || 'run',
+                anim: msg.anim || 'run3',
                 alive: msg.alive !== false,
                 lastSeen: Date.now(),
                 lastSeq: incomingSeq,
@@ -4379,7 +4391,7 @@
             tm.targetX = msg.x || 0;
             tm.targetY = msg.y || 0;
             tm.targetZ = msg.z || 0;
-            tm.anim = msg.anim || 'run';
+            tm.anim = msg.anim || tm.anim || 'run3';
             tm.charId = msg.charId || tm.charId || 'jake';
             tm.alive = msg.alive !== false;
             tm.lastSeen = Date.now();
@@ -4390,19 +4402,40 @@
     function projectWorldToScreen(worldX, worldY, worldZ) {
         const hero = window.game && window.game.hero;
         const heroBody = hero && hero.body;
-        const heroX = heroBody ? heroBody.x : 0;
-        const heroY = heroBody ? (heroBody.y || 0) : 0;
-        const heroZ = heroBody ? heroBody.z : 0;
+        const heroX = heroBody ? heroBody.x : (hero ? hero.x : 0);
+        const heroY = heroBody ? (heroBody.y || 0) : (hero ? hero.y : 0);
+        const heroZ = heroBody ? heroBody.z : (hero ? hero.z : 0);
 
         const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
         const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
 
+        // 1. Precise native game camera projection
+        if (window.game && window.game.camera && typeof window.game.camera.map2dFrom3d === 'function') {
+            try {
+                const outPoint = { x: 0, y: 0 };
+                window.game.camera.map2dFrom3d(outPoint, { x: worldX, y: worldY + 16, z: worldZ });
+                const camZ = (window.game.camera.rig && typeof window.game.camera.rig.mainZ === 'number')
+                    ? window.game.camera.rig.mainZ
+                    : (heroZ + 58);
+                const relZ = worldZ - camZ;
+                if (relZ >= -4) return null; // Behind camera
+                const depth = -relZ;
+                const cw = window.game.camera.width || (rect.width || 1);
+                const ch = window.game.camera.height || (rect.height || 1);
+                const sx = rect.left + (outPoint.x * (rect.width / cw));
+                const sy = rect.top + (outPoint.y * (rect.height / ch));
+                const scale = Math.max(0.45, Math.min(1.2, 55 / depth));
+                return { x: sx, y: sy, depth: depth, scale: scale };
+            } catch(e) {}
+        }
+
+        // 2. Geometric perspective fallback
         const camX = heroX * 0.4;
         const camY = heroY + 28;
         const camZ = heroZ + 58;
 
         const relX = worldX - camX;
-        const relY = (worldY + 14) - camY;
+        const relY = (worldY + 16) - camY;
         const relZ = worldZ - camZ;
 
         if (relZ >= -6) return null; // Behind camera
@@ -4412,37 +4445,51 @@
         const sx = rect.left + (rect.width * 0.5) + (relX * focal);
         const sy = rect.top + (rect.height * 0.5) - (relY * focal);
 
-        return { x: sx, y: sy, depth: depth, scale: Math.max(0.4, Math.min(1.15, 50 / depth)) };
+        return { x: sx, y: sy, depth: depth, scale: Math.max(0.45, Math.min(1.15, 52 / depth)) };
     }
 
-    function setGhostOpacity(root, opacity) {
+    function setGhostOpacity(root, opacity = 0.55) {
+        if (!root) return;
         const seen = new Set();
-        const applyMaterial = (owner, key) => {
-            let material = owner && owner[key];
-            if (!material) return;
-            if (Array.isArray(material)) {
-                owner[key] = material.map(m => m && typeof m.clone === 'function' ? m.clone() : m);
-                material = owner[key];
-            } else if (typeof material.clone === 'function') {
-                try { owner[key] = material.clone(); material = owner[key]; } catch(e) {}
+        const applyMaterial = m => {
+            if (!m || typeof m !== 'object') return;
+            if (!m.__isGhostCloned) {
+                try {
+                    const orig = m;
+                    m = Object.create(Object.getPrototypeOf(orig));
+                    Object.assign(m, orig);
+                    m.__isGhostCloned = true;
+                } catch(e) {}
             }
-            const list = Array.isArray(material) ? material : [material];
-            list.forEach(m => {
-                if (!m || typeof m !== 'object') return;
-                if ('opacity' in m) m.opacity = opacity;
-                if ('transparent' in m) m.transparent = true;
-                if ('depthWrite' in m) m.depthWrite = false;
-                if ('needsUpdate' in m) m.needsUpdate = true;
-            });
+            if ('opacity' in m) m.opacity = opacity;
+            if ('transparent' in m) m.transparent = true;
+            if ('depthWrite' in m) m.depthWrite = false;
+            if (m.state) {
+                m.state.blend = true;
+                m.state.depthWrite = false;
+            }
+            if ('needsUpdate' in m) m.needsUpdate = true;
+            return m;
         };
         const visit = node => {
             if (!node || typeof node !== 'object' || seen.has(node)) return;
             seen.add(node);
             if ('alpha' in node && typeof node.alpha === 'number') node.alpha = opacity;
-            applyMaterial(node, 'material');
-            applyMaterial(node, 'materials');
+            if (node.material) {
+                if (Array.isArray(node.material)) node.material = node.material.map(applyMaterial);
+                else node.material = applyMaterial(node.material);
+            }
+            if (node.materials) {
+                if (Array.isArray(node.materials)) node.materials = node.materials.map(applyMaterial);
+                else {
+                    for (const k in node.materials) node.materials[k] = applyMaterial(node.materials[k]);
+                }
+            }
             if (node.view3d) visit(node.view3d);
             if (node.container) visit(node.container);
+            if (node.model) visit(node.model);
+            if (node.gameScene) visit(node.gameScene);
+            if (node.idleScene) visit(node.idleScene);
             if (node.parts) {
                 if (Array.isArray(node.parts)) node.parts.forEach(visit);
                 else Object.values(node.parts).forEach(visit);
@@ -4453,55 +4500,58 @@
     }
 
     function spawnTeammateMesh(tm) {
-
         try {
             const hero = window.game && window.game.hero;
             if (!hero || !hero.parent) return null;
 
             let charEntity = null;
 
-            // 1. Primary: Instantiate real 3D Character (Jake)
+            // 1. Primary: Instantiate real 3D Character (Jake or selected runner)
             if (typeof window.Character_Character === 'function') {
                 try {
                     charEntity = new window.Character_Character();
                     if (charEntity) {
                         if (charEntity.idleScene) {
-                            charEntity.idleScene._active = false;
-                            charEntity.idleScene._worldActive = false;
+                            charEntity.idleScene.active = false;
                             charEntity.idleScene.visible = false;
                         }
                         if (charEntity.sprayCan) {
-                            charEntity.sprayCan._active = false;
-                            charEntity.sprayCan._worldActive = false;
+                            charEntity.sprayCan.active = false;
                             charEntity.sprayCan.visible = false;
                         }
                         if (charEntity.gameScene) {
-                            charEntity.gameScene._active = true;
-                            charEntity.gameScene._worldActive = true;
+                            charEntity.gameScene.active = true;
                             charEntity.gameScene.visible = true;
                         }
                         if (charEntity.anim) {
                             if (charEntity.gameScene) charEntity.anim.currentScene = charEntity.gameScene;
                             if (charEntity.anim.updateCurrentAnimation) charEntity.anim.updateCurrentAnimation();
-                            charEntity.anim.play('run3', { loop: true });
+                            try { charEntity.anim.play('run3', { loop: true }); } catch(e) {}
                         }
                         if (charEntity.body) {
+                            charEntity.body.active = false;
                             charEntity.body.ghost = true;
                             charEntity.body.sensor = true;
                             charEntity.body.movable = false;
+                            if (window.game && window.game.physics && Array.isArray(window.game.physics.entities)) {
+                                const idx = window.game.physics.entities.indexOf(charEntity.body);
+                                if (idx >= 0) window.game.physics.entities.splice(idx, 1);
+                            }
                         }
                         if (charEntity.player) {
                             charEntity.player.die = () => {};
+                            charEntity.player.active = false;
                         }
                         hero.parent.addChild(charEntity);
                         charEntity.x = tm.currentX;
                         charEntity.y = tm.currentY;
                         charEntity.z = tm.currentZ;
                         charEntity.ry = Math.PI;
+                        setGhostOpacity(charEntity, 0.55);
                         return charEntity;
                     }
                 } catch(e) {
-                    console.warn('Character_Character instantiate error:', e);
+                    console.warn('[Co-op] Character_Character error:', e);
                 }
             }
 
@@ -4515,10 +4565,11 @@
                         scene.y = tm.currentY;
                         scene.z = tm.currentZ;
                         scene.ry = Math.PI;
+                        setGhostOpacity(scene, 0.55);
                         return scene;
                     }
                 } catch(e) {
-                    console.warn('Library scene fallback error:', e);
+                    console.warn('[Co-op] Library scene fallback error:', e);
                 }
             }
 
@@ -4997,6 +5048,7 @@
             if (MPX.worldSeed) setDeterministicRandom(MPX.worldSeed);
             try { window.app.nav.toGame(); } catch (e) {}
             setTimeout(restoreHeroMesh, 300);
+            startCoopRenderLoop();
 
             if (MP.isPartyLeader) hostStartBots();
         });
@@ -5082,22 +5134,64 @@
                     MPX.lastTick[id] = Date.now();
                     sendRoomMessage({ type: 'tick', sender, t, round: MPX.round });
 
+                    // Simulate bot 3D position for real-time co-op viewing
+                    const botSpeedZ = 75;
+                    const botZ = -(t / 1000) * botSpeedZ;
+                    const botLaneIdx = Math.floor((t + (id.charCodeAt(id.length - 1) * 700)) / 3000) % 3;
+                    const botX = [-20, 0, 20][botLaneIdx];
+                    handleCoopPos({
+                        type: 'coop_pos',
+                        seq: Math.floor(t / 100),
+                        sender: sender,
+                        x: botX,
+                        y: 0,
+                        z: botZ,
+                        anim: 'run3',
+                        alive: true,
+                        charId: 'jake',
+                        t: t,
+                        round: MPX.round
+                    });
                 }
             });
             renderTimeline();
         }, 100);
     }
 
-    // Live tick sender from active runner
+    // Live tick & 3D co-op position sender from active runner
     function sendMultiplayerRunnerSync() {
         if (!MP.inMatch || !MPX.roundActive || !isRunActive) return;
         const now = performance.now();
-        const minInterval = 50;
+        const minInterval = 45;
         if (now - (MPX.lastTickSent || 0) < minInterval) return;
         MPX.lastTickSent = now;
         if (MPX.dead[myProfile.id] !== undefined) return;
         MPX.live[myProfile.id] = runElapsedTime;
 
+        const hero = window.game && window.game.hero;
+        const heroBody = hero && hero.body;
+        const hx = heroBody ? heroBody.x : (hero ? hero.x : 0);
+        const hy = heroBody ? (heroBody.y || 0) : (hero ? hero.y : 0);
+        const hz = heroBody ? heroBody.z : (hero ? hero.z : 0);
+        const animClip = (hero && hero.anim && hero.anim.currentAnimationClipName) || 'run3';
+        const isAlive = MPX.dead[myProfile.id] === undefined && (!hero || !hero.player || !hero.player.dead);
+        const charId = (window.app && window.app.user && window.app.user.character) || 'jake';
+
+        MPX.localSeq = (MPX.localSeq || 0) + 1;
+        const coopPacket = {
+            type: 'coop_pos',
+            seq: MPX.localSeq,
+            sender: myProfile,
+            x: hx,
+            y: hy,
+            z: hz,
+            anim: animClip,
+            alive: isAlive,
+            charId: charId,
+            t: runElapsedTime,
+            round: MPX.round
+        };
+        sendRoomMessage(coopPacket);
         sendRoomMessage({ type: 'tick', sender: myProfile, t: runElapsedTime, round: MPX.round });
         renderTimeline();
     }
@@ -5117,6 +5211,23 @@
         MPX.dead[myProfile.id] = timeMs;
         MPX.live[myProfile.id] = timeMs;
 
+        MPX.localSeq = (MPX.localSeq || 0) + 1;
+        const hero = window.game && window.game.hero;
+        const heroBody = hero && hero.body;
+        sendRoomMessage({
+            type: 'coop_pos',
+            seq: MPX.localSeq,
+            sender: myProfile,
+            x: heroBody ? heroBody.x : 0,
+            y: heroBody ? (heroBody.y || 0) : 0,
+            z: heroBody ? heroBody.z : 0,
+            anim: 'death_bounce',
+            alive: false,
+            charId: (window.app && window.app.user && window.app.user.character) || 'jake',
+            t: timeMs,
+            round: MPX.round
+        });
+
         sendRoomMessage({ type: 'player_death', sender: myProfile, timeMs: timeMs, round: MPX.round });
         suppressRevive(true);
         showWaitHUD(timeMs, false);
@@ -5130,6 +5241,10 @@
         if (MPX.dead[msg.sender.id] !== undefined) return;
         MPX.dead[msg.sender.id] = msg.timeMs;
         MPX.live[msg.sender.id] = msg.timeMs;
+        if (coopTeammates[msg.sender.id]) {
+            coopTeammates[msg.sender.id].alive = false;
+            coopTeammates[msg.sender.id].anim = 'death_bounce';
+        }
         renderTimeline();
         if (MP.isPartyLeader) hostCheckRoundEnd();
     }
