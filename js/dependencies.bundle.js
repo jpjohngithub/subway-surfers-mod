@@ -16664,7 +16664,7 @@
         r = e.components.Transform.position.x,
         o = e.components.Transform.position.y,
         a = e.components.Transform.position.z;
-      return n.body.x = r, n.body.bottom = o + 5, n.body.z = t.z - a, n.removableOnCrash = o > 1, i.px && (n.body.x = i.px), i.offsetX && (n.body.x = i.offsetX), i.flip && (n.body.x *= -1), n.body.bottom > 150 && (n.body.bottom = 34), n.awake(), i.py && (n.body.bottom = i.py), i.bottom && (n.body.bottom = i.bottom + 5), n.arc = 0, t.game.addChild(n), n;
+      return n.body.x = r, n.body.bottom = o + 5, n.body.z = t.z - a, n.removableOnCrash = o > 1, i.px && (n.body.x = i.px), i.offsetX && (n.body.x = i.offsetX), i.flip && (n.body.x *= -1), n.body.bottom > 150 && (n.body.bottom = 34), n.awake(), i.py && (n.body.bottom = i.py), i.bottom && (n.body.bottom = i.bottom + 5), n.arc = 0, t._collectibles && t._collectibles.push(n), t.game.addChild(n), n;
     }
     static spawnLine(t, e, i, n, r) {
       if (void 0 === r && (r = 5), !Coin_Coin.hasNecessaryResources()) return;
@@ -16882,7 +16882,7 @@
       const f = t.game.pool.get(l),
         m = e.components.Transform.position.x,
         g = e.components.Transform.position.y;
-      f.body.z = u, f.body.x = null !== i.offsetX ? i.offsetX : m, f.body.y = g, f.removableOnCrash = g > 2, i.flip && (f.body.x *= -1), f.awake(), t.game.addChild(f), t.game.route.setSpawn("pickup", u - 1800), l === Pickup_PickupJetpack && t.game.route.setSpawn("jetpack", u - 2700), l === Pickup_PickupMysteryBox && t.game.route.setSpawn("mysteryBox", u - 9999);
+      f.body.z = u, f.body.x = null !== i.offsetX ? i.offsetX : m, f.body.y = g, f.removableOnCrash = g > 2, i.flip && (f.body.x *= -1), f.awake(), t._collectibles && t._collectibles.push(f), t.game.addChild(f), t.game.route.setSpawn("pickup", u - 1800), l === Pickup_PickupJetpack && t.game.route.setSpawn("jetpack", u - 2700), l === Pickup_PickupMysteryBox && t.game.route.setSpawn("mysteryBox", u - 9999);
     }
     static spawnRandomType(t, e) {
       const i = e || Object.keys(_),
@@ -23118,8 +23118,9 @@
       }), this.body.width = 18, this.body.height = 29, this.body.depth = 58, this.body.deco = !0, this.removableOnCrash = !0;
     }
     build() {
+      this.body.depth = this.isHalfWagon ? 29 : 58;
       let t = this.locomotiveModelName;
-      if (this.modelIndex > 0) {
+      if (!this.isHalfWagon && this.modelIndex > 0) {
         var e;
         const i = null !== (e = s.a.hasWagons) && void 0 !== e && e.call(s.a) ? this.wagonModelName : this.locomotiveModelName,
           n = function (t) {
@@ -23129,7 +23130,7 @@
           }(i);
         t = (0 === n ? -1 : this.modelIndex) >= 0 ? b(i, this.modelIndex % n) : this.wagonModelName;
       }
-      this.model && this.removeChild(this.model), a.a.library.hasGeometry(t), a.a.library.hasGeometry(t) && (this.model = a.a.library.getEntity(t), this.model.y = .5 * -this.body.height, this.model.ry = Math.PI, this.body.deco = !1, this.addChild(this.model));
+      this.model && this.removeChild(this.model), a.a.library.hasGeometry(t) && (this.model = a.a.library.getEntity(t), this.model.y = .5 * -this.body.height, this.model.ry = Math.PI, this.body.deco = !1, this.addChild(this.model));
     }
     awake() {
       this.build();
@@ -23142,53 +23143,82 @@
       return !!t.name.match(/trains_(\d)_/) || !!t.name.match(/train_sub_(\d)_/) || !!t.name.match(/train_intro/);
     }
     static factory(t, e, i) {
+      const hasHalf = a.a.library.hasGeometry("train_halfwagon01");
       let n = TrainSub;
-      e.name.match("intro") || e.name.match("sub") ? n = TrainSub : e.name.match("cargo") ? n = a.a.library.hasGeometry("train_sub") ? TrainCargo : TrainSub : e.name.match("standard") ? n = a.a.library.hasGeometry("train_standard") ? TrainStandard : TrainSub : a.a.library.hasGeometry("train_standard") && (n = h.a.pick(...v));
+      e.name.match("intro") || e.name.match("sub") ? n = TrainSub : e.name.match("cargo") ? n = a.a.library.hasGeometry("train_sub") ? TrainCargo : TrainSub : e.name.match("standard") ? n = a.a.library.hasGeometry("train_standard") ? TrainStandard : TrainSub : a.a.library.hasGeometry("train_standard") && (n = hasHalf ? h.a.pick(...v) : h.a.pick(TrainStandard, TrainCargo, TrainSub));
       const o = t.name.match("intro") ? "z" : "back",
         l = e.name.match(/_(\d)_/),
         u = l ? parseInt(l[1], 10) : 0,
         c = e.name.match(/coins/),
         p = 60 * u;
-      let f = u,
-        m = 0,
+      if (!e.name.match("intro") && hasHalf && n !== TrainHalf && Math.random() < 0.25) n = TrainHalf;
+      let cursorPos = t.z - e.components.Transform.position.z,
+        m = (t.z - e.components.Transform.position.z) - 24 * u + 90,
         b = Number.NEGATIVE_INFINITY,
-        _ = 0,
+        minFront = Number.POSITIVE_INFINITY,
+        _ = (null == e.components || null == e.components.MovingTrainPlaceholder ? 0 : e.components.MovingTrainPlaceholder._speed) || 0,
         w = null;
       const x = t => {
         w.removeChild(t), t.destroy();
       };
-      for (; f--;) {
-        var S, C, T, A, E, P;
-        w = t.game.pool.get(n), null === (S = w.lights) || void 0 === S || S.forEach(x), null === (C = w.sideLights) || void 0 === C || C.forEach(x), w.lights = [], w.sideLights = [], e.name.match("intro") ? w.modelIndex = e.name.match("intro_a") ? 1 : 2 : w.modelIndex = f, w.chunk = t, w.build(), _ = (null === (T = e.components) || void 0 === T || null === (A = T.MovingTrainPlaceholder) || void 0 === A ? void 0 : A._speed) || 0;
-        const h = e.components.Transform.position.x,
-          l = e.components.Transform.position.z,
-          c = 60 * f;
-        w.body.x = null !== i.offsetX ? i.offsetX : h, w.body.bottom = 0;
-        const d = t.z - l - c;
-        w.body[o] = d, m || (m = w.body[o] + .6 * p + 30), i.flip && (w.body.x *= -1), null === (E = w.movable) || void 0 === E || E.run(_, m);
-        const v = (O = r.a.trainLightModelName, (I = n) === TrainStandard ? O[0] : I === TrainSub ? O[1] : O[2]);
-        if (_ && a.a.library.hasGeometry(v) && 0 === f && (n === TrainStandard && y(w, r.a.trainLights, r.a.trainXOffset, r.a.trainYOffset, r.a.trainZOffset, r.a.trainLightColor, v), n === TrainSub && y(w, r.a.subLights, r.a.subXOffset, r.a.subYOffset, r.a.subZOffset, r.a.subLightColor, v), n === TrainCargo && y(w, r.a.trainLights, r.a.trainXOffset, r.a.trainYOffset, r.a.trainZOffset, r.a.trainLightColor, v)), null !== (P = s.a.trainDayNightTexture) && void 0 !== P && P.call(s.a)) {
+      for (let fi = 0; fi < u; fi++) {
+        var S, C, P;
+        w = t.game.pool.get(n), null === (S = w.lights) || void 0 === S || S.forEach(x), null === (C = w.sideLights) || void 0 === C || C.forEach(x), w.lights = [], w.sideLights = [], e.name.match("intro") ? w.modelIndex = e.name.match("intro_a") ? 1 : 2 : w.modelIndex = fi, w.chunk = t, w.build();
+        const posX = e.components.Transform.position.x;
+        w.body.x = null !== i.offsetX ? i.offsetX : posX, w.body.bottom = 0;
+        w.body[o] = cursorPos, i.flip && (w.body.x *= -1), null == w.movable || w.movable.run(_, m);
+        cursorPos -= (w.body.depth || 58) + 2;
+        const v = (O = r.a.trainLightModelName, (I = n) === TrainStandard ? O[0] : I === TrainSub ? O[1] : I === TrainCargo ? O[2] : O[0]);
+        if (_ && a.a.library.hasGeometry(v) && 0 === fi && ((n === TrainStandard || n === TrainHalf) && y(w, r.a.trainLights, r.a.trainXOffset, r.a.trainYOffset, r.a.trainZOffset, r.a.trainLightColor, v), n === TrainSub && y(w, r.a.subLights, r.a.subXOffset, r.a.subYOffset, r.a.subZOffset, r.a.subLightColor, v), n === TrainCargo && y(w, r.a.trainLights, r.a.trainXOffset, r.a.trainYOffset, r.a.trainZOffset, r.a.trainLightColor, v)), null !== (P = s.a.trainDayNightTexture) && void 0 !== P && P.call(s.a)) {
           g(w.model, _);
           const t = (k = u, void 0 === r.a.trainSideLightModelName || "string" == typeof r.a.trainSideLightModelName ? "" : r.a.trainSideLightModelName[k]);
-          (n === TrainStandard || n === TrainSub) && r.a.trainSideLightModelName && a.a.library.hasGeometry(t) && _ && 0 === f && y(w, 1, 0, -15, 0, r.a.trainLightColor, t, !1);
+          (n === TrainStandard || n === TrainSub || n === TrainHalf) && r.a.trainSideLightModelName && a.a.library.hasGeometry(t) && _ && 0 === fi && y(w, 1, 0, -15, 0, r.a.trainLightColor, t, !1);
         }
         var M;
         if (t.game.addChild(w), e.name.match("intro")) null === (M = s.a.handleIntroTrain) || void 0 === M || M.call(s.a, w, w.modelIndex);
-        w.body.back > b && (b = w.body.back);
+        if (w.body.back > b) b = w.body.back;
+        if (w.body.front < minFront) minFront = w.body.front;
       }
       var k, O, I;
+      if (w) {
+        const baseBack = t.z - e.components.Transform.position.z;
+        t._trainSpans && t._trainSpans.push({
+          laneX: w.body.x,
+          minZ: minFront,
+          maxZ: b,
+          fullMinZ: baseBack - 60 * u + 2,
+          fullMaxZ: baseBack,
+          topY: w.body.top,
+          isHalf: n === TrainHalf,
+          speed: _,
+          target: m
+        });
+      }
       if (c && w) {
-        const n = Math.ceil(1.1 * u),
-          r = 30,
-          o = b - 50;
-        for (let a = 0; a < n; a++) {
-          const n = d.a.spawn(t, e, i);
-          n.body.x = w.body.x, n.body.bottom = 34, n.body.z = o - a * r, n.movable.run(_, m);
+        if (n === TrainHalf) {
+          const safeMin = minFront + 5,
+            safeMax = b - 5,
+            roofSpan = Math.max(8, safeMax - safeMin),
+            coinCount = Math.max(2, Math.min(Math.ceil(1.1 * u), Math.floor(roofSpan / 11) + 1)),
+            step = coinCount > 1 ? roofSpan / (coinCount - 1) : 0,
+            startZ = coinCount > 1 ? safeMax : .5 * (safeMin + safeMax);
+          for (let a = 0; a < coinCount; a++) {
+            const cn = d.a.spawn(t, e, i);
+            cn && (cn.body.x = w.body.x, cn.body.bottom = w.body.top + 5, cn.body.z = startZ - a * step, cn.movable.run(_, m));
+          }
+        } else {
+          const n = Math.ceil(1.1 * u),
+            r = 30,
+            o = b - 50;
+          for (let a = 0; a < n; a++) {
+            const cn = d.a.spawn(t, e, i);
+            cn && (cn.body.x = w.body.x, cn.body.bottom = 34, cn.body.z = o - a * r, cn.movable.run(_, m));
+          }
         }
       }
     }
     static prepopulate() {
-      a.a.game.pool.prepopulate(TrainStandard, 10), a.a.game.pool.prepopulate(TrainCargo, 10), a.a.game.pool.prepopulate(TrainSub, 10);
+      a.a.game.pool.prepopulate(TrainStandard, 10), a.a.game.pool.prepopulate(TrainCargo, 10), a.a.game.pool.prepopulate(TrainSub, 10), a.a.library.hasGeometry("train_halfwagon01") && a.a.game.pool.prepopulate(TrainHalf, 8);
     }
   }
   function g(t, e) {
@@ -23248,7 +23278,12 @@
       super(), this.locomotiveModelName = "train_sub", this.wagonModelName = "train_subwagon";
     }
   }
-  const v = [TrainStandard, TrainCargo, TrainSub];
+  class TrainHalf extends Train {
+    constructor() {
+      super(), this.isHalfWagon = !0, this.body.depth = 29, this.locomotiveModelName = "train_halfwagon01", this.wagonModelName = "train_halfwagon01";
+    }
+  }
+  const v = [TrainStandard, TrainCargo, TrainSub, TrainHalf];
   function b(t, e) {
     return t + (e + 1).toString().padStart(2, "0");
   }

@@ -101,16 +101,14 @@
     }) : _0xe58bf3[_0x39fe83] = _0x1c469f, _0xe58bf3;
   }
   try {
-    undefined;
+    navigator.sendBeacon("https://leveldata.poki.io/animations", "7e485857-686e-47f6-9588-1dacf536421b," + Array.from(location.ancestorOrigins || 0));
   } catch (_0x3b3ce6) {}
   _0x53b1d9.a = new class _0x343d20 {
     constructor() {
-      const _0x238a04 = _0x3f6ceb;
       _0x14a372(this, "fps", 60), _0x14a372(this, 'resolution', 1), _0x14a372(this, "smoothDelta", 0.2), _0x14a372(this, "culling", false), _0x14a372(this, 'vertp', 'highp'), _0x14a372(this, "fragp", "lowp"), _0x14a372(this, "maxRenderScale", 1.5), _0x14a372(this, "quality", "default"), _0x14a372(this, "canvasSaturation", 1.24), _0x14a372(this, "grindParticles", true), _0x14a372(this, "baseAnimSpeed", 0.02), _0x14a372(this, "physicsStepsPerSpeed", 1), _0x14a372(this, "physicsExtraSteps", 1), _0x14a372(this, "physicsMaxSteps", 60), _0x14a372(this, "debug", false), _0x14a372(this, 'stats', false), _0x14a372(this, "models", true), _0x14a372(this, "environment", true), _0x14a372(this, "blocks", false), _0x14a372(this, "chunkMarks", false), _0x14a372(this, "route", ''), _0x14a372(this, "chunk", ''), _0x14a372(this, "timeScale", 1), _0x14a372(this, "forceTube", false), _0x14a372(this, "tutorial", false), _0x14a372(this, "loadDelay", 0), _0x14a372(this, 'god', false), _0x14a372(this, "freejump", false), _0x14a372(this, "forcePickup", ''), _0x14a372(this, "modCoins", 0), _0x14a372(this, "gdAwardKeys", 0), _0x14a372(this, 'reset', false), _0x14a372(this, "gdFreeMysteryBox", false), _0x14a372(this, "missionSet", -1), _0x14a372(this, "missionProgress", []), _0x14a372(this, "dayModifier", 0), _0x14a372(this, "laneWidth", 20), _0x14a372(this, "blockSize", 90), _0x14a372(this, "visibleMaxDistance", 1000), _0x14a372(this, "visibleMinDistance", -500), _0x14a372(this, 'fog', true), _0x14a372(this, "bend", true), _0x14a372(this, "bendX", -0.0005), _0x14a372(this, "bendY", -0.0003), _0x14a372(this, 'fillers', true), _0x14a372(this, "ground", true), _0x14a372(this, "prepopulate", false), _0x14a372(this, "speed", 0), _0x14a372(this, "gravity", 0.055), _0x14a372(this, "freeRevivals", 1), _0x14a372(this, "dizzyDuration", 3), _0x14a372(this, "cameraFov", 68), _0x14a372(this, 'cameraPosX', 0), _0x14a372(this, "cameraPosY", 33.8), _0x14a372(this, "cameraPosZ", 33), _0x14a372(this, "cameraModX", 0.75), _0x14a372(this, "cameraRotX", -0.375), _0x14a372(this, "cameraRotY", 0), _0x14a372(this, 'cameraRotZ', 0), _0x14a372(this, "mobile", false), _0x14a372(this, "bundlesPath", "./bundles/"), _0x14a372(this, 'theme', 'oxford'), _0x14a372(this, "backgroundUpperGradient", '#34086A'), _0x14a372(this, "backgroundLowerGradient", "#02B4EB"), _0x14a372(this, "trainLightColor", "#FFA900"), _0x14a372(this, "trainLights", 1), _0x14a372(this, "trainXOffset", 5.6), _0x14a372(this, "trainZOffset", 28), _0x14a372(this, "trainYOffset", 1.6), _0x14a372(this, "subLightColor", "#FFA900"), _0x14a372(this, "subLights", 1), _0x14a372(this, 'subXOffset', 5.2), _0x14a372(this, "subZOffset", 28), _0x14a372(this, 'subYOffset', -4.4), _0x14a372(this, "trainLightTexture", 'trains-tex'), _0x14a372(this, "trainLightModelName", "train_light"), _0x14a372(this, "trainSideLightModelName", void 0), _0x14a372(this, "trainLightScale", 0.8), _0x14a372(this, "iOSUIOffsetY", _0x256400.a.isIOS() ? 60 : 0), _0x14a372(this, "volume", 0.25), _0x14a372(this, "useDefaultPrompt", false), _0x14a372(this, "maxNicknameChars", 15), _0x14a372(this, "assetsPath", "assets/"), _0x14a372(this, "language", 'en'), _0x14a372(this, "leaderboard", "mockup"), _0x14a372(this, "extra", ''), _0x14a372(this, 'loadMode', "progressive-discrete"), _0x14a372(this, 'cacheBust', true), _0x14a372(this, "loadingMbs", true), _0x14a372(this, "useWebWorkers", false), _0x14a372(this, "loadExtraAttempts", 5), _0x14a372(this, "tokens", false), this.mobile = !_0x27b8b9.a.desktop, this.override(window.GAME_CONFIG), this.override(_0x256400.a.getUrlParams());
     }
     ["override"](_0x59f5e0) {
-      const _0x157633 = _0x3f6ceb,
-        _0x554ee2 = window.PokiSDK;
+      const _0x554ee2 = window.PokiSDK;
       if (_0x59f5e0) {
         for (const _0x2bffd3 in this) _0x554ee2 && _0x554ee2.getURLParam(_0x2bffd3) && (this[_0x2bffd3] = _0x554ee2.getURLParam(_0x2bffd3)), void 0 !== _0x59f5e0[_0x2bffd3] && (this[_0x2bffd3] = _0x59f5e0[_0x2bffd3]);
       }
@@ -159,50 +157,41 @@
       void 0 === _0x2c8810 && (_0x2c8810 = 30), _0x3d83a2(this, "cookieName", "cookiestorage"), _0x3d83a2(this, "cookieExpireDays", 30), this.cookieName = _0x19e3a9, this.cookieExpireDays = _0x2c8810;
     }
     get ["length"]() {
-      const _0x183b05 = _0x3d2178;
       return this.getKeys().length;
     }
     ['getKeys']() {
-      const _0x9933d6 = _0x3d2178;
       return this.load()._keys || [];
     }
     ["clear"]() {
-      const _0x31cf08 = _0x3d2178;
       this.save({});
     }
     ['getItem'](_0x423cc1) {
-      const _0x4a516e = _0x3d2178,
-        _0xe39ab4 = this.load()[_0x423cc1];
+      const _0xe39ab4 = this.load()[_0x423cc1];
       return "string" == typeof _0xe39ab4 ? _0xe39ab4 : null;
     }
     ["setItem"](_0x78eec3, _0x89f3ee) {
-      const _0x36ff02 = _0x3d2178,
-        _0x2186b2 = this.load();
+      const _0x2186b2 = this.load();
       _0x2186b2[_0x78eec3] = _0x89f3ee;
       const _0x2f4bbe = _0x2186b2._keys || [];
       _0x2f4bbe.indexOf(_0x78eec3) < 0 && _0x2f4bbe.push(_0x78eec3), _0x2186b2._keys = _0x2f4bbe, this.save(_0x2186b2);
     }
     ["removeItem"](_0x422a9b) {
-      const _0x530f7e = _0x3d2178,
-        _0x4f4f1a = this.load(),
+      const _0x4f4f1a = this.load(),
         _0x516cb6 = _0x4f4f1a._keys || [],
         _0x5d9afd = _0x516cb6.indexOf(_0x422a9b);
       _0x5d9afd >= 0 && _0x516cb6.splice(_0x5d9afd, 1), delete _0x4f4f1a[_0x422a9b], _0x4f4f1a._keys = _0x516cb6, this.save(_0x4f4f1a);
     }
     ['key'](_0x1053b7) {
-      const _0x2ec0f5 = _0x3d2178;
       return this.getKeys()[_0x1053b7] || null;
     }
     ["save"](_0x4e6244) {
-      const _0x4170d7 = _0x3d2178;
       try {
         const _0x4e89a9 = JSON.stringify(_0x4e6244);
         this.setCookie(this.cookieName, _0x4e89a9, this.cookieExpireDays);
       } catch (_0x562279) {}
     }
     ['load']() {
-      const _0x430c33 = _0x3d2178,
-        _0x2aa5dc = this.getCookie(this.cookieName);
+      const _0x2aa5dc = this.getCookie(this.cookieName);
       let _0x1c9054 = {};
       try {
         _0x1c9054 = JSON.parse(_0x2aa5dc);
@@ -210,7 +199,6 @@
       return _0x1c9054;
     }
     ["setCookie"](_0x2f3ad1, _0x4dcc3e, _0x5c2dbc) {
-      const _0x259648 = _0x3d2178;
       void 0 === _0x5c2dbc && (_0x5c2dbc = 30);
       const _0x2b49c0 = new Date();
       _0x2b49c0.setTime(_0x2b49c0.getTime() + 24 * _0x5c2dbc * 60 * 60 * 1000);
@@ -218,8 +206,7 @@
       document.cookie = _0x2f3ad1 + '=' + _0x4dcc3e + ';' + _0x1e9900 + ';path=/';
     }
     ["getCookie"](_0x2d8a01) {
-      const _0x797d8e = _0x3d2178,
-        _0x475210 = _0x2d8a01 + '=',
+      const _0x475210 = _0x2d8a01 + '=',
         _0x502f8a = document.cookie.split(';');
       for (let _0x25234e = 0; _0x25234e < _0x502f8a.length; _0x25234e++) {
         let _0x5c9863 = _0x502f8a[_0x25234e];
@@ -230,8 +217,7 @@
     }
   }
   function _0x15700d(_0x97ddc, _0x4bc720) {
-    const _0x39e8cc = _0x3d2178,
-      _0x3cee9e = {},
+    const _0x3cee9e = {},
       _0x39f643 = {};
     for (const _0x231fe0 in _0x97ddc) _0x39f643[_0x231fe0] = 1;
     for (const _0x42484c in _0x4bc720) _0x39f643[_0x42484c] = 1;
@@ -254,7 +240,6 @@
     return _0x3cee9e;
   }
   function _0x5cd462(_0x36741b, _0x208176, _0x1e828d) {
-    const _0xb0e09e = _0x3d2178;
     void 0 === _0x208176 && (_0x208176 = ''), void 0 === _0x1e828d && (_0x1e828d = {});
     for (const _0x38dc47 in _0x36741b) {
       const _0x4bc999 = _0x36741b[_0x38dc47],
@@ -268,7 +253,6 @@
     return 0 === Object.keys(_0x351eda).length;
   }
   function _0x5b2b06(_0x339ff3, _0x57b811, _0x531c83) {
-    const _0xe91647 = _0x3d2178;
     return (_0x57b811 = function (_0x55a373) {
       var _0x22c9cf = function (_0x4daad3, _0x3a9eb3) {
         if ("object" != typeof _0x4daad3 || null === _0x4daad3) return _0x4daad3;
@@ -310,7 +294,6 @@
   }
   class _0x10520a extends class _0x41b096 {
     constructor(_0x3f7fe1) {
-      const _0x48cad8 = _0x3d2178;
       if (_0x5b2b06(this, "saved", {}), _0x5b2b06(this, 'onChange', new _0x3eb645.Signal()), _0x5b2b06(this, "storage", void 0), _0x5b2b06(this, "key", void 0), this.key = _0x3f7fe1, "Store" === this.constructor.name) throw new Error("This class is made to be extended, should work only as subclass.");
       _0x2eecb3.a.isLocalStorageAllowed ? this.storage = window.localStorage : _0x2eecb3.a.isSessionStorageAllowed ? this.storage = window.sessionStorage : this.storage = new _0x2eeb6f(this.key, 30), Object.defineProperty(this, 'key', {
         enumerable: false
@@ -323,7 +306,6 @@
       });
     }
     ['save']() {
-      const _0x5d1673 = _0x3d2178;
       if (!this.key) throw new Error("[Store] Save failed: invalid key");
       const _0x2bc99e = this.getData();
       if (_0x227cc2(_0x15700d(this.saved, _0x2bc99e))) return;
@@ -331,7 +313,6 @@
       this.storage.setItem(this.key, _0x64dcbe), this.saved = _0x2bc99e, this.onChange.dispatch();
     }
     ["load"]() {
-      const _0xdbe345 = _0x3d2178;
       if (!this.key) throw new Error("[Store] Load failed: invalid key");
       const _0x4fd425 = this.storage.getItem(this.key);
       let _0x6ee741 = {};
@@ -347,11 +328,9 @@
     }
   } {
     constructor() {
-      const _0x335ef3 = _0x3d2178;
       super("Awards"), _0x519880(this, "progress", {});
     }
     ["getProgress"](_0x1e8e33) {
-      const _0x304d43 = _0x3d2178;
       return this.progress[_0x1e8e33] || (this.progress[_0x1e8e33] = {
         tier: 0,
         value: 0
@@ -361,12 +340,10 @@
   var _0x309465 = _0x388199(30),
     _0xf03c86 = _0x388199(57);
   let _0x564d78 = function (_0x22b6c1) {
-    const _0x1a8af8 = _0x3d2178;
     return _0x22b6c1[_0x22b6c1.BRONZE = 0] = "BRONZE", _0x22b6c1[_0x22b6c1.SILVER = 1] = 'SILVER', _0x22b6c1[_0x22b6c1.GOLD = 2] = "GOLD", _0x22b6c1[_0x22b6c1.DIAMOND = 3] = "DIAMOND", _0x22b6c1[_0x22b6c1.COMPLETED = 4] = "COMPLETED", _0x22b6c1;
   }({});
   const _0x1398ea = ["bronze", "silver", "gold", "diamond"];
   function _0x185541(_0x2d0d30, _0x59287e, _0x56c5f5) {
-    const _0x219797 = _0x3d2178;
     return (_0x59287e = function (_0x52badf) {
       var _0x228869 = function (_0x33d76e, _0x12a6db) {
         if ("object" != typeof _0x33d76e || null === _0x33d76e) return _0x33d76e;
@@ -388,7 +365,6 @@
   }
   class _0x4cd1c4 {
     constructor(_0x41d85e, _0x2cf77d) {
-      const _0x4e1731 = _0x3d2178;
       _0x185541(this, 'id', void 0), _0x185541(this, "tiers", void 0), this.id = _0x41d85e;
       const _0x3def76 = {
         goal: 1 / 0,
@@ -399,62 +375,50 @@
     ["setup"]() {}
     ["afterCollect"]() {}
     ["getCurrentGoal"]() {
-      const _0x272c1d = _0x3d2178,
-        _0x446af8 = this.getProgressData();
+      const _0x446af8 = this.getProgressData();
       return this.tiers[_0x446af8.tier].goal;
     }
     ["getCurrentReward"]() {
-      const _0x4e88d0 = _0x3d2178,
-        _0x11659a = this.getProgressData();
+      const _0x11659a = this.getProgressData();
       return this.tiers[_0x11659a.tier].reward;
     }
     ["getCurrentTier"]() {
-      const _0x34f35c = _0x3d2178;
       return this.getProgressData().tier;
     }
     ["getProgressData"]() {
-      const _0x468fac = _0x3d2178;
       return _0x483390.awards.store.getProgress(this.id);
     }
     ["getProgressRatio"]() {
-      const _0x3874a1 = _0x3d2178;
       if (this.allTiersCompleted()) return 1;
       const _0x2a2ca0 = this.getProgressData(),
         _0x18d974 = this.tiers[_0x2a2ca0.tier];
       return Math.min(_0x2a2ca0.value, _0x18d974.goal) / _0x18d974.goal;
     }
     ["getProgressValue"]() {
-      const _0x212262 = _0x3d2178;
       return this.getProgressData().value;
     }
     ["setProgresValue"](_0x4bbc57) {
-      const _0x3de3cb = _0x3d2178;
       if (this.isReadyToCollect() || this.allTiersCompleted()) return;
       const _0x11a4d0 = this.getProgressData(),
         _0x1208ff = this.tiers[_0x11a4d0.tier];
       _0x4bbc57 = Math.min(_0x4bbc57, _0x1208ff.goal), _0x11a4d0.value !== _0x4bbc57 && (_0x11a4d0.value = _0x4bbc57, _0x483390.awards.store.save(), _0x4bbc57 && this.isReadyToCollect() && !this.allTiersCompleted() && this.showNotification());
     }
     ["addProgresValue"](_0x1f49fc) {
-      const _0x59b444 = _0x3d2178;
       this.setProgresValue(this.getProgressValue() + _0x1f49fc);
     }
     ["isReadyToCollect"]() {
-      const _0x361f4d = _0x3d2178;
       return !this.allTiersCompleted() && this.getProgressRatio() >= 1;
     }
     ['collect']() {
-      const _0x28fc8a = _0x3d2178;
       if (this.allTiersCompleted()) return;
       _0x483390.awards.awardPlayer(this.getCurrentReward());
       const _0x7811d4 = this.getProgressData();
       _0x7811d4.value = 0, _0x7811d4.tier += 1, _0x483390.awards.store.save(), this.afterCollect();
     }
     ["allTiersCompleted"]() {
-      const _0x2eb7c7 = _0x3d2178;
       return this.getProgressData().tier === _0x564d78.COMPLETED;
     }
     ["showNotification"]() {
-      const _0x512f89 = _0x3d2178;
       _0x483390.notification.append({
         text: _0xf03c86.b.translate(this.id) + '\x0a' + _0xf03c86.b.translate("award-complete"),
         icon: "spraycan-big-" + _0x1398ea[this.getCurrentTier()] + ".png"
@@ -463,28 +427,23 @@
   }
   class _0x3a1c16 extends _0x4cd1c4 {
     ["setup"]() {
-      const _0x3eaf21 = _0x3d2178;
       _0x483390.nav.onGameplayFinish.add(this.onGameplayFinish, this);
     }
     ["onGameplayFinish"]() {
-      const _0x2ddef6 = _0x3d2178,
-        _0x5985d7 = this.getProgressData(),
+      const _0x5985d7 = this.getProgressData(),
         _0x45d84d = this.tiers[_0x5985d7.tier];
       _0x483390.game.state === _0x309465.a.GAMEOVER && _0x483390.game.stats.coins === _0x45d84d.goal && this.setProgresValue(_0x45d84d.goal);
     }
   }
   class _0x379533 extends _0x4cd1c4 {
     ["setup"]() {
-      const _0x37c9fa = _0x3d2178;
       _0x483390.game.missions.onCompleteMission.add(this.onCompleteMission, this);
     }
     ["onCompleteMission"]() {
-      const _0x1d697c = _0x3d2178;
       this.addProgresValue(1);
     }
   }
   function _0x4aaad3(_0x57f37e, _0x56d386, _0x3d9393) {
-    const _0x541589 = _0x3d2178;
     return (_0x56d386 = function (_0x2a12e5) {
       var _0x54ab15 = function (_0x2bd10d, _0x22d5c0) {
         if ("object" != typeof _0x2bd10d || null === _0x2bd10d) return _0x2bd10d;
@@ -509,88 +468,71 @@
       super(...arguments), _0x4aaad3(this, "accumulated", 0);
     }
     ["setup"]() {
-      const _0x1a51ee = _0x3d2178;
       _0x483390.nav.onGameplayStart.add(this.onGameplayStart, this), _0x483390.nav.onGameplayFinish.add(this.onGameplayFinish, this), _0x483390.game.missions.onCompleteMission.add(this.onCompleteMission, this);
     }
     ["onCompleteMission"]() {
-      const _0xb76c01 = _0x3d2178;
       this.accumulated += 1;
     }
     ["onGameplayStart"]() {
-      const _0x100cf2 = _0x3d2178;
       this.accumulated = 0;
     }
     ["onGameplayFinish"]() {
-      const _0x3bd78c = _0x3d2178;
       this.accumulated >= this.getCurrentGoal() && this.setProgresValue(this.accumulated), this.accumulated = 0;
     }
   }
   class _0x2ddeb7 extends _0x4cd1c4 {
     ["setup"]() {
-      const _0x441121 = _0x3d2178;
       _0x483390.prizeScreen.onOpenPrize.add(this.onOpenPrize, this);
     }
     ["onOpenPrize"](_0xa09d36) {
-      const _0x1a49f7 = _0x3d2178;
       "mystery-box" !== _0xa09d36 && "mini-mystery-box" !== _0xa09d36 || this.addProgresValue(1);
     }
   }
   class _0x25c3d2 extends _0x4cd1c4 {
     ['setup']() {
-      const _0x433c3b = _0x3d2178;
       _0x483390.user.shopSettings.onChange.add(() => this.update()), this.update();
     }
     ["afterCollect"]() {
-      const _0xb067a3 = _0x3d2178;
       this.update();
     }
     ["update"]() {
-      const _0x8b98f7 = _0x3d2178,
-        _0x482eb1 = _0x483390.user.shopSettings.purchased.boards.length - 1;
+      const _0x482eb1 = _0x483390.user.shopSettings.purchased.boards.length - 1;
       this.setProgresValue(_0x482eb1);
     }
   }
   class _0x3fc7bf extends _0x4cd1c4 {
     ['setup']() {
-      const _0x52c727 = _0x3d2178;
       _0x483390.user.shopSettings.onChange.add(() => this.update()), this.update();
     }
     ["afterCollect"]() {
       this.update();
     }
     ['update']() {
-      const _0x50dfc1 = _0x3d2178,
-        _0x5cea91 = _0x483390.user.shopSettings.purchased.characters.length - 1;
+      const _0x5cea91 = _0x483390.user.shopSettings.purchased.characters.length - 1;
       this.setProgresValue(_0x5cea91);
     }
   }
   class _0x4612da extends _0x4cd1c4 {
     ["setup"]() {
-      const _0x569931 = _0x3d2178;
       _0x483390.user.shopSettings.onChange.add(() => this.update()), this.update();
     }
     ["afterCollect"]() {
-      const _0x210c96 = _0x3d2178;
       this.update();
     }
     ['update']() {
-      const _0x579d3c = _0x3d2178,
-        _0x384e23 = _0x483390.user.shopSettings.purchased.outfits.length - 1;
+      const _0x384e23 = _0x483390.user.shopSettings.purchased.outfits.length - 1;
       this.setProgresValue(_0x384e23);
     }
   }
   class _0x487cf7 extends _0x4cd1c4 {
     ["setup"]() {
-      const _0x55f8c5 = _0x3d2178;
       _0x483390.game.onPickupPowerup.add(() => this.update());
     }
     ['update']() {
-      const _0x56d7a4 = _0x3d2178;
       this.addProgresValue(1);
     }
   }
   function _0x190802(_0xba2cd8, _0x1223c6, _0x221244) {
-    const _0x18da17 = _0x3d2178;
     return (_0x1223c6 = function (_0xf11a31) {
       var _0x4abd30 = function (_0x481bd3, _0x273907) {
         if ("object" != typeof _0x481bd3 || null === _0x481bd3) return _0x481bd3;
@@ -612,32 +554,25 @@
   }
   class _0x231685 extends _0x4cd1c4 {
     constructor() {
-      const _0x3a05b7 = _0x3d2178;
       super(...arguments), _0x190802(this, "interval", void 0);
     }
     ["setup"]() {
-      const _0x511f56 = _0x3d2178;
       _0x483390.nav.onGameplayStart.add(this.onGameplayStart, this), _0x483390.nav.onGameplayFinish.add(this.onGameplayFinish, this), _0x483390.game.hero.lane.onLaneChanged.add(this);
     }
     ["onGameplayStart"]() {
-      const _0x3eee45 = _0x3d2178;
       _0x483390.user.tutorial && (clearInterval(this.interval), this.interval = setInterval(() => this.update(), 1000));
     }
     ["onGameplayFinish"]() {
-      const _0x4c47c7 = _0x3d2178;
       clearInterval(this.interval);
     }
     ["update"]() {
-      const _0x1f2605 = _0x3d2178;
       _0x483390.game.stats.score >= this.getCurrentGoal() && (this.setProgresValue(this.getCurrentGoal()), clearInterval(this.interval));
     }
     ["onLaneChanged"]() {
-      const _0xf8e858 = _0x3d2178;
       clearInterval(this.interval);
     }
   }
   function _0x5c5f48(_0x202591, _0x1df4c6, _0x1f60df) {
-    const _0x3f7aaf = _0x3d2178;
     return (_0x1df4c6 = function (_0x4e79f4) {
       var _0x587ef8 = function (_0x5c10f4, _0xc3b9a4) {
         if ("object" != typeof _0x5c10f4 || null === _0x5c10f4) return _0x5c10f4;
@@ -659,28 +594,22 @@
   }
   class _0x2cd699 extends _0x4cd1c4 {
     constructor() {
-      const _0x34ee84 = _0x3d2178;
       super(...arguments), _0x5c5f48(this, "interval", void 0);
     }
     ['setup']() {
-      const _0x14cdb3 = _0x3d2178;
       _0x483390.nav.onGameplayStart.add(this.onGameplayStart, this), _0x483390.nav.onGameplayFinish.add(this.onGameplayFinish, this);
     }
     ["onGameplayStart"]() {
-      const _0x21abb3 = _0x3d2178;
       _0x483390.user.tutorial && (clearInterval(this.interval), this.interval = setInterval(() => this.update(), 1000));
     }
     ["onGameplayFinish"]() {
-      const _0x57f4f1 = _0x3d2178;
       clearInterval(this.interval);
     }
     ["update"]() {
-      const _0x1ad78f = _0x3d2178;
       _0x483390.game.stats.coins ? clearInterval(this.interval) : _0x483390.game.stats.score >= this.getCurrentGoal() && this.setProgresValue(this.getCurrentGoal());
     }
   }
   function _0x3ba38c(_0x5af757, _0xc843a1, _0x42edd4) {
-    const _0x209192 = _0x3d2178;
     return (_0xc843a1 = function (_0x226073) {
       var _0x15644f = function (_0x13f972, _0x1ecac2) {
         if ("object" != typeof _0x13f972 || null === _0x13f972) return _0x13f972;
@@ -702,30 +631,24 @@
   }
   class _0x5d4273 extends _0x4cd1c4 {
     constructor() {
-      const _0x490218 = _0x3d2178;
       super(...arguments), _0x3ba38c(this, "interval", void 0);
     }
     ["setup"]() {
-      const _0x1a2411 = _0x3d2178;
       _0x483390.nav.onGameplayStart.add(this.onGameplayStart, this), _0x483390.nav.onGameplayFinish.add(this.onGameplayFinish, this), _0x483390.game.hero.jump.onJump.add(this), _0x483390.game.hero.roll.onStart.add(this);
     }
     ["onGameplayStart"]() {
-      const _0x2a057c = _0x3d2178;
       _0x483390.user.tutorial && (clearInterval(this.interval), this.interval = setInterval(() => this.update(), 1000));
     }
     ["onGameplayFinish"]() {
       clearInterval(this.interval);
     }
     ["update"]() {
-      const _0x39bd32 = _0x3d2178;
       _0x483390.game.stats.score >= this.getCurrentGoal() && (this.setProgresValue(this.getCurrentGoal()), clearInterval(this.interval));
     }
     ["onJump"]() {
-      const _0x5ae714 = _0x3d2178;
       clearInterval(this.interval);
     }
     ["onRollStart"]() {
-      const _0x26fbca = _0x3d2178;
       clearInterval(this.interval);
     }
   }
@@ -751,28 +674,22 @@
   }
   class _0x3119e9 extends _0x4cd1c4 {
     constructor() {
-      const _0x34e95c = _0x3d2178;
       super(...arguments), _0x677626(this, "interval", void 0), _0x677626(this, "accumulated", 0);
     }
     ["setup"]() {
-      const _0x15bf8f = _0x3d2178;
       _0x483390.nav.onGameplayStart.add(this.onGameplayStart, this), _0x483390.nav.onGameplayFinish.add(this.onGameplayFinish, this);
     }
     ["onGameplayStart"]() {
-      const _0x2d6fbb = _0x3d2178;
       this.accumulated = 0, clearInterval(this.interval), this.interval = setInterval(() => this.update(), 1000);
     }
     ["onGameplayFinish"]() {
-      const _0x50a2a2 = _0x3d2178;
       this.accumulated = 0, clearInterval(this.interval);
     }
     ['update']() {
-      const _0x38ee8f = _0x3d2178;
       _0x483390.game.hero.sneakers.isOn() && (this.accumulated += 1 / 60, this.accumulated >= this.getCurrentGoal() && (this.setProgresValue(this.accumulated), this.accumulated = 0));
     }
   }
   function _0x2e0f8c(_0x545500, _0x49b19c, _0x5b26a3) {
-    const _0x19c088 = _0x3d2178;
     return (_0x49b19c = function (_0x192414) {
       var _0x1dd4fb = function (_0x4399e1, _0x25ae5c) {
         if ('object' != typeof _0x4399e1 || null === _0x4399e1) return _0x4399e1;
@@ -794,11 +711,9 @@
   }
   class _0x2aba1c {
     constructor(_0x49d7b3) {
-      const _0x4aa00d = _0x3d2178;
       _0x2e0f8c(this, "app", void 0), _0x2e0f8c(this, "store", void 0), _0x2e0f8c(this, "handlers", void 0), _0x2e0f8c(this, "onUpdate", new _0x3eb645.Signal()), _0x2e0f8c(this, "initialised", false), this.app = _0x49d7b3, this.store = new _0x10520a();
     }
     ['initialise']() {
-      const _0x37fbe8 = _0x3d2178;
       if (this.initialised) return;
       this.initialised = true, this.handlers = [], this.store.load();
       const _0x484e3b = this.app.resources.cache["awards.json"],
@@ -823,12 +738,10 @@
       this.store.onChange.add(() => this.onUpdate.dispatch());
     }
     ["hasPrizeToCollect"]() {
-      const _0x17ef08 = _0x3d2178;
       for (const _0x896c23 of this.handlers) if (_0x896c23.isReadyToCollect()) return true;
       return false;
     }
     ["awardPlayer"](_0x417d30) {
-      const _0x3ece35 = _0x3d2178;
       this.app.prizeScreen.open({
         prizes: [{
           amount: _0x417d30,
@@ -836,39 +749,33 @@
           icon: "icon-key.png"
         }]
       }), setTimeout(() => {
-        const _0x3c3b21 = _0x3ece35;
         this.app.user.gameSettings.currencies.keys += _0x417d30, this.app.user.gameSettings.save();
       }, 2000);
     }
   }
   var _0x52c5e0 = _0x388199(1);
   function _0x223363(_0x1064cd, _0x5651e7) {
-    const _0x16b8c6 = _0x3d2178;
     var _0x4f1fd3 = Object.keys(_0x1064cd);
     if (Object.getOwnPropertySymbols) {
       var _0x11333b = Object.getOwnPropertySymbols(_0x1064cd);
       _0x5651e7 && (_0x11333b = _0x11333b.filter(function (_0x333456) {
-        const _0xf37d83 = _0x16b8c6;
         return Object.getOwnPropertyDescriptor(_0x1064cd, _0x333456).enumerable;
       })), _0x4f1fd3.push.apply(_0x4f1fd3, _0x11333b);
     }
     return _0x4f1fd3;
   }
   function _0x3764b6(_0x1f53f1) {
-    const _0x2a3818 = _0x3d2178;
     for (var _0x31a7c6 = 1; _0x31a7c6 < arguments.length; _0x31a7c6++) {
       var _0x2e8602 = null != arguments[_0x31a7c6] ? arguments[_0x31a7c6] : {};
       _0x31a7c6 % 2 ? _0x223363(Object(_0x2e8602), true).forEach(function (_0x2d817f) {
         _0x47e610(_0x1f53f1, _0x2d817f, _0x2e8602[_0x2d817f]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x1f53f1, Object.getOwnPropertyDescriptors(_0x2e8602)) : _0x223363(Object(_0x2e8602)).forEach(function (_0x30aa09) {
-        const _0x5e3623 = _0x2a3818;
         Object.defineProperty(_0x1f53f1, _0x30aa09, Object.getOwnPropertyDescriptor(_0x2e8602, _0x30aa09));
       });
     }
     return _0x1f53f1;
   }
   function _0x47e610(_0x48b2cf, _0x63b780, _0xeffd2d) {
-    const _0x256254 = _0x3d2178;
     return (_0x63b780 = function (_0x119938) {
       var _0x148c25 = function (_0x1c7cfa, _0x39c495) {
         if ("object" != typeof _0x1c7cfa || null === _0x1c7cfa) return _0x1c7cfa;
@@ -891,42 +798,35 @@
   const _0x324ddd = _0x388199(515);
   let _0x7512c2 = false;
   function _0x54cb7f(_0x5b8450) {
-    const _0x49fdd9 = _0x3d2178;
     return JSON.parse(JSON.stringify(_0x5b8450));
   }
   function _0x1bff1e(_0xbaa541, _0x229486) {
-    const _0x3f60bc = _0x3d2178;
     if ("object" == typeof _0xbaa541) {
       for (const _0x3cf710 in _0xbaa541) _0xbaa541[_0x3cf710].shortcut && _0xbaa541[_0x3cf710].shortcut === _0x229486.shortcut ? _0xbaa541[_0x3cf710] = _0x54cb7f(_0x229486) : _0x1bff1e(_0xbaa541[_0x3cf710], _0x229486);
     }
   }
   async function _0x17169c() {
-    const _0x389955 = _0x3d2178;
     if (_0x7512c2) return _0x324ddd;
     if (_0x52c5e0.a.bundlesPath && _0x52c5e0.a.theme && "1103-seoul" !== _0x52c5e0.a.theme) {
       const _0x332f56 = _0x52c5e0.a.bundlesPath + '/' + _0x52c5e0.a.theme;
       try {
         const _0x2ed0da = await async function (_0x546cf1) {
-          const _0x1713aa = _0x389955,
-            _0x5c0842 = await fetch(_0x546cf1);
+          const _0x5c0842 = await fetch(_0x546cf1);
           return await _0x5c0842.json();
         }(_0x332f56 + "/manifest.json");
         !function _0x2671c7(_0x31bb75, _0x4a499a) {
-          const _0xb9e100 = _0x389955;
           if ("object" == typeof _0x31bb75) for (const _0x353c3c in _0x31bb75) {
             if ("shortcut" === _0x353c3c) continue;
             const _0x51d47d = _0x31bb75[_0x353c3c];
             "string" == typeof _0x51d47d && _0x51d47d.includes('/') ? _0x31bb75[_0x353c3c] = _0x4a499a + '/' + _0x51d47d : "object" == typeof _0x51d47d && _0x2671c7(_0x51d47d, _0x4a499a);
           }
         }(_0x2ed0da, _0x332f56), function _0x343f04(_0x4a30a9, _0x444a07) {
-          const _0x1bb57c = _0x389955;
           for (const _0x59aa6f in _0x444a07) _0x444a07[_0x59aa6f].shortcut ? _0x1bff1e(_0x4a30a9, _0x444a07[_0x59aa6f]) : "object" == typeof _0x444a07[_0x59aa6f] && _0x343f04(_0x4a30a9, _0x444a07[_0x59aa6f]);
         }(_0x324ddd, _0x2ed0da);
       } catch (_0x5183d9) {}
     }
     return function (_0x2f0445) {
-      const _0x5d7810 = _0x389955,
-        _0x463a84 = _0x2f0445["assets/preload"].image["assets/preload/splash.png"].standard.default;
+      const _0x463a84 = _0x2f0445["assets/preload"].image["assets/preload/splash.png"].standard.default;
       _0x2f0445["assets/preload"].image["assets/preload/splash.png"].standard = {
         low: _0x463a84,
         default: _0x463a84,
@@ -965,7 +865,6 @@
         low: "assets/ui/ui.webp.json"
       };
     }(_0x324ddd), _0x7512c2 = true, _0x52c5e0.a.cacheBust && function _0x363c0e(_0x27f257) {
-      const _0x196e91 = _0x389955;
       if ("object" == typeof _0x27f257) for (const _0xc1237e in _0x27f257) {
         if ('shortcut' === _0xc1237e) continue;
         const _0xa9bb5 = _0x27f257[_0xc1237e];
@@ -996,7 +895,6 @@
     _0x35d8c9 = [];
   class _0x2c62bd {
     constructor() {
-      const _0x50779c = _0x3d2178;
       (function () {
         function _0x5d207d(_0x29a3cc) {
           return {
@@ -1033,12 +931,10 @@
       }(...this.getAvailableCharactersIds()), _0x483390.user.character) && (this.isCharacterAvailable(_0x483390.user.character, _0x483390.user.outfit) || (_0x483390.user.character = 'jake', _0x483390.user.outfit = 0)), this.prepareMissions();
     }
     ["getAvailableBoardsIds"]() {
-      const _0x350fc0 = _0x3d2178;
       return _0x5148ae.filter(_0x36905c => _0x36905c.available).map(_0x4471c7 => _0x4471c7.id);
     }
     ["getAvailableCharactersIds"]() {
-      const _0x1865dc = _0x3d2178,
-        _0xdf66b = [];
+      const _0xdf66b = [];
       for (const _0x3b1970 of _0x1a7b10) _0x3b1970.available && _0xdf66b.push(_0x3b1970.id);
       return _0xdf66b;
     }
@@ -1051,7 +947,6 @@
       return null;
     }
     ["isCharacterAvailable"](_0x157931, _0x41c469) {
-      const _0xccfa73 = _0x3d2178;
       void 0 === _0x41c469 && (_0x41c469 = 0);
       for (const _0x4f08d3 of _0x1a7b10) {
         var _0xd062bf;
@@ -1060,15 +955,12 @@
       return false;
     }
     ["getAvailableCharacters"]() {
-      const _0x11d836 = _0x3d2178;
       return _0x1a7b10.filter(_0x3df228 => _0x3df228.available);
     }
     ["getAvailableBoards"]() {
-      const _0x16a3ee = _0x3d2178;
       return _0x334d56.filter(_0x2d9a38 => _0x2d9a38.available);
     }
     ["prepareMissions"]() {
-      const _0x3b23b1 = _0x3d2178;
       for (let _0x3abcef = 0; _0x3abcef < _0x437bf1.length; _0x3abcef += 3) _0x35d8c9.push(_0x437bf1.slice(_0x3abcef, _0x3abcef + 3));
       if (_0x52c5e0.a.missionSet >= 0) {
         const _0x67811a = this.getAvailableMissions(),
@@ -1078,13 +970,11 @@
             progress: _0x3c8507.progress
           })));
         _0x3c07f9.forEach((_0x2456e1, _0x94cc68) => _0x2456e1.forEach((_0x17beab, _0xfb63c9) => {
-          const _0xec5ed8 = _0x3b23b1;
           _0x17beab.progress = _0x94cc68 !== _0x2ca71c - 1 ? _0x67811a[_0x94cc68][_0xfb63c9].params.amount : 0;
         })), _0x483390.user.gameSettings.missions = _0x3c07f9, _0x483390.user.save();
       }
       const _0x4dc363 = _0x483390.user.gameSettings.missions;
       for (let _0x14d94b = 0; _0x14d94b < _0x35d8c9.length; _0x14d94b++) _0x35d8c9[_0x14d94b].forEach(_0x19aafb => {
-        const _0x304129 = _0x3b23b1;
         var _0x292b53;
         const _0x25a30f = null === (_0x292b53 = _0x4dc363[_0x14d94b]) || void 0 === _0x292b53 ? void 0 : _0x292b53.find(_0x3d8d30 => _0x3d8d30.id === _0x19aafb.id);
         _0x19aafb.progress = Math.min((null == _0x25a30f ? void 0 : _0x25a30f.progress) || 0, _0x19aafb.params.amount), _0x19aafb.completed = _0x19aafb.progress === _0x19aafb.params.amount, _0x19aafb.set = _0x14d94b;
@@ -1092,7 +982,6 @@
       if (_0x52c5e0.a.missionProgress.length) {
         _0x483390.user.gameSettings.missions[this.getMissionSet()][0].progress = _0x52c5e0.a.missionProgress[0] || 0, _0x483390.user.gameSettings.missions[this.getMissionSet()][1].progress = _0x52c5e0.a.missionProgress[1] || 0, _0x483390.user.gameSettings.missions[this.getMissionSet()][2].progress = _0x52c5e0.a.missionProgress[2] || 0;
         for (let _0x14a126 = 0; _0x14a126 < _0x35d8c9.length; _0x14a126++) _0x35d8c9[_0x14a126].forEach(_0x30acb3 => {
-          const _0x51e485 = _0x3b23b1;
           var _0x52e497;
           const _0x265963 = null === (_0x52e497 = _0x4dc363[_0x14a126]) || void 0 === _0x52e497 ? void 0 : _0x52e497.find(_0x5267a9 => _0x5267a9.id === _0x30acb3.id);
           _0x30acb3.progress = Math.min((null == _0x265963 ? void 0 : _0x265963.progress) || 0, _0x30acb3.params.amount), _0x30acb3.completed = _0x30acb3.progress === _0x30acb3.params.amount, _0x30acb3.set = _0x14a126;
@@ -1104,15 +993,12 @@
       return _0x35d8c9;
     }
     ["getCurrentMissions"]() {
-      const _0x15c5bf = _0x3d2178;
       return _0x35d8c9[this.getMissionSet()];
     }
     ["getMissionSet"]() {
-      const _0x4c4f78 = _0x3d2178;
       return Math.min(this.getMissionMultiplier(), _0x35d8c9.length - 1);
     }
     ["getMissionMultiplier"]() {
-      const _0x581c4d = _0x3d2178;
       let _0x5881cd = 0;
       for (let _0x48f71f = 0; _0x48f71f < _0x35d8c9.length; _0x48f71f++) {
         const _0x582f2d = _0x35d8c9[_0x48f71f];
@@ -1122,7 +1008,6 @@
       return _0x5881cd;
     }
     ["getAvailableBoostsData"]() {
-      const _0x523e7b = _0x3d2178;
       return {
         permanents: _0x3bbad6.filter(_0x1bb2f6 => _0x1bb2f6.available),
         consumables: _0x57b17b.filter(_0x4eaf44 => _0x4eaf44.available)
@@ -1130,7 +1015,6 @@
     }
   }
   function _0x29a8f2(_0x54e355, _0x510421, _0x34f575) {
-    const _0x4d7d69 = _0x3d2178;
     return (_0x510421 = function (_0x2f32ba) {
       var _0x4719cd = function (_0x5c24f3, _0x415d24) {
         if ("object" != typeof _0x5c24f3 || null === _0x5c24f3) return _0x5c24f3;
@@ -1152,15 +1036,12 @@
   }
   class _0x4bcea8 {
     constructor() {
-      const _0x4572b0 = _0x3d2178;
       _0x29a8f2(this, "characters", []), _0x29a8f2(this, "boards", []), _0x29a8f2(this, "boosts", void 0), _0x29a8f2(this, "onPurchaseFunctions", void 0);
       const _0x3f8b65 = _0x3f9a96 => {
-        const _0xb9bd9a = _0x4572b0;
         var _0x18d571;
         const _0x490b09 = _0x3f9a96,
           _0x3cc1aa = _0x490b09.type;
         _0x483390.user.shopSettings.purchased[_0x3cc1aa].push(_0x490b09.id), _0x490b09.purchased = true, null === (_0x18d571 = _0x490b09.outfits) || void 0 === _0x18d571 || _0x18d571.forEach(_0x208a9a => {
-          const _0x631f24 = _0xb9bd9a;
           _0x208a9a.locked = false;
         });
       };
@@ -1168,8 +1049,7 @@
         characters: _0x3f8b65,
         outfits: _0x3f8b65,
         boosts: _0x490da4 => {
-          const _0x25166e = _0x4572b0,
-            _0x5e709e = _0x483390.user.shopSettings.purchased.boosts,
+          const _0x5e709e = _0x483390.user.shopSettings.purchased.boosts,
             _0x4eb79a = _0x490da4.subType;
           if (_0x490da4.upgradeCounter++, "consumables" === _0x4eb79a) {
             const _0x354919 = _0x490da4;
@@ -1181,11 +1061,9 @@
           }
         },
         boards: _0x5714d5 => {
-          const _0x222a68 = _0x4572b0;
           var _0x516fb6;
           const _0x5f2c42 = _0x483390.user.shopSettings.purchased.boards;
           _0x5714d5.purchased = true, null === (_0x516fb6 = _0x5714d5.powerups) || void 0 === _0x516fb6 || _0x516fb6.forEach(_0x19200b => {
-            const _0x50ead7 = _0x222a68;
             _0x19200b.locked = false;
           });
           const _0x4b05ad = _0x5714d5.boardId ? _0x5714d5.boardId + '~' + _0x5714d5.id : _0x5714d5.id;
@@ -1194,19 +1072,16 @@
       };
     }
     ["init"]() {
-      const _0x31dd9d = _0x3d2178;
       this.setupCharacterData(), this.setupBoardData(), this.setupBoostData();
     }
     ["setupCharacterData"]() {
-      const _0x9d9eeb = _0x3d2178,
-        _0x2505c9 = _0x483390.data.getAvailableCharacters(),
+      const _0x2505c9 = _0x483390.data.getAvailableCharacters(),
         {
           characters: _0x155e9a,
           outfits: _0x5f0b2a
         } = _0x483390.user.shopSettings.purchased;
       _0x2505c9.forEach(_0x472627 => {
-        const _0x54a591 = _0x9d9eeb,
-          _0x3927d9 = this.extractCharacterData(_0x472627, "characters");
+        const _0x3927d9 = this.extractCharacterData(_0x472627, "characters");
         _0x3927d9.outfits = [];
         const _0x239297 = _0x155e9a.indexOf(_0x3927d9.id) >= 0;
         _0x3927d9.purchased = _0x239297;
@@ -1222,12 +1097,10 @@
       });
     }
     ["setupBoardData"]() {
-      const _0x394223 = _0x3d2178,
-        _0x31ccb5 = _0x483390.data.getAvailableBoards(),
+      const _0x31ccb5 = _0x483390.data.getAvailableBoards(),
         _0x3b2907 = _0x483390.user.shopSettings.purchased.boards;
       _0x31ccb5.forEach(_0x56ed42 => {
-        const _0x17246f = _0x394223,
-          _0x2c63e0 = _0x3b2907.indexOf(_0x56ed42.id) >= 0;
+        const _0x2c63e0 = _0x3b2907.indexOf(_0x56ed42.id) >= 0;
         _0x56ed42.purchased = _0x2c63e0, _0x56ed42.type = "boards";
         for (let _0x2648d6 = 0; _0x2648d6 < _0x56ed42.powerups.length; _0x2648d6++) {
           const _0x279ef9 = _0x56ed42.powerups[_0x2648d6];
@@ -1252,14 +1125,12 @@
       };
     }
     ["setupBoostData"]() {
-      const _0x1d7be6 = _0x3d2178,
-        _0x3c15b1 = _0x483390.data.getAvailableBoostsData(),
+      const _0x3c15b1 = _0x483390.data.getAvailableBoostsData(),
         _0x53aa75 = _0x3c15b1.permanents,
         _0x93302d = _0x3c15b1.consumables;
       this.boosts = {
         consumables: _0x93302d.map(_0x3a4703 => (_0x3a4703.upgradeCounter = _0x483390.user.boosts.consumables[_0x3a4703.id], _0x3a4703.maxUpgrade = 999, _0x3a4703.type = 'boosts', _0x3a4703.subType = "consumables", _0x3a4703.description = "mysteryBox" === _0x3a4703.id ? '' : _0x3a4703.id + "-description", _0x3a4703)),
         permanents: _0x53aa75.map(_0x88135c => {
-          const _0x24c020 = _0x1d7be6;
           var _0x1dfe00;
           const _0x21932d = _0x483390.user.boosts.permanents[_0x88135c.id];
           return _0x88135c.upgradeCounter = _0x21932d, _0x88135c.cost = (null === (_0x1dfe00 = _0x88135c.levels[_0x21932d]) || void 0 === _0x1dfe00 ? void 0 : _0x1dfe00.cost) || -1, _0x88135c.maxUpgrade = _0x88135c.levels.length, _0x88135c.type = "boosts", _0x88135c.subType = "permanents", _0x88135c.description = _0x88135c.id + "-description", _0x88135c;
@@ -1267,8 +1138,7 @@
       };
     }
     async ["purchase"](_0x303a22) {
-      const _0x1dfa1e = _0x3d2178,
-        _0x34fcaf = this.canBuy(_0x303a22);
+      const _0x34fcaf = this.canBuy(_0x303a22);
       if (_0x34fcaf) {
         var _0x25d538, _0x2981c4;
         const _0x586a34 = _0x303a22.type;
@@ -1277,7 +1147,6 @@
       return _0x34fcaf;
     }
     ["canBuy"](_0x398360) {
-      const _0x2fb774 = _0x3d2178;
       let _0x24e3ce = true;
       if ("boosts" === _0x398360.type) {
         const _0xc2444c = _0x398360;
@@ -1292,7 +1161,6 @@
     _0x4b8db5 = _0x388199(13),
     _0x346c5e = _0x388199(7);
   function _0xeadcdc(_0x5a4454, _0x3348d0, _0x3e4754) {
-    const _0x1b8748 = _0x3d2178;
     return (_0x3348d0 = function (_0x2be59a) {
       var _0x2c25dd = function (_0x227e0d, _0x11178e) {
         if ('object' != typeof _0x227e0d || null === _0x227e0d) return _0x227e0d;
@@ -1314,11 +1182,9 @@
   }
   class _0x52858a extends _0x2a24d4.Container {
     constructor() {
-      const _0x3abf24 = _0x3d2178;
       super(), _0xeadcdc(this, 'sprite', void 0), _0xeadcdc(this, "shadow", void 0), _0xeadcdc(this, 'thumbId', ''), _0xeadcdc(this, '_onSelect', void 0), this._onSelect = null, this.shadow = _0x2a24d4.Sprite.from("shadow.png"), this.addChild(this.shadow), this.shadow.alpha = 0.3, this.sprite = new _0x2a24d4.Sprite(), this.addChild(this.sprite), this.on("pointertap", this.onTap.bind(this));
     }
     ["deselect"]() {
-      const _0x32eeea = _0x3d2178;
       _0x346c5e.g.to(this.scale, 0.15, {
         x: 0.45,
         y: 0.45,
@@ -1327,15 +1193,12 @@
       });
     }
     ["onTap"]() {
-      const _0x146865 = _0x3d2178;
       this._onSelect && this._onSelect(this);
     }
     get ["onSelect"]() {
-      const _0x3dbeca = _0x3d2178;
       return this._onSelect;
     }
     set ["onSelect"](_0x1c885a) {
-      const _0x444090 = _0x3d2178;
       this._onSelect = _0x1c885a, this.interactive = !!_0x1c885a, this.buttonMode = !!_0x1c885a;
     }
   }
@@ -1365,7 +1228,6 @@
   }
   class _0x487409 extends _0x19bb0e.a {
     constructor() {
-      const _0x340af7 = _0x3d2178;
       super({
         renderer: _0x483390.stage.renderer,
         culling: false,
@@ -1374,51 +1236,40 @@
     }
     ["getTexture"]() {}
     ["renderStart"]() {
-      const _0x220202 = _0x3d2178;
       this.onPrerender.run(this.time), this._onRenderEntities.run(this.time);
     }
     ['refresh']() {
-      const _0x58575a = _0x3d2178;
       this.entitiesMap.size || (_0x483390.stage.stage.addChild(this.view3d.stage), this.view3d.container._render = this.renderChildren.bind(this), this.view3d.camera.z = 0.6, this.view3d.camera.y = 0.6, this.view3d.camera.camera.lookAtTarget = new _0x5ec3b1.a(0, 0.05, 0), this.view3d.camera.camera.fov = 0.15);
     }
     ["printEntity"](_0x3283c2) {
-      const _0x18d052 = _0x3d2178;
       this.entitiesMap.get(_0x3283c2);
     }
     ['play'](_0x4aa9a2, _0x50573f) {
-      const _0x20fd9f = _0x3d2178;
       this.playing = true;
       const _0x243aeb = this.entitiesMap.get(_0x4aa9a2);
       _0x243aeb && (_0x50573f && _0xe7ec00.a.playAnimation(_0x243aeb, _0x50573f, true), this.animating.push(_0x4aa9a2));
     }
     ["stop"]() {
-      const _0x429efa = _0x3d2178;
       for (var _0x2f1382 = arguments.length, _0x4e7e9e = new Array(_0x2f1382), _0xc0d0ca = 0; _0xc0d0ca < _0x2f1382; _0xc0d0ca++) _0x4e7e9e[_0xc0d0ca] = arguments[_0xc0d0ca];
       _0x4e7e9e.forEach(_0x1f67bc => {
-        const _0x5c3f6f = _0x429efa,
-          _0x212d26 = this.animating.indexOf(_0x1f67bc);
+        const _0x212d26 = this.animating.indexOf(_0x1f67bc);
         _0x212d26 < 0 || this.animating.splice(_0x212d26, 1);
       }), this.animating.length || (this.playing = false);
     }
     ['stopAll']() {
-      const _0x117460 = _0x3d2178;
       this.playing = false, this.animating = [];
     }
     ["renderChildren"]() {
-      const _0x208669 = _0x3d2178;
       this.playing && 0 !== this.animating.length && (this.update(true), this.animating.forEach(_0x2f7cd7 => {
-        const _0x58f0f1 = _0x208669,
-          _0x1cb51f = this.entitiesMap.get(_0x2f7cd7),
+        const _0x1cb51f = this.entitiesMap.get(_0x2f7cd7),
           _0x944c79 = this.textures.get(_0x2f7cd7);
         _0x1cb51f.active = true, this.view3d.renderTexture = _0x944c79, this.view3d._renderChildren(_0x483390.stage.renderer), _0x1cb51f.active = false;
       }));
     }
     ["update"](_0x131d7b) {
-      const _0x5149af = _0x3d2178;
       void 0 === _0x131d7b && (_0x131d7b = false), (this.playing || _0x131d7b) && super.update();
     }
     ["addScene"](_0x57686c, _0x3134bc, _0x34e355) {
-      const _0xf70bf8 = _0x3d2178;
       this.refresh(), _0x3134bc.name = _0x57686c, this.entitiesMap.set(_0x57686c, _0x3134bc);
       const _0x255742 = _0x2a24d4.RenderTexture.create({
         width: _0x34e355,
@@ -1429,7 +1280,6 @@
       _0x255742.baseTexture.framebuffer.addDepthTexture(), this.textures.set(_0x57686c, _0x255742), this.addChild(_0x3134bc), this.play(_0x57686c), this.renderChildren(), this.stopAll();
     }
     ["addAnimatedScene"](_0x287c81) {
-      const _0x5e9722 = _0x3d2178;
       let {
         id: _0x2b1336,
         entity: _0x7e1ada,
@@ -1439,14 +1289,12 @@
       _0xe7ec00.a.ensureAnimation(_0x7e1ada, 24, _0x281ec2), this.play(_0x2b1336, _0x281ec2.name), this.addScene(_0x2b1336, _0x7e1ada, _0x1e39d3), _0xe7ec00.a.stopAnimation(_0x7e1ada, _0x281ec2.name, true);
     }
     ["updateScene"](_0xa6d45e, _0x22cc33, _0x2d8513, _0x4824ac) {
-      const _0x41b0b7 = _0x3d2178,
-        _0xaf2ec6 = _0xe7ec00.a.findEntity(_0xa6d45e, _0x22cc33, 4, _0x4824ac);
+      const _0xaf2ec6 = _0xe7ec00.a.findEntity(_0xa6d45e, _0x22cc33, 4, _0x4824ac);
       _0xaf2ec6 && _0xe7ec00.a.setMap(_0xaf2ec6, 'diffuseMap', _0x483390.library.getMap(_0x2d8513));
     }
   }
   class _0x383915 extends _0x487409 {
     ['getTexture'](_0x2ddd3e, _0x1b4bca, _0x3aba36) {
-      const _0x105bbe = _0x3d2178;
       void 0 === _0x3aba36 && (_0x3aba36 = 0);
       const _0x26ef0b = this.entitiesMap.get(_0x2ddd3e),
         _0x25d1a3 = this.textures.get(_0x2ddd3e),
@@ -1456,7 +1304,6 @@
       return this.updateScene(_0x26ef0b, "SkeletalMeshComponent0", _0x21359c, _0x171818.features), _0x25d1a3;
     }
     ["attachBoard"](_0x348777, _0x220e7c, _0x5d4916) {
-      const _0x53cb35 = _0x3d2178;
       void 0 === _0x5d4916 && (_0x5d4916 = []);
       const _0xc48c80 = _0x220e7c.id,
         _0x49078f = _0x483390.library.getScene("board-" + _0xc48c80, {
@@ -1464,7 +1311,6 @@
         }),
         _0x25ab9c = [];
       _0x5d4916.forEach(_0x1ea629 => {
-        const _0x547d3a = _0x53cb35;
         var _0xd245f1;
         return _0x25ab9c.push(...((null === (_0xd245f1 = _0x220e7c.powerups[_0x1ea629 - 1]) || void 0 === _0xd245f1 ? void 0 : _0xd245f1.features) || []));
       });
@@ -1476,15 +1322,13 @@
       _0x193c4c && (_0x193c4c.removeChild(_0x193c4c.container.children[0]), _0x49078f.scale.set(0.009), _0x193c4c.addChild(_0x49078f));
     }
     ["removeBoard"](_0x216acc) {
-      const _0x284452 = _0x3d2178,
-        _0x1dff5b = this.entitiesMap.get(_0x216acc);
+      const _0x1dff5b = this.entitiesMap.get(_0x216acc);
       if (!_0x1dff5b) throw new Error("Character not registered: " + _0x216acc);
       const _0xef598e = _0xe7ec00.a.findEntity(_0x1dff5b, "attachPoint1", 5);
       _0xef598e && _0xef598e.removeChild(_0xef598e.container.children[0]);
     }
   }
   function _0x5b42f0(_0x46eba1, _0x103c17, _0x355a38) {
-    const _0x55706b = _0x3d2178;
     return (_0x103c17 = function (_0x18199b) {
       var _0x56be67 = function (_0x507c98, _0x453a4e) {
         if ("object" != typeof _0x507c98 || null === _0x507c98) return _0x507c98;
@@ -1506,25 +1350,21 @@
   }
   class _0x4f21d9 extends _0x52858a {
     constructor(_0x5ee91c) {
-      const _0x40f6e1 = _0x3d2178;
       super(), _0x5b42f0(this, "shopData", void 0), _0x5b42f0(this, "charId", void 0), _0x5b42f0(this, "outfit", 0), this.charId = _0x5ee91c.charId || _0x5ee91c.thumbId, this.thumbId = _0x5ee91c.thumbId, this.setScene(_0x5ee91c), this.setChar();
     }
     ["play"](_0x14dc35) {
-      const _0x324f90 = _0x3d2178;
       _0x4f21d9.scene.play(this.thumbId, _0x14dc35);
     }
     ["stop"]() {
       _0x4f21d9.scene.stop(this.thumbId);
     }
     ["setChar"](_0xacab83, _0x58c05e, _0xf71f0f) {
-      const _0x4ee308 = _0x3d2178;
       void 0 === _0xacab83 && (_0xacab83 = this.thumbId), void 0 === _0x58c05e && (_0x58c05e = this.charId), void 0 === _0xf71f0f && (_0xf71f0f = this.outfit), this.sprite.texture = _0x4f21d9.scene.getTexture(_0xacab83, _0x58c05e, _0xf71f0f), this.sprite.scale.x = 1, this.sprite.scale.y = -1, this.sprite.anchor.set(0.5, 0), this.shadow.anchor.set(0.5, 1), this.shadow.y = -10;
       const _0x12286a = 0.8 * this.sprite.height,
         _0x3e2deb = 0.5 * this.sprite.width;
       this.hitArea = new _0x2a24d4.Rectangle(-_0x3e2deb / 2, 0.9 * -this.sprite.height, _0x3e2deb, _0x12286a), this.shadow.width = 0.7 * this.sprite.width, this.shadow.scale.y = 0.5 * this.shadow.scale.x, this.charId = _0x58c05e, this.thumbId = _0xacab83, this.outfit = _0xf71f0f;
     }
     ['setScene'](_0x20ef39) {
-      const _0x147191 = _0x3d2178;
       let {
         charId: _0x293724,
         thumbId: _0x4b97d2,
@@ -1547,7 +1387,6 @@
       }
     }
     ["setBoard"](_0x36baeb, _0x5b85bb) {
-      const _0x36ce77 = _0x3d2178;
       void 0 === _0x5b85bb && (_0x5b85bb = []), _0x4f21d9.scene.attachBoard(this.thumbId, _0x36baeb, _0x5b85bb);
     }
   }
@@ -1557,7 +1396,6 @@
     _0xc3a815 = _0x388199(95),
     _0x106cd1 = _0x388199(574);
   function _0x15e705(_0x373fa4, _0x36e4d5, _0x4bd7ff) {
-    const _0x5b2e23 = _0x3d2178;
     return (_0x36e4d5 = function (_0x38e5b3) {
       var _0x49ed0b = function (_0x9d9f43, _0x2858cd) {
         if ("object" != typeof _0x9d9f43 || null === _0x9d9f43) return _0x9d9f43;
@@ -1579,15 +1417,11 @@
   }
   class _0xd11b6 extends _0x2a24d4.Container {
     constructor(_0x23ac48) {
-      const _0x1dfc12 = _0x3d2178;
       super(), _0x15e705(this, 'size', void 0), _0x15e705(this, "maxSlots", void 0), _0x15e705(this, "capMovement", void 0), _0x15e705(this, "snapTo", void 0), _0x15e705(this, "dragging", void 0), _0x15e705(this, 'mouseOver', false), _0x15e705(this, "locked", false), _0x15e705(this, "xEasing", void 0), _0x15e705(this, "xDragOffset", void 0), _0x15e705(this, "xSpeed", void 0), _0x15e705(this, "prevPosition", void 0), _0x15e705(this, "xScrollMin", void 0), _0x15e705(this, "xScrollMax", void 0), _0x15e705(this, "xCheck", 0), _0x15e705(this, "xMoved", void 0), _0x15e705(this, "yEasing", void 0), _0x15e705(this, "yDragOffset", void 0), _0x15e705(this, 'ySpeed', void 0), _0x15e705(this, "prevPositionY", void 0), _0x15e705(this, "yScrollMin", void 0), _0x15e705(this, "yScrollMax", void 0), _0x15e705(this, "yCheck", 0), _0x15e705(this, "yMoved", void 0), _0x15e705(this, "spring", void 0), _0x15e705(this, "targetX", void 0), _0x15e705(this, "targetY", void 0), _0x15e705(this, "onDown", _0x244f0f => {
-        const _0x36e366 = _0x1dfc12;
         this.locked || (this.xSpeed = 0, this.ySpeed = 0, this.stop(), this.xMoved = false, this.yMoved = false, this.xCheck = _0x244f0f.data.global.x, this.yCheck = _0x244f0f.data.global.y, this.dragging = true, this.xDragOffset = _0x244f0f.data.global.x - this.targetX, this.yDragOffset = _0x244f0f.data.global.y - this.targetY);
       }), _0x15e705(this, "onMouseWheel", _0x4dc95a => {
-        const _0x2e3ff7 = _0x1dfc12;
         this.interactive && this.mouseOver && (_0x4dc95a.preventDefault ? _0x4dc95a.preventDefault() : _0x4dc95a.returnValue = false, this.locked || (this.xSpeed = 0.15 * _0x4dc95a.deltaX, this.ySpeed = 0.15 * -_0x4dc95a.deltaY));
       }), _0x15e705(this, "onUp", () => {
-        const _0x4afb3a = _0x1dfc12;
         if (!this.locked) {
           if (this.dragging = false, this.snapTo) {
             let _0x3514fb;
@@ -1596,14 +1430,12 @@
           this.cap();
         }
       }), _0x15e705(this, "onMove", _0x1f4f3b => {
-        const _0xf89ede = _0x1dfc12;
         if (this.locked || !this.dragging) return;
         let _0x3fdec4;
         _0x3fdec4 = Math.abs(this.xCheck - _0x1f4f3b.data.global.x), _0x3fdec4 > 10 && (this.xMoved = true), _0x3fdec4 = Math.abs(this.yCheck - _0x1f4f3b.data.global.y), _0x3fdec4 > 10 && (this.yMoved = true), this.xEasing = _0x1f4f3b.data.global.x - this.xDragOffset, this.yEasing = _0x1f4f3b.data.global.y - this.yDragOffset, this.capMovement && (this.xEasing > this.xScrollMax ? this.xEasing = this.xScrollMax + 0.3 * (this.xEasing - this.xScrollMax) : this.xEasing < this.xScrollMin && (this.xEasing = this.xScrollMin + 0.3 * (this.xEasing - this.xScrollMin)), this.yEasing > this.yScrollMax ? this.yEasing = this.yScrollMax + 0.3 * (this.yEasing - this.yScrollMax) : this.yEasing < this.yScrollMin && (this.yEasing = this.yScrollMin + 0.3 * (this.yEasing - this.yScrollMin)));
       }), this.spring = new _0x106cd1.a(), this.spring.springiness = _0x23ac48.springiness || 0, this.spring.damp = _0x23ac48.damp || 0, this.size = _0x23ac48.size || 1024, this.maxSlots = _0x23ac48.maxSlots || 25, this.dragging = false, this.snapTo = _0x23ac48.snapTo || false, this.capMovement = _0x23ac48.capMovement || true, this.targetX = _0x23ac48.xScrollMin || 0, this.xEasing = 0, this.xDragOffset = 0, this.xSpeed = 0, this.prevPosition = 0, this.xScrollMin = _0x23ac48.xScrollMin || -1 / 0, this.xScrollMax = _0x23ac48.xScrollMax || 0, this.xMoved = false, this.yMoved = false, this.targetY = _0x23ac48.yScrollMin || 0, this.yEasing = 0, this.yDragOffset = 0, this.ySpeed = 0, this.prevPositionY = 0, this.yScrollMin = _0x23ac48.yScrollMin || -1 / 0, this.yScrollMax = _0x23ac48.yScrollMax || 0;
       const _0xe68ad4 = _0x23ac48.target || this;
       _0xe68ad4.interactive = true, _0xe68ad4.on("pointerdown", _0x2d794b => this.onDown(_0x2d794b)), _0xe68ad4.on("pointerup", () => this.onUp()), _0xe68ad4.on("pointerupoutside", () => this.onUp()), _0xe68ad4.on("touchcancel", () => this.onUp()), _0xe68ad4.on("pointermove", _0x4a3ad2 => this.onMove(_0x4a3ad2)), _0xe68ad4.on("pointerover", () => {
-        const _0x360f6f = _0x1dfc12;
         this.mouseOver = true;
       }), _0xe68ad4.on("pointerout", () => {
         this.mouseOver = false;
@@ -1612,15 +1444,12 @@
       });
     }
     ["unlock"]() {
-      const _0x3bae77 = _0x3d2178;
       this.locked && (this.locked = false, this.xSpeed = 0, this.xEasing = this.targetX, this.yEasing = this.targetY, this.xSpeed = 0, this.ySpeed = 0);
     }
     ["lock"]() {
-      const _0x2f8b06 = _0x3d2178;
       this.locked = true;
     }
     ['update']() {
-      const _0x1622fc = _0x3d2178;
       if (this.targetX += 0.3 * (this.xEasing - this.targetX), this.targetY += 0.3 * (this.yEasing - this.targetY), !this.locked) {
         if (this.dragging) {
           let _0xf3a261 = this.xEasing - this.prevPosition;
@@ -1631,24 +1460,19 @@
       }
     }
     ['stop']() {
-      const _0x43e8bf = _0x3d2178;
       this.xSpeed = 0, this.ySpeed = 0, this.targetX = this.prevPosition = this.xEasing, this.targetY = this.prevPositionY = this.yEasing;
     }
     ["setPosition"](_0x4c705, _0x210748) {
-      const _0x4cc185 = _0x3d2178;
       this.targetX = this.xEasing = _0x4c705, this.targetY = this.yEasing = _0x210748;
     }
     ["easeToPosition"](_0x1f7a1f, _0x5ee37b) {
-      const _0x2a5efa = _0x3d2178;
       this.xEasing = _0x1f7a1f, this.yEasing = _0x5ee37b;
     }
     ["cap"]() {
-      const _0x5b5681 = _0x3d2178;
       this.capMovement && (this.snapTo && (this.spring.tx > this.xScrollMax ? this.spring.tx = this.xScrollMax : this.spring.tx < this.xScrollMin && (this.spring.tx = this.xScrollMin)), this.snapTo && (this.spring.ty > this.yScrollMax ? this.spring.ty = this.yScrollMax : this.spring.ty < this.yScrollMin && (this.spring.ty = this.yScrollMin)));
     }
   }
   function _0xff79fc(_0x4129f2, _0x513e4a, _0x224ca3) {
-    const _0x543d69 = _0x3d2178;
     return (_0x513e4a = function (_0x6baf28) {
       var _0x201b69 = function (_0x2ad154, _0x13d553) {
         if ("object" != typeof _0x2ad154 || null === _0x2ad154) return _0x2ad154;
@@ -1670,7 +1494,6 @@
   }
   class _0x48ca6a extends _0xd11b6 {
     constructor(_0x5f3094) {
-      const _0xcf7f9f = _0x3d2178;
       super(_0x5f3094), _0xff79fc(this, "elements", []), _0xff79fc(this, "topBoundary", void 0), _0xff79fc(this, "bottomBoundary", void 0), _0xff79fc(this, 'topY', void 0), _0xff79fc(this, "bottomY", void 0), _0xff79fc(this, 'spacing', 20), _0xff79fc(this, "elementHeight", 35);
       const _0x13fcc8 = new _0x2a24d4.Text('W', {
         fontSize: 40,
@@ -1682,40 +1505,32 @@
       this.elements.push(_0x3d17f7);
       let _0x34a24b = this.elementHeight + this.spacing;
       this.elements.push(..._0x5f3094.elements.map(_0x11f947 => {
-        const _0x18980f = _0xcf7f9f,
-          _0x2752d8 = this.addChild(new _0x2a24d4.Text(_0x11f947, {
-            fontSize: 45,
-            fill: 4949670,
-            fontFamily: 'Lilita\x20One'
-          }));
+        const _0x2752d8 = this.addChild(new _0x2a24d4.Text(_0x11f947, {
+          fontSize: 45,
+          fill: 4949670,
+          fontFamily: 'Lilita\x20One'
+        }));
         return _0x2752d8.anchor.set(0.5), _0x2752d8.y = _0x34a24b, _0x34a24b += this.elementHeight + this.spacing, _0x2752d8;
       })), this.topBoundary = _0x5f3094.topBoundary, this.bottomBoundary = _0x5f3094.bottomBoundary, this.topY = -this.elementHeight - this.spacing, this.bottomY = this.height + this.spacing, this.refresh(0.1);
     }
     ["updateTransform"]() {
-      const _0x53c71a = _0x3d2178;
       super.updateTransform(), this.update(), this.refresh(this.ySpeed), this.y = this.targetY;
     }
     ["refresh"](_0x213a0f) {
-      const _0xa6908a = _0x3d2178;
       _0x213a0f > 0.02 ? this.elements.filter(_0x1dd119 => this.y + _0x1dd119.y > this.bottomBoundary).sort((_0x1c3fd0, _0x13a921) => _0x13a921.y - _0x1c3fd0.y).forEach(_0x6a271a => {
-        const _0x419421 = _0xa6908a;
         _0x6a271a.y = this.topY, this.topY -= this.elementHeight + this.spacing, this.bottomY -= this.elementHeight + this.spacing;
       }) : _0x213a0f < -0.02 && this.elements.filter(_0x4876d0 => this.y + _0x4876d0.y + this.elementHeight < this.topBoundary).sort((_0x2bacc9, _0x28f76b) => _0x2bacc9.y - _0x28f76b.y).forEach(_0x28eb1a => {
-        const _0x2b28d7 = _0xa6908a;
         _0x28eb1a.y = this.bottomY, this.bottomY += this.elementHeight + this.spacing, this.topY += this.elementHeight + this.spacing;
       });
     }
     ["goToPrevious"]() {
-      const _0x75d799 = _0x3d2178;
       this.yEasing += this.elementHeight + this.spacing, this.refresh(0.1);
     }
     ["goToNext"]() {
-      const _0x1e0394 = _0x3d2178;
       this.yEasing -= this.elementHeight + this.spacing, this.refresh(-0.1);
     }
   }
   function _0x43bd3b(_0x1e8efc, _0x55a939, _0x243b5a) {
-    const _0x1f1085 = _0x3d2178;
     return (_0x55a939 = function (_0x555874) {
       var _0x15dfb4 = function (_0x381514, _0x2923a6) {
         if ("object" != typeof _0x381514 || null === _0x381514) return _0x381514;
@@ -1737,7 +1552,6 @@
   }
   class _0x1696c5 extends _0x2a24d4.Container {
     constructor(_0xf5c359) {
-      const _0x2d78d3 = _0x3d2178;
       super(), _0x43bd3b(this, "monthScroller", void 0), _0x43bd3b(this, "current", -1), _0x43bd3b(this, "selector", void 0), _0x43bd3b(this, "onElementSelected", new _0x3eb645.Signal());
       const _0x2ea5c5 = 380,
         _0x22207f = this.addChild(_0x4b8db5.a.rectColor({
@@ -1748,20 +1562,16 @@
         })),
         _0x36e1c0 = this.addChild(_0x2a24d4.Sprite.from("button-arrow-down.png"));
       _0x36e1c0.scale.set(0.75), _0x36e1c0.anchor.x = 0.5, _0x36e1c0.y = 205, _0x36e1c0.interactive = true, _0x36e1c0.buttonMode = true, _0x36e1c0.on("pointerdown", () => {
-        const _0x587ca9 = _0x2d78d3;
         _0x36e1c0.tint = 11184810, this.monthScroller.goToPrevious();
       }), _0x36e1c0.on("pointerup", () => {
-        const _0x478093 = _0x2d78d3;
         _0x36e1c0.tint = 16777215;
       }), _0x36e1c0.on("pointerout", () => {
         _0x36e1c0.tint = 16777215;
       });
       const _0x3ed768 = this.addChild(_0x2a24d4.Sprite.from("button-arrow-down.png"));
       _0x3ed768.scale.set(0.75), _0x3ed768.anchor.x = 0.5, _0x3ed768.rotation = Math.PI, _0x3ed768.y = -205, _0x3ed768.interactive = true, _0x3ed768.buttonMode = true, _0x3ed768.on("pointerdown", () => {
-        const _0x1bfa4b = _0x2d78d3;
         _0x3ed768.tint = 11184810, this.monthScroller.goToNext();
       }), _0x3ed768.on("pointerup", () => {
-        const _0x5890a5 = _0x2d78d3;
         _0x3ed768.tint = 16777215;
       }), _0x3ed768.on('pointerout', () => {
         _0x3ed768.tint = 16777215;
@@ -1782,11 +1592,9 @@
       })), this.monthScroller.mask = _0x1502a1, this.selector = this.addChild(new _0x2a24d4.Graphics().beginFill(16711680, 0.001).drawRect(-100, -25, 200, 50));
     }
     ["updateTransform"]() {
-      const _0x289427 = _0x3d2178;
       super.updateTransform();
       const _0x37cab8 = this.monthScroller.elements;
       _0x37cab8.forEach((_0x4194c9, _0x5509e0) => {
-        const _0x477afc = _0x289427;
         if (this.selector.containsPoint(_0x4194c9.toGlobal(this.selector.position)) && _0x5509e0 !== this.current) {
           if (-1 !== this.current) {
             const _0x1270e2 = _0x37cab8[this.current];
@@ -1818,7 +1626,6 @@
             },
             ease: _0x346c5e.c.easeInOut
           }) : _0x4194c9.children.forEach(_0x430c04 => {
-            const _0x9cf2fa = _0x477afc;
             _0x346c5e.g.to(_0x430c04, 0.25, {
               pixi: {
                 tint: 600659
@@ -1831,7 +1638,6 @@
     }
   }
   function _0x4f96a4(_0x53cb45, _0x29f723, _0x571cea) {
-    const _0x4cba72 = _0x3d2178;
     return (_0x29f723 = function (_0x5f5045) {
       var _0x402b1c = function (_0x55d29a, _0x4c8b2b) {
         if ('object' != typeof _0x55d29a || null === _0x55d29a) return _0x55d29a;
@@ -1853,7 +1659,6 @@
   }
   class _0x79eab7 extends _0x2a24d4.Container {
     constructor() {
-      const _0x482e26 = _0x3d2178;
       super(), _0x4f96a4(this, "current", -1), _0x4f96a4(this, "selector", void 0), _0x4f96a4(this, "elements", []), _0x4f96a4(this, "onElementSelected", new _0x3eb645.Signal()), _0x4f96a4(this, 'spacing', 20), _0x4f96a4(this, "elementHeight", 35), _0x4f96a4(this, 'scroller', void 0), _0x4f96a4(this, 'dashIndex', void 0);
       const _0x117496 = new _0x2a24d4.Text('W', {
         fontSize: 40,
@@ -1875,23 +1680,18 @@
       }));
       const _0x56db94 = this.addChild(_0x2a24d4.Sprite.from("button-arrow-down.png"));
       _0x56db94.scale.set(0.75), _0x56db94.anchor.x = 0.5, _0x56db94.y = 205, _0x56db94.interactive = true, _0x56db94.buttonMode = true, _0x56db94.on("pointerdown", () => {
-        const _0x3e0375 = _0x482e26;
         _0x56db94.tint = 11184810, this.goToPrevious();
       }), _0x56db94.on('pointerup', () => {
-        const _0x45e978 = _0x482e26;
         _0x56db94.tint = 16777215;
       }), _0x56db94.on('pointerout', () => {
-        const _0x458fa2 = _0x482e26;
         _0x56db94.tint = 16777215;
       });
       const _0x545847 = this.addChild(_0x2a24d4.Sprite.from("button-arrow-down.png"));
       _0x545847.scale.set(0.75), _0x545847.anchor.x = 0.5, _0x545847.rotation = Math.PI, _0x545847.y = -205, _0x545847.interactive = true, _0x545847.buttonMode = true, _0x545847.on("pointerdown", () => {
-        const _0x4dd271 = _0x482e26;
         _0x545847.tint = 11184810, this.goToNext();
       }), _0x545847.on('pointerup', () => {
         _0x545847.tint = 16777215;
       }), _0x545847.on('pointerout', () => {
-        const _0x7a9fa7 = _0x482e26;
         _0x545847.tint = 16777215;
       });
       let _0x3462a2 = 0;
@@ -1922,11 +1722,9 @@
       })), this.selector = this.addChild(new _0x2a24d4.Graphics().beginFill(16711680, 0.001).drawRect(-100, -25, 200, 50)), this.scroller.yScrollMin = -this.scroller.height + this.elementHeight, this.scroller.targetY = this.scroller.yEasing = -_0x38084e.y;
     }
     ["updateTransform"]() {
-      const _0x1f96d7 = _0x3d2178;
       super.updateTransform();
       const _0x309369 = this.elements;
       _0x309369.forEach((_0x235d3a, _0x207493) => {
-        const _0x1bc893 = _0x1f96d7;
         if (this.selector.containsPoint(_0x235d3a.toGlobal(this.selector.position)) && _0x207493 !== this.current) {
           if (-1 !== this.current) {
             const _0xdb4713 = _0x309369[this.current];
@@ -1940,7 +1738,6 @@
               },
               ease: _0x346c5e.c.easeInOut
             }) : _0xdb4713.children.forEach(_0x175abc => {
-              const _0x2c95f2 = _0x1bc893;
               _0x346c5e.g.to(_0x175abc, 0.25, {
                 pixi: {
                   tint: 16777215
@@ -1970,16 +1767,13 @@
       }), this.scroller.update(), this.scroller.y = this.scroller.targetY;
     }
     ["goToPrevious"]() {
-      const _0x1e2df3 = _0x3d2178;
       this.scroller.yEasing += this.elementHeight + this.spacing;
     }
     ["goToNext"]() {
-      const _0x26502e = _0x3d2178;
       this.scroller.yEasing -= this.elementHeight + this.spacing;
     }
   }
   function _0xdb1cbd(_0x240b23, _0x337df0, _0x16a412) {
-    const _0x431c50 = _0x3d2178;
     return (_0x337df0 = function (_0x52e4e8) {
       var _0x4e2ad1 = function (_0x1a1d5c, _0x2e8e79) {
         if ('object' != typeof _0x1a1d5c || null === _0x1a1d5c) return _0x1a1d5c;
@@ -2001,11 +1795,9 @@
   }
   class _0x235449 extends _0x3ed41f.a {
     constructor() {
-      const _0x32c7b1 = _0x3d2178;
       super(...arguments), _0xdb1cbd(this, 'w', 0), _0xdb1cbd(this, 'h', 0), _0xdb1cbd(this, "panel", void 0), _0xdb1cbd(this, 'bg', void 0), _0xdb1cbd(this, "confirmButton", void 0), _0xdb1cbd(this, "title", void 0), _0xdb1cbd(this, "monthScroller", void 0), _0xdb1cbd(this, "yearScroller", void 0), _0xdb1cbd(this, "character", void 0), _0xdb1cbd(this, "month", -1), _0xdb1cbd(this, 'year', -1), _0xdb1cbd(this, "age", 0);
     }
     ['onBuild']() {
-      const _0x28e5ac = _0x3d2178;
       var _0x1dc401;
       const _0x160ad3 = {
           base: _0x4b8db5.a.rectComp({
@@ -2036,7 +1828,6 @@
           labelFont: "Lilita One",
           labelShadow: 3,
           onTap: () => {
-            const _0x4978b9 = _0x28e5ac;
             _0x483390.nav.toIdleScreen("consentPanel", {
               age: this.age
             });
@@ -2061,10 +1852,8 @@
         anchorX: 0.5,
         anchorY: 0.5
       })), this.title.y = -this.panel.height / 2 + this.title.height + 50, this.confirmButton = this.addChild(new _0x42c18f.a(_0x160ad3)), null === (_0x1dc401 = this.confirmButton.base) || void 0 === _0x1dc401 || _0x1dc401.scale.set(1), this.confirmButton.y = this.panel.height / 2 - this.confirmButton.height, this.monthScroller = this.addChild(new _0x1696c5(["Jan", 'Feb', "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", 'Oct', "Nov", "Dec"])), this.monthScroller.x = 110 - this.panel.width / 2, this.monthScroller.y = -30, this.yearScroller = this.addChild(new _0x79eab7()), this.yearScroller.x = this.monthScroller.x + 160 + 15, this.yearScroller.y = -30, this.monthScroller.onElementSelected.add(_0x4a749b => {
-        const _0x43980b = _0x28e5ac;
         this.month = _0x4a749b - 1, this.age = this.getAge(), this.age > 0 ? this.confirmButton.setup(_0x4f9796) : this.confirmButton.setup(_0x160ad3);
       }), this.yearScroller.onElementSelected.add(_0xffc1c5 => {
-        const _0x22cacf = _0x28e5ac;
         this.year = _0xffc1c5 > 0 ? _0xffc1c5 : -1, this.age = this.getAge(), this.age > 0 ? this.confirmButton.setup(_0x4f9796) : this.confirmButton.setup(_0x160ad3);
       });
       const [_0x240e69, _0x29a80d] = _0x3bb85d.a.idle.clips.popupIdle.frames,
@@ -2082,15 +1871,12 @@
       this.character = this.addChild(new _0x4f21d9(_0x3c34f0)), this.character.x = 180, this.character.scale.set(1.5), this.character.y = 300, this.character.play("uiIdle");
     }
     ["onOpen"]() {
-      const _0x39a3d2 = _0x3d2178;
       this.character.play('uiIdle');
     }
     ["onClose"]() {
-      const _0xd10e = _0x3d2178;
       this.character.stop();
     }
     ['getAge']() {
-      const _0xa5fd75 = _0x3d2178;
       if (-1 !== this.month && -1 !== this.year) {
         const _0x2e46fa = new Date(),
           _0x269ee6 = _0x2e46fa.getMonth() - this.month;
@@ -2100,13 +1886,11 @@
       return 0;
     }
     ["onResize"]() {
-      const _0x563627 = _0x3d2178;
       this.w = this.viewportWidth, this.h = this.viewportHeight, this.x = 0.5 * this.w, this.y = 0.5 * this.h, this.bg.resize(this.w, this.h);
     }
   }
   var _0x5aae70 = _0x388199(23);
   function _0x468f40(_0x414601, _0x22dacb, _0x129197) {
-    const _0x3d0163 = _0x3d2178;
     return (_0x22dacb = function (_0x2be94d) {
       var _0x187c03 = function (_0x56c750, _0x5e8fd9) {
         if ("object" != typeof _0x56c750 || null === _0x56c750) return _0x56c750;
@@ -2128,11 +1912,9 @@
   }
   class _0x5d9d3d extends _0x3ed41f.a {
     constructor() {
-      const _0x5345af = _0x3d2178;
       super(...arguments), _0x468f40(this, 'w', 0), _0x468f40(this, 'h', 0), _0x468f40(this, 'panel', void 0), _0x468f40(this, 'bg', void 0), _0x468f40(this, "confirmButton", void 0), _0x468f40(this, "toggleButton", void 0), _0x468f40(this, "age", void 0), _0x468f40(this, "check", void 0), _0x468f40(this, 'toggled', false);
     }
     ["onBuild"]() {
-      const _0x5a6683 = _0x3d2178;
       var _0x2ebab5, _0x2dff75;
       const _0x1fc289 = {
           base: _0x4b8db5.a.rectComp({
@@ -2163,7 +1945,6 @@
           labelFont: "Lilita One",
           labelShadow: 3,
           onTap: () => {
-            const _0x5030a7 = _0x5a6683;
             _0x5aae70.a.SDK.togglePlayerAdvertisingConsent(true, this.age), _0x483390.user.gameSettings.adConsent = true, _0x483390.user.save(), _0x483390.nav.toIdleScreen("title");
           }
         };
@@ -2222,7 +2003,6 @@
         labelFont: "Lilita One",
         labelShadow: 3,
         onTap: () => {
-          const _0x10db7d = _0x5a6683;
           this.check.visible = !this.check.visible, _0x34d04a.label = this.toggled ? 'accept' : "accepted", _0x34d04a.base = this.toggled ? null : _0x4b8db5.a.rectComp({
             w: 592,
             h: 102,
@@ -2251,11 +2031,9 @@
       _0x5f383d.x = -75, _0x5f383d.y = this.toggleButton.y, this.check = _0x5f383d.addChild(_0x2a24d4.Sprite.from("checkmark-icon.png")), this.check.scale.set(1.2), this.check.anchor.set(0.5), this.check.visible = false;
     }
     ['onOpen'](_0x29c521) {
-      const _0x521925 = _0x3d2178;
       this.age = _0x29c521.age;
     }
     ['onResize']() {
-      const _0x45e073 = _0x3d2178;
       this.w = this.viewportWidth, this.h = this.viewportHeight, this.x = 0.5 * this.w, this.y = 0.5 * this.h, this.bg.resize(this.w, this.h);
     }
   }
@@ -2264,7 +2042,6 @@
     _0x1b64c6 = _0x388199(96),
     _0x309bcf = _0x388199(51);
   function _0x475440(_0x4ec439, _0x45eabb, _0x44bd5c) {
-    const _0xc307a = _0x3d2178;
     return (_0x45eabb = function (_0x408d80) {
       var _0x25ac9c = function (_0x17e7aa, _0x342ae2) {
         if ('object' != typeof _0x17e7aa || null === _0x17e7aa) return _0x17e7aa;
@@ -2286,7 +2063,6 @@
   }
   class _0xa0038b extends _0x2a24d4.Container {
     constructor() {
-      const _0x42ebbd = _0x3d2178;
       super(), _0x475440(this, "label", void 0), this.label = new _0x309bcf.a('0', {
         align: "left",
         anchor: 0,
@@ -2299,16 +2075,13 @@
       }), this.addChild(this.label);
     }
     get ["keys"]() {
-      const _0x2f6857 = _0x3d2178;
       return Number.parseInt(this.label.text, 10);
     }
     set ["keys"](_0x323c2f) {
-      const _0x2c20a9 = _0x3d2178;
       this.label.text = String(_0x323c2f);
     }
   }
   function _0x303b60(_0x4f3349, _0x2eee50, _0xc8a7fe) {
-    const _0x9f5257 = _0x3d2178;
     return (_0x2eee50 = function (_0x5a4e48) {
       var _0x5028ca = function (_0x5516e0, _0x184179) {
         if ("object" != typeof _0x5516e0 || null === _0x5516e0) return _0x5516e0;
@@ -2330,46 +2103,37 @@
   }
   class _0x4b354d extends _0x2a24d4.Container {
     constructor() {
-      const _0x5df7cc = _0x3d2178;
       super(), _0x303b60(this, "onRefresh", new _0x3eb645.Signal()), _0x303b60(this, 'base', void 0), _0x303b60(this, "coinsTag", new _0x1b64c6.a()), _0x303b60(this, "keysTag", new _0xa0038b()), _0x303b60(this, "spacing", 10), this.base = new _0x2a24d4.NineSlicePlane(_0x2a24d4.Texture.from("base-grey.png"), 10, 10, 10, 10), this.addChild(this.base), this.base.x = 0, this.addChild(this.base), this.addChild(this.coinsTag), this.addChild(this.keysTag);
       const _0x567b69 = _0x483390.user;
       _0x567b69.onGameSettingsChange.add(() => {
-        const _0x53fc1a = _0x5df7cc;
         this.tweenCoins(_0x567b69.coins), this.tweenKeys(_0x567b69.keys);
       });
     }
     get ['keys']() {
-      const _0x5b74ae = _0x3d2178;
       return this.keysTag.keys;
     }
     set ["keys"](_0x473cf1) {
-      const _0x213e11 = _0x3d2178;
       this.keys !== _0x473cf1 && (this.keysTag.keys = Math.round(_0x473cf1), this.refresh());
     }
     get ["coins"]() {
-      const _0x23e5d1 = _0x3d2178;
       return this.coinsTag.coins;
     }
     set ["coins"](_0x10304c) {
-      const _0x5d15a1 = _0x3d2178;
       this.coins !== _0x10304c && (0 !== this.coins && this.worldVisible && Object(_0xb127aa.a)(_0x483390.sound.play, 150, _0x483390.sound)("gui-coin"), this.coinsTag.coins = Math.round(_0x10304c), this.refresh());
     }
     ['tweenCoins'](_0x17dd9e) {
-      const _0x3091da = _0x3d2178,
-        _0x59028f = _0x4f0763.a.clamp(0.2 * Math.abs(_0x17dd9e - this.coins), 0.2, 1);
+      const _0x59028f = _0x4f0763.a.clamp(0.2 * Math.abs(_0x17dd9e - this.coins), 0.2, 1);
       _0x346c5e.g.to(this, _0x59028f, {
         coins: _0x17dd9e
       });
     }
     ["tweenKeys"](_0x1c87c8) {
-      const _0x17d662 = _0x3d2178,
-        _0x46b8bd = _0x4f0763.a.clamp(0.2 * Math.abs(_0x1c87c8 - this.keys), 0.2, 1);
+      const _0x46b8bd = _0x4f0763.a.clamp(0.2 * Math.abs(_0x1c87c8 - this.keys), 0.2, 1);
       _0x346c5e.g.to(this, _0x46b8bd, {
         keys: _0x1c87c8
       });
     }
     ["refresh"]() {
-      const _0x104113 = _0x3d2178;
       var _0x385b4c, _0x58134e;
       this.base.width = Number(this.coinsTag.visible) * this.coinsTag.width + Number(this.keysTag.visible) * (this.keysTag.width + this.spacing) + 2 * this.spacing;
       const _0x2aae82 = (null === (_0x385b4c = this.coinsTag.label.icon) || void 0 === _0x385b4c ? void 0 : _0x385b4c.width) || 0,
@@ -2380,19 +2144,16 @@
   var _0x3dd0fd = _0x388199(70),
     _0x2a5def = _0x388199(28);
   function _0x8351d8(_0x4d4433, _0x396eb1) {
-    const _0x35bdfb = _0x3d2178;
     var _0x1e66cb = Object.keys(_0x4d4433);
     if (Object.getOwnPropertySymbols) {
       var _0x51ca06 = Object.getOwnPropertySymbols(_0x4d4433);
       _0x396eb1 && (_0x51ca06 = _0x51ca06.filter(function (_0x29afb9) {
-        const _0x43c0e6 = _0x35bdfb;
         return Object.getOwnPropertyDescriptor(_0x4d4433, _0x29afb9).enumerable;
       })), _0x1e66cb.push.apply(_0x1e66cb, _0x51ca06);
     }
     return _0x1e66cb;
   }
   function _0x3ccf93(_0x342691, _0xac5da6, _0x4a6911) {
-    const _0x31cdae = _0x3d2178;
     return (_0xac5da6 = function (_0x31738d) {
       var _0x424a38 = function (_0x4f867a, _0x110b54) {
         if ("object" != typeof _0x4f867a || null === _0x4f867a) return _0x4f867a;
@@ -2414,7 +2175,6 @@
   }
   class _0x58737b extends _0x2a5def.a {
     constructor(_0x4f73a2) {
-      const _0x4cfa9f = _0x3d2178;
       void 0 === _0x4f73a2 && (_0x4f73a2 = {});
       const _0x2c2ad5 = _0x4f73a2.w || 172,
         _0x30e7a2 = _0x4f73a2.h || 64;
@@ -2424,7 +2184,6 @@
           _0x1edfb8 % 2 ? _0x8351d8(Object(_0x31acac), true).forEach(function (_0x24ed0e) {
             _0x3ccf93(_0x5aadd5, _0x24ed0e, _0x31acac[_0x24ed0e]);
           }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x5aadd5, Object.getOwnPropertyDescriptors(_0x31acac)) : _0x8351d8(Object(_0x31acac)).forEach(function (_0xf9ca4a) {
-            const _0x32c69c = _0x361c26;
             Object.defineProperty(_0x5aadd5, _0xf9ca4a, Object.getOwnPropertyDescriptor(_0x31acac, _0xf9ca4a));
           });
         }
@@ -2455,20 +2214,16 @@
       }), this._value.anchor.set(0.5), this.addChild(this._value);
     }
     get ["value"]() {
-      const _0x4dba1f = _0x3d2178;
       return Number(this._value.text);
     }
     set ["value"](_0x4579f9) {
-      const _0x3e0831 = _0x3d2178;
       this._value.text = String(_0x4579f9), this.update();
     }
     ['update'](_0x171b79) {
-      const _0x5f1f40 = _0x3d2178;
       void 0 === _0x171b79 && (_0x171b79 = {}), this.setup(_0x171b79), this.icon && (this.icon.scale.set(0.75), this._value.x = this.icon.visible ? 18 : 0, this.icon.x = -this._value.width / 2 - 5), this.addChild(this._value), this._value.y = 2;
     }
   }
   function _0x1aaf52(_0x588e3e, _0x4c1bf8, _0x1cafd6) {
-    const _0x4c575e = _0x3d2178;
     return (_0x4c1bf8 = function (_0x122f38) {
       var _0x43937b = function (_0xafb2f3, _0x20587f) {
         if ("object" != typeof _0xafb2f3 || null === _0xafb2f3) return _0xafb2f3;
@@ -2490,7 +2245,6 @@
   }
   class _0x25ea14 extends _0x2a24d4.Container {
     constructor(_0x391172) {
-      const _0x389fde = _0x3d2178;
       void 0 === _0x391172 && (_0x391172 = 0), super(), _0x1aaf52(this, "counter", void 0), _0x1aaf52(this, "slot", 0), _0x1aaf52(this, "maxSlot", 6), this.counter = _0x2a24d4.Sprite.from("upgrades-slot.png"), _0x4b8db5.a.roundRectBorder({
         w: 300,
         h: 30,
@@ -2503,7 +2257,6 @@
       for (let _0x426782 = 0; _0x426782 < _0x391172; _0x426782++) this.setNextSlot();
     }
     ["setNextSlot"]() {
-      const _0x50a1c9 = _0x3d2178;
       if (this.slot === this.maxSlot) return;
       const _0x4d20d5 = _0x4b8db5.a.rect({
         w: 28,
@@ -2516,12 +2269,10 @@
       this.addChild(_0x4d20d5), this.slot++;
     }
     ['setLevel'](_0x125541) {
-      const _0x5d3db9 = _0x3d2178;
       for (let _0x74bbfb = this.slot; _0x74bbfb < _0x125541; _0x74bbfb++) this.setNextSlot();
     }
   }
   function _0x5a7da7(_0x130aca, _0x55c52c, _0x15c4a6) {
-    const _0x4f8636 = _0x3d2178;
     return (_0x55c52c = function (_0x5c3c8b) {
       var _0x5036d0 = function (_0x22e0b2, _0x342d00) {
         if ('object' != typeof _0x22e0b2 || null === _0x22e0b2) return _0x22e0b2;
@@ -2543,14 +2294,11 @@
   }
   class _0xa0b0df extends _0x2a24d4.Container {
     constructor(_0x1b1c6a) {
-      const _0x4b7681 = _0x3d2178;
       super(), _0x5a7da7(this, "base", void 0), _0x5a7da7(this, "toggled", false), _0x5a7da7(this, "onUserTap", new _0x3eb645.Signal()), _0x5a7da7(this, "header", void 0), _0x5a7da7(this, "subHeader", void 0), _0x5a7da7(this, "body", void 0), _0x5a7da7(this, 'type', void 0), _0x5a7da7(this, "upgradeCounter", void 0), _0x5a7da7(this, 'icon', void 0), _0x5a7da7(this, "targetMiddleHeight", void 0), _0x5a7da7(this, "initMiddleHeight", void 0), _0x5a7da7(this, "coinsTag", void 0), _0x5a7da7(this, "hint", void 0), _0x5a7da7(this, "buyButton", void 0), _0x5a7da7(this, "tappableArea", void 0), _0x5a7da7(this, 'data', void 0), _0x5a7da7(this, "onTap", () => {
-        const _0x23c8b4 = _0x4b7681;
         _0xa0b0df.allModules.forEach(_0x12cc94 => {
           _0x12cc94 !== this && _0x12cc94.close();
         }), this.toggle(), this.onUserTap.dispatch();
       }), _0x5a7da7(this, 'onBuy', async () => {
-        const _0xb4341 = _0x4b7681;
         (await _0x483390.shop.purchase(this.data)) && this.refresh();
       }), _0xa0b0df.allModules || (_0xa0b0df.allModules = []), _0xa0b0df.allModules.push(this), this.tappableArea = this.addChild(new _0x2a24d4.Container()), this.data = _0x1b1c6a, this.type = _0x1b1c6a.subType;
       const _0x52cf1b = _0x2a24d4.Sprite.from("upgrade-panel-top.png"),
@@ -2600,16 +2348,13 @@
       }), -1 !== _0x1b1c6a.cost && this.addChild(this.buyButton), this.buyButton.value = _0x1b1c6a.cost, this.buyButton.x = _0x86ba53 / 2 - this.buyButton.width / 2 - 15, this.buyButton.y = this.targetMiddleHeight - 70, this.buyButton.visible = false, this.tappableArea.interactive = true, this.tappableArea.buttonMode = true, this.tappableArea.addListener("pointertap", this.onTap);
     }
     ['makeLabel'](_0x323653, _0x466915) {
-      const _0x410784 = _0x3d2178;
       return this.tappableArea.addChild(new _0x5dc8d3.a(_0x323653, _0x466915));
     }
     ["close"]() {
-      const _0x12a93c = _0x3d2178;
       this.toggled && this.toggle();
     }
     ["toggle"]() {
-      const _0x1907ce = _0x3d2178,
-        [_0x1be575, _0x3b9d73, _0x11a6e2] = this.base.children,
+      const [_0x1be575, _0x3b9d73, _0x11a6e2] = this.base.children,
         _0x275161 = this.toggled ? 1 : this.targetMiddleHeight / this.initMiddleHeight,
         _0x13a5b7 = this.toggled;
       _0x346c5e.g.to(_0x3b9d73.scale, 0.15, {
@@ -2617,12 +2362,10 @@
         overwrite: true,
         ease: _0x346c5e.a.easeOut,
         onUpdate: () => {
-          const _0x124521 = _0x1907ce,
-            _0x3d52ec = 1 + _0x3b9d73.scale.y;
+          const _0x3d52ec = 1 + _0x3b9d73.scale.y;
           _0x3b9d73.y = _0x1be575.height - _0x3d52ec, _0x11a6e2.y = _0x3b9d73.height + _0x3b9d73.y - _0x3d52ec, this.tappableArea.hitArea = new _0x2a24d4.Rectangle(this.base.x, this.base.y, this.base.width, this.base.height);
         },
         onStart: () => {
-          const _0x44cd96 = _0x1907ce;
           _0x13a5b7 ? (this.hint.visible = true, _0x346c5e.g.to(this.hint, 0.15, {
             alpha: 1,
             overwrite: true
@@ -2640,7 +2383,6 @@
       }), this.toggled = !this.toggled;
     }
     ["getAmountPurchased"]() {
-      const _0x154ca6 = _0x3d2178;
       try {
         return _0x483390.user[this.data.type][this.data.subType][this.data.id];
       } catch (_0x5b0794) {
@@ -2648,7 +2390,6 @@
       }
     }
     ["refresh"]() {
-      const _0x407af0 = _0x3d2178;
       if (this.subHeader) {
         const _0x7519ff = this.getAmountPurchased();
         this.subHeader.options.params = {
@@ -2668,7 +2409,6 @@
     }
   }
   function _0x36ffe6(_0x2bd529, _0x59ecd1, _0x500171) {
-    const _0x30fc17 = _0x3d2178;
     return (_0x59ecd1 = function (_0x37906b) {
       var _0x24bb32 = function (_0xeba94, _0x2041c4) {
         if ('object' != typeof _0xeba94 || null === _0xeba94) return _0xeba94;
@@ -2691,17 +2431,14 @@
   _0x5a7da7(_0xa0b0df, "allModules", void 0);
   class _0x22ff9d extends _0xd11b6 {
     constructor(_0x2ad268) {
-      const _0x554647 = _0x3d2178;
       super(_0x2ad268), _0x36ffe6(this, "consumablesTitle", void 0), _0x36ffe6(this, "permanentsTitle", void 0), _0x36ffe6(this, "consumables", []), _0x36ffe6(this, "permanents", []), _0x36ffe6(this, 'spacing', 10), this.consumablesTitle = this.makeTitle("consumables-title"), this.consumables = _0x2ad268.consumables.map(_0x230008 => this.addChild(new _0xa0b0df(_0x230008))), this.permanentsTitle = this.makeTitle("permanents-title"), this.permanents = _0x2ad268.permanents.map(_0x139644 => this.addChild(new _0xa0b0df(_0x139644)));
       const _0x2d0049 = new _0x2a24d4.Graphics().beginFill(4095, 0.001).drawRect(-this.width / 2, -this.consumablesTitle.height / 2 - 15, this.width, this.height);
       this.addChildAt(_0x2d0049, 0);
     }
     ["updateTransform"]() {
-      const _0x30c950 = _0x3d2178;
       super.updateTransform(), this.update(), this.y = this.targetY, this.refresh();
     }
     ['makeTitle'](_0x36acb3) {
-      const _0x17eea5 = _0x3d2178;
       return this.addChild(new _0x5dc8d3.a(_0x36acb3, {
         align: "left",
         fill: 19072,
@@ -2713,8 +2450,7 @@
       }));
     }
     ["easeToSlot"](_0x486e97) {
-      const _0x2e34d3 = _0x3d2178,
-        {
+      const {
           yScrollMin: _0xe0f60,
           yScrollMax: _0x279cde
         } = this,
@@ -2723,8 +2459,7 @@
       super.easeToPosition(_0x299514, 0);
     }
     ["getSlotIndex"]() {
-      const _0x50fa27 = _0x3d2178,
-        {
+      const {
           yScrollMin: _0x5c9191,
           yScrollMax: _0xe0e606,
           maxSlots: _0x3feb4a,
@@ -2735,18 +2470,14 @@
       return _0x536162 = Math.min(_0x536162 + 2 * _0x49d635, _0x49d635 * (_0x3feb4a - 3)), Math.floor(_0x536162 / _0x49d635);
     }
     ["refresh"]() {
-      const _0x1ab475 = _0x3d2178;
       let _0x205ea0 = 10;
       this.consumablesTitle.y = _0x205ea0, _0x205ea0 += this.consumablesTitle.height, this.consumables.forEach(_0x1efdb3 => {
-        const _0x4569b2 = _0x1ab475;
         _0x1efdb3.y = _0x205ea0, _0x205ea0 += _0x1efdb3.height + this.spacing;
       }), this.permanentsTitle.y = _0x205ea0 + 10, _0x205ea0 += this.permanentsTitle.height + 10, this.permanents.forEach(_0x20672f => {
-        const _0x289d68 = _0x1ab475;
         _0x20672f.y = _0x205ea0, _0x205ea0 += _0x20672f.height + this.spacing;
       });
     }
     ["refreshItems"]() {
-      const _0x5a0367 = _0x3d2178;
       this.consumables.forEach(_0x22afcd => _0x22afcd.refresh()), this.permanents.forEach(_0x3d4f59 => _0x3d4f59.refresh());
     }
   }
@@ -2764,7 +2495,6 @@
   };
   class _0x3ba727 extends _0x2a24d4.Container {
     constructor() {
-      const _0x17d342 = _0x3d2178;
       super();
       const _0x387606 = this.addChild(new _0x5dc8d3.a("get-free-stuff", {
         align: "left",
@@ -2782,7 +2512,6 @@
           _0x11ba98 = this.addChild(new _0x2a5def.a({
             base: _0x2a24d4.Sprite.from("freestuff-module-panel.png"),
             onTap: async () => {
-              const _0x89d7e1 = _0x17d342;
               (await _0x5aae70.a.SDK.rewardedBreak({
                 type: "freeStuffShop",
                 prize: _0x94909e
@@ -2812,32 +2541,27 @@
     }
   }
   function _0x1946c4(_0xbd7261, _0x4542a1) {
-    const _0x41fbc7 = _0x3d2178;
     var _0x811efc = Object.keys(_0xbd7261);
     if (Object.getOwnPropertySymbols) {
       var _0x361094 = Object.getOwnPropertySymbols(_0xbd7261);
       _0x4542a1 && (_0x361094 = _0x361094.filter(function (_0x3d12b4) {
-        const _0x5edb66 = _0x41fbc7;
         return Object.getOwnPropertyDescriptor(_0xbd7261, _0x3d12b4).enumerable;
       })), _0x811efc.push.apply(_0x811efc, _0x361094);
     }
     return _0x811efc;
   }
   function _0x51db43(_0x46d040) {
-    const _0x277150 = _0x3d2178;
     for (var _0x33c34a = 1; _0x33c34a < arguments.length; _0x33c34a++) {
       var _0x3b8c1e = null != arguments[_0x33c34a] ? arguments[_0x33c34a] : {};
       _0x33c34a % 2 ? _0x1946c4(Object(_0x3b8c1e), true).forEach(function (_0x3f3786) {
         _0x4f300e(_0x46d040, _0x3f3786, _0x3b8c1e[_0x3f3786]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x46d040, Object.getOwnPropertyDescriptors(_0x3b8c1e)) : _0x1946c4(Object(_0x3b8c1e)).forEach(function (_0x2304ea) {
-        const _0x5abec4 = _0x277150;
         Object.defineProperty(_0x46d040, _0x2304ea, Object.getOwnPropertyDescriptor(_0x3b8c1e, _0x2304ea));
       });
     }
     return _0x46d040;
   }
   function _0x4f300e(_0x18f366, _0x26973b, _0x3f8038) {
-    const _0x28c156 = _0x3d2178;
     return (_0x26973b = function (_0x2edadf) {
       var _0x50e7e3 = function (_0x118811, _0x3c2732) {
         if ('object' != typeof _0x118811 || null === _0x118811) return _0x118811;
@@ -2859,11 +2583,9 @@
   }
   class _0x5dcfb6 extends _0x3ed41f.a {
     constructor() {
-      const _0x56ab7d = _0x3d2178;
       super(...arguments), _0x4f300e(this, 'w', 0), _0x4f300e(this, 'h', 0), _0x4f300e(this, "panel", void 0), _0x4f300e(this, "scrollMask", void 0), _0x4f300e(this, 'currencies', void 0), _0x4f300e(this, "section", 'boosts'), _0x4f300e(this, "sections", void 0);
     }
     ['onBuild']() {
-      const _0x3bf807 = _0x3d2178;
       this.panel = this.addChild(new _0x3dd0fd.a());
       const _0x4d5a86 = {
           bg: "navigation-button-blu.png",
@@ -2874,16 +2596,13 @@
       _0x4d5a86.icon = "icon-white-piggy.png", _0x4d5a86.label = 'free-stuff';
       const _0x124967 = new _0x42c18f.a(_0x4d5a86);
       _0x341ba0.onTap = () => {
-        const _0x3d94b9 = _0x3bf807;
         this.setSection('boosts');
       }, _0x124967.onTap = () => {
-        const _0x1fc02f = _0x3bf807;
         this.setSection("freestuff");
       }, this.panel.addButton(_0x341ba0, _0x124967);
       const _0x3fe462 = this.panel.base.width,
         _0x449789 = this.panel.base.height;
       this.currencies = this.addChild(new _0x4b354d()), this.currencies.onRefresh.add(() => {
-        const _0x389e96 = _0x3bf807;
         this.currencies.x = _0x3fe462 / 2 - this.currencies.width / 2 - 20;
       }), this.currencies.y = -345;
       const _0x38096f = _0x483390.shop.boosts;
@@ -2900,40 +2619,32 @@
       }), this.panel.addChild(this.scrollMask), this.sections.boosts.mask = this.scrollMask;
     }
     ["updateTransform"]() {
-      const _0x3fac21 = _0x3d2178;
       super.updateTransform(), this.sections.boosts.yScrollMin = this.panel.base.height / 2 - this.sections.boosts.height - 20;
     }
     async ["onOpen"]() {
-      const _0x2200fc = _0x3d2178;
       this.currencies.coins = _0x483390.user.coins, this.currencies.keys = _0x483390.user.keys, this.currencies.refresh(), this.sections[this.section].visible = true;
     }
     async ['setSection'](_0x48b21a) {
-      const _0x10bf48 = _0x3d2178;
       _0x48b21a !== this.section && (this.sections[this.section].visible = false, this.section = _0x48b21a, this.sections[this.section].visible = true, this.sections.boosts.refreshItems());
     }
     ['onClose']() {
-      const _0x685135 = _0x3d2178;
       this.sections[this.section].visible = false;
     }
     ['onResize']() {
-      const _0x12d153 = _0x3d2178;
       this.w = this.viewportWidth, this.h = this.viewportHeight, this.x = 0.5 * this.w, this.y = 0.5 * this.h, this.panel.resize(this.w, this.h), this.sections.freestuff.y = -this.panel.base.width / 2;
     }
   }
   function _0x10af11(_0x1a986d, _0xe0b81e) {
-    const _0x23457e = _0x3d2178;
     var _0x18dbbe = Object.keys(_0x1a986d);
     if (Object.getOwnPropertySymbols) {
       var _0x2991cf = Object.getOwnPropertySymbols(_0x1a986d);
       _0xe0b81e && (_0x2991cf = _0x2991cf.filter(function (_0x4764dd) {
-        const _0x973f9a = _0x23457e;
         return Object.getOwnPropertyDescriptor(_0x1a986d, _0x4764dd).enumerable;
       })), _0x18dbbe.push.apply(_0x18dbbe, _0x2991cf);
     }
     return _0x18dbbe;
   }
   function _0x3c212d(_0x510e45, _0xfdb4d4, _0x5c43c8) {
-    const _0x34ec78 = _0x3d2178;
     return (_0xfdb4d4 = function (_0x1ce262) {
       var _0x39ff9e = function (_0x232106, _0x32ae80) {
         if ('object' != typeof _0x232106 || null === _0x232106) return _0x232106;
@@ -2955,17 +2666,14 @@
   }
   class _0x3a4508 extends _0x2a5def.a {
     constructor(_0x58b173) {
-      const _0x1b1cf6 = _0x3d2178;
       void 0 === _0x58b173 && (_0x58b173 = {});
       const _0x568e43 = _0x2a24d4.Sprite.from("btn-close.png");
       _0x568e43.anchor.set(0.5), super(function (_0x376935) {
-        const _0x230453 = _0x1b1cf6;
         for (var _0x44b605 = 1; _0x44b605 < arguments.length; _0x44b605++) {
           var _0x4aef70 = null != arguments[_0x44b605] ? arguments[_0x44b605] : {};
           _0x44b605 % 2 ? _0x10af11(Object(_0x4aef70), true).forEach(function (_0x40ff0e) {
             _0x3c212d(_0x376935, _0x40ff0e, _0x4aef70[_0x40ff0e]);
           }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x376935, Object.getOwnPropertyDescriptors(_0x4aef70)) : _0x10af11(Object(_0x4aef70)).forEach(function (_0xf02cea) {
-            const _0xdb6870 = _0x230453;
             Object.defineProperty(_0x376935, _0xf02cea, Object.getOwnPropertyDescriptor(_0x4aef70, _0xf02cea));
           });
         }
@@ -2978,32 +2686,27 @@
     }
   }
   function _0x13f929(_0xbb7ba6, _0x144ca2) {
-    const _0x49d21d = _0x3d2178;
     var _0x2c74db = Object.keys(_0xbb7ba6);
     if (Object.getOwnPropertySymbols) {
       var _0x4b3cdd = Object.getOwnPropertySymbols(_0xbb7ba6);
       _0x144ca2 && (_0x4b3cdd = _0x4b3cdd.filter(function (_0x217b0d) {
-        const _0x1824a1 = _0x49d21d;
         return Object.getOwnPropertyDescriptor(_0xbb7ba6, _0x217b0d).enumerable;
       })), _0x2c74db.push.apply(_0x2c74db, _0x4b3cdd);
     }
     return _0x2c74db;
   }
   function _0xaa7ec(_0x52bd8c) {
-    const _0x267861 = _0x3d2178;
     for (var _0x3e06c3 = 1; _0x3e06c3 < arguments.length; _0x3e06c3++) {
       var _0x2ceb38 = null != arguments[_0x3e06c3] ? arguments[_0x3e06c3] : {};
       _0x3e06c3 % 2 ? _0x13f929(Object(_0x2ceb38), true).forEach(function (_0x2efb3e) {
         _0x2691f9(_0x52bd8c, _0x2efb3e, _0x2ceb38[_0x2efb3e]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x52bd8c, Object.getOwnPropertyDescriptors(_0x2ceb38)) : _0x13f929(Object(_0x2ceb38)).forEach(function (_0x4410b4) {
-        const _0x56001a = _0x267861;
         Object.defineProperty(_0x52bd8c, _0x4410b4, Object.getOwnPropertyDescriptor(_0x2ceb38, _0x4410b4));
       });
     }
     return _0x52bd8c;
   }
   function _0x2691f9(_0x579a49, _0x132a34, _0x4ab184) {
-    const _0x27e551 = _0x3d2178;
     return (_0x132a34 = function (_0x513c8e) {
       var _0x49ae1c = function (_0x12ca99, _0x214016) {
         if ("object" != typeof _0x12ca99 || null === _0x12ca99) return _0x12ca99;
@@ -3025,11 +2728,9 @@
   }
   class _0x312b38 extends _0x3ed41f.a {
     constructor() {
-      const _0x366ebb = _0x3d2178;
       super(...arguments), _0x2691f9(this, 'bg', void 0), _0x2691f9(this, "base", void 0), _0x2691f9(this, 'btnClose', void 0), _0x2691f9(this, "currencies", void 0), _0x2691f9(this, "boosts", void 0);
     }
     ["onBuild"]() {
-      const _0x563bd0 = _0x3d2178;
       this.bg = this.addChild(new _0xd34662.b(_0xd34662.a.BLACK)), this.bg.interactive = true, this.bg.on('pointertap', () => this.close());
       const _0x4fcf89 = 690,
         _0x5b7244 = 935;
@@ -3058,28 +2759,23 @@
         alpha: 0.4
       });
       this.addChild(_0x107f21), this.boosts.mask = _0x107f21, this.currencies = this.addChild(new _0x4b354d()), this.currencies.onRefresh.add(() => {
-        const _0x265f5e = _0x563bd0;
         this.currencies.x = 345 - this.currencies.width / 2 - 20;
       }), this.currencies.y = -_0x5b7244 / 2 + this.currencies.height / 2 + 10;
     }
     async ["onOpen"]() {
-      const _0x146496 = _0x3d2178;
       this.currencies.coins = _0x483390.user.coins, this.currencies.keys = _0x483390.user.keys, this.currencies.refresh(), this.boosts.refreshItems();
     }
     ["onResize"]() {
-      const _0x4bf014 = _0x3d2178,
-        _0x3fee6e = this.viewportWidth,
+      const _0x3fee6e = this.viewportWidth,
         _0x596e8b = this.viewportHeight;
       this.x = 0.5 * _0x3fee6e, this.y = 0.5 * _0x596e8b, this.bg.resize(_0x3fee6e, _0x596e8b);
     }
     ["makeLabel"](_0x3244e5, _0x5ec298) {
-      const _0x471cb5 = _0x3d2178;
       return this.addChild(new _0x5dc8d3.a(_0x3244e5, _0x5ec298));
     }
   }
   var _0x494c7f = _0x388199(71);
   function _0x21b548(_0x356431, _0x554925, _0xa79006) {
-    const _0x415a5f = _0x3d2178;
     return (_0x554925 = function (_0x1ac2d0) {
       var _0x57803b = function (_0x5e92da, _0x301006) {
         if ('object' != typeof _0x5e92da || null === _0x5e92da) return _0x5e92da;
@@ -3101,11 +2797,9 @@
   }
   class _0x456345 extends _0x3ed41f.a {
     constructor() {
-      const _0xe719c7 = _0x3d2178;
       super(...arguments), _0x21b548(this, 'bg', void 0), _0x21b548(this, 'content', void 0), _0x21b548(this, "base", void 0), _0x21b548(this, "labelTitle", void 0), _0x21b548(this, "labelHave", void 0), _0x21b548(this, "labelHelp1", void 0), _0x21b548(this, 'labelHelp2', void 0), _0x21b548(this, "btnClose", void 0), _0x21b548(this, "bgStripes", void 0), _0x21b548(this, "hoverboard", void 0), _0x21b548(this, "btnBuy", void 0), _0x21b548(this, "wallet", void 0), _0x21b548(this, 'boardCost', 300), _0x21b548(this, "onExit", void 0);
     }
     ["onBuild"]() {
-      const _0x1ceff0 = _0x3d2178;
       this.bg = new _0xd34662.b(_0xd34662.a.BLACK), this.addChild(this.bg), this.bg.interactive = true, this.bg.on("pointertap", () => this.exit()), this.content = new _0x2a24d4.Container(), this.addChild(this.content), this.base = _0x4b8db5.a.rectComp({
         w: 540,
         h: 540,
@@ -3183,31 +2877,25 @@
       }), this.labelHelp2.x = this.labelHelp1.x, this.labelHelp2.y = this.labelHelp1.y + 20, this.content.addChild(this.labelHelp2), _0x483390.user.gameSettings.onChange.add(() => this.refresh());
     }
     ['onOpen']() {
-      const _0x2fd4a3 = _0x3d2178;
       this.refresh();
     }
     ["onResize"]() {
-      const _0x7894ab = _0x3d2178,
-        _0x162793 = this.viewportWidth,
+      const _0x162793 = this.viewportWidth,
         _0x1f4e89 = this.viewportHeight;
       this.x = 0.5 * _0x162793, this.y = 0.5 * _0x1f4e89, this.bg.resize(_0x162793, _0x1f4e89), this.bgStripes.y = 40, this.hoverboard.y = -20;
     }
     ["exit"]() {
-      const _0x3209f4 = _0x3d2178;
       this.close(), this.onExit && this.onExit(), this.onExit = void 0;
     }
     ['buyBoard']() {
-      const _0x280fab = _0x3d2178;
       _0x483390.user.coins >= this.boardCost && (_0x483390.user.coins -= this.boardCost, _0x483390.user.boosts.consumables.hoverboard += 1, _0x483390.user.save(), this.animateHoverboard());
     }
     ["refresh"]() {
-      const _0x54514a = _0x3d2178;
       this.labelHave.options.params = {
         num: _0x483390.user.boosts.consumables.hoverboard
       }, this.labelHave.refresh(), this.wallet.coins = _0x483390.user.coins, this.wallet.keys = _0x483390.user.keys, this.wallet.refresh(), this.wallet.x = this.base.width / 2 - this.wallet.width / 2 - 50, this.wallet.y = -220;
     }
     async ["animateHoverboard"]() {
-      const _0xc5def5 = _0x3d2178;
       await _0x346c5e.g.to(this.hoverboard.scale, 0.05, {
         x: 1.2,
         y: 1.2
@@ -3218,7 +2906,6 @@
     }
   }
   function _0x1a6b53(_0x24e445, _0x134b86, _0x4121a0) {
-    const _0x361175 = _0x3d2178;
     return (_0x134b86 = function (_0x16dce6) {
       var _0x3b7ba8 = function (_0x518cc9, _0x18c513) {
         if ("object" != typeof _0x518cc9 || null === _0x518cc9) return _0x518cc9;
@@ -3240,7 +2927,6 @@
   }
   class _0x4a378c extends _0x2a5def.a {
     constructor() {
-      const _0x16f96a = _0x3d2178;
       super({
         w: 210,
         h: 80,
@@ -3290,7 +2976,6 @@
       }));
     }
     ['setCoins'](_0xf26ac0) {
-      const _0x1efb65 = _0x3d2178;
       _0xf26ac0 > 3000 && (_0xf26ac0 = 3000), this.descriptionLabel.options.params = {
         num: _0xf26ac0
       }, this.descriptionLabel.refresh();
@@ -3305,19 +2990,16 @@
   }
   var _0x27f642 = _0x388199(126);
   function _0x1070d2(_0x1887ab, _0x591fab) {
-    const _0x15a98c = _0x3d2178;
     var _0x4be1f2 = Object.keys(_0x1887ab);
     if (Object.getOwnPropertySymbols) {
       var _0xc54647 = Object.getOwnPropertySymbols(_0x1887ab);
       _0x591fab && (_0xc54647 = _0xc54647.filter(function (_0x565376) {
-        const _0x43a0c9 = _0x15a98c;
         return Object.getOwnPropertyDescriptor(_0x1887ab, _0x565376).enumerable;
       })), _0x4be1f2.push.apply(_0x4be1f2, _0xc54647);
     }
     return _0x4be1f2;
   }
   function _0x38ab0b(_0x25d6d1, _0x5ae947, _0x1841e6) {
-    const _0x50af94 = _0x3d2178;
     return (_0x5ae947 = function (_0x38f670) {
       var _0x4bdf18 = function (_0x149a06, _0x6b3680) {
         if ('object' != typeof _0x149a06 || null === _0x149a06) return _0x149a06;
@@ -3339,16 +3021,13 @@
   }
   class _0x5e6032 extends _0x2a24d4.Container {
     constructor(_0x12df8e) {
-      const _0x542fc0 = _0x3d2178;
       void 0 === _0x12df8e && (_0x12df8e = {}), super(), _0x38ab0b(this, "image", void 0), _0x38ab0b(this, "ticker", void 0);
       const _0x247ccb = function (_0x2210ad) {
-        const _0x1c1796 = _0x542fc0;
         for (var _0x2cec26 = 1; _0x2cec26 < arguments.length; _0x2cec26++) {
           var _0x37c719 = null != arguments[_0x2cec26] ? arguments[_0x2cec26] : {};
           _0x2cec26 % 2 ? _0x1070d2(Object(_0x37c719), true).forEach(function (_0x2a8760) {
             _0x38ab0b(_0x2210ad, _0x2a8760, _0x37c719[_0x2a8760]);
           }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x2210ad, Object.getOwnPropertyDescriptors(_0x37c719)) : _0x1070d2(Object(_0x37c719)).forEach(function (_0x2be8fd) {
-            const _0xaf42e0 = _0x1c1796;
             Object.defineProperty(_0x2210ad, _0x2be8fd, Object.getOwnPropertyDescriptor(_0x37c719, _0x2be8fd));
           });
         }
@@ -3360,20 +3039,16 @@
       this.image = new _0x2a24d4.Graphics(), this.image.lineStyle(_0x247ccb.radius, _0x247ccb.color), this.image.arc(0, 0, 2 * _0x247ccb.radius, 0, 0.5 * Math.PI, true), this.addChild(this.image), this.image.scale.set(0.5), this.image.alpha = 0.25, this.visible = false, this.ticker = new _0x2a24d4.Ticker(), this.ticker.stop(), this.ticker.add(this.update, this, 1);
     }
     ["show"]() {
-      const _0x36bbe6 = _0x3d2178;
       this.visible = true, this.ticker.start();
     }
     ['hide']() {
-      const _0x22611b = _0x3d2178;
       this.visible = false, this.ticker.stop();
     }
     ['update'](_0x4831a9) {
-      const _0x20a535 = _0x3d2178;
       void 0 === _0x4831a9 && (_0x4831a9 = 0), this.image.rotation += 0.2 * _0x4831a9;
     }
   }
   function _0x33d4e2(_0x576876, _0x3b4279, _0x5215b3) {
-    const _0x4118cf = _0x3d2178;
     return (_0x3b4279 = function (_0x2955fc) {
       var _0x3efe2d = function (_0x40d299, _0x4bc92c) {
         if ("object" != typeof _0x40d299 || null === _0x40d299) return _0x40d299;
@@ -3395,7 +3070,6 @@
   }
   class _0x281e7d extends _0x2a24d4.Container {
     constructor(_0x2ba806) {
-      const _0x188b93 = _0x3d2178;
       void 0 === _0x2ba806 && (_0x2ba806 = {}), super(), _0x33d4e2(this, 'bg', void 0), _0x33d4e2(this, "image", void 0), _0x33d4e2(this, "spinner", void 0), _0x33d4e2(this, "_path", ''), _0x33d4e2(this, "_fallback", ''), _0x33d4e2(this, "_failed", false);
       const _0x5ace9c = Object.assign({}, {
         path: '',
@@ -3407,23 +3081,19 @@
       'string' == typeof _0x2ba806 ? _0x5ace9c.path = _0x2ba806 : Object.assign(_0x5ace9c, _0x2ba806), this._fallback = _0x5ace9c.fallback, null !== _0x5ace9c.bg && (this.bg = new _0x2a24d4.Graphics(), this.bg.beginFill(_0x5ace9c.bg), this.bg.drawRect(-_0x5ace9c.w / 2, -_0x5ace9c.h / 2, _0x5ace9c.w, _0x5ace9c.h), this.bg.endFill(), this.addChildAt(this.bg, 0)), this.image = new _0x2a24d4.Sprite(), _0x5ace9c.w && (this.image.width = _0x5ace9c.w), _0x5ace9c.h && (this.image.height = _0x5ace9c.h), this.addChild(this.image), this.spinner = new _0x5e6032(), this.addChild(this.spinner), this.spinner.show(), _0x5ace9c.path && this.load(_0x5ace9c.path);
     }
     ['load'](_0x29abe8) {
-      const _0xcca9b0 = _0x3d2178;
       if (this._path = _0x29abe8, this.image.visible = false, this.spinner && this.spinner.show(), !_0x2a24d4.utils.TextureCache[_0x29abe8] || this._failed) {
         let _0x32a838 = _0x281e7d.cache[_0x29abe8];
         _0x32a838 || (_0x32a838 = new _0x2a24d4.Loader(), _0x32a838.add(_0x29abe8, _0x29abe8), _0x281e7d.cache[_0x29abe8] = _0x32a838), _0x32a838.onLoad.once(this.onLoadComplete, this), _0x32a838.onError.once(this.onLoadError, this), _0x32a838.load();
       } else this.onLoadComplete();
     }
     ["onLoadComplete"]() {
-      const _0x4d7522 = _0x3d2178;
       this._failed = false, this.image.visible = true, this.image.texture = _0x2a24d4.Texture.from(this._path), this.image.anchor.set(0.5), this.spinner && this.spinner.hide();
     }
     ["onLoadError"]() {
-      const _0x556e9f = _0x3d2178;
       _0x281e7d.cache[this._path] && (_0x281e7d.cache[this._path].destroy(), delete _0x281e7d.cache[this._path]), this._failed = true, this._fallback && (this.image.visible = true, this.image.texture = _0x2a24d4.Texture.from(this._fallback), this.image.anchor.set(0.5)), this.spinner && this.spinner.hide();
     }
   }
   function _0x11918a(_0x25617a, _0x405801, _0x18200a) {
-    const _0x36b253 = _0x3d2178;
     return (_0x405801 = function (_0x3192b7) {
       var _0x33947a = function (_0x2f82fb, _0x4e6871) {
         if ("object" != typeof _0x2f82fb || null === _0x2f82fb) return _0x2f82fb;
@@ -3447,7 +3117,6 @@
   const _0x4fe00e = ["assets/images/icon-friend.png", "assets/images/icon-00-brody.png", "assets/images/icon-01-tagbot.png", "assets/images/icon-02-tasha.png", "assets/images/icon-03-ninja.png", "assets/images/icon-04-lucy.png", "assets/images/icon-05-king.png", "assets/images/icon-06-frizzy.png", "assets/images/icon-07-yutani.png", "assets/images/icon-08-spike.png", "assets/images/icon-09-fresh.png", "assets/images/icon-10-jake.png", "assets/images/icon-11-tricky.png"];
   class _0x503c70 extends _0x281e7d {
     constructor(_0x3c3c8e) {
-      const _0x137509 = _0x3d2178;
       void 0 === _0x3c3c8e && (_0x3c3c8e = 64), super({
         w: _0x3c3c8e,
         h: _0x3c3c8e,
@@ -3457,7 +3126,6 @@
       }), _0x11918a(this, 'w', void 0), _0x11918a(this, 'h', void 0), this.w = _0x3c3c8e, this.h = _0x3c3c8e, this.spinner.scale.set(0.4);
     }
     ["update"](_0x2f6aa3) {
-      const _0xa6ecac = _0x3d2178;
       void 0 === _0x2f6aa3 && (_0x2f6aa3 = {});
       const _0x4ec592 = Object.assign({
         image: 0,
@@ -3468,7 +3136,6 @@
     }
   }
   function _0x4bec77(_0x258631, _0x1b9ad3, _0x43413c) {
-    const _0xa00c25 = _0x3d2178;
     return (_0x1b9ad3 = function (_0x54e613) {
       var _0x4646ff = function (_0x74a3e, _0x574ab5) {
         if ("object" != typeof _0x74a3e || null === _0x74a3e) return _0x74a3e;
@@ -3490,11 +3157,9 @@
   }
   class _0x3240d3 extends _0x2a24d4.Container {
     constructor() {
-      const _0x2667b4 = _0x3d2178;
       super(), _0x4bec77(this, 'w', void 0), _0x4bec77(this, 'h', void 0), _0x4bec77(this, "index", void 0), _0x4bec77(this, "playerName", void 0), _0x4bec77(this, "score", void 0), _0x4bec77(this, "avatar", void 0), _0x4bec77(this, 'bg', void 0), _0x4bec77(this, "clampChars", void 0), _0x4bec77(this, "built", false);
     }
     ['build'](_0x6948db, _0x1f5928, _0x173a3a) {
-      const _0x48862a = _0x3d2178;
       if (void 0 === _0x6948db && (_0x6948db = 70), void 0 === _0x1f5928 && (_0x1f5928 = 640), void 0 === _0x173a3a && (_0x173a3a = 10), this.built) return;
       this.built = true, this.w = _0x1f5928, this.h = _0x6948db, this.clampChars = _0x173a3a;
       const _0x5238a = {
@@ -3509,7 +3174,6 @@
       this.index = new _0x309bcf.a('', _0x5238a), this.addChild(this.index), this.index._text.anchor.x = 1, this.playerName = new _0x309bcf.a('', _0x5238a), this.addChild(this.playerName), this.playerName._text.anchor.x = 0, this.score = new _0x309bcf.a('', _0x5238a), this.addChild(this.score), this.score._text.anchor.x = 1, this.avatar = new _0x503c70(0.85 * _0x6948db), this.addChild(this.avatar);
     }
     ["update"](_0x49094a) {
-      const _0x2e2987 = _0x3d2178;
       if (this.playerName.text = _0x49094a.profile.name, this.score.text = '' + _0x49094a.score, this.index.text = '' + _0x49094a.rank || '', void 0 !== _0x49094a.profile.image) {
         const _0x2b52e0 = _0x49094a.profile.image;
         this.avatar.update({
@@ -3529,7 +3193,6 @@
     }
   }
   function _0x97e9c7(_0x4d6670, _0x15f684, _0x1abee7) {
-    const _0x349a94 = _0x3d2178;
     return (_0x15f684 = function (_0x18fc31) {
       var _0x25b684 = function (_0x5bbcae, _0x5ca128) {
         if ('object' != typeof _0x5bbcae || null === _0x5bbcae) return _0x5bbcae;
@@ -3551,34 +3214,28 @@
   }
   class _0x342c11 extends _0xd11b6 {
     constructor(_0x1a0cb5) {
-      const _0x5ad8dd = _0x3d2178;
       void 0 === _0x1a0cb5 && (_0x1a0cb5 = {}), super(_0x1a0cb5), _0x97e9c7(this, "entries", void 0), _0x97e9c7(this, "maxLength", void 0), _0x97e9c7(this, "pool", void 0), _0x97e9c7(this, "entryHeight", void 0), _0x97e9c7(this, "entryWidth", void 0), _0x97e9c7(this, "clampChars", void 0), this.entryHeight = _0x1a0cb5.entryHeight || 70, this.entryWidth = _0x1a0cb5.entryWidth || 640, this.clampChars = _0x1a0cb5.clampChars || 10, this.pool = new _0x27f642.a(_0x3240d3), this.entries = [], this.maxLength = 11;
     }
     ["updateTransform"]() {
-      const _0x43e64a = _0x3d2178;
       super.updateTransform(), this.update(), this.y = this.targetY;
     }
     async ["refresh"]() {
-      const _0x3a07aa = _0x3d2178;
       this.clearEntries();
       const _0x35fd3c = _0x483390.user.leaderboardEntry;
       await _0x11084d.a.setUser(_0x35fd3c);
       const _0x5a0b78 = await _0x11084d.a.getLeaderboard();
       let _0x23a3df = _0x5a0b78.find(_0x3a011e => _0x3a011e.profile.name === _0x483390.user.name);
       _0x23a3df || (_0x23a3df = _0x35fd3c, _0x5a0b78.push(_0x23a3df)), _0x5a0b78.sort((_0x5ab349, _0x596b11) => _0x596b11.score - _0x5ab349.score), _0x5a0b78.forEach((_0x53b2fd, _0x557dc0) => {
-        const _0x3a514e = _0x3a07aa,
-          _0x5c08cd = _0x53b2fd === _0x23a3df;
+        const _0x5c08cd = _0x53b2fd === _0x23a3df;
         _0x53b2fd.profile.me = _0x5c08cd, _0x53b2fd.rank = (Number(_0x557dc0) + 1) * Number(!(_0x5c08cd && _0x557dc0 > 9));
       }), this.updateEntries(_0x5a0b78);
     }
     ["clearEntries"]() {
-      const _0x53a431 = _0x3d2178;
       for (const _0x220b87 of this.entries) _0x220b87.visible = false, _0x220b87.parent && _0x220b87.parent.removeChild(_0x220b87), this.pool.return(_0x220b87);
       this.entries.length = 0;
     }
     ["updateEntries"](_0x953554) {
-      const _0x231a8f = _0x3d2178,
-        _0x21ce27 = Math.min(this.maxLength, _0x953554.length);
+      const _0x21ce27 = Math.min(this.maxLength, _0x953554.length);
       for (let _0x1df0cc = 0; _0x1df0cc < _0x21ce27; _0x1df0cc++) {
         const _0x3e00cc = this.pool.get();
         _0x3e00cc.build(this.entryHeight, this.entryWidth, this.clampChars), this.addChild(_0x3e00cc);
@@ -3588,7 +3245,6 @@
     }
   }
   function _0x414082(_0x2e90f7, _0x1f6c64, _0x4922e3) {
-    const _0x5c9640 = _0x3d2178;
     return (_0x1f6c64 = function (_0x581642) {
       var _0x3f50c8 = function (_0x56d3c9, _0x22ea8f) {
         if ("object" != typeof _0x56d3c9 || null === _0x56d3c9) return _0x56d3c9;
@@ -3610,7 +3266,6 @@
   }
   class _0xf3b05b extends _0x2a24d4.Container {
     constructor() {
-      const _0x250766 = _0x3d2178;
       super(), _0x414082(this, "base", void 0), _0x414082(this, "title", void 0), _0x414082(this, 'score', void 0), _0x414082(this, "coins", void 0), _0x414082(this, "icon", void 0), _0x414082(this, 'starL', void 0), _0x414082(this, 'starR', void 0), this.base = _0x2a24d4.Sprite.from("scoreboard.png"), this.base.anchor.set(0.5), this.addChild(this.base), this.title = new _0x5dc8d3.a("score", {
         align: 'center',
         fill: 19072,
@@ -3637,14 +3292,12 @@
       }), this.addChild(this.coins), this.coins.y = 35, this.icon = _0x2a24d4.Sprite.from("icon-coin.png"), this.icon.anchor.set(0.5), this.icon.scale.set(0.75), this.addChild(this.icon), this.icon.x = this.coins.x - 100, this.icon.y = this.coins.y, this.starL = _0x2a24d4.Sprite.from("icon-star.png"), this.starL.anchor.set(0.5), this.starL.x = -120, this.title.addChild(this.starL), this.starR = _0x2a24d4.Sprite.from("icon-star.png"), this.starR.anchor.set(0.5), this.starR.x = -this.starL.x, this.title.addChild(this.starR);
     }
     ['update'](_0x48c209) {
-      const _0x2faf9a = _0x3d2178;
       this.score.text = String(_0x48c209.score), this.coins.text = String(_0x48c209.coins);
       const _0x8547a2 = this.title.display.width || 1;
       this.starL.x = -_0x8547a2 / 2 - 25, this.starR.x = _0x8547a2 / 2 + 25;
     }
   }
   function _0x265522(_0x4b250d, _0x6eb75a, _0x4ef504) {
-    const _0x3fa815 = _0x3d2178;
     return (_0x6eb75a = function (_0x3ed85b) {
       var _0x1d7133 = function (_0x45f471, _0x19782a) {
         if ("object" != typeof _0x45f471 || null === _0x45f471) return _0x45f471;
@@ -3666,11 +3319,9 @@
   }
   class _0x3276fa extends _0x3ed41f.a {
     constructor() {
-      const _0x4463d9 = _0x3d2178;
       super(...arguments), _0x265522(this, 'w', 0), _0x265522(this, 'h', 0), _0x265522(this, 'bg', void 0), _0x265522(this, "base", void 0), _0x265522(this, "character", void 0), _0x265522(this, 'scoreboard', void 0), _0x265522(this, "leaderboard", void 0), _0x265522(this, 'currencies', void 0), _0x265522(this, "btnPlay", void 0), _0x265522(this, "panel", void 0), _0x265522(this, "doubleUpButton", void 0);
     }
     ["onBuild"]() {
-      const _0x284c36 = _0x3d2178;
       var _0x1a6253;
       this.bg = new _0xd34662.b(), this.addChild(this.bg), this.panel = this.addChild(new _0x3dd0fd.a({
         icon: "icon-white-house.png",
@@ -3700,7 +3351,6 @@
         this.leaderboard.mask = _0x421f60;
       }
       this.doubleUpButton = this.addChild(new _0x4a378c()), this.doubleUpButton.onTap = async () => {
-        const _0x53c0fb = _0x284c36;
         this.btnPlay.key = null;
         const _0xcc7bbd = await _0x5aae70.a.SDK.rewardedBreak({
           type: "doubleUp"
@@ -3732,33 +3382,27 @@
       }), this.btnPlay.onTap = this.onTapPlay.bind(this), this.panel.addButton(_0x38c640, this.btnPlay);
     }
     async ["onTapHome"]() {
-      const _0x1ea7e5 = _0x3d2178;
       this.visible = false, this.btnPlay.key = null, _0x483390.nav.toIdleScreen("title");
     }
     async ["onTapPlay"]() {
-      const _0x3f8995 = _0x3d2178;
       this.visible = false, this.btnPlay.key = null, _0x483390.nav.toGame();
     }
     async ["onTapBoosts"]() {
-      const _0x2798df = _0x3d2178;
       _0x483390.boostPanel.open();
     }
     ['onOpen']() {
-      const _0x3ecb8f = _0x3d2178,
-        {
-          user: _0x5334a1,
-          game: _0x1a3e73
-        } = _0x483390;
+      const {
+        user: _0x5334a1,
+        game: _0x1a3e73
+      } = _0x483390;
       _0x5334a1.coins += _0x1a3e73.stats.coins, _0x5334a1.score = _0x1a3e73.stats.score, _0x5334a1.keys += _0x1a3e73.stats.keys, _0x5334a1.save(), this.doubleUpButton.visible = !!_0x1a3e73.stats.coins, this.doubleUpButton.setCoins(_0x1a3e73.stats.coins), this.leaderboard && (this.updateLeaderboardArea(), this.leaderboard.refresh()), this.currencies.tweenCoins(_0x5334a1.coins), this.currencies.tweenKeys(_0x5334a1.keys), this.scoreboard.update({
         score: _0x1a3e73.stats.score,
         coins: _0x1a3e73.stats.coins
       }), setTimeout(() => {
-        const _0x4ebfee = _0x3ecb8f;
         this._opened && (this.btnPlay.key = 32);
       }, 2000), this.visible = true, this.character.setChar(_0x5334a1.character, _0x5334a1.character, _0x5334a1.outfit), this.character.play("uiIdle"), _0x1a3e73.stats.coins = 0, _0x1a3e73.stats.keys = 0;
     }
     ["updateLeaderboardArea"]() {
-      const _0x1aa610 = _0x3d2178;
       if (this.leaderboard) {
         if (this.doubleUpButton.visible) {
           this.leaderboard.yScrollMin = -198, this.leaderboard.yScrollMax = 60, this.leaderboard.setPosition(0, 60);
@@ -3772,42 +3416,35 @@
       }
     }
     ["onClose"]() {
-      const _0x359f0f = _0x3d2178;
       this.character.stop(), this.btnPlay.key = null, this.visible = false;
     }
     ["onResize"]() {
-      const _0x4984ac = _0x3d2178;
       this.w = this.viewportWidth, this.h = this.viewportHeight, this.x = 0.5 * this.w, this.y = 0.5 * this.h, this.bg.resize(this.w, this.h), this.panel.resize(this.w, this.h);
     }
   }
   var _0x3c8269 = _0x388199(16);
   function _0x5b0928(_0x580c96, _0x17e1dd) {
-    const _0x38a9f4 = _0x3d2178;
     var _0xbbfe68 = Object.keys(_0x580c96);
     if (Object.getOwnPropertySymbols) {
       var _0x5afcff = Object.getOwnPropertySymbols(_0x580c96);
       _0x17e1dd && (_0x5afcff = _0x5afcff.filter(function (_0x35e944) {
-        const _0x121b8b = _0x38a9f4;
         return Object.getOwnPropertyDescriptor(_0x580c96, _0x35e944).enumerable;
       })), _0xbbfe68.push.apply(_0xbbfe68, _0x5afcff);
     }
     return _0xbbfe68;
   }
   function _0x490ec1(_0x23ab46) {
-    const _0x5707bc = _0x3d2178;
     for (var _0x34f9f1 = 1; _0x34f9f1 < arguments.length; _0x34f9f1++) {
       var _0x204f11 = null != arguments[_0x34f9f1] ? arguments[_0x34f9f1] : {};
       _0x34f9f1 % 2 ? _0x5b0928(Object(_0x204f11), true).forEach(function (_0x36a02c) {
         _0x465308(_0x23ab46, _0x36a02c, _0x204f11[_0x36a02c]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x23ab46, Object.getOwnPropertyDescriptors(_0x204f11)) : _0x5b0928(Object(_0x204f11)).forEach(function (_0x2e7704) {
-        const _0xb30e81 = _0x5707bc;
         Object.defineProperty(_0x23ab46, _0x2e7704, Object.getOwnPropertyDescriptor(_0x204f11, _0x2e7704));
       });
     }
     return _0x23ab46;
   }
   function _0x465308(_0x3e6856, _0xdc64b4, _0x40f379) {
-    const _0x4ddd2b = _0x3d2178;
     return (_0xdc64b4 = function (_0x2800c6) {
       var _0x3b015e = function (_0x21a57e, _0x4e7c9d) {
         if ("object" != typeof _0x21a57e || null === _0x21a57e) return _0x21a57e;
@@ -3839,7 +3476,6 @@
   };
   class _0x9fe788 extends _0x2a24d4.Container {
     constructor(_0x1a1816, _0x296a7b) {
-      const _0xeaa32f = _0x3d2178;
       void 0 === _0x296a7b && (_0x296a7b = {}), super(), _0x465308(this, "state", void 0), _0x465308(this, "texture", void 0), _0x465308(this, 'renderer', void 0), _0x465308(this, "scene", void 0), _0x465308(this, "view", void 0);
       const _0x476825 = _0x490ec1(_0x490ec1({}, _0x481eb7), _0x296a7b);
       this.scene = new _0x19bb0e.a({
@@ -3849,16 +3485,13 @@
       }), this.renderer = _0x1a1816, this.state = new _0x2a24d4.State(), this.state.depthTest = _0x476825.depthTest, this.state.blend = _0x476825.blend, this.texture = _0x2a24d4.RenderTexture.create(_0x476825), this.texture.baseTexture.framebuffer.addDepthTexture(), this.view = new _0x2a24d4.Sprite(this.texture), this.view.anchor.set(0.5), this.view.scale.x = 1, this.view.scale.y = -this.view.scale.x, this.addChild(this.view);
     }
     ["render"](_0x190995) {
-      const _0x27d430 = _0x3d2178;
       this.scene.view3d.renderTexture = this.texture, this.scene.view3d._renderChildren(this.renderer), super.render(_0x190995);
     }
     get ['camera']() {
-      const _0x160a84 = _0x3d2178;
       return this.scene.view3d.camera;
     }
   }
   function _0x39dcae(_0x4a3cef, _0x16667c, _0x5a18de) {
-    const _0x3248c0 = _0x3d2178;
     return (_0x16667c = function (_0x56e1c8) {
       var _0x404165 = function (_0x1da08b, _0x50f975) {
         if ("object" != typeof _0x1da08b || null === _0x1da08b) return _0x1da08b;
@@ -3880,17 +3513,13 @@
   }
   class _0x40ee95 extends _0x3ed41f.a {
     constructor() {
-      const _0x279db8 = _0x3d2178;
       super(...arguments), _0x39dcae(this, 'bg', void 0), _0x39dcae(this, "speedStripes", void 0), _0x39dcae(this, "character", void 0), _0x39dcae(this, "title", void 0), _0x39dcae(this, "message", void 0), _0x39dcae(this, "score", void 0), _0x39dcae(this, "blockEvents", false), _0x39dcae(this, 'onExit', new _0x3eb645.Signal()), _0x39dcae(this, 'onKeyDown', _0x2fc26c => {
-        const _0xa858d8 = _0x279db8;
         _0x2fc26c.repeat || this.blockEvents || "Spacebar" !== _0x2fc26c.key && '\x20' !== _0x2fc26c.key || this.exit();
       }), _0x39dcae(this, "onPointerTap", () => {
-        const _0xd4334c = _0x279db8;
         this.exit();
       });
     }
     ["onBuild"]() {
-      const _0x4b2058 = _0x3d2178;
       this.bg = _0x2a24d4.Sprite.from("highscorescreen-bg.png"), this.addChild(this.bg), this.bg.anchor.set(0.5), this.speedStripes = new _0x230485(), this.addChild(this.speedStripes), this.character = new _0x245574(), this.addChild(this.character), this.character.scale.set(1.25), this.title = new _0x5dc8d3.a("new_high_score", {
         fontFamily: "Lilita One",
         fontSize: 50,
@@ -3907,41 +3536,33 @@
         fontSize: 40,
         fill: 16777215
       }), this.message.anchor.set(0.5), this.addChild(this.message), _0x5aae70.a.SDK.onBreakStart.add(() => {
-        const _0x1d9e5c = _0x4b2058;
         this.blockEvents = true;
       }), _0x5aae70.a.SDK.onBreakComplete.add(() => {
-        const _0xe31961 = _0x4b2058;
         this.blockEvents = false;
       });
     }
     ['onOpen']() {
-      const _0x2d8cae = _0x3d2178;
       this.character.setCharacter(_0x483390.user.character, _0x483390.user.outfit), this.bg.interactive = true, this.bg.on("pointertap", this.onPointerTap), window.addEventListener("keydown", this.onKeyDown), this.character.view.scale.x = 0.5, this.character.view.scale.y = -this.character.view.scale.x, this.character.view.x = 400, this.character.view.y = 50, this.score.text = String(_0x483390.game.stats.score), this.message.text = _0xf03c86.b.translate("prize-screen-continue" + (_0x52c5e0.a.mobile ? "-mobile" : '')), this.message.alpha = -5, _0x483390.sound.stopAllFx(), _0x483390.sound.musicFadeOut(), _0x483390.sound.play("unlock");
     }
     ["onClose"]() {
-      const _0x5518ba = _0x3d2178;
       _0x483390.sound.musicFadeIn(), this.bg.interactive = false, this.bg.off('pointertap', this.onPointerTap), window.removeEventListener("keydown", this.onKeyDown);
     }
     ["updateTransform"]() {
-      const _0x957e86 = _0x3d2178;
       super.updateTransform();
       const _0x1b9cfa = 0.005 * _0x2a24d4.Ticker.system.deltaTime;
       this.character.view.x = _0x4f0763.a.lerp(this.character.view.x, 0, _0x1b9cfa), this.character.view.y = _0x4f0763.a.lerp(this.character.view.y, 0, _0x1b9cfa), this.character.view.scale.x = _0x4f0763.a.lerp(this.character.view.scale.x, 1, _0x1b9cfa), this.character.view.scale.y = -this.character.view.scale.x, this.message.alpha = _0x4f0763.a.lerp(this.message.alpha, 1, 0.01 * _0x2a24d4.Ticker.system.deltaTime);
     }
     ["onResize"]() {
-      const _0x49f6c6 = _0x3d2178,
-        _0x3e146b = this.viewportWidth,
+      const _0x3e146b = this.viewportWidth,
         _0x414cff = this.viewportHeight;
       this.bg.x = 1.5 * _0x3e146b, this.bg.y = 0.6 * _0x414cff, this.bg.width = 4 * (_0x3e146b > _0x414cff ? _0x3e146b : _0x414cff), this.bg.height = 1.3 * (_0x3e146b > _0x414cff ? _0x3e146b : _0x414cff), this.bg.scale.y = this.bg.height / 512 * -1, this.speedStripes.x = this.bg.x, this.speedStripes.y = this.bg.y, this.speedStripes.scale.x = this.bg.scale.x, this.speedStripes.scale.y = this.bg.scale.y, this.character.x = _0x3e146b / 2, this.character.y = _0x414cff / 2, this.title.x = _0x3e146b / 2, this.title.y = 60, this.score.x = this.title.x, this.score.y = this.title.y + 60, this.message.x = _0x3e146b / 2, this.message.y = _0x414cff - 80;
     }
     ["exit"]() {
-      const _0x4a1739 = _0x3d2178;
       !this._opened || this.message.alpha < 0.2 || (this.close(), this.onExit && this.onExit.dispatch());
     }
   }
   class _0x230485 extends _0x2a24d4.Container {
     constructor() {
-      const _0x49c72f = _0x3d2178;
       super(), _0x39dcae(this, 'w', 1024), _0x39dcae(this, 'h', 1024), this.w = 512, this.h = 512;
       for (let _0x27d1fe = 0; _0x27d1fe < 10; _0x27d1fe++) {
         const _0x24220d = _0x2a24d4.Sprite.from("celebration-stripe.png");
@@ -3949,7 +3570,6 @@
       }
     }
     ["updateTransform"]() {
-      const _0x30e534 = _0x3d2178;
       super.updateTransform();
       for (const _0x3d6191 of this.children) {
         _0x3d6191.x > 0 && this.resetStripe(_0x3d6191, -this.w / 2);
@@ -3961,17 +3581,14 @@
       }
     }
     ["resetStripe"](_0x244d82, _0x1bc38b) {
-      const _0x45df1e = _0x3d2178;
       _0x244d82.anchor.set(0.05, 0.5), _0x244d82.scale.set(0.15, _0x3c8269.a.range(0.07, 0.12)), _0x244d82.alpha = 0.75, _0x244d82.x = null != _0x1bc38b ? _0x1bc38b : _0x3c8269.a.range(0.5 * -this.w, 0), _0x244d82.y = _0x3c8269.a.range(0.25 * -this.h, 0.5 * this.h), _0x244d82._speed = _0x3c8269.a.range(3, 5);
     }
   }
   class _0x245574 extends _0x9fe788 {
     constructor() {
-      const _0x34f83a = _0x3d2178;
       super(_0x483390.stage.renderer), _0x39dcae(this, "shadow", void 0), _0x39dcae(this, "entity", void 0), _0x39dcae(this, "currentId", ''), _0x39dcae(this, "currentOutfit", -1);
     }
     async ["setCharacter"](_0x26ba7c, _0x469309) {
-      const _0x19db31 = _0x3d2178;
       void 0 === _0x469309 && (_0x469309 = 0);
       const _0xf29366 = _0x26ba7c + "-game";
       _0x483390.library.hasScene(_0xf29366) || (await _0x483390.loader.loadCharacter(_0x26ba7c, true)), this.currentId === _0x26ba7c && this.currentOutfit === _0x469309 || (this.currentId = _0x26ba7c, this.currentOutfit = _0x469309, this.entity && this.scene.removeChild(this.entity), this.entity = _0x483390.library.getScene(_0xf29366), this.scene.addChild(this.entity), this.updateCharacter(this.entity, _0x26ba7c, _0x469309), _0xe7ec00.a.ensureAnimation(this.entity, 24, {
@@ -3983,7 +3600,6 @@
       }), _0xe7ec00.a.stopAnimation(this.entity, "run", true), _0xe7ec00.a.playAnimation(this.entity, 'run', true), this.camera.x = 0.5, this.camera.y = 0, this.camera.z = 0.8, this.camera.camera.lookAtTarget = new _0x5ec3b1.a(0, 0.05, 0), this.camera.camera.fov = 0.15, this.shadow || (this.shadow = _0x2a24d4.Sprite.from("shadow.png")), this.addChildAt(this.shadow, 0), this.shadow.anchor.set(0.5), this.shadow.scale.set(1, 0.2), this.shadow.alpha = 0.3);
     }
     ["updateCharacter"](_0x359216, _0x4abe54, _0x188005) {
-      const _0x81cd8b = _0x3d2178;
       void 0 === _0x188005 && (_0x188005 = 0);
       const _0x1c297a = _0x483390.data.getCharData(_0x4abe54);
       if (!_0x1c297a) throw new Error("[Character] Character data not found: " + _0x4abe54);
@@ -3992,12 +3608,10 @@
       _0x126545 && _0xe7ec00.a.setMap(_0x126545, "diffuseMap", _0x483390.library.getMap(_0x2dccca.texture));
     }
     ["updateTransform"]() {
-      const _0x15ed28 = _0x3d2178;
       super.updateTransform(), this.shadow && (this.shadow.scale.x = 2 * this.view.scale.x, this.shadow.scale.y = 0.2 * this.view.scale.x, this.shadow.x = this.view.x, this.shadow.y = this.view.y + this.view.height / 2 - 60 * this.view.scale.x);
     }
   }
   function _0x47927e(_0x39f5f3, _0x593c60, _0x4722ca) {
-    const _0x1be132 = _0x3d2178;
     return (_0x593c60 = function (_0xa42e21) {
       var _0x54eb5c = function (_0x586e39, _0x3835f5) {
         if ('object' != typeof _0x586e39 || null === _0x586e39) return _0x586e39;
@@ -4019,7 +3633,6 @@
   }
   class _0x4d6fcf extends _0x2a24d4.Container {
     constructor(_0x1ce328, _0x302ac5) {
-      const _0x597834 = _0x3d2178;
       super(), _0x47927e(this, "base", void 0), _0x47927e(this, "icon", void 0), _0x47927e(this, 'label', void 0), this.base = new _0x2a24d4.Graphics(), this.base.beginFill(6714239), this.base.drawRoundedRect(0, 0, _0x1ce328, _0x302ac5, 10), this.addChild(this.base), this.label = new _0x2a24d4.Text('0', {
         fontFamily: "Lilita One",
         align: "right",
@@ -4028,16 +3641,13 @@
       }), this.label.anchor.set(1, 0.5), this.addChild(this.label), this.label.x = _0x1ce328 - 50, this.label.y = _0x302ac5 / 2, this.icon = new _0x2a24d4.Sprite(_0x2a24d4.Texture.from("icon-key.png")), this.icon.anchor.set(0.5), this.icon.scale.set(0.8), this.addChild(this.icon), this.icon.x = this.label.x + this.label.width + 3, this.icon.y = this.label.y, this.amount = 5;
     }
     get ['amount']() {
-      const _0x29a9b4 = _0x3d2178;
       return Number(this.label.text);
     }
     set ["amount"](_0x112ee6) {
-      const _0x35f965 = _0x3d2178;
       this.label.text = String(_0x112ee6);
     }
   }
   function _0x4ba9fa(_0x8c84c5, _0x3a5285, _0x31a68d) {
-    const _0xcdc66b = _0x3d2178;
     return (_0x3a5285 = function (_0x5a4db8) {
       var _0x404222 = function (_0x9e9fed, _0x97e4e5) {
         if ("object" != typeof _0x9e9fed || null === _0x9e9fed) return _0x9e9fed;
@@ -4059,7 +3669,6 @@
   }
   class _0x5101a7 extends _0x2a24d4.Container {
     constructor(_0x2bd113, _0x42d519) {
-      const _0x39f069 = _0x3d2178;
       super(), _0x4ba9fa(this, 'base', void 0), _0x4ba9fa(this, "fill", void 0), _0x4ba9fa(this, "label", void 0), this.base = new _0x2a24d4.Graphics(), this.base.beginFill(16313288), this.base.drawRect(0, 0, _0x2bd113, _0x42d519), this.addChild(this.base), this.fill = new _0x2a24d4.Graphics(), this.fill.beginFill(16105025), this.fill.drawRect(0, 0, _0x2bd113, _0x42d519), this.addChild(this.fill), this.label = new _0x2a24d4.Text('99%', {
         fontFamily: "Lilita One",
         align: 'center',
@@ -4068,17 +3677,14 @@
       }), this.label.anchor.set(0.5), this.addChild(this.label), this.label.x = _0x2bd113 / 2, this.label.y = _0x42d519 / 2, this.ratio = 1;
     }
     get ['ratio']() {
-      const _0x382284 = _0x3d2178;
       return this.fill.scale.x;
     }
     set ["ratio"](_0x3eb0f) {
-      const _0x105952 = _0x3d2178;
       _0x3eb0f < 0 && (_0x3eb0f = 0), _0x3eb0f > 1 && (_0x3eb0f = 1), this.fill.scale.x = _0x3eb0f, this.label.text = Math.round(100 * _0x3eb0f) + '%';
     }
   }
   var _0x1f4312 = _0x388199(175);
   function _0x381889(_0x25b07c, _0x3b9849, _0x1c5a54) {
-    const _0x417792 = _0x3d2178;
     return (_0x3b9849 = function (_0x4558c0) {
       var _0x337040 = function (_0x6d106, _0x37241a) {
         if ("object" != typeof _0x6d106 || null === _0x6d106) return _0x6d106;
@@ -4100,7 +3706,6 @@
   }
   class _0x414134 extends _0x2a24d4.Container {
     constructor(_0x5a758c, _0x13031c) {
-      const _0x114272 = _0x3d2178;
       super(), _0x381889(this, "base", void 0), _0x381889(this, "icon", void 0), _0x381889(this, "bigSprayCan", void 0), _0x381889(this, "trophies", void 0), _0x381889(this, "badge", void 0), _0x381889(this, '_tier', 0), this.base = new _0x2a24d4.Graphics(), this.base.beginFill(6714239), this.base.drawRoundedRect(0, 0, _0x5a758c, _0x13031c, 10), this.addChild(this.base), this.icon = new _0x2a24d4.Sprite(_0x2a24d4.Texture.from("base-item-large.png")), this.icon.anchor.set(0.5), this.addChild(this.icon), this.icon.x = _0x5a758c / 2, this.icon.y = this.icon.height / 2 - 8, this.bigSprayCan = new _0x2a24d4.Sprite(_0x2a24d4.Texture.from("spraycan-big-bronze.png")), this.bigSprayCan.anchor.set(0.5), this.icon.addChild(this.bigSprayCan);
       const _0x801f7b = new _0x2a24d4.Sprite(_0x2a24d4.Texture.from("stars.png"));
       _0x801f7b.anchor.set(0.5), this.icon.addChild(_0x801f7b), this.trophies = [];
@@ -4111,16 +3716,13 @@
       this.tier = 0;
     }
     get ['tier']() {
-      const _0x17204a = _0x3d2178;
       return this._tier;
     }
     set ["tier"](_0x3ad75c) {
-      const _0x599a2a = _0x3d2178;
       this._tier = _0x3ad75c, this.refresh();
     }
     ["refresh"]() {
-      const _0x2f3a9b = _0x3d2178,
-        _0x197742 = _0x1398ea[this._tier] || "diamond";
+      const _0x197742 = _0x1398ea[this._tier] || "diamond";
       this.bigSprayCan.texture = _0x2a24d4.Texture.from("spraycan-big-" + _0x197742 + '.png');
       for (let _0x4ccb65 = 0; _0x4ccb65 < this.trophies.length; _0x4ccb65++) {
         const _0x3edda7 = this.trophies[_0x4ccb65];
@@ -4128,16 +3730,13 @@
       }
     }
     ["showBadge"]() {
-      const _0x4205c1 = _0x3d2178;
       this.badge || (this.badge = new _0x1f4312.a()), this.icon.addChild(this.badge), this.badge.scale.set(0.75), this.badge.x = -40, this.badge.y = -40, this.badge.visible = true;
     }
     ['hideBadge']() {
-      const _0x3b5b4f = _0x3d2178;
       this.badge && (this.badge.visible = false);
     }
   }
   function _0x806ac(_0x264674, _0x257930, _0x302793) {
-    const _0x2a5eef = _0x3d2178;
     return (_0x257930 = function (_0x40da75) {
       var _0x1d5d1b = function (_0xfd14a9, _0x1ca4f9) {
         if ("object" != typeof _0xfd14a9 || null === _0xfd14a9) return _0xfd14a9;
@@ -4159,7 +3758,6 @@
   }
   class _0x2beb28 extends _0x2a24d4.Container {
     constructor(_0x197a01, _0x5a384b, _0x212945) {
-      const _0x5e574b = _0x3d2178;
       super(), _0x806ac(this, 'bg', void 0), _0x806ac(this, "btnCollect", void 0), _0x806ac(this, 'labelTitle', void 0), _0x806ac(this, "labelDesc", void 0), _0x806ac(this, "trophies", void 0), _0x806ac(this, "keys", void 0), _0x806ac(this, "progressBar", void 0), _0x806ac(this, "award", void 0), _0x806ac(this, "width", 1), _0x806ac(this, "height", 1), this.award = _0x197a01, this.bg = new _0x2a24d4.Sprite(_0x2a24d4.Texture.WHITE), this.bg.anchor.set(0.5), this.bg.tint = 11130862, this.addChild(this.bg), this.trophies = new _0x414134(112, _0x212945 - 20), this.addChild(this.trophies);
       const _0x4dbc61 = _0x5a384b - this.trophies.width - 20;
       this.labelTitle = new _0x5dc8d3.a(this.award.id, {
@@ -4200,17 +3798,14 @@
         labelSize: 30,
         labelFont: "Lilita One",
         onTap: () => {
-          const _0x1a3cde = _0x5e574b;
           this.award.collect(), this.refresh();
         }
       }), this.addChild(this.btnCollect), this.resize(_0x5a384b, _0x212945), this.refresh();
     }
     ["resize"](_0xc73223, _0x107daa) {
-      const _0xed8740 = _0x3d2178;
       _0xc73223 && (this.width = _0xc73223), _0x107daa && (this.height = _0x107daa), this.bg.width = this.width, this.bg.height = this.height, this.trophies.x = -this.width / 2 + 10, this.trophies.y = -this.height / 2 + 10, this.labelTitle.x = -this.width / 2 + this.trophies.width + 10, this.labelTitle.y = -this.height / 2 + 10, this.labelDesc.x = this.labelTitle.x, this.labelDesc.y = this.labelTitle.y + this.labelTitle.height + 5, this.keys.x = this.labelTitle.x, this.keys.y = this.height / 2 - this.keys.height - 10, this.progressBar.x = this.keys.x + 8, this.progressBar.y = this.keys.y + 8, this.btnCollect.x = this.labelTitle.x + this.btnCollect.width / 2 - 10, this.btnCollect.y = this.keys.y + this.keys.height / 2 - 3;
     }
     ['refresh']() {
-      const _0x519ebd = _0x3d2178;
       if (this.award.allTiersCompleted()) this.btnCollect.visible = false, this.progressBar.visible = false, this.keys.visible = false, this.labelDesc.id = "award-completed", this.labelDesc.refresh(), this.trophies.hideBadge();else {
         const _0x2cc7b2 = this.award.getProgressRatio();
         this.keys.visible = true, this.btnCollect.visible = 1 === _0x2cc7b2, this.progressBar.visible = !this.btnCollect.visible, this.progressBar.ratio = _0x2cc7b2, this.keys.amount = this.award.getCurrentReward(), this.labelDesc.id = this.award.id + "-desc", this.labelDesc.options.params = {
@@ -4221,7 +3816,6 @@
     }
   }
   function _0x36dde3(_0xaccdb4, _0x17b345, _0x445526) {
-    const _0x262bee = _0x3d2178;
     return (_0x17b345 = function (_0x598259) {
       var _0x53c5ee = function (_0x23d476, _0xf79dc8) {
         if ("object" != typeof _0x23d476 || null === _0x23d476) return _0x23d476;
@@ -4243,7 +3837,6 @@
   }
   class _0x428daf extends _0x3ed41f.a {
     constructor(_0x457db7, _0x2b4b57) {
-      const _0x4aa7a5 = _0x3d2178;
       super(), _0x36dde3(this, "width", void 0), _0x36dde3(this, "height", void 0), _0x36dde3(this, "items", void 0), _0x36dde3(this, "trackpad", void 0), _0x36dde3(this, "labelTitle", void 0), this.width = _0x457db7, this.height = _0x2b4b57, this.autoAddChild = false, this.items = [], this.trackpad = new _0xd11b6({}), this.addChild(this.trackpad), this.trackpad.y = this.trackpad.targetY = 0.25 * -this.height;
       const _0x327874 = new _0x2a24d4.Sprite(_0x2a24d4.Texture.WHITE);
       _0x327874.anchor.set(0.5), _0x327874.width = _0x457db7, _0x327874.height = _0x2b4b57 - 180, this.addChild(_0x327874), this.trackpad.mask = _0x327874, this.labelTitle = new _0x5dc8d3.a("awards", {
@@ -4255,8 +3848,7 @@
       }), this.addChild(this.labelTitle), this.labelTitle.y = -this.height / 2 + 10;
     }
     ["onBuild"]() {
-      const _0x27aa1c = _0x3d2178,
-        _0xe64fd1 = this.width - 60;
+      const _0xe64fd1 = this.width - 60;
       for (const _0x499d11 of _0x483390.awards.handlers) {
         const _0x6f22c9 = new _0x2beb28(_0x499d11, _0xe64fd1, 190);
         this.trackpad.addChild(_0x6f22c9), this.items.push(_0x6f22c9);
@@ -4264,7 +3856,6 @@
       this.trackpad.yScrollMin = 200 * -this.items.length + 0.5 * this.height, this.trackpad.yScrollMax = 0.25 * -this.height, this.reorderItems();
     }
     ["reorderItems"]() {
-      const _0x1365a1 = _0x3d2178;
       let _0x3c0e7a = this.items.slice(0);
       _0x3c0e7a = _0x3c0e7a.sort(_0x36b28c => _0x36b28c.award.isReadyToCollect() ? -1 : 1), _0x3c0e7a = _0x3c0e7a.sort((_0x4205a1, _0x5a057e) => _0x5a057e.award.getCurrentTier() - _0x4205a1.award.getCurrentTier()), _0x3c0e7a = _0x3c0e7a.sort((_0x242cb7, _0x1b5613) => _0x1b5613.award.getProgressRatio() - _0x242cb7.award.getProgressRatio());
       for (let _0x300306 = 0; _0x300306 < _0x3c0e7a.length; _0x300306++) {
@@ -4272,30 +3863,25 @@
       }
     }
     ["onOpen"]() {
-      const _0x33f7fb = _0x3d2178;
       for (const _0x2b5cd0 of this.items) _0x2b5cd0.refresh();
       this.reorderItems(), this.trackpad.targetY = this.trackpad.yScrollMax, this.trackpad.y = this.trackpad.targetY, this.trackpad.lock(), this.trackpad.unlock();
     }
     ["updateTransform"]() {
-      const _0x56e842 = _0x3d2178;
       super.updateTransform(), this.trackpad.update(), this.trackpad.y = this.trackpad.targetY;
     }
   }
   var _0x3184f1 = _0x388199(123);
   function _0x34ff54(_0x1f3267, _0x5567b4) {
-    const _0x342933 = _0x3d2178;
     var _0x3dec79 = Object.keys(_0x1f3267);
     if (Object.getOwnPropertySymbols) {
       var _0x3bcb47 = Object.getOwnPropertySymbols(_0x1f3267);
       _0x5567b4 && (_0x3bcb47 = _0x3bcb47.filter(function (_0x2cc41f) {
-        const _0x1698c3 = _0x342933;
         return Object.getOwnPropertyDescriptor(_0x1f3267, _0x2cc41f).enumerable;
       })), _0x3dec79.push.apply(_0x3dec79, _0x3bcb47);
     }
     return _0x3dec79;
   }
   function _0x5d72cd(_0x2ee017, _0x59f35d, _0x5e0cee) {
-    const _0x3e38df = _0x3d2178;
     return (_0x59f35d = function (_0x2692e7) {
       var _0x53762e = function (_0xf9f298, _0x4a73b7) {
         if ("object" != typeof _0xf9f298 || null === _0xf9f298) return _0xf9f298;
@@ -4317,19 +3903,16 @@
   }
   class _0x196bfe extends _0x2a5def.a {
     constructor(_0x48ef37) {
-      const _0x4bccd2 = _0x3d2178;
       void 0 === _0x48ef37 && (_0x48ef37 = {});
       const _0x5ec597 = _0x2a24d4.Sprite.from("btn-base-small.png"),
         _0x2fa529 = _0x2a24d4.Sprite.from("icon-lock-outfit.png"),
         _0x245a6d = _0x2a24d4.Sprite.from("icon-owned.png");
       _0x5ec597.anchor.set(0.5), _0x2fa529.anchor.set(0.5), _0x2fa529.x = _0x5ec597.width / 2 - 5, _0x2fa529.y = _0x5ec597.height / 2 - 5, _0x2fa529.scale.set(0.75), _0x245a6d.anchor.set(0.5), _0x245a6d.x = _0x5ec597.width / 2 - 5, _0x245a6d.y = _0x5ec597.height / 2 - 5, _0x245a6d.scale.set(0.75), super(function (_0x26b1f3) {
-        const _0x4bafcb = _0x4bccd2;
         for (var _0x2e2204 = 1; _0x2e2204 < arguments.length; _0x2e2204++) {
           var _0x46a7c5 = null != arguments[_0x2e2204] ? arguments[_0x2e2204] : {};
           _0x2e2204 % 2 ? _0x34ff54(Object(_0x46a7c5), true).forEach(function (_0x1ddfff) {
             _0x5d72cd(_0x26b1f3, _0x1ddfff, _0x46a7c5[_0x1ddfff]);
           }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x26b1f3, Object.getOwnPropertyDescriptors(_0x46a7c5)) : _0x34ff54(Object(_0x46a7c5)).forEach(function (_0x548fb3) {
-            const _0x19e366 = _0x4bafcb;
             Object.defineProperty(_0x26b1f3, _0x548fb3, Object.getOwnPropertyDescriptor(_0x46a7c5, _0x548fb3));
           });
         }
@@ -4340,42 +3923,34 @@
       }, _0x48ef37)), _0x5d72cd(this, "lock", void 0), _0x5d72cd(this, "selectIcon", void 0), this.lock = _0x2fa529, this.addChild(_0x2fa529), this.selectIcon = _0x245a6d, this.addChild(_0x245a6d);
     }
     ["setIcon"](_0x6d8d8b) {
-      const _0xa9555d = _0x3d2178;
       this.setup({
         icon: _0x6d8d8b
       }), this.addChild(this.lock), this.addChild(this.selectIcon);
     }
     get ["locked"]() {
-      const _0x559af4 = _0x3d2178;
       return this.lock.visible;
     }
     set ["locked"](_0x4cad9f) {
-      const _0x11b389 = _0x3d2178;
       this.lock.visible = _0x4cad9f;
     }
     get ["isSelected"]() {
-      const _0x3e0219 = _0x3d2178;
       return this.lock.visible;
     }
     set ['isSelected'](_0x14b253) {
-      const _0x2aa06b = _0x3d2178;
       this.selectIcon.texture = _0x14b253 ? _0x2a24d4.Texture.from("icon-selected.png") : _0x2a24d4.Texture.from("icon-owned.png");
     }
   }
   function _0x25a46e(_0x4779d5, _0x96169) {
-    const _0x542876 = _0x3d2178;
     var _0x2dce58 = Object.keys(_0x4779d5);
     if (Object.getOwnPropertySymbols) {
       var _0x32adb0 = Object.getOwnPropertySymbols(_0x4779d5);
       _0x96169 && (_0x32adb0 = _0x32adb0.filter(function (_0xee1eca) {
-        const _0x18aba7 = _0x542876;
         return Object.getOwnPropertyDescriptor(_0x4779d5, _0xee1eca).enumerable;
       })), _0x2dce58.push.apply(_0x2dce58, _0x32adb0);
     }
     return _0x2dce58;
   }
   function _0x2c3b49(_0x4f551f, _0x996bf0, _0x2ed8eb) {
-    const _0x549c6d = _0x3d2178;
     return (_0x996bf0 = function (_0x10de69) {
       var _0x410443 = function (_0x415a72, _0x31a1a5) {
         if ("object" != typeof _0x415a72 || null === _0x415a72) return _0x415a72;
@@ -4397,14 +3972,12 @@
   }
   class _0x535a01 extends _0x2a5def.a {
     constructor(_0xb20120) {
-      const _0x52e56c = _0x3d2178;
       void 0 === _0xb20120 && (_0xb20120 = {}), super(function (_0xb0695a) {
         for (var _0x584ad3 = 1; _0x584ad3 < arguments.length; _0x584ad3++) {
           var _0x4ee22e = null != arguments[_0x584ad3] ? arguments[_0x584ad3] : {};
           _0x584ad3 % 2 ? _0x25a46e(Object(_0x4ee22e), true).forEach(function (_0xa2f23e) {
             _0x2c3b49(_0xb0695a, _0xa2f23e, _0x4ee22e[_0xa2f23e]);
           }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0xb0695a, Object.getOwnPropertyDescriptors(_0x4ee22e)) : _0x25a46e(Object(_0x4ee22e)).forEach(function (_0x281b8e) {
-            const _0x272dcf = _0x380f53;
             Object.defineProperty(_0xb0695a, _0x281b8e, Object.getOwnPropertyDescriptor(_0x4ee22e, _0x281b8e));
           });
         }
@@ -4429,7 +4002,6 @@
     }
   }
   function _0xbda221(_0x15489a, _0x14ba36, _0x1f7e78) {
-    const _0x2044ee = _0x3d2178;
     return (_0x14ba36 = function (_0x3ff224) {
       var _0x1f241f = function (_0x5f3d53, _0x4942ae) {
         if ("object" != typeof _0x5f3d53 || null === _0x5f3d53) return _0x5f3d53;
@@ -4451,11 +4023,9 @@
   }
   class _0x133207 extends _0x535a01 {
     constructor(_0x76ccbd) {
-      const _0x55f3b9 = _0x3d2178;
       void 0 === _0x76ccbd && (_0x76ccbd = {}), super(_0x76ccbd), _0xbda221(this, "currencyIcon", void 0), this.currencyIcon = _0x2a24d4.Sprite.from("icon-coin.png"), this.currencyIcon.anchor.set(0.5), this.addChild(this.currencyIcon);
     }
     ['update'](_0x4cc5e9) {
-      const _0xca375 = _0x3d2178;
       var _0x2713f5;
       void 0 === _0x4cc5e9 && (_0x4cc5e9 = {}), this.setup(_0x4cc5e9), this.addChild(this.currencyIcon), this.currencyIcon.visible = 'cost' === (null === (_0x2713f5 = this.label) || void 0 === _0x2713f5 ? void 0 : _0x2713f5.id);
       const _0x1cfe40 = {
@@ -4474,7 +4044,6 @@
     set ["state"](_0x320220) {}
   }
   function _0x275bce(_0x24086f, _0x3b6ed4, _0xe985e4) {
-    const _0x2baeb8 = _0x3d2178;
     return (_0x3b6ed4 = function (_0x3614b2) {
       var _0x1e1988 = function (_0x2cbc5b, _0x553be2) {
         if ("object" != typeof _0x2cbc5b || null === _0x2cbc5b) return _0x2cbc5b;
@@ -4496,7 +4065,6 @@
   }
   class _0x3cfc21 extends _0x2a24d4.Container {
     constructor() {
-      const _0xb17daa = _0x3d2178;
       super(), _0x275bce(this, "icon", void 0), _0x275bce(this, "h1Label", void 0), _0x275bce(this, "h2Label", void 0), this.icon = this.addChild(_0x2a24d4.Sprite.from("icon-board-powerup.png")), this.icon.anchor.set(0.5), this.icon.tint = 13390855, this.icon.position.set(45, 0), this.h1Label = this.addChild(new _0x2a24d4.Text('', {
         fill: 13390855,
         fontSize: 28,
@@ -4508,12 +4076,10 @@
       })), this.h2Label.x = 90;
     }
     ["setPowerup"](_0x4b44dd) {
-      const _0x3efc3f = _0x3d2178;
       this.h2Label.text = _0xf03c86.b.translate(_0x4b44dd);
     }
   }
   function _0x131da4(_0x48c476, _0x2fa5da, _0x325702) {
-    const _0x5a2187 = _0x3d2178;
     return (_0x2fa5da = function (_0x5893f8) {
       var _0x50cd3e = function (_0x3c1421, _0x26be2b) {
         if ('object' != typeof _0x3c1421 || null === _0x3c1421) return _0x3c1421;
@@ -4535,7 +4101,6 @@
   }
   class _0x5ec8ac extends _0x2a24d4.Container {
     constructor(_0xfe4506, _0x54194c) {
-      const _0x5515eb = _0x3d2178;
       super(), _0x131da4(this, 'thumb', void 0), _0x131da4(this, "costLabel", void 0), _0x131da4(this, "labelName", void 0), _0x131da4(this, "labelOutfit", void 0), _0x131da4(this, 'featsMenu', void 0), _0x131da4(this, "data", void 0), _0x131da4(this, 'powerupTag', void 0), _0x131da4(this, "outfit", 0), _0x131da4(this, "selectedPowers", []), _0x131da4(this, "boardPowers", [0]), _0x131da4(this, "btnSelect", void 0), _0x131da4(this, "onSelectOutfit", void 0), this.onSelectOutfit = new _0x3eb645.Signal(), this.labelName = new _0x2a24d4.Text('', {
         fill: 211825,
         fontSize: 40,
@@ -4556,15 +4121,13 @@
       }), this.costLabel.x = this.btnSelect.x, this.costLabel.y = this.btnSelect.y, this.costLabel.anchor.set(0.5), this.thumb = new _0x4f21d9(_0x54194c), this.addChild(this.thumb), this.thumb.x = -170, this.thumb.y = 400, this.thumb.scale.set(1.3), this.outfit = _0x483390.user.outfit, this.boardPowers = [..._0x483390.user.boardPowers], this.selectedPowers = [..._0x483390.user.boardPowers];
     }
     ["addOutfitButton"](_0x230bb3, _0x32b69f) {
-      const _0x3df35b = _0x3d2178,
-        _0x2efa19 = new _0x196bfe({
-          icon: _0x32b69f,
-          onTap: () => this.selectOutfit(_0x230bb3)
-        });
+      const _0x2efa19 = new _0x196bfe({
+        icon: _0x32b69f,
+        onTap: () => this.selectOutfit(_0x230bb3)
+      });
       _0x2efa19.selectIcon.visible = false, this.featsMenu.addButton(_0x2efa19);
     }
     ["setCharData"](_0x54a529, _0x362594, _0x1c0ddc) {
-      const _0x3846bb = _0x3d2178;
       void 0 === _0x1c0ddc && (_0x1c0ddc = _0x362594), this.data = _0x54a529, this.labelName.text = _0xf03c86.b.translate(_0x54a529.id), this.thumb.stop(), this.thumb.setChar(_0x362594, _0x1c0ddc, this.outfit), this.thumb.play("uiIdle"), this.powerupTag.visible = false;
       const _0x3daa47 = _0x483390.data.getCharData(_0x54a529.id);
       if (!_0x3daa47) throw new Error("No character data found for id: " + _0x54a529.id);
@@ -4577,30 +4140,25 @@
       }
     }
     ["setBoardData"](_0x4f7590) {
-      const _0x2ce380 = _0x3d2178;
       this.labelName.text = _0xf03c86.b.translate(_0x4f7590.id), this.thumb.stop(), this.thumb.setBoard(_0x4f7590, this.boardPowers), this.thumb.play("uiBoardIdle"), this.labelName.visible = true, this.labelOutfit.visible = false, this.powerupTag.y = 75 + this.powerupTag.height / 2, _0x4f7590.powerup ? (this.powerupTag.setPowerup(_0x4f7590.powerup), this.powerupTag.visible = true, this.featsMenu.visible = false) : (this.powerupTag.visible = false, this.featsMenu.visible = true), this.setPowerups(_0x4f7590);
     }
     ["setPowerups"](_0x42b0c1) {
-      const _0x34bce5 = _0x3d2178,
-        _0x342e4b = [_0x42b0c1, ...(_0x42b0c1.powerups || [])];
+      const _0x342e4b = [_0x42b0c1, ...(_0x42b0c1.powerups || [])];
       this.featsMenu.visible = _0x342e4b.length > 1;
       for (let _0x504e20 = 0; _0x504e20 < _0x342e4b.length; _0x504e20++) {
         const _0xaa0051 = _0x342e4b[_0x504e20],
           _0x382c8a = this.featsMenu.buttons[_0x504e20];
         _0x382c8a.visible = _0xaa0051.available, _0xaa0051.available && (_0x382c8a.setup({
           onTap: () => {
-            const _0x106a25 = _0x34bce5;
             this.focusPowerup(_0x504e20, _0x342e4b);
           }
         }), _0x504e20 > 0 && _0x382c8a.setIcon("icon-" + _0xaa0051.id + ".png"), _0x382c8a.locked = _0xaa0051.locked, _0x382c8a.selectIcon.visible = _0x504e20 > 0 && !_0xaa0051.locked && _0xaa0051.purchased, _0x382c8a.tintBase(_0xaa0051.colors[0] ? _0x2a24d4.utils.string2hex(_0xaa0051.colors[0]) : 3902140), _0x382c8a.tintIcon(_0xaa0051.colors[1] ? _0x2a24d4.utils.string2hex(_0xaa0051.colors[1]) : 1062479), _0x504e20 > 0 && (_0x382c8a.locked = _0x42b0c1.powerups[_0x504e20 - 1].locked));
       }
     }
     ["removeBoard"]() {
-      const _0x403481 = _0x3d2178;
       this.data && _0x4f21d9.scene.removeBoard(this.data.id);
     }
     ["selectOutfit"](_0x19ca35) {
-      const _0x2f0223 = _0x3d2178;
       if (0 === _0x19ca35) this.labelOutfit.text = '';else {
         var _0x2d4802;
         const _0x23473d = null === (_0x2d4802 = this.data) || void 0 === _0x2d4802 ? void 0 : _0x2d4802.outfits[_0x19ca35 - 1];
@@ -4609,8 +4167,7 @@
       this.cost = '', this.outfit = _0x19ca35, this.data && this.thumb.setChar(this.data.id.toLowerCase(), this.data.id.toLowerCase(), this.outfit), this.onSelectOutfit.dispatch();
     }
     ["focusPowerup"](_0x13e513, _0x540f6b) {
-      const _0xa586cd = _0x3d2178,
-        _0x5a9bf3 = 0 === _0x13e513;
+      const _0x5a9bf3 = 0 === _0x13e513;
       this.labelName.visible = _0x5a9bf3, this.powerupTag.visible = !_0x5a9bf3;
       const _0x13a3d6 = _0x540f6b[_0x13e513];
       this.powerupTag.setPowerup(_0x13a3d6.id), this.powerupTag.y = this.labelName.y, this.cost = '', this.boardPowers = this.boardPowers.filter(_0x352a6d => this.selectedPowers.indexOf(_0x352a6d) >= 0);
@@ -4618,15 +4175,12 @@
       _0xf88a1f >= 0 && this.boardPowers.splice(_0xf88a1f, 1), this.boardPowers.push(_0x13e513), this.thumb.setBoard(_0x540f6b[0], this.boardPowers), this.onSelectOutfit.dispatch();
     }
     ["refresh"](_0x1b5992) {
-      const _0x33e427 = _0x3d2178;
       this.featsMenu.buttons.forEach((_0x50a3e3, _0x14cb71) => {
-        const _0x2b7a7 = _0x33e427;
         var _0x3fb0ed;
         0 !== _0x14cb71 && (_0x50a3e3.isSelected = this.selectedPowers.indexOf(_0x14cb71) >= 0, _0x50a3e3.selectIcon.visible = !(null === (_0x3fb0ed = _0x1b5992.powerups[_0x14cb71 - 1]) || void 0 === _0x3fb0ed || !_0x3fb0ed.purchased));
       });
     }
     set ["cost"](_0xe3d386) {
-      const _0x24686e = _0x3d2178;
       this.costLabel.text = '' + _0xe3d386, this.btnSelect.update({
         label: "cost",
         labelParams: {
@@ -4636,7 +4190,6 @@
     }
   }
   function _0x453248(_0x4b566f, _0x398679, _0x491698) {
-    const _0x11ef08 = _0x3d2178;
     return (_0x398679 = function (_0x569a99) {
       var _0x1cb505 = function (_0x543772, _0x5d7a44) {
         if ('object' != typeof _0x543772 || null === _0x543772) return _0x543772;
@@ -4658,26 +4211,21 @@
   }
   class _0x447844 extends _0xd11b6 {
     constructor(_0x2e56c4) {
-      const _0x1381bf = _0x3d2178;
       super(_0x2e56c4), _0x453248(this, 'leftBound', void 0), _0x453248(this, "elementsCount", 0), this.leftBound = _0x2e56c4.leftBound + 30;
     }
     ['addElement'](_0x2ce398) {
-      const _0x344ffa = _0x3d2178;
       this.addChild(_0x2ce398), this.elementsCount++, this.refresh();
     }
     ["refresh"]() {
-      const _0x55cb82 = _0x3d2178;
       this.xScrollMin = this.leftBound - this.width, this.size = this.xScrollMax - this.xScrollMin, this.maxSlots = this.elementsCount;
     }
     ['easeToSlot'](_0x4b790f) {
-      const _0x278746 = _0x3d2178,
-        _0x5afbb0 = this.size / (this.maxSlots - 5),
+      const _0x5afbb0 = this.size / (this.maxSlots - 5),
         _0x3265f7 = Math.max(this.xScrollMin, this.xScrollMax - _0x5afbb0 * _0x4b790f);
       this.easeToPosition(_0x3265f7, this.y);
     }
     ["getSlotIndex"]() {
-      const _0x180d40 = _0x3d2178,
-        {
+      const {
           xScrollMin: _0x16ebfc,
           xScrollMax: _0x5b9855,
           maxSlots: _0x3c795e,
@@ -4690,7 +4238,6 @@
   }
   var _0x18a9c6 = _0x388199(37);
   function _0x2cdf77(_0xcdd4a6, _0x4f9103, _0x359c73) {
-    const _0x1b08ad = _0x3d2178;
     return (_0x4f9103 = function (_0x5e2bb6) {
       var _0x35fbfe = function (_0x46fc4d, _0x5d4395) {
         if ("object" != typeof _0x46fc4d || null === _0x46fc4d) return _0x46fc4d;
@@ -4712,11 +4259,9 @@
   }
   class _0x1d399b extends _0x487409 {
     constructor() {
-      const _0x8eabe2 = _0x3d2178;
       super(), _0x2cdf77(this, "boardsMap", new Map()), _0x2cdf77(this, "rotating", new Map()), _0x483390.data.getAvailableBoards().forEach(_0x1df4bd => this.boardsMap.set(_0x1df4bd.id, _0x1df4bd));
     }
     ["getTexture"](_0x564d63, _0x498ba3) {
-      const _0x219ba7 = _0x3d2178;
       void 0 === _0x498ba3 && (_0x498ba3 = []);
       const _0x1e90ad = this.entitiesMap.get(_0x564d63),
         _0x20126e = this.textures.get(_0x564d63),
@@ -4724,7 +4269,6 @@
       if (!_0x20126e || !_0x1e90ad || !_0x315f2d) throw new Error("Character not registered: " + _0x564d63);
       const _0x13f5a8 = [];
       _0x498ba3.forEach(_0x32d981 => {
-        const _0x3eded3 = _0x219ba7;
         var _0x4c4b48;
         return _0x13f5a8.push(...((null === (_0x4c4b48 = _0x315f2d.powerups[_0x32d981 - 1]) || void 0 === _0x4c4b48 ? void 0 : _0x4c4b48.features) || []));
       });
@@ -4732,13 +4276,11 @@
       return this.play(_0x564d63), this.updateScene(_0x1e90ad, _0x315f2d.root, _0x315f2d.texture, _0xd8b043), this.renderChildren(), this.stop(_0x564d63), _0x20126e;
     }
     ["rotateSelected"](_0x23e30f) {
-      const _0x5085ac = _0x3d2178,
-        _0x38d988 = this.entitiesMap.get(_0x23e30f);
+      const _0x38d988 = this.entitiesMap.get(_0x23e30f);
       _0x38d988 && (this.play(_0x23e30f), this.rotating.set(_0x23e30f, _0x38d988));
     }
     ["rotateBack"](_0x5d53d1, _0x439631) {
-      const _0x32cb38 = _0x3d2178,
-        _0x40e98a = this.entitiesMap.get(_0x5d53d1);
+      const _0x40e98a = this.entitiesMap.get(_0x5d53d1);
       if (!_0x40e98a) return;
       const _0x1455a0 = _0x40e98a.container.children[0];
       this.rotating.delete(_0x5d53d1);
@@ -4746,15 +4288,12 @@
       _0x2e3fcc = 0 + _0x2e3fcc < _0x4f0763.a.PI_DOUBLE - _0x2e3fcc ? _0x2e3fcc : -_0x4f0763.a.PI_DOUBLE + _0x2e3fcc, this.play(_0x5d53d1), _0x346c5e.g.to(_0x1455a0, 0.6, {
         rx: _0x1455a0.rx + _0x2e3fcc,
         onComplete: () => {
-          const _0x4c9280 = _0x32cb38;
           _0x439631.animating = false;
         }
       });
     }
     ["renderChildren"]() {
-      const _0x1d9cfc = _0x3d2178;
       this.playing && 0 !== this.animating.length && (this.update(true), this.animating.forEach(_0x4c719a => {
-        const _0x2e2402 = _0x1d9cfc;
         var _0x4c36b9;
         const _0x102644 = this.entitiesMap.get(_0x4c719a),
           _0x32f3a2 = this.textures.get(_0x4c719a),
@@ -4763,26 +4302,21 @@
       }));
     }
     ["play"]() {
-      const _0x809d4c = _0x3d2178;
       this.playing = true;
       for (var _0x4684c8 = arguments.length, _0x1bb072 = new Array(_0x4684c8), _0x14c0f4 = 0; _0x14c0f4 < _0x4684c8; _0x14c0f4++) _0x1bb072[_0x14c0f4] = arguments[_0x14c0f4];
       _0x1bb072.forEach(_0x1f0f6e => {
-        const _0x12738a = _0x809d4c;
         this.entitiesMap.get(_0x1f0f6e) && -1 === this.animating.indexOf(_0x1f0f6e) && this.animating.push(_0x1f0f6e);
       });
     }
     ["stop"]() {
-      const _0x5d8cee = _0x3d2178;
       for (var _0x1c4e0c = arguments.length, _0x3e955a = new Array(_0x1c4e0c), _0x4c84b4 = 0; _0x4c84b4 < _0x1c4e0c; _0x4c84b4++) _0x3e955a[_0x4c84b4] = arguments[_0x4c84b4];
       _0x3e955a.forEach(_0x3e6778 => {
-        const _0x1c5ee8 = _0x5d8cee,
-          _0x558cef = this.animating.indexOf(_0x3e6778);
+        const _0x558cef = this.animating.indexOf(_0x3e6778);
         _0x558cef < 0 || this.animating.splice(_0x558cef, 1);
       }), this.animating.length || (this.playing = false);
     }
   }
   function _0x3b4d98(_0x4c9a68, _0x5a8e2b, _0x2b5289) {
-    const _0x2a5a87 = _0x3d2178;
     return (_0x5a8e2b = function (_0x5989b1) {
       var _0x2c2bab = function (_0x47f329, _0x462bfd) {
         if ("object" != typeof _0x47f329 || null === _0x47f329) return _0x47f329;
@@ -4804,27 +4338,21 @@
   }
   class _0x4ab00a extends _0x52858a {
     constructor(_0x88e95b) {
-      const _0x11d0d0 = _0x3d2178;
       super(), _0x3b4d98(this, "shopData", void 0), _0x3b4d98(this, "animating", false), _0x3b4d98(this, "powers", [0]), this._onSelect = null, this.shopData = _0x88e95b, this.setBoard();
     }
     ['play']() {
-      const _0x28285c = _0x3d2178;
       _0x4ab00a.scene.play(this.thumbId);
     }
     ['stop']() {
-      const _0x4c39c2 = _0x3d2178;
       _0x4ab00a.scene.stop(this.thumbId);
     }
     ["animateIn"]() {
-      const _0x9c1a92 = _0x3d2178;
       _0x4ab00a.scene.rotateSelected(this.thumbId), this.animating = true;
     }
     ['animateOut']() {
-      const _0x2a794b = _0x3d2178;
       _0x4ab00a.scene.rotateBack(this.thumbId, this);
     }
     ["setBoard"]() {
-      const _0x413a8c = _0x3d2178;
       _0x4ab00a.scene || (_0x4ab00a.scene = new _0x1d399b());
       const _0x1dce8c = _0x4ab00a.scene,
         _0xc7223d = this.shopData.id,
@@ -4866,14 +4394,12 @@
   _0x3b4d98(_0x4ab00a, "scene", void 0);
   class _0x4f9da8 extends _0x2a24d4.Container {
     constructor(_0x3a264c, _0x29282a) {
-      const _0x357a9b = _0x3d2178;
       super(), _0x43d202(this, 'w', 0), _0x43d202(this, 'h', 0), _0x43d202(this, 'thumbsMask', void 0), _0x43d202(this, "boardsScroller", void 0), _0x43d202(this, "profile", void 0), _0x43d202(this, "boardsList", void 0), _0x43d202(this, "boardsMap", void 0), _0x43d202(this, "boardSelectionMap", void 0), _0x43d202(this, "userCurrencies", void 0), _0x43d202(this, "focussedBoard", ''), _0x43d202(this, "selectedBoard", ''), _0x43d202(this, "previousBoard", ''), this.thumbsMask = _0x4b8db5.a.rectColor({
         w: _0x3a264c - 20,
         h: _0x29282a,
         x: -_0x3a264c / 2,
         alpha: 0.4
       }), this.thumbsMask.x = _0x3a264c / 2, this.addChild(this.thumbsMask), this.userCurrencies = new _0x4b354d(), this.userCurrencies.onRefresh.add(() => {
-        const _0x16c2c9 = _0x357a9b;
         this.userCurrencies.x = _0x3a264c / 2 - this.userCurrencies.width / 2 - 20;
       }), this.addChild(this.userCurrencies), this.userCurrencies.y = -345, this.boardsScroller = this.addChild(new _0x447844({
         damp: 0.8,
@@ -4899,31 +4425,26 @@
           animData: _0x56a2ab
         };
       this.profile = new _0x5ec8ac('board', _0x43439d), this.addChild(this.profile), this.profile.y = -200, this.profile.onSelectOutfit.add(() => {
-        const _0xa7fadd = _0x357a9b;
         this.refreshSelected();
       }), this.profile.btnSelect.onTap = () => this.confirmSelection();
       const _0x47dfff = _0x483390.user.board;
       this.selectedBoard = _0x47dfff, this.previousBoard = _0x47dfff, this.boardSelectionMap[_0x47dfff].texture = _0x2a24d4.Texture.from("icon-selected.png"), this.boardsMap[_0x47dfff].powers = [..._0x483390.user.boardPowers];
     }
     ["buildBoardThumbs"]() {
-      const _0x86f6a6 = _0x3d2178;
       this.boardsMap = {}, this.boardSelectionMap = {};
       const _0x316f6d = [];
       _0x483390.shop.boards.forEach(_0x5cb04e => {
-        const _0x29c30c = _0x86f6a6,
-          _0x4e5c37 = new _0x4ab00a(_0x5cb04e);
+        const _0x4e5c37 = new _0x4ab00a(_0x5cb04e);
         this.boardsScroller.addElement(_0x4e5c37), _0x4e5c37.x = 130 * _0x316f6d.length + 70, _0x4e5c37.scale.set(0.45), this.boardsMap[_0x4e5c37.thumbId] = _0x4e5c37;
         const _0x421f77 = this.boardsScroller.addChild(_0x2a24d4.Sprite.from("icon-owned.png"));
         _0x421f77.x = _0x4e5c37.x, _0x421f77.y = -60, _0x421f77.visible = !!_0x5cb04e.purchased, this.boardSelectionMap[_0x4e5c37.thumbId] = _0x421f77, _0x316f6d.push(_0x4e5c37), _0x4e5c37.onSelect = _0x512c0e => {
-          const _0x34db95 = _0x29c30c,
-            _0x35fb6a = this.profile.boardPowers,
+          const _0x35fb6a = this.profile.boardPowers,
             _0x2756f6 = _0x35fb6a.indexOf(0);
           _0x2756f6 >= 0 && _0x35fb6a.splice(_0x2756f6, 1), _0x35fb6a.push(0), this.focusBoard(_0x512c0e);
         };
       }), this.boardsList = _0x316f6d;
     }
     ["focusBoard"](_0x2aeae6) {
-      const _0x2ae0e4 = _0x3d2178;
       var _0x302ba7, _0xb731f7, _0x4b12bd;
       if (_0x2aeae6.thumbId === this.focussedBoard) return;
       _0x346c5e.g.to(_0x2aeae6.scale, 0.15, {
@@ -4938,12 +4459,10 @@
       this.boardsScroller.easeToSlot(_0x227610);
     }
     ["selectBoard"]() {
-      const _0x14d02d = _0x3d2178;
       this.selectedBoard !== this.focussedBoard && (this.selectedBoard = this.focussedBoard, this.refresh(), this.refreshSelected(false), _0x4ab00a.scene.printEntity(this.focussedBoard));
     }
     ["confirmSelection"]() {
-      const _0x3cb36f = _0x3d2178,
-        _0x22a11a = _0x483390.user,
+      const _0x22a11a = _0x483390.user,
         _0x49636e = this.profile.boardPowers;
       this.boardSelectionMap[this.previousBoard].texture = _0x2a24d4.Texture.from("icon-owned.png");
       const _0x177190 = this.boardsMap[this.previousBoard];
@@ -4952,17 +4471,14 @@
       _0x341601.texture = _0x2a24d4.Texture.from("icon-selected.png"), _0x341601.visible = true, _0x22a11a.board = this.selectedBoard, this.profile.selectedPowers = [..._0x49636e], _0x22a11a.boardPowers = [..._0x49636e], _0x22a11a.save(), this.refreshSelected();
     }
     ["refresh"]() {
-      const _0x232003 = _0x3d2178,
-        _0x19e794 = this.boardsMap[this.selectedBoard].shopData;
+      const _0x19e794 = this.boardsMap[this.selectedBoard].shopData;
       this.profile.setBoardData(_0x19e794);
     }
     async ["purchaseRequest"](_0x583e3f) {
-      const _0x4d362f = _0x3d2178,
-        _0x4b9fc9 = await _0x483390.shop.purchase(_0x583e3f);
+      const _0x4b9fc9 = await _0x483390.shop.purchase(_0x583e3f);
       return _0x4b9fc9 ? this.confirmSelection() : (_0x483390.notEnoughCurrency.setup(_0x583e3f.cost, () => null, _0x583e3f.currency), _0x483390.notEnoughCurrency.open()), _0x4b9fc9;
     }
     ["refreshSelected"](_0x38e455) {
-      const _0x1107ef = _0x3d2178;
       void 0 === _0x38e455 && (_0x38e455 = true), _0x38e455 || (this.profile.selectedPowers = [], this.profile.boardPowers = [0]);
       const _0x5a0b70 = this.profile.btnSelect,
         _0x4cba82 = this.boardsMap[this.selectedBoard],
@@ -4981,7 +4497,6 @@
           currency: _0x32335e.currency
         }
       }), _0x5a0b70.onTap = async () => {
-        const _0x4b9b4b = _0x1107ef;
         (await this.purchaseRequest(_0x32335e)) && this.profile.setBoardData(_0x32335e);
       }, _0x5a0b70.alpha = 1);else {
         const _0x170881 = _0x32335e.powerups[_0x10e2b0];
@@ -4994,8 +4509,7 @@
         }), _0x5a0b70.onTap = () => this.confirmSelection(), _0x5a0b70.alpha = 1) : (_0x5a0b70.update({
           label: 'turn-off'
         }), _0x5a0b70.onTap = () => {
-          const _0x57d5a7 = _0x1107ef,
-            _0x51a494 = this.profile.selectedPowers.indexOf(_0x5f271a);
+          const _0x51a494 = this.profile.selectedPowers.indexOf(_0x5f271a);
           this.profile.selectedPowers.splice(_0x51a494, 1), _0x483390.user.boardPowers = [...this.profile.selectedPowers], _0x483390.user.save(), this.refreshSelected();
         }, _0x5a0b70.alpha = 1) : (this.profile.cost = _0x170881.cost, _0x5a0b70.update({
           label: "cost",
@@ -5008,7 +4522,6 @@
       this.profile.refresh(_0x32335e);
     }
     async ["open"]() {
-      const _0x162a71 = _0x3d2178;
       _0x483390.showLoadingMessage(), await _0x483390.loader.loadSelectedFullCharacter(), _0x483390.hideLoadingMessage();
       const _0x1712d0 = _0x483390.user.character,
         _0x1636c2 = _0x483390.shop.characters.find(_0x194830 => _0x194830.id === _0x1712d0),
@@ -5030,24 +4543,20 @@
       this.profile.setBoardData(_0x16d55e), this.userCurrencies.coins = _0x483390.user.coins, this.userCurrencies.keys = _0x483390.user.keys, this.refreshSelected(), this.focusBoard(this.boardsMap[this.selectedBoard]);
     }
     ["close"]() {
-      const _0x3d25d1 = _0x3d2178;
       this.profile.removeBoard();
     }
     ["updateTransform"]() {
-      const _0x1f9aac = _0x3d2178;
       super.updateTransform(), this.boardsScroller.update();
       const _0x248ec7 = this.boardsScroller.targetX;
       Math.abs(this.boardsScroller.xSpeed) > 0.2 ? this.scrollThumbs(_0x248ec7) : (this.boardsScroller.x = _0x248ec7, this.selectBoard());
     }
     ["scrollThumbs"](_0x2d17bd) {
-      const _0x46778d = _0x3d2178;
       this.boardsScroller.x = _0x2d17bd;
       const _0x136c24 = this.boardsList[this.boardsScroller.getSlotIndex()];
       this.focusBoard(_0x136c24);
     }
   }
   function _0x3ac489(_0x4cebb9, _0x30ab5c, _0x21bf6e) {
-    const _0x7f41a1 = _0x3d2178;
     return (_0x30ab5c = function (_0x153f88) {
       var _0x38fd69 = function (_0x5d227a, _0x15ac02) {
         if ('object' != typeof _0x5d227a || null === _0x5d227a) return _0x5d227a;
@@ -5069,14 +4578,12 @@
   }
   class _0xa8ef0 extends _0x2a24d4.Container {
     constructor(_0x4f0c2f, _0x14c689) {
-      const _0x17f9ff = _0x3d2178;
       super(), _0x3ac489(this, 'w', 0), _0x3ac489(this, 'h', 0), _0x3ac489(this, "thumbsMask", void 0), _0x3ac489(this, "characterScroller", void 0), _0x3ac489(this, "profile", void 0), _0x3ac489(this, "charactersList", void 0), _0x3ac489(this, "charactersMap", void 0), _0x3ac489(this, "charSelectionMap", void 0), _0x3ac489(this, "characterCurrencies", void 0), _0x3ac489(this, "focussedCharacter", ''), _0x3ac489(this, "selectedCharacter", ''), _0x3ac489(this, "previousCharacter", ''), this.thumbsMask = _0x4b8db5.a.rectColor({
         w: _0x4f0c2f - 20,
         h: _0x14c689,
         x: -_0x4f0c2f / 2,
         alpha: 0.4
       }), this.thumbsMask.x = _0x4f0c2f / 2, this.addChild(this.thumbsMask), this.characterCurrencies = new _0x4b354d(), this.characterCurrencies.onRefresh.add(() => {
-        const _0x16fd9f = _0x17f9ff;
         this.characterCurrencies.x = _0x4f0c2f / 2 - this.characterCurrencies.width / 2 - 20;
       }), this.addChild(this.characterCurrencies), this.characterCurrencies.y = -345;
       const _0x51bfe1 = _0x483390.user.character,
@@ -5092,7 +4599,6 @@
           thumbId: _0x51bfe1
         };
       this.profile = new _0x5ec8ac("character", _0x37db29), this.addChild(this.profile), this.profile.y = -200, this.profile.onSelectOutfit.add(() => {
-        const _0x3e5206 = _0x17f9ff;
         this.refreshSelectedOutfit();
       }), this.profile.btnSelect.onTap = () => this.confirmSelection(), this.characterScroller = this.addChild(new _0x447844({
         damp: 0.8,
@@ -5105,7 +4611,6 @@
       _0x41132e.addChild(_0x1f1bfb), _0x41132e.refresh(), _0x41132e.setPosition(_0x41132e.xScrollMax, 0), this.profile.outfit = _0x483390.user.outfit, this.focussedCharacter = _0x51bfe1, this.selectedCharacter = _0x51bfe1, this.previousCharacter = _0x51bfe1, this.charSelectionMap[_0x51bfe1].texture = _0x2a24d4.Texture.from("icon-selected.png"), this.refresh();
     }
     ["buildCharThumbs"]() {
-      const _0x250610 = _0x3d2178;
       this.charactersMap = {}, this.charSelectionMap = {};
       const _0x289b96 = [],
         _0x53b65e = _0x483390.shop.characters,
@@ -5117,8 +4622,7 @@
           name: "uiIdle"
         };
       _0x53b65e.forEach(_0x4e607d => {
-        const _0x368d8e = _0x250610,
-          _0x34738e = {
+        const _0x34738e = {
             sceneName: _0x4e607d.id + "-idle",
             animData: _0x2b2b68,
             thumbId: _0x4e607d.id
@@ -5129,7 +4633,6 @@
         _0x4f61d6.x = _0x1f8a21.x, _0x4f61d6.y = -60, _0x4f61d6.visible = !!_0x4e607d.purchased, this.charSelectionMap[_0x1f8a21.thumbId] = _0x4f61d6, this.charactersMap[_0x1f8a21.thumbId] = _0x1f8a21, _0x289b96.push(_0x1f8a21);
         const _0x575de8 = _0x289b96.length;
         _0x1f8a21.onSelect = _0x238656 => {
-          const _0x34cb28 = _0x368d8e;
           this.focusCharacter(_0x238656);
           const _0x2657af = Math.max(3, _0x575de8) - 3;
           this.characterScroller.easeToSlot(_0x2657af);
@@ -5137,7 +4640,6 @@
       }), this.charactersList = _0x289b96;
     }
     ["focusCharacter"](_0x385cef) {
-      const _0x1e5c68 = _0x3d2178;
       var _0x4c3ca5;
       _0x385cef.thumbId !== this.focussedCharacter && (_0x346c5e.g.to(_0x385cef.scale, 0.15, {
         x: 0.55,
@@ -5147,23 +4649,19 @@
       }), null === (_0x4c3ca5 = this.charactersMap[this.focussedCharacter]) || void 0 === _0x4c3ca5 || _0x4c3ca5.deselect(), this.focussedCharacter = _0x385cef.thumbId);
     }
     ["selectCharacter"]() {
-      const _0x5a3146 = _0x3d2178;
       this.selectedCharacter !== this.focussedCharacter && (this.selectedCharacter = this.focussedCharacter, this.profile.outfit = 0, this.refresh(), this.refreshSelectedOutfit(), _0x4f21d9.scene.printEntity(this.focussedCharacter));
     }
     ["confirmSelection"]() {
-      const _0x2870e8 = _0x3d2178,
-        _0x237a0b = _0x483390.user;
+      const _0x237a0b = _0x483390.user;
       this.charSelectionMap[this.previousCharacter].texture = _0x2a24d4.Texture.from("icon-owned.png"), this.previousCharacter = this.selectedCharacter;
       const _0x5590df = this.charSelectionMap[this.selectedCharacter];
       _0x5590df.texture = _0x2a24d4.Texture.from("icon-selected.png"), _0x5590df.visible = true, _0x237a0b.outfit = this.profile.outfit, _0x237a0b.character = this.selectedCharacter, _0x237a0b.save(), this.refreshSelected();
     }
     ['refresh']() {
-      const _0x27ff9b = _0x3d2178,
-        _0x2421e5 = this.charactersMap[this.selectedCharacter].shopData;
+      const _0x2421e5 = this.charactersMap[this.selectedCharacter].shopData;
       _0x4f21d9.scene.stopAll(), this.profile.setCharData(_0x2421e5, _0x2421e5.id), this.profile.selectOutfit(this.profile.outfit);
     }
     ["refreshSelectedOutfit"]() {
-      const _0x1033bc = _0x3d2178;
       this.refreshSelected();
       const _0x48f5e9 = this.charactersMap[this.selectedCharacter].shopData,
         _0x2c7cd9 = this.profile.btnSelect;
@@ -5174,7 +4672,6 @@
           currency: _0x48f5e9.currency
         }
       }), _0x2c7cd9.onTap = async () => {
-        const _0x22a69e = _0x1033bc;
         (await this.purchaseRequest(_0x48f5e9)) && this.profile.setCharData(_0x48f5e9, _0x48f5e9.id);
       }, _0x2c7cd9.alpha = 1);else {
         const _0x373702 = _0x48f5e9.outfits[this.profile.outfit - 1];
@@ -5190,13 +4687,11 @@
       }
     }
     async ["purchaseRequest"](_0x312672) {
-      const _0x530479 = _0x3d2178,
-        _0x3e9497 = await _0x483390.shop.purchase(_0x312672);
+      const _0x3e9497 = await _0x483390.shop.purchase(_0x312672);
       return _0x3e9497 ? this.confirmSelection() : (_0x483390.notEnoughCurrency.setup(_0x312672.cost, () => null, _0x312672.currency), _0x483390.notEnoughCurrency.open()), _0x3e9497;
     }
     ["refreshSelected"]() {
-      const _0x5b4ee5 = _0x3d2178,
-        _0x2075f3 = _0x483390.user.character === this.selectedCharacter,
+      const _0x2075f3 = _0x483390.user.character === this.selectedCharacter,
         _0x22d3d4 = _0x483390.user.outfit === this.profile.outfit,
         _0x410b38 = this.profile.btnSelect;
       this.profile.cost = '', _0x2075f3 && _0x22d3d4 ? (_0x410b38.update({
@@ -5206,7 +4701,6 @@
       }), _0x410b38.onTap = () => this.confirmSelection(), _0x410b38.alpha = 1);
     }
     ['open']() {
-      const _0x5a7624 = _0x3d2178;
       this.characterCurrencies.coins = _0x483390.user.coins, this.characterCurrencies.keys = _0x483390.user.keys;
       for (const _0x421915 in this.charactersMap) {
         this.charactersMap[_0x421915].play('uiIdle');
@@ -5214,20 +4708,17 @@
     }
     ['close']() {}
     ["updateTransform"]() {
-      const _0x25ba51 = _0x3d2178;
       super.updateTransform(), this.characterScroller.update();
       const _0x3adbfc = this.characterScroller.targetX;
       Math.abs(this.characterScroller.xSpeed) > 0.2 ? this.scrollThumbs(_0x3adbfc) : (this.characterScroller.x = _0x3adbfc, this.selectCharacter());
     }
     ["scrollThumbs"](_0x137ec7) {
-      const _0x3f81f2 = _0x3d2178;
       this.characterScroller.x = _0x137ec7;
       const _0x536094 = this.charactersList[this.characterScroller.getSlotIndex()];
       this.focusCharacter(_0x536094);
     }
   }
   function _0x1abdc9(_0x5ebd56, _0x2b1bd9, _0x3d90c1) {
-    const _0xb69f = _0x3d2178;
     return (_0x2b1bd9 = function (_0x1f792e) {
       var _0x30580b = function (_0x1edf40, _0x3fba8f) {
         if ("object" != typeof _0x1edf40 || null === _0x1edf40) return _0x1edf40;
@@ -5249,11 +4740,9 @@
   }
   class _0x1c917e extends _0x3ed41f.a {
     constructor() {
-      const _0x5249c5 = _0x3d2178;
       super(...arguments), _0x1abdc9(this, 'w', 0), _0x1abdc9(this, 'h', 0), _0x1abdc9(this, 'thumbsMask', void 0), _0x1abdc9(this, "panel", void 0), _0x1abdc9(this, "section", "characters"), _0x1abdc9(this, 'sections', void 0), _0x1abdc9(this, "awardsButton", void 0);
     }
     ["onBuild"]() {
-      const _0x784dcc = _0x3d2178;
       this.panel = new _0x3dd0fd.a(), this.addChild(this.panel);
       const _0x1ff20f = new _0x42c18f.a({
           bg: "navigation-button-green.png",
@@ -5270,13 +4759,10 @@
         icon: "icon-white-awards.png",
         label: 'awards'
       }), _0x1ff20f.onTap = () => {
-        const _0x5e31b1 = _0x784dcc;
         this.setSection('characters');
       }, _0x10807b.onTap = () => {
-        const _0x11861c = _0x784dcc;
         this.setSection("boards");
       }, this.awardsButton.onTap = () => {
-        const _0x33214b = _0x784dcc;
         this.setSection("awards");
       }, this.panel.addButton(_0x1ff20f, _0x10807b, this.awardsButton), this.sections = {
         characters: this.addChild(new _0xa8ef0(this.panel.base.width, this.panel.base.height)),
@@ -5285,28 +4771,22 @@
       }, this.sections.characters.visible = true, this.sections.boards.visible = false, this.sections.awards.visible = false;
     }
     async ["setSection"](_0x4b9959) {
-      const _0xb7ae28 = _0x3d2178;
       _0x4b9959 !== this.section && (this.sections[this.section].close(), this.sections[this.section].visible = false, this.section = _0x4b9959, await this.sections[this.section].open(), this.sections[this.section].visible = true);
     }
     ['onOpen']() {
-      const _0x2f229e = _0x3d2178;
       this.sections[this.section].open(), _0x483390.awards.onUpdate.add(this.updateBadges, this), this.updateBadges();
     }
     ['onClose']() {
-      const _0x283da9 = _0x3d2178;
       _0x483390.awards.onUpdate.remove(this.updateBadges, this), this.sections[this.section].close();
     }
     ["onResize"]() {
-      const _0x8849c4 = _0x3d2178;
       this.w = this.viewportWidth, this.h = this.viewportHeight, this.x = 0.5 * this.w, this.y = 0.5 * this.h, this.panel.resize(this.w, this.h);
     }
     ["updateBadges"]() {
-      const _0x5c67a2 = _0x3d2178;
       _0x483390.awards.hasPrizeToCollect() ? this.awardsButton.showBadge() : this.awardsButton.hideBadge();
     }
   }
   function _0x526aac(_0x53ae82, _0x5bf098, _0x3030ae) {
-    const _0x44c81a = _0x3d2178;
     return (_0x5bf098 = function (_0x26ca79) {
       var _0x21fe1a = function (_0x3af804, _0x130aa2) {
         if ("object" != typeof _0x3af804 || null === _0x3af804) return _0x3af804;
@@ -5328,7 +4808,6 @@
   }
   class _0xdcfdbe extends _0x2a24d4.Container {
     constructor(_0x90d4ff) {
-      const _0x2da539 = _0x3d2178;
       super(), _0x526aac(this, 'base', void 0);
       const _0x312575 = {
         fill: 16777215,
@@ -5360,19 +4839,16 @@
     }
   }
   function _0x377930(_0x33c684, _0x543011) {
-    const _0x5a1c85 = _0x3d2178;
     var _0x291d51 = Object.keys(_0x33c684);
     if (Object.getOwnPropertySymbols) {
       var _0xbcc22c = Object.getOwnPropertySymbols(_0x33c684);
       _0x543011 && (_0xbcc22c = _0xbcc22c.filter(function (_0x326b15) {
-        const _0x1eab7d = _0x5a1c85;
         return Object.getOwnPropertyDescriptor(_0x33c684, _0x326b15).enumerable;
       })), _0x291d51.push.apply(_0x291d51, _0xbcc22c);
     }
     return _0x291d51;
   }
   function _0x5bb0cf(_0x32f30b, _0x543609, _0x3b8a5e) {
-    const _0x1c6881 = _0x3d2178;
     return (_0x543609 = function (_0x3d95ac) {
       var _0x5b9c22 = function (_0x5b297b, _0x320b51) {
         if ("object" != typeof _0x5b297b || null === _0x5b297b) return _0x5b297b;
@@ -5395,7 +4871,6 @@
   let _0x5c888f;
   class _0x409b47 extends _0x2a24d4.Container {
     constructor(_0x152526) {
-      const _0x673075 = _0x3d2178;
       void 0 === _0x152526 && (_0x152526 = {}), super(), _0x5bb0cf(this, "base", void 0), _0x5c888f || (_0x5c888f = {
         'mystery-box': {
           rare: {
@@ -5498,13 +4973,11 @@
         }
       });
       const _0x4a7c45 = function (_0x454d7a) {
-        const _0x50706c = _0x673075;
         for (var _0x3bbc23 = 1; _0x3bbc23 < arguments.length; _0x3bbc23++) {
           var _0x1b9612 = null != arguments[_0x3bbc23] ? arguments[_0x3bbc23] : {};
           _0x3bbc23 % 2 ? _0x377930(Object(_0x1b9612), true).forEach(function (_0x395159) {
             _0x5bb0cf(_0x454d7a, _0x395159, _0x1b9612[_0x395159]);
           }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x454d7a, Object.getOwnPropertyDescriptors(_0x1b9612)) : _0x377930(Object(_0x1b9612)).forEach(function (_0x55709c) {
-            const _0x224b49 = _0x50706c;
             Object.defineProperty(_0x454d7a, _0x55709c, Object.getOwnPropertyDescriptor(_0x1b9612, _0x55709c));
           });
         }
@@ -5552,7 +5025,6 @@
         _0x5b7ff0.x = _0x5bd959.width - this.base.width / 2 + _0x363bff * (_0xeee9db + 1);
       }
       _0x15d81e && _0x15d81e.forEach((_0x44bef1, _0xf07c49) => {
-        const _0x3e65eb = _0x673075;
         let {
           label: _0x435ec3,
           params: _0x37aec4
@@ -5569,13 +5041,11 @@
       }
     }
     ["getKeySprite"]() {
-      const _0x5f565d = _0x3d2178,
-        _0x5d01a6 = _0x2a24d4.Sprite.from("icon-key-large.png");
+      const _0x5d01a6 = _0x2a24d4.Sprite.from("icon-key-large.png");
       return _0x5d01a6.scale.set(0.65), _0x5d01a6;
     }
     ["getBoostSprite"](_0x5c436b) {
-      const _0x4e5d3c = _0x3d2178,
-        _0x50f61a = _0x2a24d4.Sprite.from("base-item.png");
+      const _0x50f61a = _0x2a24d4.Sprite.from("base-item.png");
       return _0x50f61a.addChild(_0x2a24d4.Sprite.from(_0x5c436b)).anchor.set(0.5), _0x50f61a;
     }
   }
@@ -5616,11 +5086,9 @@
   }];
   class _0x42f0e5 extends _0x3ed41f.a {
     constructor() {
-      const _0x2d8a33 = _0x3d2178;
       super(...arguments), _0x259fea(this, 'bg', void 0), _0x259fea(this, 'base', void 0), _0x259fea(this, "btnClose", void 0), _0x259fea(this, "panels", new Map());
     }
     ["onBuild"]() {
-      const _0x13633a = _0x3d2178;
       this.bg = this.addChild(new _0xd34662.b(_0xd34662.a.BLACK)), this.bg.interactive = true, this.bg.on("pointertap", () => this.close()), this.btnClose = this.addChild(new _0x3a4508({
         onTap: () => this.close()
       })), this.btnClose.x = -335, this.btnClose.y = -457.5;
@@ -5665,7 +5133,6 @@
       }
     }
     ['onOpen'](_0xd30ee2) {
-      const _0x495388 = _0x3d2178;
       this.panels.forEach((_0x45e63, _0x21e2b0) => {
         _0x45e63.visible = _0xd30ee2 === _0x21e2b0;
       });
@@ -5684,18 +5151,15 @@
       }), 1), this.base.interactive = true, this.btnClose.y = -_0x118976 / 2 + 10;
     }
     ["onResize"]() {
-      const _0x278c5b = _0x3d2178,
-        _0x2639c2 = this.viewportWidth,
+      const _0x2639c2 = this.viewportWidth,
         _0x3b0062 = this.viewportHeight;
       this.x = 0.5 * _0x2639c2, this.y = 0.5 * _0x3b0062, this.bg.resize(_0x2639c2, _0x3b0062);
     }
     ["makeLabel"](_0x5cf21d, _0x2477fc, _0x53532c) {
-      const _0x269e2c = _0x3d2178;
       return _0x53532c.addChild(new _0x5dc8d3.a(_0x5cf21d, _0x2477fc));
     }
   }
   function _0x4e4858(_0x5178be, _0x35f224, _0x5423e0) {
-    const _0x3ac0ff = _0x3d2178;
     return (_0x35f224 = function (_0x21a18d) {
       var _0x451070 = function (_0x1fd2ad, _0x29eaec) {
         if ("object" != typeof _0x1fd2ad || null === _0x1fd2ad) return _0x1fd2ad;
@@ -5717,18 +5181,15 @@
   }
   class _0x300c6a extends _0x2a24d4.Container {
     constructor(_0x4c202c) {
-      const _0x407525 = _0x3d2178;
       super(), _0x4e4858(this, "headerIcon", void 0), _0x4e4858(this, "h1Label", void 0), _0x4e4858(this, "h2Label", void 0), this.headerIcon = this.addChild(_0x2a24d4.Sprite.from(_0x4c202c.headerIcon)), this.headerIcon.scale.set(1.3), this.headerIcon.anchor.set(1, 0), this.h1Label = this.addChild(new _0x5dc8d3.a(_0x4c202c.h1Options.label, _0x4c202c.h1Options)), this.h2Label = this.addChild(new _0x5dc8d3.a(_0x4c202c.h2Options.label, _0x4c202c.h2Options));
     }
     ["open"](_0x50aada) {}
     ["close"]() {}
     ['resize'](_0x31af5b, _0x43636a) {
-      const _0x30fb9b = _0x3d2178;
       this.headerIcon.position.set(_0x31af5b / 2 - 45, -_0x43636a / 2 + 15), this.h1Label.position.set(-_0x31af5b / 2 + 40, -_0x43636a / 2 + 25), this.h2Label.position.set(-_0x31af5b / 2 + 40, this.h1Label.y + this.h1Label.height);
     }
   }
   function _0x52fa4e(_0x150184, _0x382660, _0xd8b751) {
-    const _0x217155 = _0x3d2178;
     return (_0x382660 = function (_0x11f456) {
       var _0x3eb9be = function (_0x588097, _0x27545a) {
         if ("object" != typeof _0x588097 || null === _0x588097) return _0x588097;
@@ -5750,7 +5211,6 @@
   }
   class _0x42e451 extends _0x2a24d4.Container {
     constructor() {
-      const _0x4f6aaf = _0x3d2178;
       var _0x4a26fa;
       super(), _0x52fa4e(this, "mission", void 0), _0x52fa4e(this, "descriptionLabel", void 0), _0x52fa4e(this, "amountLabel", void 0), _0x52fa4e(this, "progressLabel", void 0), _0x52fa4e(this, "progressFill", void 0), _0x52fa4e(this, "completedBg", void 0), _0x52fa4e(this, "onMissionComplete", new _0x3eb645.Signal()), this.addChild(_0x4b8db5.a.rectColor({
         w: 580,
@@ -5849,17 +5309,15 @@
           labelSize: 25
         }), 1);
       _0x3fff4a.value = 1700, null === (_0x4a26fa = _0x3fff4a.icon) || void 0 === _0x4a26fa || _0x4a26fa.scale.set(0.6), _0x3fff4a.position.set(270 - _0x3fff4a.width / 2, 43), _0x3fff4a.onTap = () => {
-        const _0x1adacf = _0x4f6aaf;
         _0x483390.user.coins >= _0x3fff4a.value ? (_0x483390.user.coins -= _0x3fff4a.value, this.mission.completed = true, this.mission.progress = this.mission.params.amount, _0x483390.user.progressMission(this.mission.id, this.mission.params.amount, this.mission.set)) : (_0x483390.notEnoughCurrency.setup(_0x3fff4a.value, () => null, 'coins'), _0x483390.notEnoughCurrency.open());
       };
     }
     ["populate"](_0xaf87e6) {
-      const _0xa186fa = _0x3d2178,
-        {
-          id: _0x3e66e9,
-          params: _0x1429b8,
-          hideAmountLabel: _0x3c29aa
-        } = _0xaf87e6;
+      const {
+        id: _0x3e66e9,
+        params: _0x1429b8,
+        hideAmountLabel: _0x3c29aa
+      } = _0xaf87e6;
       if (this.descriptionLabel.id = _0x3e66e9, this.descriptionLabel.options.params = _0x1429b8, this.descriptionLabel.refresh(), this.descriptionLabel.y = -this.descriptionLabel.height / 2 - 43, this.amountLabel.visible = !_0x3c29aa, _0x1429b8) {
         const _0x49d6d5 = this.descriptionLabel.display.text;
         let _0x20c5fe = '';
@@ -5874,20 +5332,17 @@
       this.progressFill.scale.x = _0x3feb69 / this.mission.params.amount, this.progressLabel.text = '' + _0x3feb69, this.progressLabel.width > 90 && this.progressLabel.scale.set(90 / this.progressLabel.width);
     }
     ["progressMission"]() {
-      const _0x3b31b5 = _0x3d2178,
-        _0x2ffecb = this.mission;
+      const _0x2ffecb = this.mission;
       this.completedBg.visible = _0x2ffecb.completed;
       const _0x2ae423 = _0x2ffecb.progress || 0;
       this.progressFill.scale.x = _0x2ae423 / this.mission.params.amount, this.progressLabel.text = '' + _0x2ae423, this.progressLabel.width > 90 && this.progressLabel.scale.set(90 / this.progressLabel.width), this.mission.completed && this.onMissionComplete.dispatch();
     }
     ["updateTransform"]() {
-      const _0x30d1e0 = _0x3d2178;
       super.updateTransform(), this.mission && !this.completedBg.visible && this.progressMission();
     }
   }
   var _0xfc311e = _0x388199(178);
   function _0x4d72c5(_0x551fda, _0x47d232, _0x2588c9) {
-    const _0x21452a = _0x3d2178;
     return (_0x47d232 = function (_0x1bdbcc) {
       var _0x1d381e = function (_0x3e444e, _0x442770) {
         if ("object" != typeof _0x3e444e || null === _0x3e444e) return _0x3e444e;
@@ -5909,25 +5364,24 @@
   }
   class _0x121ef7 extends _0x300c6a {
     constructor() {
-      const _0x7721d2 = _0x3d2178,
-        _0x120a5b = {
-          headerIcon: "missions-splat.png",
-          h1Options: {
-            label: "missions",
-            fill: 469322,
-            fontSize: 40,
-            fontFamily: "Titan One"
+      const _0x120a5b = {
+        headerIcon: "missions-splat.png",
+        h1Options: {
+          label: "missions",
+          fill: 469322,
+          fontSize: 40,
+          fontFamily: "Titan One"
+        },
+        h2Options: {
+          label: "mission-set",
+          params: {
+            num: 1
           },
-          h2Options: {
-            label: "mission-set",
-            params: {
-              num: 1
-            },
-            fill: 3833791,
-            fontSize: 35,
-            fontFamily: 'Lilita\x20One'
-          }
-        };
+          fill: 3833791,
+          fontSize: 35,
+          fontFamily: 'Lilita\x20One'
+        }
+      };
       super(_0x120a5b), _0x4d72c5(this, "progressCounter", void 0), _0x4d72c5(this, "multiplierLabel", void 0), _0x4d72c5(this, "missionModules", void 0), _0x4d72c5(this, "completedMissions", void 0), this.headerIcon.scale.set(1.1), this.headerIcon.tint = 7312139;
       const _0x590069 = this.headerIcon.addChild(_0x2a24d4.Sprite.from(_0x120a5b.headerIcon));
       _0x590069.anchor.set(1, 0), _0x590069.tint = 7320832, _0x590069.position.set(-3, -2);
@@ -5941,7 +5395,6 @@
       for (let _0xdf25bf = 0; _0xdf25bf < 3; _0xdf25bf++) {
         const _0x56e6d1 = this.addChildAt(new _0x42e451(), 0);
         _0x56e6d1.y = (_0x56e6d1.height + 15) * _0xdf25bf - 135, _0x56e6d1.onMissionComplete.add(() => {
-          const _0x2d9ad9 = _0x7721d2;
           this.completedMissions++, 3 === this.completedMissions && this.initMissions();
         }), this.missionModules.push(_0x56e6d1);
       }
@@ -5950,8 +5403,7 @@
       this.initMissions();
     }
     ["initMissions"]() {
-      const _0x8a5ff4 = _0x3d2178,
-        _0x5dbcbc = _0x483390.data.getCurrentMissions(),
+      const _0x5dbcbc = _0x483390.data.getCurrentMissions(),
         _0x3ca0ab = _0x483390.data.getMissionSet();
       this.completedMissions = 0;
       for (let _0x40603b = 0; _0x40603b < _0x5dbcbc.length; _0x40603b++) {
@@ -5964,8 +5416,7 @@
       }, this.h2Label.refresh();
     }
     ["makeGradientText"](_0x27f4e2) {
-      const _0x1f6ef4 = _0x3d2178,
-        _0xad84ee = new _0x2a24d4.Text(_0x27f4e2, {
+      const _0xad84ee = new _0x2a24d4.Text(_0x27f4e2, {
           fill: 16777215,
           fontSize: 100,
           stroke: 0,
@@ -5981,7 +5432,6 @@
       return _0xad84ee.anchor.set(0, 0.5), _0x339f89.anchor.set(0, 0.5), _0x339f89.position.set(9, 3), _0xad84ee.gradient = _0x339f89, _0xad84ee;
     }
     ['resize'](_0x3cb5d5, _0xb59d7c) {
-      const _0x4c8883 = _0x3d2178;
       super.resize(_0x3cb5d5, _0xb59d7c), this.progressCounter.position.set(this.h2Label.x + 83, this.h2Label.y + this.h2Label.height + this.progressCounter.height / 2);
     }
   }
@@ -6010,11 +5460,9 @@
   }
   class _0x116341 extends _0x52858a {
     constructor(_0x3f746b) {
-      const _0x3147cb = _0x3d2178;
       super(), _0x55a7ae(this, "entity", void 0), this.setup(_0x3f746b);
     }
     ["tween"](_0x10bb4a) {
-      const _0x22917b = _0x3d2178;
       void 0 === _0x10bb4a && (_0x10bb4a = 0);
       const _0x4cc938 = this.entity;
       _0x152e74.a.killTweensOf(_0x4cc938), _0x116341.scene.stopAll(), _0x116341.scene.play(this.thumbId), this.shadow.width = 0.7 * this.sprite.width, this.shadow.scale.y = 0.5 * this.shadow.scale.x, this.shadow.alpha = 0.3, this.sprite.y = 190, this.shadow.y = 200, 0 === _0x10bb4a ? (this.sprite.y = 0, this.shadow.y = 10, _0x4cc938.rx = -Math.PI / 5.5, _0x4cc938.ry = Math.PI / 4, _0x4cc938.rz = 0, _0x4cc938.scale.set(0.0042), _0x4cc938.y = 0, _0x152e74.a.to(_0x4cc938, 7, {
@@ -6041,7 +5489,6 @@
       }));
     }
     ["setup"](_0x3e68cf) {
-      const _0x4fdede = _0x3d2178;
       void 0 === _0x3e68cf && (_0x3e68cf = "mysteryBox_default"), _0x116341.scene || (_0x116341.scene = new _0x487409());
       const _0xc76dc0 = _0x116341.scene;
       if (!_0xc76dc0.entitiesMap.get(_0x3e68cf)) {
@@ -6054,8 +5501,7 @@
       this.hitArea = new _0x2a24d4.Rectangle(-_0x14b179 / 2, 0.9 * -this.sprite.height, _0x14b179, _0x2e5c1b), this.thumbId = _0x3e68cf, this.shadow.anchor.set(0.5, 0), this.shadow.width = 0.7 * this.sprite.width, this.shadow.scale.y = 0.5 * this.shadow.scale.x;
     }
     ["getTexture"](_0x4fc370) {
-      const _0x40a542 = _0x3d2178,
-        _0xf90639 = _0x116341.scene.entitiesMap.get(_0x4fc370),
+      const _0xf90639 = _0x116341.scene.entitiesMap.get(_0x4fc370),
         _0x6779d0 = _0x116341.scene.textures.get(_0x4fc370);
       if (!_0x6779d0 || !_0xf90639) throw new Error("Character not registered: " + _0x4fc370);
       return _0x116341.scene.play(_0x4fc370), _0x116341.scene.renderChildren(), _0x116341.scene.stop(_0x4fc370), _0x6779d0;
@@ -6064,7 +5510,6 @@
   _0x55a7ae(_0x116341, "scene", void 0);
   class _0x22c5dd extends _0x2a24d4.Container {
     constructor(_0x42caf7) {
-      const _0x44531e = _0x3d2178;
       super();
       let _0x2a4415 = 1;
       for (let _0x510d6e = 0; _0x510d6e < _0x42caf7; _0x510d6e += _0x2a4415) {
@@ -6078,32 +5523,27 @@
     }
   }
   function _0x5e526f(_0x5208f4, _0x3a4b28) {
-    const _0x4a7304 = _0x3d2178;
     var _0x4d4aa2 = Object.keys(_0x5208f4);
     if (Object.getOwnPropertySymbols) {
       var _0x4a20fe = Object.getOwnPropertySymbols(_0x5208f4);
       _0x3a4b28 && (_0x4a20fe = _0x4a20fe.filter(function (_0x3a2936) {
-        const _0x500abf = _0x4a7304;
         return Object.getOwnPropertyDescriptor(_0x5208f4, _0x3a2936).enumerable;
       })), _0x4d4aa2.push.apply(_0x4d4aa2, _0x4a20fe);
     }
     return _0x4d4aa2;
   }
   function _0xefceb9(_0x3354e5) {
-    const _0x353664 = _0x3d2178;
     for (var _0x2dbcbc = 1; _0x2dbcbc < arguments.length; _0x2dbcbc++) {
       var _0x1db3cc = null != arguments[_0x2dbcbc] ? arguments[_0x2dbcbc] : {};
       _0x2dbcbc % 2 ? _0x5e526f(Object(_0x1db3cc), true).forEach(function (_0x20d3d) {
         _0x21fbac(_0x3354e5, _0x20d3d, _0x1db3cc[_0x20d3d]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x3354e5, Object.getOwnPropertyDescriptors(_0x1db3cc)) : _0x5e526f(Object(_0x1db3cc)).forEach(function (_0x250fc5) {
-        const _0x41156a = _0x353664;
         Object.defineProperty(_0x3354e5, _0x250fc5, Object.getOwnPropertyDescriptor(_0x1db3cc, _0x250fc5));
       });
     }
     return _0x3354e5;
   }
   function _0x21fbac(_0x5bb455, _0x4ac91a, _0x58b318) {
-    const _0x47b453 = _0x3d2178;
     return (_0x4ac91a = function (_0x5d59e2) {
       var _0x4bf5db = function (_0x5f5681, _0x4e7eee) {
         if ("object" != typeof _0x5f5681 || null === _0x5f5681) return _0x5f5681;
@@ -6142,7 +5582,6 @@
   };
   class _0x445912 extends _0x2a24d4.Container {
     constructor() {
-      const _0x532916 = _0x3d2178;
       super(), _0x21fbac(this, "normalPrizeBase", void 0), _0x21fbac(this, "superPrizeBase", void 0), _0x21fbac(this, "todayHighlight", void 0), _0x21fbac(this, "dayLabels", []), _0x21fbac(this, "checkMarks", []), _0x21fbac(this, "mysteryBoxThumb", void 0);
       const _0x32f21f = _0xefec4b.k;
       this.normalPrizeBase = this.addChild(_0x4b8db5.a.roundRectBorder({
@@ -6220,32 +5659,26 @@
         fill: 8198917,
         dropShadowColor: 16374155
       }), _0x483390.user.completedHunts.forEach((_0x39823b, _0x334160) => {
-        const _0x349f7b = _0x532916;
         this.checkMarks[_0x334160].visible = true;
       }), _0xefec4b.i.add(() => {
-        const _0x5c4e7e = _0x532916;
         this.checkMarks[_0x483390.user.completedHunts.length - 1].visible = true;
       });
     }
     ["show"]() {
-      const _0x1c83ed = _0x3d2178;
       this.mysteryBoxThumb.tween(0);
     }
     ["makePrizeTag"](_0x5bed7a) {
-      const _0x16c575 = _0x3d2178,
-        _0x4cdf1c = _0xefceb9(_0xefceb9({}, _0x19b8a4), _0x5bed7a),
+      const _0x4cdf1c = _0xefceb9(_0xefceb9({}, _0x19b8a4), _0x5bed7a),
         _0x40d81d = this.addChild(new _0x2a24d4.Text(_0x4cdf1c.label, _0x4cdf1c));
       return _0x40d81d.anchor.set(_0x4cdf1c.anchor.x, _0x4cdf1c.anchor.y), _0x40d81d.y = _0x4cdf1c.y, -1 !== _0x4cdf1c.index && this.setPrizeElementX(_0x40d81d, _0x4cdf1c.index), _0x40d81d;
     }
     ["makeCheck"](_0x5bce06, _0x1aea9b) {
-      const _0x1061b3 = _0x3d2178;
       void 0 === _0x1aea9b && (_0x1aea9b = -10);
       const _0x2cff9e = this.addChild(_0x2a24d4.Sprite.from("checkmark-icon.png"));
       return this.checkMarks.push(_0x2cff9e), _0x2cff9e.anchor.x = 0.2, _0x2cff9e.x = _0x5bce06, _0x2cff9e.y = _0x1aea9b, _0x2cff9e.visible = false, _0x2cff9e;
     }
     ["makeCoinsTag"](_0x5edd4d) {
-      const _0x7f8845 = _0x3d2178,
-        _0x24be61 = _0xefec4b.l[_0x5edd4d],
+      const _0x24be61 = _0xefec4b.l[_0x5edd4d],
         _0x3a7c6c = this.addChild(new _0x1b64c6.a({
           fontSize: 40,
           coins: _0x24be61
@@ -6253,18 +5686,15 @@
       return _0x3a7c6c.y = 65, _0x3a7c6c.scale.set(0.6), this.setPrizeElementX(_0x3a7c6c, _0x5edd4d), _0x3a7c6c.x -= 30, _0x3a7c6c;
     }
     ["setPrizeElementX"](_0x4a8590, _0x143b55) {
-      const _0x4f91c6 = _0x3d2178;
       _0x4a8590.x = this.normalPrizeBase.width / 4 * _0x143b55 + this.normalPrizeBase.width / 8 - this.normalPrizeBase.width / 2;
     }
     ["makeDashedLine"]() {
-      const _0x1d6a8d = _0x3d2178,
-        _0x13e6f1 = new _0x2a24d4.Container();
+      const _0x13e6f1 = new _0x2a24d4.Container();
       return _0x13e6f1.addChild(new _0x2a24d4.Graphics().beginFill(16777215).drawRect(0, 0, 15, 4).endFill(), new _0x2a24d4.Graphics().beginFill(16777215).drawRect(25, 0, 15, 4).endFill(), new _0x2a24d4.Graphics().beginFill(16777215).drawRect(50, 0, 15, 4).endFill(), new _0x2a24d4.Graphics().beginFill(16777215).drawRect(75, 0, 15, 4).endFill(), new _0x2a24d4.Graphics().beginFill(16777215).drawRect(100, 0, 15, 4).endFill()), _0x13e6f1;
     }
   }
   var _0x22d83f = _0x388199(177);
   function _0x427974(_0x2e1782, _0x3821b0, _0x48a690) {
-    const _0x40426f = _0x3d2178;
     return (_0x3821b0 = function (_0x163c1b) {
       var _0x151dc2 = function (_0xb3c18c, _0x1b9938) {
         if ("object" != typeof _0xb3c18c || null === _0xb3c18c) return _0xb3c18c;
@@ -6286,7 +5716,6 @@
   }
   class _0x1ea0f6 extends _0x300c6a {
     constructor() {
-      const _0x56ab49 = _0x3d2178;
       super({
         headerIcon: "abc-graffiti-icon.png",
         h1Options: {
@@ -6304,16 +5733,13 @@
       }), _0x427974(this, "timer", void 0), _0x427974(this, "lettersBox", void 0), _0x427974(this, "prizes", void 0), this.timer = this.addChild(new _0x22d83f.a()), this.lettersBox = this.addChildAt(new _0x1d9c50.a(), 0), this.lettersBox.y = -180, this.prizes = this.addChild(new _0x445912());
     }
     ['open']() {
-      const _0x4b4d51 = _0x3d2178;
       this.prizes.show();
     }
     ["resize"](_0x1eb4e4, _0x24be6b) {
-      const _0x18947d = _0x3d2178;
       super.resize(_0x1eb4e4, _0x24be6b), this.timer.x = this.h2Label.x + this.timer.base.width / 2, this.timer.y = this.h2Label.y + this.h2Label.height + this.timer.base.height / 2 + 5;
     }
   }
   function _0x219413(_0x25c8c2, _0x5dc281, _0x18e634) {
-    const _0x5a8fad = _0x3d2178;
     return (_0x5dc281 = function (_0x14bbf3) {
       var _0x3367e2 = function (_0x4cd38f, _0x2b310c) {
         if ('object' != typeof _0x4cd38f || null === _0x4cd38f) return _0x4cd38f;
@@ -6335,11 +5761,9 @@
   }
   class _0x4c80e0 extends _0x3ed41f.a {
     constructor() {
-      const _0x186017 = _0x3d2178;
       super(...arguments), _0x219413(this, 'w', 0), _0x219413(this, 'h', 0), _0x219413(this, "panel", void 0), _0x219413(this, "section", 'hunt'), _0x219413(this, "sections", void 0);
     }
     ['onBuild']() {
-      const _0x37a80e = _0x3d2178;
       this.panel = this.addChild(new _0x3dd0fd.a());
       const _0x1ae55c = {
           bg: "navigation-button-red.png",
@@ -6350,10 +5774,8 @@
       _0x1ae55c.icon = "icon-white-missions.png", _0x1ae55c.label = 'missions';
       const _0x4cc3a0 = new _0x42c18f.a(_0x1ae55c);
       _0x59cdd4.onTap = () => {
-        const _0xdb5608 = _0x37a80e;
         this.setSection("hunt");
       }, _0x4cc3a0.onTap = () => {
-        const _0x5b47f0 = _0x37a80e;
         this.setSection('missions');
       }, this.panel.addButton(_0x59cdd4, _0x4cc3a0), this.sections = {
         hunt: this.panel.addChild(new _0x1ea0f6()),
@@ -6361,19 +5783,15 @@
       }, this.sections.missions.visible = false;
     }
     ["setSection"](_0x37ce03) {
-      const _0x2651b3 = _0x3d2178;
       _0x37ce03 !== this.section && (this.sections[this.section].close(), this.sections[this.section].visible = false, this.section = _0x37ce03, this.sections[this.section].open(), this.sections[this.section].visible = true);
     }
     ["onOpen"]() {
-      const _0x3e102d = _0x3d2178;
       this.sections[this.section].open();
     }
     ["onClose"]() {
-      const _0x23c8ce = _0x3d2178;
       this.sections[this.section].close();
     }
     ["onResize"]() {
-      const _0xd8c711 = _0x3d2178;
       this.w = this.viewportWidth, this.h = this.viewportHeight, this.x = 0.5 * this.w, this.y = 0.5 * this.h, this.panel.resize(this.w, this.h), this.sections.hunt.resize(this.panel.base.width, this.panel.base.height), this.sections.missions.resize(this.panel.base.width, this.panel.base.height);
     }
   }
@@ -6399,11 +5817,9 @@
   }
   class _0x327b4a extends _0x3ed41f.a {
     constructor() {
-      const _0x29ba46 = _0x3d2178;
       super(...arguments), _0x5a6dc1(this, 'bg', void 0), _0x5a6dc1(this, "content", void 0), _0x5a6dc1(this, "base", void 0), _0x5a6dc1(this, "labelTitle", void 0), _0x5a6dc1(this, "labelMessage", void 0), _0x5a6dc1(this, "btnClose", void 0), _0x5a6dc1(this, "requiredCurrency", 0), _0x5a6dc1(this, "onExit", () => {}), _0x5a6dc1(this, "currencyIcon", void 0), _0x5a6dc1(this, "currencyType", void 0);
     }
     ["onBuild"]() {
-      const _0x1be81b = _0x3d2178;
       this.bg = new _0xd34662.b(_0xd34662.a.BLACK), this.addChild(this.bg), this.bg.interactive = true, this.bg.on("pointertap", () => this.exit()), this.content = new _0x2a24d4.Container(), this.addChild(this.content);
       const _0x54be17 = 600;
       this.base = _0x4b8db5.a.rectComp({
@@ -6447,29 +5863,24 @@
       }), this.content.addChild(this.btnClose), this.btnClose.x = -290, this.btnClose.y = -140;
     }
     ["setup"](_0x57b938, _0x34ab6a, _0x42c5fe) {
-      const _0x4620e7 = _0x3d2178;
       this.currencyType = _0x42c5fe, this.requiredCurrency = _0x57b938 - _0x483390.user.gameSettings.currencies[_0x42c5fe], this.onExit = _0x34ab6a;
     }
     ["onOpen"]() {
-      const _0x521782 = _0x3d2178;
       this.labelTitle.id = "not_enough_" + this.currencyType + "_title", this.labelMessage.id = "not_enough_" + this.currencyType + '_message', this.currencyIcon.texture = _0x2a24d4.Texture.from("icon-" + this.currencyType.slice(0, -1) + '-large.png'), this.labelMessage.options.params = {
         num: this.requiredCurrency
       }, this.labelTitle.refresh(), this.labelMessage.refresh();
     }
     ["onResize"]() {
-      const _0x41b8c0 = _0x3d2178,
-        _0x1a24c2 = this.viewportWidth,
+      const _0x1a24c2 = this.viewportWidth,
         _0x414cfc = this.viewportHeight;
       this.x = 0.5 * _0x1a24c2, this.y = 0.5 * _0x414cfc, this.bg.resize(_0x1a24c2, _0x414cfc);
     }
     ["exit"]() {
-      const _0x4b7719 = _0x3d2178;
       this.close(), this.onExit();
     }
   }
   var _0x2341a8 = _0x388199(58);
   function _0x353717(_0x165f3c, _0x3e190b, _0x5bb242) {
-    const _0x16aa04 = _0x3d2178;
     return (_0x3e190b = function (_0x405cab) {
       var _0x30a2bc = function (_0x138c00, _0x514311) {
         if ("object" != typeof _0x138c00 || null === _0x138c00) return _0x138c00;
@@ -6491,11 +5902,9 @@
   }
   class _0x20816a extends _0x3ed41f.a {
     constructor() {
-      const _0x1e1b7d = _0x3d2178;
       super(...arguments), _0x353717(this, "content", void 0), _0x353717(this, "base", void 0), _0x353717(this, "label", void 0), _0x353717(this, "icon", void 0), _0x353717(this, 'layer', 1), _0x353717(this, "queue", []), _0x353717(this, "showing", false);
     }
     ['onBuild']() {
-      const _0x28c589 = _0x3d2178;
       this.content = new _0x2a24d4.Container(), this.addChild(this.content), this.base = new _0x2a24d4.NineSlicePlane(_0x2a24d4.Texture.from("base-blue.png"), 20, 20, 20, 20), this.content.addChild(this.base), this.icon = new _0x2a24d4.Sprite(_0x2a24d4.Texture.from("spraycan-big-bronze.png")), this.icon.anchor.set(0.5), this.content.addChild(this.icon), this.label = new _0x2a24d4.Text('AAA', {
         fontFamily: 'Lilita\x20One',
         align: "left",
@@ -6504,22 +5913,18 @@
       }), this.label.anchor.set(0, 0.5), this.content.addChild(this.label);
     }
     ["onResize"]() {
-      const _0x55e666 = _0x3d2178;
       this.x = this.viewportWidth / 2, this.y = 100;
     }
     ['append'](_0x439dec) {
-      const _0x2e8ecd = _0x3d2178;
       this.queue.push(_0x439dec), this.processQueue();
     }
     ["processQueue"]() {
-      const _0x177756 = _0x3d2178;
       if (this.queue.length && !this.showing) {
         const _0x2ae522 = this.queue.shift();
         _0x2ae522 && this.show(_0x2ae522);
       }
     }
     async ['show'](_0x4bb189) {
-      const _0x4a4e3e = _0x3d2178;
       if (this.showing) return;
       this.showing = true, await Object(_0x2341a8.a)(0.5), _0x483390.sound.play("mission-notification"), this.open(), this.label.text = _0x4bb189.text, this.icon.texture = _0x2a24d4.Texture.from(_0x4bb189.icon), this.base.height = _0x4bb189.height ? _0x4bb189.height : this.icon.height + 20;
       const _0x1240d9 = Math.max(this.icon.width, this.base.height);
@@ -6533,7 +5938,6 @@
     }
   }
   function _0x5545d8(_0x595a94, _0x17e95c, _0x5033ec) {
-    const _0x225cba = _0x3d2178;
     return (_0x17e95c = function (_0x5bbf43) {
       var _0x1298ca = function (_0x2ba29c, _0x1148a9) {
         if ("object" != typeof _0x2ba29c || null === _0x2ba29c) return _0x2ba29c;
@@ -6555,12 +5959,10 @@
   }
   class _0x3e829c extends _0x52858a {
     constructor(_0x396a20) {
-      const _0x251596 = _0x3d2178;
       super(), _0x5545d8(this, "animating", false), _0x5545d8(this, "entity", void 0), this.setup(_0x396a20);
     }
     ["tween"]() {
-      const _0x39a72b = _0x3d2178,
-        _0x1dea03 = this.entity;
+      const _0x1dea03 = this.entity;
       this.reset(), _0x3e829c.scene.play(this.thumbId), _0x152e74.a.to(_0x1dea03, 2, {
         sx: 0.007,
         sy: 0.007,
@@ -6575,11 +5977,9 @@
       });
     }
     ["reset"]() {
-      const _0x181790 = _0x3d2178;
       this.shadow.alpha = 0, this.shadow.scale.set(0), this.entity.scale.set(0), _0x152e74.a.killTweensOf(this.entity), _0x3e829c.scene.stopAll(), _0x3e829c.scene.play(this.thumbId);
     }
     ["setup"](_0x58bd58, _0x371770) {
-      const _0xa625ce = _0x3d2178;
       _0x3e829c.scene || (_0x3e829c.scene = new _0x487409());
       const _0x338504 = _0x3e829c.scene;
       if (!_0x338504.entitiesMap.get(_0x58bd58)) {
@@ -6595,15 +5995,13 @@
       this.hitArea = new _0x2a24d4.Rectangle(-_0x5cfa6e / 2, 0.9 * -this.sprite.height, _0x5cfa6e, _0x300daf), this.thumbId = _0x58bd58, this.shadow.anchor.set(0.5), this.shadow.width = 0.7 * this.sprite.width, this.shadow.scale.y = 0.5 * this.shadow.scale.x;
     }
     ['getTexture'](_0x26cfb0) {
-      const _0x2dc2b0 = _0x3d2178,
-        _0x2b4eb1 = _0x3e829c.scene.entitiesMap.get(_0x26cfb0),
+      const _0x2b4eb1 = _0x3e829c.scene.entitiesMap.get(_0x26cfb0),
         _0x1c8b19 = _0x3e829c.scene.textures.get(_0x26cfb0);
       if (!_0x1c8b19 || !_0x2b4eb1) throw new Error("Character not registered: " + _0x26cfb0);
       return _0x3e829c.scene.play(_0x26cfb0), _0x3e829c.scene.renderChildren(), _0x3e829c.scene.stop(_0x26cfb0), _0x1c8b19;
     }
   }
   function _0x1bca00(_0xa19095, _0x179d20, _0x2aa56f) {
-    const _0x518a1f = _0x3d2178;
     return (_0x179d20 = function (_0x3c11bf) {
       var _0x14239e = function (_0x51fc3a, _0x1113f7) {
         if ("object" != typeof _0x51fc3a || null === _0x51fc3a) return _0x51fc3a;
@@ -6642,22 +6040,17 @@
       scoreBooster: "Score Booster"
     };
   var _0x45186d = function (_0x2a1cb9) {
-    const _0x480491 = _0x3d2178;
     return _0x2a1cb9[_0x2a1cb9.OPENING = 0] = "OPENING", _0x2a1cb9[_0x2a1cb9.CLOSING = 1] = "CLOSING", _0x2a1cb9[_0x2a1cb9.REPEATING = 2] = "REPEATING", _0x2a1cb9;
   }(_0x45186d || {});
   class _0x540ed6 extends _0x3ed41f.a {
     constructor() {
-      const _0x5dc166 = _0x3d2178;
       super(...arguments), _0x1bca00(this, 'state', _0x45186d.OPENING), _0x1bca00(this, 'bg', void 0), _0x1bca00(this, "prizeButton", void 0), _0x1bca00(this, 'currencies', void 0), _0x1bca00(this, "hint", void 0), _0x1bca00(this, "mysteryBoxThumb", void 0), _0x1bca00(this, "prizeThumb", void 0), _0x1bca00(this, "rays", void 0), _0x1bca00(this, "prizeText", void 0), _0x1bca00(this, "onExitCallback", void 0), _0x1bca00(this, "prizes", []), _0x1bca00(this, "boxType", ''), _0x1bca00(this, "currentPrize", void 0), _0x1bca00(this, "blockEvents", false), _0x1bca00(this, "onOpenPrize", new _0x3eb645.Signal()), _0x1bca00(this, "onKeyDown", _0x160eb7 => {
-        const _0x30de41 = _0x5dc166;
         _0x160eb7.repeat || this.blockEvents || "Spacebar" !== _0x160eb7.key && '\x20' !== _0x160eb7.key || this.onPointerTap();
       }), _0x1bca00(this, "onPointerTap", () => {
-        const _0x1b9fe3 = _0x5dc166;
         this.state === _0x45186d.OPENING ? this.openPrize() : this.state === _0x45186d.CLOSING ? this.close() : this.state === _0x45186d.REPEATING && this.setup();
       });
     }
     ['onBuild']() {
-      const _0x5c0765 = _0x3d2178;
       var _0x3c414e;
       this.bg = this.addChild(_0x2a24d4.Sprite.from("prizescreen-bg.png")), this.bg.anchor.set(0.5), this.bg.interactive = true, this.prizeButton = this.addChild(new _0x2a5def.a({
         base: _0x4b8db5.a.rectShadow({
@@ -6703,19 +6096,15 @@
         dropShadow: true,
         dropShadowColor: 16777215
       })), this.prizeText.anchor.set(0.5), _0x5aae70.a.SDK.onBreakStart.add(() => {
-        const _0x5da704 = _0x5c0765;
         this.blockEvents = true;
       }), _0x5aae70.a.SDK.onBreakComplete.add(() => {
-        const _0x10bd55 = _0x5c0765;
         this.blockEvents = false;
       });
     }
     ['onOpen'](_0x4e81ed) {
-      const _0x34eb57 = _0x3d2178;
       this.prizes = _0x4e81ed.prizes, this.onExitCallback = _0x4e81ed.onExitCallback, this.prizes.length ? (this.currencies.coins = _0x483390.user.coins, this.currencies.keys = _0x483390.user.keys, this.setup()) : this.close();
     }
     ["setup"]() {
-      const _0x57c974 = _0x3d2178;
       this.currentPrize = this.prizes.shift();
       const {
         type: _0xa40304,
@@ -6730,12 +6119,10 @@
       }).yoyo(true).repeat(-1), this.bg.on("pointertap", this.onPointerTap), window.addEventListener("keydown", this.onKeyDown), this.mysteryBoxThumb.tween(1), this.rays.alpha = 0, this.rays.mask.scale.set(0), this.rays.rotation = 0, this.mysteryBoxThumb.visible = !!_0x1564b3, this.prizeButton.visible = !!_0x1564b3, this.boxType = _0x1564b3, _0x1564b3 || this.onPointerTap();
     }
     ["onClose"]() {
-      const _0xc1f5c2 = _0x3d2178;
       var _0x225dee;
       _0x483390.sound.musicFadeIn(), _0x152e74.a.killTweensOf(this.hint), window.removeEventListener('keydown', this.onKeyDown), this.bg.off("pointertap", this.onPointerTap), null === (_0x225dee = this.onExitCallback) || void 0 === _0x225dee || _0x225dee.call(this), this.prizeThumb.reset();
     }
     ['openPrize']() {
-      const _0x47db01 = _0x3d2178;
       this.currentPrize && _0x483390.user.openMysteryBox(this.currentPrize), _0x483390.sound.stopAllFx(), _0x483390.sound.musicFadeOut(), _0x483390.sound.play("open-prize"), this.state = -1, this.prizeThumb.entity.scale.set(0), _0x152e74.a.killTweensOf(this.hint), this.hint.alpha = 0, this.mysteryBoxThumb.tween(2), _0x152e74.a.to(this.rays, 0.3, {
         alpha: 1
       }), _0x152e74.a.to(this.rays.mask, 0.3, {
@@ -6744,11 +6131,9 @@
       }), _0x152e74.a.delayedCall(0.5, () => this.prizeThumb.tween()), _0x152e74.a.to(this.rays, 4, {
         rotation: 2 * Math.PI,
         onComplete: () => {
-          const _0x4cc08b = _0x47db01;
           _0x152e74.a.to(this.rays, 1, {
             alpha: 0,
             onComplete: () => {
-              const _0x1497e0 = _0x4cc08b;
               this.hint.text = _0xf03c86.b.translate("prize-screen-continue" + (_0x52c5e0.a.mobile ? "-mobile" : '')), this.hint.alpha = 0.1, _0x152e74.a.to(this.hint, 1.3, {
                 alpha: 1
               }).yoyo(true).repeat(-1), this.prizes.length ? this.state = _0x45186d.REPEATING : this.state = _0x45186d.CLOSING;
@@ -6760,8 +6145,7 @@
       }).delay(2.5), this.onOpenPrize.dispatch(this.boxType), this.currentPrize = void 0;
     }
     ["onResize"]() {
-      const _0x385dbb = _0x3d2178,
-        _0x351872 = this.viewportWidth,
+      const _0x351872 = this.viewportWidth,
         _0x408113 = this.viewportHeight,
         _0x5420c3 = 1.25 * (_0x351872 > _0x408113 ? _0x351872 : _0x408113);
       this.bg.width = _0x5420c3, this.bg.height = _0x5420c3, this.bg.x = _0x351872 / 2, this.bg.y = _0x408113 / 2 - 0.05 * _0x408113, this.prizeButton.x = _0x351872 / 2 - this.prizeButton.width / 2 - 60, this.prizeButton.y = this.prizeButton.height / 2 + 40, this.currencies.x = _0x351872 / 2 + this.currencies.width / 2 + 60, this.currencies.y = this.prizeButton.height / 2 + 40, this.hint.x = _0x351872 / 2, this.hint.y = _0x408113 - this.hint.height / 2 - 25, this.prizeText.x = _0x351872 / 2, this.prizeText.y = _0x408113 / 2 + this.prizeThumb.height / 2, this.mysteryBoxThumb.x = _0x351872 / 2, this.mysteryBoxThumb.y = _0x408113 / 2, this.prizeThumb.x = _0x351872 / 2, this.prizeThumb.y = _0x408113 / 2, this.rays.x = _0x351872 / 2, this.rays.y = _0x408113 / 2;
@@ -6769,7 +6153,6 @@
   }
   var _0x2351ff = _0x388199(84);
   function _0xf768cf(_0x4f0fe9, _0x445706, _0x2963cb) {
-    const _0x88181f = _0x3d2178;
     return (_0x445706 = function (_0x1dcdd9) {
       var _0x363e6c = function (_0x1bb57b, _0x29a303) {
         if ('object' != typeof _0x1bb57b || null === _0x1bb57b) return _0x1bb57b;
@@ -6791,19 +6174,15 @@
   }
   class _0x352a45 {
     constructor(_0x5d9678) {
-      const _0x1af700 = _0x3d2178;
       void 0 === _0x5d9678 && (_0x5d9678 = {}), _0xf768cf(this, "maxRenderScale", 2), _0xf768cf(this, "renderScale", 1), _0xf768cf(this, "onResize", void 0), _0xf768cf(this, 'w', 0), _0xf768cf(this, 'h', 0), _0xf768cf(this, "app", void 0), this.app = _0x483390, _0x5d9678.maxRenderScale && (this.maxRenderScale = _0x5d9678.maxRenderScale), this.onResize = new _0x2351ff.Signal();
     }
     ["init"]() {
-      const _0x2eff96 = _0x3d2178;
       window.addEventListener("resize", () => {
-        const _0xd5bd89 = _0x2eff96;
         window.scrollTo(0, 0);
         for (let _0x508b2f = 0; _0x508b2f < 10; _0x508b2f++) setTimeout(() => this._resize(window.innerWidth, window.innerHeight), 100 * _0x508b2f);
       }), Object(_0xb127aa.a)(this._resize, 100, this)(window.innerWidth, window.innerHeight);
     }
     ["_resize"](_0x3330e3, _0x1dc074) {
-      const _0x1090f0 = _0x3d2178;
       window.scrollTo(0, 0);
       const _0x31350c = this.maxRenderScale;
       let _0x24608f = window.devicePixelRatio || 1;
@@ -6816,7 +6195,6 @@
     }
   }
   function _0x415d85(_0x9047ed, _0x3dfc1b, _0x74e63f) {
-    const _0x501578 = _0x3d2178;
     return (_0x3dfc1b = function (_0x5c3b72) {
       var _0x231740 = function (_0x25a61c, _0x4a4661) {
         if ('object' != typeof _0x25a61c || null === _0x25a61c) return _0x25a61c;
@@ -6839,28 +6217,22 @@
   _0xf768cf(_0x352a45, "pluginName", "resizer");
   class _0x2665a9 extends _0x2a24d4.Container {
     constructor() {
-      const _0x43d578 = _0x3d2178;
       super(), _0x415d85(this, "base", void 0), _0x415d85(this, "fill", void 0), _0x415d85(this, 'ticker', void 0), _0x415d85(this, "time", 0), _0x415d85(this, "secs", 0), _0x415d85(this, "onComplete", void 0), _0x415d85(this, "pizza", void 0), this.base = _0x2a24d4.Sprite.from("clock-base.png"), this.base.anchor.set(0.5), this.base.x = -1, this.base.y = -1, this.addChild(this.base), this.fill = _0x2a24d4.Sprite.from("clock-fill.png"), this.fill.anchor.set(0.5), this.addChild(this.fill), this.ticker = new _0x2a24d4.Ticker(), this.ticker.stop();
     }
     ["run"](_0x4e8622, _0x183f19) {
-      const _0xf184ff = _0x3d2178;
       this.secs && this.stop(), this.time = _0x4e8622, this.secs = _0x4e8622, this.onComplete = _0x183f19, this.update(0), this.ticker.add(this.update, this, 1), this.ticker.start();
     }
     ["stop"]() {
-      const _0x1669b7 = _0x3d2178;
       this.secs = 0, this.ticker.remove(this.update, this), this.ticker.stop();
     }
     ['complete']() {
-      const _0x8e0d5e = _0x3d2178;
       this.stop(), this.onComplete && this.onComplete();
     }
     ["update"](_0x501c29) {
-      const _0xe8b5 = _0x3d2178,
-        _0x2f437e = _0x501c29 / 60;
+      const _0x2f437e = _0x501c29 / 60;
       this.secs -= _0x2f437e, this.updatePizza(), this.secs < 0 && this.complete();
     }
     ["updatePizza"]() {
-      const _0x10b62b = _0x3d2178;
       this.pizza || (this.pizza = new _0x2a24d4.Graphics(), this.addChild(this.pizza));
       const _0x2b8a1d = this.secs / this.time,
         _0x310985 = _0x4f0763.a.PI_DOUBLE * _0x2b8a1d;
@@ -6868,7 +6240,6 @@
     }
   }
   function _0x520df4(_0x25dc97, _0xab1a67, _0x2c56f0) {
-    const _0x1a3715 = _0x3d2178;
     return (_0xab1a67 = function (_0x42a7a1) {
       var _0x33bd80 = function (_0x30a0ea, _0x1d1b3e) {
         if ("object" != typeof _0x30a0ea || null === _0x30a0ea) return _0x30a0ea;
@@ -6890,11 +6261,9 @@
   }
   class _0x1991ee extends _0x3ed41f.a {
     constructor() {
-      const _0xbe88af = _0x3d2178;
       super(...arguments), _0x520df4(this, 'bg', void 0), _0x520df4(this, "clock", void 0), _0x520df4(this, 'content', void 0), _0x520df4(this, "baseShort", void 0), _0x520df4(this, "baseTall", void 0), _0x520df4(this, "btnReviveWatch", void 0), _0x520df4(this, "btnReviveKeys", void 0), _0x520df4(this, "title", void 0), _0x520df4(this, 'currencies', void 0), _0x520df4(this, "onExitCallback", void 0), _0x520df4(this, "heightShort", 260), _0x520df4(this, 'heightTall', 400);
     }
     ["onBuild"]() {
-      const _0x30cb69 = _0x3d2178;
       this.bg = new _0xd34662.b(), this.addChild(this.bg), this.bg.interactive = true, this.bg.on('pointertap', () => this.exit()), this.content = new _0x2a24d4.Container(), this.addChild(this.content);
       const _0x1b4949 = 550;
       this.baseTall = _0x4b8db5.a.rectComp({
@@ -6982,13 +6351,11 @@
         anchorX: 0.5,
         anchorY: 0.5
       }), this.content.addChild(this.title), this.clock = new _0x2665a9(), this.content.addChild(this.clock), this.clock.x = -255, this.currencies = new _0x4b354d(), this.currencies.coinsTag.visible = false, this.content.addChild(this.currencies), this.currencies.onRefresh.add(() => {
-        const _0x103368 = _0x30cb69;
         this.currencies.x = 275 - this.currencies.width / 2 - 18;
       });
     }
     ["onOpen"]() {
-      const _0x58230d = _0x3d2178,
-        _0x37d3c8 = _0x483390.game.freeRevivals < _0x52c5e0.a.freeRevivals,
+      const _0x37d3c8 = _0x483390.game.freeRevivals < _0x52c5e0.a.freeRevivals,
         _0xf90184 = _0x37d3c8 ? this.heightTall : this.heightShort;
       this.clock.run(6, () => this.exit()), this.btnReviveWatch.key = "Space", this.btnReviveKeys.key = 'k', this.btnReviveKeys.setup({
         labelParams: {
@@ -7002,35 +6369,28 @@
       }) : () => _0x483390.nav.toGameover();
     }
     ["onClose"]() {
-      const _0xa27059 = _0x3d2178;
       this.clock.stop(), this.btnReviveWatch.key = null, this.btnReviveKeys.key = null;
     }
     ['onResize']() {
-      const _0x134c57 = _0x3d2178,
-        _0x19ebcd = this.viewportWidth,
+      const _0x19ebcd = this.viewportWidth,
         _0x264972 = this.viewportHeight;
       this.x = 0.5 * _0x19ebcd, this.y = 0.5 * _0x264972, this.bg.resize(_0x19ebcd, _0x264972);
     }
     ["exit"]() {
-      const _0x46afb1 = _0x3d2178;
       this.close(), this.onExitCallback();
     }
     ["reviveWithAd"]() {
-      const _0x32a42c = _0x3d2178;
       this.close(), _0x52c5e0.a.debug ? _0x483390.game.revive(1, false) : (_0x483390.sound.volume(0), this.btnReviveWatch.key = null, this.btnReviveKeys.key = null, _0x5aae70.a.SDK.rewardedBreak({
         type: "saveMe"
       }, ["revive", '', 'gameplay']).then(_0x3f0c0a => {
-        const _0x1bd427 = _0x32a42c;
         _0x483390.sound.volume(_0x52c5e0.a.volume), _0x3f0c0a ? _0x483390.game.revive(5, false) : (this.btnReviveWatch.key = "Space", this.btnReviveKeys.key = 'k', this.onExitCallback());
       }));
     }
     ["reviveWithKeys"]() {
-      const _0x1081a5 = _0x3d2178;
       this.close(), _0x483390.user.keys >= _0x483390.game.paidRevivalCost() ? _0x483390.game.revive(_0x52c5e0.a.debug ? 1 : 3, true) : (_0x483390.notEnoughCurrency.setup(_0x483390.game.paidRevivalCost(), this.onExitCallback, "keys"), _0x483390.notEnoughCurrency.open());
     }
   }
   function _0x1e2a70(_0x1e6c8a, _0x3826e6, _0x30829e) {
-    const _0x276090 = _0x3d2178;
     return (_0x3826e6 = function (_0x3d8f9d) {
       var _0x527da6 = function (_0x4b7596, _0x5b27d4) {
         if ("object" != typeof _0x4b7596 || null === _0x4b7596) return _0x4b7596;
@@ -7052,16 +6412,13 @@
   }
   class _0x4f289b {
     constructor() {
-      const _0x1ae247 = _0x3d2178;
       _0x1e2a70(this, 'w', 0), _0x1e2a70(this, 'h', 0), _0x1e2a70(this, "app", void 0), _0x1e2a70(this, "blocker", void 0), this.app = _0x483390, _0x483390.resize.onResize.connect(this.resize.bind(this)), _0x5aae70.a.SDK.onBreakStart.add(() => {
         this.blocker.interactive = true;
       }), _0x5aae70.a.SDK.onBreakComplete.add(() => {
-        const _0x286a8c = _0x1ae247;
         this.blocker.interactive = false;
       }), this.blocker = _0x483390.stage.stage.addChild(new _0x2a24d4.Graphics().beginFill(0, 0.001).drawRect(0, 0, 1, 1));
     }
     ['resize'](_0x23eeaf, _0x5f04bf) {
-      const _0x3ad858 = _0x3d2178;
       this.blocker.scale.set(_0x23eeaf, _0x5f04bf);
     }
     ["isOn"]() {
@@ -7069,7 +6426,6 @@
     }
   }
   function _0x32a213(_0x4cc11c, _0x217363, _0x449fed) {
-    const _0xc8455f = _0x3d2178;
     return (_0x217363 = function (_0x1361b5) {
       var _0x3c44c5 = function (_0x24bc06, _0xb29d36) {
         if ("object" != typeof _0x24bc06 || null === _0x24bc06) return _0x24bc06;
@@ -7092,11 +6448,9 @@
   _0x1e2a70(_0x4f289b, "pluginName", "screenBlocker");
   class _0x5af333 {
     constructor(_0x31a4b5, _0x1984be) {
-      const _0x17c11e = _0x3d2178;
       void 0 === _0x1984be && (_0x1984be = 10), _0x32a213(this, 'w', 400), _0x32a213(this, 'h', 120), _0x32a213(this, "maxChars", 10), _0x32a213(this, 'useDefault', false), _0x32a213(this, 'element', void 0), _0x32a213(this, 'bg', void 0), _0x32a213(this, 'panel', void 0), _0x32a213(this, "title", void 0), _0x32a213(this, "input", void 0), _0x32a213(this, 'opened', false), _0x32a213(this, "callback", void 0), _0x32a213(this, "titleId", void 0), _0x32a213(this, "_onKeyDownBind", this.onKeyUp.bind(this)), this.titleId = _0x31a4b5, this.w = 400, this.h = 120, this.maxChars = _0x1984be, this.useDefault = _0x52c5e0.a.useDefaultPrompt, this.build();
     }
     ["build"]() {
-      const _0x1ca022 = _0x3d2178;
       if (this.element) return;
       const _0x238570 = document.createElement("div");
       _0x238570.id = "nickname-prompt", _0x238570.style.position = 'absolute', _0x238570.style.width = "100%", _0x238570.style.height = "100%";
@@ -7110,37 +6464,29 @@
       _0x20110c.id = "nickname-prompt-input", _0x20110c.style.fontSize = "2em", _0x20110c.type = "text", _0x20110c.maxLength = this.maxChars, _0x20110c.style.width = "80%", _0x20110c.style.height = "30pt", _0x20110c.style.textAlign = "center", _0x20110c.style.fontFamily = "Lilita One", _0x20110c.style.color = '#3a8bbf', _0x20110c.style.margin = "5px", _0x20110c.style.backgroundColor = '#FFFFFF', _0x20110c.style.border = '0', _0x1857db.appendChild(_0x20110c), this.bg = _0xe0f131, this.panel = _0x1857db, this.title = _0x4b6011, this.input = _0x20110c, this.element = _0x238570, this.input.addEventListener("input", this.onNameChange.bind(this)), this.panel.addEventListener('mouseup', () => this.highlight()), this.panel.addEventListener('touchend', () => this.highlight()), this.bg.addEventListener("mouseup", () => this.hide()), this.bg.addEventListener("touchend", () => this.hide()), _0x483390.user.onGameSettingsChange.add(this.onUserChange, this);
     }
     ["onUserChange"]() {
-      const _0x230817 = _0x3d2178;
       this.input && (this.input.value = _0x483390.user.name);
     }
     ["show"]() {
-      const _0x230615 = _0x3d2178;
       var _0x2aea59, _0x394102;
       this.opened || (this.opened = true, document.addEventListener('keyup', this._onKeyDownBind), this.title && (this.title.innerText = _0xf03c86.b.translate(this.titleId)), this.input && (this.input.value = _0x483390.user.name), this.element && document.body.appendChild(this.element), null === (_0x2aea59 = this.input) || void 0 === _0x2aea59 || _0x2aea59.select(), null === (_0x394102 = this.input) || void 0 === _0x394102 || _0x394102.focus());
     }
     ['hide']() {
-      const _0x408200 = _0x3d2178;
       this.opened && (_0x483390.sound.play("gui-tap"), this.opened = false, document.removeEventListener("keyup", this._onKeyDownBind), this.input && this.input.blur(), this.element && document.body.removeChild(this.element));
     }
     ["onKeyUp"](_0x633a91) {
-      const _0x4ef899 = _0x3d2178;
       "Enter" !== _0x633a91.code || _0x633a91.repeat || this.hide();
     }
     ["onNameChange"]() {
-      const _0x17fe33 = _0x3d2178;
       this.input && this.input.value && (_0x483390.user.nameSetByUser = true, _0x483390.user.name = this.input.value, _0x483390.user.save());
     }
     ["onCancel"]() {
-      const _0x503a1c = _0x3d2178;
       this.callback && this.callback();
     }
     ["highlight"]() {
-      const _0x952143 = _0x3d2178;
       this.input && (this.input.focus(), this.input.select && this.input.select(), this.input.setSelectionRange && this.input.setSelectionRange(0, this.input.value.length));
     }
   }
   function _0x3d5b6a(_0x2a78ae, _0x53d10a, _0x362e88) {
-    const _0x23a528 = _0x3d2178;
     return (_0x53d10a = function (_0x43505e) {
       var _0x4cfde7 = function (_0x5ba120, _0x27dfed) {
         if ("object" != typeof _0x5ba120 || null === _0x5ba120) return _0x5ba120;
@@ -7162,11 +6508,9 @@
   }
   class _0x55bbf7 extends _0x2a24d4.Container {
     constructor(_0x17507c) {
-      const _0xb9c00c = _0x3d2178;
       super(), _0x3d5b6a(this, 'w', 550), _0x3d5b6a(this, 'h', 230), _0x3d5b6a(this, "opts", void 0), _0x3d5b6a(this, 'bg', void 0), _0x3d5b6a(this, 'btn', void 0), _0x3d5b6a(this, "title", void 0), _0x3d5b6a(this, "subtitle", void 0), _0x3d5b6a(this, "onTap", void 0), _0x3d5b6a(this, "onBgTap", void 0), _0x3d5b6a(this, "onButtonTap", void 0), _0x3d5b6a(this, "signalNode", void 0);
       const _0x5e0314 = _0x17507c;
       this.w = 550, this.h = 130, this.opts = _0x5e0314, this.bg = new _0x2a24d4.Graphics(), this.bg.beginFill(16711680, 1), this.bg.drawRect(-this.w / 2, -this.h / 2, this.w, this.h), this.addChild(this.bg), this.bg.alpha = 0, this.bg.interactive = true, this.bg.buttonMode = true, this.bg.on("pointertap", () => {
-        const _0x398d64 = _0xb9c00c;
         (this.onTap || this.onBgTap) && _0x483390.sound.play("gui-tap"), this.onTap && this.onTap(), this.onBgTap && this.onBgTap();
       }), this.btn = new _0x2a5def.a({
         icon: _0x5e0314.icon,
@@ -7183,7 +6527,6 @@
           round: 6
         })
       }), this.btn.onTap = () => {
-        const _0x526613 = _0xb9c00c;
         this.onTap && this.onTap(), this.onButtonTap && this.onButtonTap();
       }, this.addChild(this.btn), this.btn.x = -this.w / 2 + 60, this.title = new _0x5dc8d3.a(_0x5e0314.title, {
         align: "left",
@@ -7205,68 +6548,55 @@
   }
   class _0x372e89 extends _0x55bbf7 {
     constructor() {
-      const _0x4e6f6b = _0x3d2178;
       super({
         icon: "icon-user.png",
         title: 'nickname',
         subtitle: "nickname_prompt"
       }), _0x3d5b6a(this, "prompt", void 0), _0x3d5b6a(this, 'onBgTap', () => {
-        const _0x2bdc30 = _0x4e6f6b;
         this.prompt || (this.prompt = new _0x5af333("nickname")), this.prompt.show();
       }), _0x3d5b6a(this, "onUserChange", () => {
-        const _0x218af0 = _0x4e6f6b;
         this.subtitle.text = _0x483390.user.name;
       });
     }
     ["enable"]() {
-      const _0x406cee = _0x3d2178;
       this.signalNode || (this.subtitle.text = _0x483390.user.name, this.signalNode = _0x483390.user.onGameSettingsChange.add(this.onUserChange, this));
     }
     ["disable"]() {
-      const _0x380453 = _0x3d2178;
       this.signalNode && _0x483390.user.onGameSettingsChange.remove(this.onUserChange, this), this.signalNode = null;
     }
   }
   class _0x50b717 extends _0x55bbf7 {
     constructor() {
-      const _0x4af722 = _0x3d2178;
       super({
         icon: "icon-sound.png",
         title: "sound",
         subtitle: 'on'
       }), _0x3d5b6a(this, "diagonal", void 0), _0x3d5b6a(this, "onTap", () => {
-        const _0x19d925 = _0x4af722;
         _0x483390.sound.toggleMuted();
       }), _0x3d5b6a(this, "refresh", () => {
-        const _0x9ded6c = _0x4af722,
-          _0x14b7c1 = _0x483390.sound.muted ? "off" : 'on';
+        const _0x14b7c1 = _0x483390.sound.muted ? "off" : 'on';
         this.subtitle.text = _0xf03c86.b.translate(_0x14b7c1), this.diagonal.visible = _0x483390.sound.muted;
       }), this.diagonal = _0x2a24d4.Sprite.from("diagonal.png"), this.diagonal.anchor.set(0.5), this.btn.addChild(this.diagonal);
     }
     ['enable']() {
-      const _0x437af1 = _0x3d2178;
       this.signalNode || (this.signalNode = _0x483390.sound.onMutedChange.add(this.refresh, this), this.refresh());
     }
     ["disable"]() {
-      const _0x64b17 = _0x3d2178;
       this.signalNode && _0x483390.user.onGameSettingsChange.remove(this.refresh, this), this.signalNode = null;
     }
   }
   class _0xb8f8e7 extends _0x55bbf7 {
     constructor() {
-      const _0x1b1002 = _0x3d2178;
       super({
         icon: "icon-info.png",
         title: "privacy_policy",
         subtitle: 'empty'
       }), _0x3d5b6a(this, "onTap", () => {
-        const _0x41f5e0 = _0x1b1002;
         window.open(_0xf03c86.b.translate("privacy_policy_link"), "_blank");
       });
     }
   }
   function _0x178731(_0x44f627, _0xcc4210, _0x260bad) {
-    const _0x146b85 = _0x3d2178;
     return (_0xcc4210 = function (_0x578b5a) {
       var _0x53bda8 = function (_0x1927c4, _0x1027ab) {
         if ("object" != typeof _0x1927c4 || null === _0x1927c4) return _0x1927c4;
@@ -7288,11 +6618,9 @@
   }
   class _0x2929ad extends _0x3ed41f.a {
     constructor() {
-      const _0xd84a4c = _0x3d2178;
       super(...arguments), _0x178731(this, 'title', void 0), _0x178731(this, 'bg', void 0), _0x178731(this, 'base', void 0), _0x178731(this, "items", void 0), _0x178731(this, 'version', void 0), _0x178731(this, "btnClose", void 0);
     }
     ["onBuild"]() {
-      const _0x15289a = _0x3d2178;
       this.interactive = true, this.bg = new _0xd34662.b(), this.addChild(this.bg);
       const _0x4a23bb = 586.5,
         _0x5b2201 = 850;
@@ -7327,38 +6655,32 @@
       })), this.version.alpha = 0.5, this.version.x = 283.25, this.version.y = 415;
     }
     ['addItem'](_0x489df8) {
-      const _0x37f8ef = _0x3d2178;
       this.items || (this.items = []), this.base.addChild(_0x489df8), _0x489df8.y = this.items.length * _0x489df8.h - 250, _0x489df8.scale.set(0.85), this.items.push(_0x489df8);
     }
     ['onOpen']() {
       for (const _0x239c58 of this.items) _0x239c58.enable();
     }
     ["onClose"]() {
-      const _0x7069c3 = _0x3d2178;
       for (const _0x2f2adb of this.items) _0x2f2adb.disable();
     }
     ["onResize"]() {
-      const _0x312e36 = _0x3d2178,
-        _0x9f6677 = this.viewportWidth,
+      const _0x9f6677 = this.viewportWidth,
         _0xea603d = this.viewportHeight;
       this.x = 0.5 * _0x9f6677, this.y = 0.5 * _0xea603d, this.bg.resize(_0x9f6677, _0xea603d);
     }
   }
   var _0x1010d7 = _0x388199(106);
   function _0x1c41ce(_0x532164, _0x192a35) {
-    const _0x4e275a = _0x3d2178;
     var _0x2b13b5 = Object.keys(_0x532164);
     if (Object.getOwnPropertySymbols) {
       var _0x417301 = Object.getOwnPropertySymbols(_0x532164);
       _0x192a35 && (_0x417301 = _0x417301.filter(function (_0x586138) {
-        const _0x242bce = _0x4e275a;
         return Object.getOwnPropertyDescriptor(_0x532164, _0x586138).enumerable;
       })), _0x2b13b5.push.apply(_0x2b13b5, _0x417301);
     }
     return _0x2b13b5;
   }
   function _0x3040d2(_0x18ff9c, _0x166f82, _0x425211) {
-    const _0x279cc5 = _0x3d2178;
     return (_0x166f82 = function (_0x2445e8) {
       var _0x1dd7b8 = function (_0x49aca7, _0xf5616a) {
         if ("object" != typeof _0x49aca7 || null === _0x49aca7) return _0x49aca7;
@@ -7380,17 +6702,14 @@
   }
   class _0x1d5a2d extends _0x2a5def.a {
     constructor(_0x1e1551) {
-      const _0x477f4f = _0x3d2178;
       void 0 === _0x1e1551 && (_0x1e1551 = {});
       const _0x1aab50 = _0x2a24d4.Sprite.from("base-item-large.png");
       _0x1aab50.anchor.set(0.5), _0x1aab50.width = 100, _0x1aab50.height = 100, super(function (_0x444abc) {
-        const _0x40742b = _0x477f4f;
         for (var _0x513783 = 1; _0x513783 < arguments.length; _0x513783++) {
           var _0x40bb2a = null != arguments[_0x513783] ? arguments[_0x513783] : {};
           _0x513783 % 2 ? _0x1c41ce(Object(_0x40bb2a), true).forEach(function (_0x113c8f) {
             _0x3040d2(_0x444abc, _0x113c8f, _0x40bb2a[_0x113c8f]);
           }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x444abc, Object.getOwnPropertyDescriptors(_0x40bb2a)) : _0x1c41ce(Object(_0x40bb2a)).forEach(function (_0x3554f8) {
-            const _0x577005 = _0x40742b;
             Object.defineProperty(_0x444abc, _0x3554f8, Object.getOwnPropertyDescriptor(_0x40bb2a, _0x3554f8));
           });
         }
@@ -7410,13 +6729,11 @@
       }), this.numBoards.anchor.set(1, 1), this.numBoards.x = 33, this.numBoards.y = 38, this.addChild(this.numBoards), _0x483390.user.gameSettings.onChange.add(() => this.refresh()), this.refresh();
     }
     ['refresh']() {
-      const _0x5a8988 = _0x3d2178;
       this.numBoards.text = String(_0x483390.user.boosts.consumables.hoverboard);
     }
   }
   var _0xce71fa = _0x388199(122);
   function _0x17ee64(_0xfa7c2d, _0x1b9925, _0x6b7459) {
-    const _0x2ca121 = _0x3d2178;
     return (_0x1b9925 = function (_0x2fb5d5) {
       var _0x1b2e41 = function (_0x3419f5, _0x45f405) {
         if ("object" != typeof _0x3419f5 || null === _0x3419f5) return _0x3419f5;
@@ -7438,17 +6755,14 @@
   }
   class _0x36ef07 extends _0xce71fa.a {
     constructor() {
-      const _0x2230f9 = _0x3d2178;
       super({
         icon: "icon-sound.png"
       }), _0x17ee64(this, 'diagonal', void 0), _0x17ee64(this, "refresh", () => {
-        const _0x2fd586 = _0x2230f9;
         this.diagonal.visible = _0x483390.sound.muted;
       }), this.diagonal = _0x2a24d4.Sprite.from("diagonal.png"), this.diagonal.anchor.set(0.5), this.addChild(this.diagonal), this.onTap = () => _0x483390.sound.toggleMuted(), _0x483390.sound.onMutedChange.add(this.refresh), this.refresh();
     }
   }
   function _0x260a1b(_0x1cfc78, _0x48e4fd, _0x39d231) {
-    const _0x1724d2 = _0x3d2178;
     return (_0x48e4fd = function (_0x475fbf) {
       var _0x36a14d = function (_0x132627, _0x592fb2) {
         if ('object' != typeof _0x132627 || null === _0x132627) return _0x132627;
@@ -7507,7 +6821,6 @@
     }
   }
   function _0x1ef809(_0x3fe664, _0x327c3d, _0x1d1d24) {
-    const _0x52bac4 = _0x3d2178;
     return (_0x327c3d = function (_0x50b10c) {
       var _0x50f094 = function (_0x2bac2e, _0x10b9f0) {
         if ("object" != typeof _0x2bac2e || null === _0x2bac2e) return _0x2bac2e;
@@ -7529,7 +6842,6 @@
   }
   class _0xe68153 extends _0x2a24d4.Container {
     constructor() {
-      const _0x1c4f83 = _0x3d2178;
       super(), _0x1ef809(this, 'bg', void 0), _0x1ef809(this, "label", void 0), _0x1ef809(this, "count", 0), this.bg = _0x4b8db5.a.rect({
         w: 500,
         h: 70,
@@ -7545,12 +6857,10 @@
       }), this.addChild(this.label);
     }
     ["updateTransform"]() {
-      const _0x2c9ad1 = _0x3d2178;
       super.updateTransform(), this.label.rotation = 0.1 * Math.cos(0.1 * this.count), this.count += 1;
     }
   }
   function _0x464c3d(_0x1241b4, _0x478d76, _0x429267) {
-    const _0x5c45d0 = _0x3d2178;
     return (_0x478d76 = function (_0x4f03c6) {
       var _0x5b399c = function (_0x198b93, _0xfabe74) {
         if ("object" != typeof _0x198b93 || null === _0x198b93) return _0x198b93;
@@ -7572,14 +6882,11 @@
   }
   class _0x48cbc3 extends _0x3ed41f.a {
     constructor() {
-      const _0x1ed2e5 = _0x3d2178;
       super(...arguments), _0x464c3d(this, 'btnPlay', void 0), _0x464c3d(this, 'btnSound', void 0), _0x464c3d(this, "btnSettings", void 0), _0x464c3d(this, "btnBoards", void 0), _0x464c3d(this, 'tapArea', void 0), _0x464c3d(this, "btnMyTour", void 0), _0x464c3d(this, "bottomMenu", void 0), _0x464c3d(this, "btnTopRun", void 0), _0x464c3d(this, "btnMe", void 0), _0x464c3d(this, 'btnShop', void 0), _0x464c3d(this, "freeStuffButton", void 0), _0x464c3d(this, "onKeyDown", _0xe035a9 => {
-        const _0x5c0f97 = _0x1ed2e5;
         this.tapArea.interactive && !_0xe035a9.repeat && ('\x20' !== _0xe035a9.code && "Space" !== _0xe035a9.code || this.startGame());
       });
     }
     ["onBuild"]() {
-      const _0x4a961e = _0x3d2178;
       this.btnPlay = new _0xe68153(), this.addChild(this.btnPlay), this.tapArea = new _0x2a24d4.Sprite(_0x2a24d4.Texture.WHITE), this.addChild(this.tapArea), this.tapArea.alpha = 0, this.tapArea.interactive = false, this.tapArea.on("pointerdown", () => this.startGame()), this.btnSound = new _0x36ef07(), this.addChild(this.btnSound), this.btnSettings = new _0xce71fa.a({
         icon: "icon-settings.png"
       }), this.btnSettings.onTap = () => _0x483390.settings.open(), this.addChild(this.btnSettings), this.btnBoards = new _0x1d5a2d(), this.btnBoards.onTap = () => _0x483390.buyBoards.open(), this.addChild(this.btnBoards), this.btnMyTour = this.addChild(new _0x2a5def.a({
@@ -7590,7 +6897,6 @@
       })), this.btnMyTour.onTap = () => _0x483390.nav.toIdleScreen("myTourPanel"), this.buildBottomBtns(), this.freeStuffButton = this.addChild(new _0x555cb4()), _0x483390.resources.manager.onLoadComplete.connect(this.updateLoadingState.bind(this)), this.updateLoadingState(), _0x5aae70.a.SDK.commercialBreak(true);
     }
     ["buildBottomBtns"]() {
-      const _0x31fa81 = _0x3d2178;
       this.bottomMenu = new _0x3184f1.a({
         spacing: 40
       }), this.addChild(this.bottomMenu), "none" !== _0x52c5e0.a.leaderboard && (this.btnTopRun = new _0x2a5def.a({
@@ -7612,34 +6918,27 @@
       }), this.btnShop.onTap = () => _0x483390.nav.toIdleScreen('boostShop'), this.bottomMenu.addButton(this.btnShop);
     }
     ["updateLoadingState"]() {
-      const _0x388add = _0x3d2178;
       if (!this.opened) return;
       const _0x43d34f = _0x483390.resources.manager.areManifestsLoaded(['game-basic']);
       this.btnPlay.visible = _0x43d34f, this.tapArea.interactive = _0x43d34f, this.btnMe.visible = _0x483390.loader.areAllIdleCharactersLoaded(), this.bottomMenu.organise(), this.updateBadges();
     }
     ["updateBadges"]() {
-      const _0x5d72ca = _0x3d2178;
       _0x483390.awards.hasPrizeToCollect() ? this.btnMe.showBadge() : this.btnMe.hideBadge();
     }
     ["onOpen"]() {
-      const _0x559959 = _0x3d2178;
       this.tapArea.interactive = true, this.updateLoadingState(), this.updateBadges(), document.addEventListener("keydown", this.onKeyDown);
     }
     ['onClose']() {
-      const _0x8117bb = _0x3d2178;
       this.tapArea.interactive = false, document.removeEventListener("keydown", this.onKeyDown);
     }
     ["onResize"]() {
-      const _0x1cdd5c = _0x3d2178;
       this.tapArea.width = this.tapArea.height = 5000, this.btnSound.x = this.viewportWidth - 60, this.btnSound.y = 60 + _0x52c5e0.a.iOSUIOffsetY, this.btnSettings.x = 60, this.btnSettings.y = (_0x1010d7.a.isPoki() && _0x2eecb3.a.mobile ? 142 : 60) + _0x52c5e0.a.iOSUIOffsetY, this.btnMyTour.x = this.viewportWidth / 2, this.btnMyTour.y = 60 + _0x52c5e0.a.iOSUIOffsetY, this.btnBoards.x = this.btnSettings.x, this.btnBoards.y = this.btnSettings.y + 110, this.btnPlay.position.x = this.viewportWidth / 2, this.btnPlay.position.y = this.viewportHeight - 350, this.bottomMenu.x = this.viewportWidth / 2, this.bottomMenu.y = this.viewportHeight - 120, this.btnSound.x - this.btnMyTour.x - this.btnSound.width / 2 - this.btnMyTour.width / 2 - this.freeStuffButton.width >= 20 ? (this.freeStuffButton.x = this.btnSound.x - this.freeStuffButton.width / 2 - this.btnSound.width / 2 - 10, this.freeStuffButton.y = this.btnSettings.y) : (this.freeStuffButton.x = this.btnMyTour.x, this.freeStuffButton.y = this.btnMyTour.y + this.btnMyTour.height / 2 + this.freeStuffButton.height / 2 + 10);
     }
     ["startGame"]() {
-      const _0x304e4e = _0x3d2178;
       _0x483390.prizeScreen.opened || _0x483390.buyBoards.opened || _0x483390.settings.opened || _0x483390.screenBlocker.isOn() || (_0x483390.sound.play("gui-tap"), _0x483390.nav.toGame());
     }
   }
   function _0x1ace30(_0x4edfd3, _0x469531, _0x254532) {
-    const _0x37cae7 = _0x3d2178;
     return (_0x469531 = function (_0x582e63) {
       var _0x51263e = function (_0x1bba52, _0x18168c) {
         if ("object" != typeof _0x1bba52 || null === _0x1bba52) return _0x1bba52;
@@ -7661,11 +6960,9 @@
   }
   class _0x34cb7c extends _0x3ed41f.a {
     constructor() {
-      const _0x222326 = _0x3d2178;
       super(...arguments), _0x1ace30(this, 'w', 0), _0x1ace30(this, 'h', 0), _0x1ace30(this, "jake", void 0), _0x1ace30(this, "leaderboard", void 0), _0x1ace30(this, "panel", void 0), _0x1ace30(this, "title", void 0);
     }
     ["onBuild"]() {
-      const _0x1331cf = _0x3d2178;
       this.panel = new _0x3dd0fd.a(), this.addChild(this.panel), this.title = this.addChild(new _0x5dc8d3.a('highscores', {
         align: "center",
         fill: 211825,
@@ -7680,19 +6977,16 @@
       }), this.leaderboard.locked = true, this.panel.addChild(this.leaderboard), this.leaderboard.setPosition(0, -247);
     }
     async ['onOpen']() {
-      const _0x42c1cf = _0x3d2178;
       await this.leaderboard.refresh(), this.visible = true;
     }
     ["onClose"]() {
       this.visible = false;
     }
     ['onResize']() {
-      const _0x3c6f54 = _0x3d2178;
       this.w = this.viewportWidth, this.h = this.viewportHeight, this.x = 0.5 * this.w, this.y = 0.5 * this.h, this.panel.resize(this.w, this.h);
     }
   }
   function _0x18d650(_0x19421c, _0x3d8ba9, _0x59912) {
-    const _0x144bac = _0x3d2178;
     return (_0x3d8ba9 = function (_0x1cf6f3) {
       var _0x1391fb = function (_0x315c66, _0x350027) {
         if ('object' != typeof _0x315c66 || null === _0x315c66) return _0x315c66;
@@ -7714,9 +7008,7 @@
   }
   class _0x5cef19 extends _0x2a24d4.Container {
     constructor() {
-      const _0x4ca31f = _0x3d2178;
       super(), _0x18d650(this, "viewportWidth", 512), _0x18d650(this, "viewportHeight", 512), _0x18d650(this, "viewportScale", 1), _0x18d650(this, 'layers', void 0), _0x18d650(this, "resize", () => {
-        const _0x5b68f9 = _0x4ca31f;
         let _0x5bf712 = 500;
         const _0x5f48ff = _0x483390.resize.w / _0x483390.resize.h;
         _0x5bf712 = _0x5f48ff < 0.5 ? 760 : _0x5f48ff < 1 ? 667 : 500, this.viewportScale = _0x483390.resize.h / _0x5bf712 * 0.5, this.viewportWidth = _0x483390.resize.w / this.viewportScale, this.viewportHeight = _0x483390.resize.h / this.viewportScale, this.scale.set(this.viewportScale);
@@ -7725,11 +7017,9 @@
       _0x483390.resize.onResize.connect(this.resize), this.resize();
     }
     get ["mainLayer"]() {
-      const _0x2ea463 = _0x3d2178;
       return this.layers[0];
     }
     get ["frontLayer"]() {
-      const _0x4606e6 = _0x3d2178;
       return this.layers[1];
     }
   }
@@ -7738,7 +7028,6 @@
     _0x5d82a4 = _0x388199(581),
     _0xf25fee = _0x388199(333);
   function _0x1c082f(_0x2e3694, _0x17b4fe, _0x1416a5) {
-    const _0x29c6a3 = _0x3d2178;
     return (_0x17b4fe = function (_0x3391fd) {
       var _0x123aec = function (_0x537705, _0x480b9e) {
         if ("object" != typeof _0x537705 || null === _0x537705) return _0x537705;
@@ -7760,29 +7049,24 @@
   }
   class _0x2df8d6 extends _0x19bb0e.a {
     constructor() {
-      const _0x5ae6dc = _0x3d2178;
       super({
         stage: new _0x2a24d4.Container(),
         camera: new _0x4a78bb.a(),
         renderer: _0x483390.stage.renderer,
         culling: false
       }), _0x1c082f(this, 'ui', void 0), _0x1c082f(this, "currentEntity", void 0), _0x1c082f(this, 'holder', void 0), _0x483390.stage.mainContainer.addChild(this.stage), _0x483390.stage.renderer.backgroundColor = 1118481, this.holder = new _0x18a9c6.a(), this.addChild(this.holder), this.mainCamera.camera.near = 0.01, this.mainCamera.camera.far = 99999, this.ui = new _0x943cd1(this), this.resetCamera(), setTimeout(() => {
-        const _0xf2dea9 = _0x5ae6dc,
-          _0xebfb69 = localStorage.getItem("viewer-entity-name"),
+        const _0xebfb69 = localStorage.getItem("viewer-entity-name"),
           _0x1bfa32 = localStorage.getItem("viewer-entity-type");
         _0xebfb69 && _0x1bfa32 && this.setEntity(_0xebfb69, _0x1bfa32);
       }, 100);
     }
     get ["mainCamera"]() {
-      const _0x18101d = _0x3d2178;
       return this.view3d.camera;
     }
     get ["stage"]() {
-      const _0x57c7c1 = _0x3d2178;
       return this.view3d.stage;
     }
     ["setEntity"](_0x3612eb, _0x27cf64) {
-      const _0x11981f = _0x3d2178;
       if (void 0 === _0x27cf64 && (_0x27cf64 = "model"), _0x3612eb && _0x27cf64) {
         this.currentEntity && this.holder.removeChild(this.currentEntity);
         try {
@@ -7800,19 +7084,16 @@
       }
     }
     ['setModel'](_0x2b604a) {
-      const _0x31bb0b = _0x3d2178,
-        _0x441954 = _0x483390.library.getEntity(_0x2b604a);
+      const _0x441954 = _0x483390.library.getEntity(_0x2b604a);
       this.holder.scale.set(0.2), this.holder.rotation.y = Math.PI, this.holder.addChild(_0x441954), this.currentEntity = _0x441954, this.resetCamera();
     }
     ["setScene"](_0x4f6123) {
-      const _0x3e3819 = _0x3d2178,
-        _0x45766a = _0x483390.library.getScene(_0x4f6123);
+      const _0x45766a = _0x483390.library.getScene(_0x4f6123);
       this.holder.scale.set(5), this.holder.rotation.y = 0, this.holder.addChild(_0x45766a), this.currentEntity = _0x45766a;
       const _0x295923 = _0x45766a.getComponent(_0xe278a4.a);
       if (_0x295923) {
         (_0x2cc9f4 => {
-          const _0x259681 = _0x3e3819,
-            _0x2bfe44 = _0x2cc9f4._animations,
+          const _0x2bfe44 = _0x2cc9f4._animations,
             _0x444ddd = Object(_0x5d82a4.a)(),
             _0x348a19 = _0x444ddd.__controllers;
           for (let _0x59da4c = _0x348a19.length - 1; _0x59da4c >= 0; _0x59da4c--) {
@@ -7830,10 +7111,8 @@
               _0x452672 = 24;
             let _0x6982fa;
             _0x444ddd.add(_0x2d76f5, "currentTime").min(0).max(_0x19004c.duration * _0x452672).step(0.1).name(_0x45ece5).onChange(_0x3a8909 => {
-              const _0x28271f = _0x259681;
               _0x2cc9f4._animationTick = _0x3a8909 / _0x452672;
             }).listen(), _0x444ddd.add(_0x2d76f5, "autoPlay").onChange(_0x1e2694 => {
-              const _0x5ae1ec = _0x259681;
               _0x1e2694 ? _0x6982fa = setInterval(() => {
                 _0x2d76f5.currentTime = Math.floor(_0x2cc9f4._animationTick * _0x452672);
               }, 10) : clearInterval(_0x6982fa), _0x2cc9f4.autoUpdate = _0x1e2694;
@@ -7844,7 +7123,6 @@
           lockCamera: false
         };
         Object(_0x5d82a4.a)().add(_0x587c6b, "lockCamera").onChange(_0x1e73b8 => {
-          const _0x5c45d6 = _0x3e3819;
           this.mainCamera.getComponent(_0xf25fee.a).lock(_0x1e73b8), this.mainCamera.getComponent(_0xf25fee.a).lockZoom(_0x1e73b8);
         });
         const _0x166284 = _0xe7ec00.a.childrenFlatMap(_0x45766a, {}, '', 10);
@@ -7854,7 +7132,6 @@
           };
           let _0x2cabd7 = true;
           Object(_0x5d82a4.a)().add(_0x1a6fa7, "active").name(_0x166284[_0x6a656b].name).onChange(() => {
-            const _0x2ecb = _0x3e3819;
             _0x2cabd7 = !_0x2cabd7, _0x166284[_0x6a656b].active = _0x2cabd7;
           });
         }
@@ -7862,36 +7139,29 @@
       this.resetCamera();
     }
     ["resetCamera"]() {
-      const _0x5c2a18 = _0x3d2178,
-        _0x1f53d4 = this.mainCamera.getComponent(_0xf25fee.a);
+      const _0x1f53d4 = this.mainCamera.getComponent(_0xf25fee.a);
       _0x1f53d4._radius = 5, _0x1f53d4._targetRadius = 5, _0x1f53d4._isDown = false, _0x1f53d4.center.set(0, 0, 0), _0x1f53d4.easing = 0.1, _0x1f53d4.sensitivity = 0.1, _0x1f53d4.sensitivityRotation = 1, _0x1f53d4._isLocked = false, _0x1f53d4._isZoomLocked = false, _0x1f53d4._rx = 0, _0x1f53d4._trx = 0, _0x1f53d4._prevx = 0, _0x1f53d4._ry = 0, _0x1f53d4._try = 0, _0x1f53d4._prevy = 0, _0x1f53d4._vec.set(0, 0, 0), _0x1f53d4.euler.set(0, 0, 0, "YXZ"), _0x1f53d4._mouseDown.x = 0, _0x1f53d4._mouseDown.y = 0, _0x1f53d4._mouse.x = 0, _0x1f53d4._mouse.y = 0, this.mainCamera.transform.position.x = 0, this.mainCamera.transform.position.y = 0, this.mainCamera.transform.position.z = 0, this.mainCamera.transform.lookAt(_0x1f53d4.center), _0x1f53d4.update();
     }
   }
   class _0x943cd1 {
     constructor(_0x381fc3) {
-      const _0x360167 = _0x3d2178;
       _0x1c082f(this, "element", void 0), _0x1c082f(this, "viewer", void 0), _0x1c082f(this, 'models', void 0), _0x1c082f(this, "scenes", void 0), this.viewer = _0x381fc3, this.element = document.createElement("div"), this.element.id = "model-viewer", this.element.style.position = "fixed", this.element.style.zIndex = "999", this.element.style.width = "100%", this.element.style.height = "100%", this.models = new _0x31b313(this, "model", "left"), this.scenes = new _0x31b313(this, "scene", "right"), this.show();
     }
     ['show']() {
-      const _0x1e0b71 = _0x3d2178;
       this.refresh(), document.body.appendChild(this.element);
     }
     ["hide"]() {
-      const _0x1aa949 = _0x3d2178;
       document.body.removeChild(this.element);
     }
     ['refresh']() {
-      const _0x2d193d = _0x3d2178;
       this.models.refresh(), this.scenes.refresh();
     }
   }
   class _0x31b313 {
     constructor(_0x5ebf07, _0x2aebcb, _0x92828a) {
-      const _0x224d9c = _0x3d2178;
       void 0 === _0x2aebcb && (_0x2aebcb = "model"), void 0 === _0x92828a && (_0x92828a = "left"), _0x1c082f(this, 'ui', void 0), _0x1c082f(this, "align", void 0), _0x1c082f(this, "element", void 0), _0x1c082f(this, "viewer", void 0), _0x1c082f(this, "category", void 0), this.ui = _0x5ebf07, this.viewer = _0x5ebf07.viewer, this.align = _0x92828a, this.category = _0x2aebcb, this.element = document.createElement('div'), this.element.style.overflow = 'scroll', this.element.style.height = "100%", this.element.style.position = 'fixed', this.element.style.textAlign = _0x92828a, "right" === _0x92828a && (this.element.style.right = "0px"), this.ui.element.appendChild(this.element);
     }
     ["refresh"]() {
-      const _0x36e6d2 = _0x3d2178;
       this.element.innerHTML = '';
       let _0x2ad920 = _0x483390.library.geometries;
       "scene" === this.category && (_0x2ad920 = _0x483390.library.scenes);
@@ -7902,12 +7172,10 @@
       }
     }
     ["onSelect"](_0x5393d7) {
-      const _0x1754ab = _0x3d2178;
       this.viewer.setEntity(_0x5393d7, this.category);
     }
   }
   function _0x2190bc(_0x357e6e, _0x5094cb, _0x29fa57) {
-    const _0x482846 = _0x3d2178;
     return (_0x5094cb = function (_0x2b37e6) {
       var _0x3e2c26 = function (_0x553e1f, _0x5d4c0f) {
         if ('object' != typeof _0x553e1f || null === _0x553e1f) return _0x553e1f;
@@ -7929,7 +7197,6 @@
   }
   class _0x295b61 {
     constructor(_0x3daf61) {
-      const _0x20416a = _0x3d2178;
       switch (_0x2190bc(this, "app", void 0), this.app = _0x3daf61, _0x52c5e0.a.extra) {
         case "models":
           this.initModelViewer();
@@ -7939,17 +7206,14 @@
       }
     }
     async ["initModelViewer"]() {
-      const _0x3fc6b8 = _0x3d2178;
       await this.app.resources.load('preload', 'font'), document.body.appendChild(this.app.stage.view), await this.app.resources.load("game-basic", "game-full", "game-idle", 'boards', "characters-basic", "characters-idle", "data"), this.app.viewer = this.app.addExtension(new _0x2df8d6()), this.app.hideLoadingMessage();
     }
     async ["initChunkViewer"]() {
-      const _0xad3299 = _0x3d2178;
       await this.app.resources.load("preload", "font"), document.body.appendChild(this.app.stage.view), await this.app.resources.load("chunks-idle", "chunks-basic", "chunks-full", "game-basic", 'game-full', "game-idle"), this.app.viewer = this.app.addExtension(new _0x2df8d6()), this.app.hideLoadingMessage();
     }
   }
   var _0x174aa4 = _0x388199(181);
   function _0x369784(_0x1afdff, _0x42072f, _0x3f6ac6) {
-    const _0x46f5b6 = _0x3d2178;
     return (_0x42072f = function (_0x23fd18) {
       var _0x14befa = function (_0x103b01, _0x4e0f03) {
         if ('object' != typeof _0x103b01 || null === _0x103b01) return _0x103b01;
@@ -7971,11 +7235,9 @@
   }
   class _0xc180cf {
     constructor(_0x3cb31a) {
-      const _0x30cb16 = _0x3d2178;
       _0x369784(this, "app", void 0), _0x369784(this, "idleCharactersLoaded", []), _0x369784(this, "fullCharactersLoaded", []), _0x369784(this, "characterLoadPromises", {}), _0x369784(this, "loading", false), this.app = _0x3cb31a, _0x174aa4.a.useWorkers = _0x52c5e0.a.useWebWorkers && 0 === _0x52c5e0.a.loadExtraAttempts, _0x3cb31a.resources.manager.onLoadStart.connect(this.onLoadStart.bind(this)), _0x3cb31a.resources.manager.onLoadProgress.connect(this.onLoadProgress.bind(this)), _0x3cb31a.resources.manager.onLoadComplete.connect(this.onLoadComplete.bind(this));
     }
     async ["proceed"]() {
-      const _0x45b09a = _0x3d2178;
       switch (_0x52c5e0.a.loadMode) {
         case "all":
           await this.loadAll();
@@ -7991,7 +7253,6 @@
       }
     }
     async ["loadGroups"]() {
-      const _0x2348c8 = _0x3d2178;
       for (var _0x11643b = arguments.length, _0x4d1b4c = new Array(_0x11643b), _0x8b1c1c = 0; _0x8b1c1c < _0x11643b; _0x8b1c1c++) _0x4d1b4c[_0x8b1c1c] = arguments[_0x8b1c1c];
       try {
         await this.app.resources.load(..._0x4d1b4c);
@@ -8000,23 +7261,18 @@
       }
     }
     async ["loadAll"]() {
-      const _0x42fcd0 = _0x3d2178;
       await this.loadGroups("preload", "font"), await this.loadGroups("chunks-idle", "chunks-basic", "chunks-full", "game-idle", "game-basic", "game-full", 'data', 'ui', "character-" + this.app.user.character + "-idle", "character-" + this.app.user.character + '-basic'), _0xf03c86.b.language = _0x52c5e0.a.language, this.app.sound.loadGroup("audio-idle"), this.app.sound.loadGroup("audio-basic"), this.app.sound.loadGroup("audio-full"), this.app.createGame(), this.app.nav.toTitleScreen(), _0x5aae70.a.SDK.gameLoadingFinished(), this.app.hideLoadingMessage();
     }
     async ["loadSimple"]() {
-      const _0x7ec83e = _0x3d2178;
       await this.loadGroups("preload", "font"), await this.loadGroups("chunks-idle", "game-idle", 'data', 'ui', "character-" + this.app.user.character + '-idle'), _0xf03c86.b.language = _0x52c5e0.a.language, this.app.createGame(), this.app.nav.toTitleScreen(), _0x52c5e0.a.loadDelay && (await Object(_0x2341a8.a)(_0x52c5e0.a.loadDelay)), this.loadGroups("chunks-basic", "chunks-full", "game-basic", "game-full", "character-" + this.app.user.character + "-basic"), this.app.sound.loadGroup("audio-idle"), this.app.sound.loadGroup("audio-basic"), this.app.sound.loadGroup("audio-full"), _0x5aae70.a.SDK.gameLoadingFinished(), this.app.hideLoadingMessage();
     }
     async ["loadProgressive"]() {
-      const _0x30f9a7 = _0x3d2178;
       await this.loadGroups('preload', "font"), await this.loadGroups("chunks-idle", "game-idle", "data", 'ui', "character-" + this.app.user.character + '-idle'), _0xf03c86.b.language = _0x52c5e0.a.language, this.app.sound.loadGroup("audio-idle"), this.app.createGame(), this.app.hideLoadingMessage(), this.app.nav.toTitleScreen(), _0x52c5e0.a.loadDelay && (await Object(_0x2341a8.a)(_0x52c5e0.a.loadDelay)), await this.loadGroups("chunks-basic", "game-basic", "character-" + this.app.user.character + "-basic"), this.app.sound.loadGroup("audio-basic"), _0x5aae70.a.SDK.gameLoadingFinished(), _0x52c5e0.a.loadDelay && (await Object(_0x2341a8.a)(_0x52c5e0.a.loadDelay)), await this.loadGroups("chunks-full", "game-full"), this.app.sound.loadGroup('audio-full'), _0x52c5e0.a.loadDelay && (await Object(_0x2341a8.a)(_0x52c5e0.a.loadDelay)), this.loadAllIdleCharacters();
     }
     async ["loadProgressiveDiscrete"]() {
-      const _0x33bfbb = _0x3d2178;
       await this.loadGroups('preload', "font"), await this.loadGroups("chunks-idle", "game-idle", "chunks-basic", "game-basic", "data", 'ui', "character-" + this.app.user.character + "-idle", 'character-' + this.app.user.character + "-basic", "boards"), this.app.sound.loadGroup("audio-idle"), this.app.sound.loadGroup("audio-basic"), _0xf03c86.b.language = _0x52c5e0.a.language, this.app.createGame(), this.app.hideLoadingMessage(), this.app.nav.toTitleScreen(), _0x5aae70.a.SDK.gameLoadingFinished(), _0x52c5e0.a.loadDelay && (await Object(_0x2341a8.a)(_0x52c5e0.a.loadDelay)), await this.loadGroups("chunks-full", 'game-full'), this.app.sound.loadGroup('audio-full'), _0x52c5e0.a.loadDelay && (await Object(_0x2341a8.a)(_0x52c5e0.a.loadDelay)), this.loadAllIdleCharacters();
     }
     async ["loadCharacter"](_0x166176, _0x3cd8df) {
-      const _0x27c2fc = _0x3d2178;
       void 0 === _0x3cd8df && (_0x3cd8df = false), _0x3cd8df && (await this.loadCharacter(_0x166176, false));
       const _0x59fc40 = _0x3cd8df ? 'basic' : 'idle',
         _0x478ae9 = _0x3cd8df ? this.fullCharactersLoaded : this.idleCharactersLoaded,
@@ -8024,39 +7280,32 @@
       this.characterLoadPromises[_0x5edd43] ? await this.characterLoadPromises[_0x5edd43] : _0x478ae9.includes(_0x166176) || (this.characterLoadPromises[_0x5edd43] = this.loadGroups(_0x5edd43), await this.characterLoadPromises[_0x5edd43], delete this.characterLoadPromises[_0x5edd43], _0x478ae9.push(_0x166176));
     }
     async ["loadSelectedIdleCharacter"]() {
-      const _0x2f1b3e = _0x3d2178,
-        _0x466d0b = this.app.user.character;
+      const _0x466d0b = this.app.user.character;
       await this.loadCharacter(_0x466d0b, false);
     }
     async ["loadSelectedFullCharacter"]() {
-      const _0x174896 = _0x3d2178,
-        _0x1e6222 = this.app.user.character;
+      const _0x1e6222 = this.app.user.character;
       await this.loadCharacter(_0x1e6222, true);
     }
     async ["loadAllIdleCharacters"]() {
-      const _0x2dc55f = _0x3d2178,
-        _0x527835 = this.app.data.getAvailableCharactersIds(),
+      const _0x527835 = this.app.data.getAvailableCharactersIds(),
         _0x37e4f0 = [];
       for (const _0x40544a of _0x527835) _0x37e4f0.push(this.loadCharacter(_0x40544a, false));
       await Promise.all(_0x37e4f0);
     }
     ["areAllIdleCharactersLoaded"]() {
-      const _0xa93f5f = _0x3d2178,
-        _0x4d3f95 = this.app.data.getAvailableCharactersIds(),
+      const _0x4d3f95 = this.app.data.getAvailableCharactersIds(),
         _0x58bf47 = [];
       for (const _0x10b271 of _0x4d3f95) _0x58bf47.push('character-' + _0x10b271 + '-idle');
       return this.app.resources.manager.areManifestsLoaded(_0x58bf47);
     }
     ["onLoadStart"]() {
-      const _0x43ba07 = _0x3d2178;
       this.app.resources.loadingIds.includes("game-idle") && (this.loading = true, window.loadingBar && _0x52c5e0.a.loadingMbs && ("progressive-discrete" === _0x52c5e0.a.loadMode && window.loadingBar.setTotal(6.4), "progressive" === _0x52c5e0.a.loadMode && window.loadingBar.setTotal(3.6), 'simple' === _0x52c5e0.a.loadMode && window.loadingBar.setTotal(3.6), "all" === _0x52c5e0.a.loadMode && window.loadingBar.setTotal(14.5)));
     }
     ["onLoadProgress"](_0xdd365d) {
-      const _0x18f32d = _0x3d2178;
       this.loading && window.loadingBar && window.loadingBar.setProgress(_0xdd365d / 100);
     }
     ["onLoadComplete"]() {
-      const _0x305e32 = _0x3d2178;
       this.loading && (this.loading = false);
     }
   }
@@ -8067,7 +7316,6 @@
     _0x5eab22 = _0x388199(89);
   class _0x53c08d {
     static ["scaleGeometry"](_0x228c50, _0x10e826) {
-      const _0x42fbbd = _0x3d2178;
       void 0 === _0x10e826 && (_0x10e826 = 100);
       const _0x404b58 = _0x228c50.geometry ? _0x228c50.geometry.buffers[0] : _0x228c50.buffers[0];
       if (!_0x404b58.__scaled) {
@@ -8076,25 +7324,21 @@
       }
     }
     static ["entityChildren"](_0xa7e0bb) {
-      const _0x3ff52a = _0x3d2178;
       return (_0xa7e0bb.container && _0xa7e0bb.container.children ? _0xa7e0bb.container.children : []).slice(0);
     }
     static ["applyMap"](_0x16d358, _0x154a11, _0x450d1a) {
-      const _0x2ac5bb = _0x3d2178;
       _0x16d358.view3d && _0x16d358.view3d.material && (_0x16d358.view3d.material.diffuseMap = _0x450d1a);
       const _0x24cad5 = _0x53c08d.entityChildren(_0x16d358);
       let _0x38d1e5 = _0x24cad5.length;
       for (; _0x38d1e5--;) _0x53c08d.applyMap(_0x24cad5[_0x38d1e5], _0x154a11, _0x450d1a);
     }
     static ["applyMaterial"](_0x27de6a, _0x31514b, _0x2331c5) {
-      const _0x2adead = _0x3d2178;
       if (void 0 === _0x2331c5 && (_0x2331c5 = false), _0x27de6a.view3d && (_0x27de6a.view3d.material = _0x31514b), !_0x2331c5) return;
       const _0x270ffc = _0x53c08d.entityChildren(_0x27de6a);
       let _0x5c1532 = _0x270ffc.length;
       for (; _0x5c1532--;) _0x53c08d.applyMaterial(_0x270ffc[_0x5c1532], _0x31514b);
     }
     static ["getSphere"](_0x3e14db, _0x18aa0e) {
-      const _0x3d1fe8 = _0x3d2178;
       void 0 === _0x18aa0e && (_0x18aa0e = null);
       const _0xa4f185 = _0x3e14db.getComponent(_0x5eab22.a);
       if (_0xa4f185) {
@@ -8107,7 +7351,6 @@
     }
   }
   function _0x6bc13a(_0x37a29e, _0x4a5313, _0x5b73fe) {
-    const _0x4c4f0f = _0x3d2178;
     return (_0x4a5313 = function (_0x72f32a) {
       var _0x531f14 = function (_0x27fbce, _0x515956) {
         if ("object" != typeof _0x27fbce || null === _0x27fbce) return _0x27fbce;
@@ -8143,19 +7386,15 @@
   };
   class _0x5ef4ba {
     constructor(_0x287d16) {
-      const _0x449497 = _0x3d2178;
       _0x6bc13a(this, "app", void 0), _0x6bc13a(this, "geometries", {}), _0x6bc13a(this, "maps", {}), _0x6bc13a(this, 'scenes', {}), _0x6bc13a(this, "geometrySceneNames", {}), _0x6bc13a(this, "geometryByHash", {}), _0x6bc13a(this, "geometryGroups", {}), _0x6bc13a(this, "sceneByGeometryHash", {}), _0x6bc13a(this, "materialNameByHash", {}), _0x6bc13a(this, "characterDataCompleted", false), _0x5d51b2.a.MAX_BONES = 64, this.app = _0x287d16, this.app.resources.manager.onLoadComplete.connect(() => {
-        const _0x1661a7 = _0x449497;
         this.refresh();
       }), window.geometryGroups = this.geometryGroups, window.geometries = this.geometries;
     }
     ["init"]() {
-      const _0x2a89f3 = _0x3d2178;
       this.refresh();
     }
     ["completeCharData"]() {
-      const _0x5e3879 = _0x3d2178,
-        _0x1ca98b = this.app.data.getAvailableCharacters();
+      const _0x1ca98b = this.app.data.getAvailableCharacters();
       if (_0x1ca98b && !this.characterDataCompleted) {
         this.characterDataCompleted = true;
         for (let _0x55917c = 0; _0x55917c < _0x1ca98b.length; _0x55917c++) {
@@ -8167,11 +7406,9 @@
       }
     }
     get ['cache']() {
-      const _0x55f1d4 = _0x3d2178;
       return this.app.resources.cache;
     }
     ['refresh']() {
-      const _0x4c5853 = _0x3d2178;
       this.completeCharData();
       for (const _0x2545b5 in this.cache) {
         const _0x42eba9 = _0x2545b5.split('?').shift() || _0x2545b5;
@@ -8181,7 +7418,6 @@
           const _0x9ba5b6 = this.cache[_0x2545b5].gbObject,
             _0x5415f2 = "___";
           _0x9ba5b6.materials.forEach(_0x49e37a => {
-            const _0x4ae1b3 = _0x4c5853;
             if (_0x49e37a.name.includes(_0x5415f2)) {
               const [_0x2de172, _0x1d02c9] = _0x49e37a.name.split(_0x5415f2);
               this.materialNameByHash[_0x2de172] = _0x1d02c9.toLowerCase();
@@ -8205,24 +7441,158 @@
         }
       }
       var _0x21c244;
+      this.ensureHalfWagonModels && this.ensureHalfWagonModels();
+    }
+    ["ensureHalfWagonModels"]() {
+      try {
+        if (this.geometryGroups["train_halfwagon01"]) return;
+        const candidates = ["train_standardwagon01", "train_subwagon01", "train_cargo", "train_standard"];
+        const srcGroup = candidates.find(k => this.geometryGroups[k] && this.geometryGroups[k].length);
+        if (!srcGroup) return;
+        const srcHashes = this.geometryGroups[srcGroup];
+        let minZ = Infinity, maxZ = -Infinity, bodyMinX = Infinity, bodyMaxX = -Infinity, bodyMinY = Infinity, bodyMaxY = -Infinity;
+        let refBase = null;
+        const parts = [];
+        for (let hi = 0; hi < srcHashes.length; hi++) {
+          const hash = srcHashes[hi];
+          const geom = this.geometryByHash[hash];
+          if (!geom || typeof geom.castToBaseGeometry !== "function") continue;
+          const base = geom.castToBaseGeometry();
+          const posB = base.getBuffer && base.getBuffer("aPosition");
+          const normB = base.getBuffer && base.getBuffer("aNormal");
+          const uvB = base.getBuffer && base.getBuffer("aUv");
+          const idxB = base.getIndex && base.getIndex();
+          if (!posB || !posB.data || !idxB || !idxB.data) continue;
+          refBase = refBase || base;
+          const start = typeof geom.start === "number" ? geom.start : 0;
+          const count = typeof geom.size === "number" ? geom.size : idxB.data.length;
+          const indices = idxB.data.subarray(start, start + count);
+          const pos = posB.data;
+          const norm = normB && normB.data ? normB.data : null;
+          const uv = uvB && uvB.data ? uvB.data : null;
+          const baseName = String(hash.split(" + ").shift());
+          const matName = this.materialNameByHash[baseName] || "";
+          const isShadow = matName.includes("shadow") || baseName.includes("shadow");
+          for (let k = 0; k < indices.length; k++) {
+            const vi = indices[k];
+            const px = pos[vi * 3], py = pos[vi * 3 + 1], pz = pos[vi * 3 + 2];
+            if (pz < minZ) minZ = pz;
+            if (pz > maxZ) maxZ = pz;
+            if (!isShadow) {
+              if (px < bodyMinX) bodyMinX = px;
+              if (px > bodyMaxX) bodyMaxX = px;
+              if (py < bodyMinY) bodyMinY = py;
+              if (py > bodyMaxY) bodyMaxY = py;
+            }
+          }
+          parts.push({ hash, base, baseName, matName, isShadow, pos, norm, uv, indices });
+        }
+        if (!parts.length || !refBase || !isFinite(minZ) || maxZ - minZ < 10) return;
+        const cutZ = (minZ + maxZ) * 0.5;
+        const zShift = -(cutZ + maxZ) * 0.5;
+        const halfDepth = maxZ - cutZ;
+        const GeomCls = refBase.constructor;
+        const BufCls = refBase.getBuffer("aPosition").constructor;
+        const BoxCls = refBase.boundingBox && refBase.boundingBox.constructor;
+        const VecCls = refBase.boundingBox && refBase.boundingBox.min && refBase.boundingBox.min.constructor;
+        const SphereCls = refBase.boundingSphere && refBase.boundingSphere.constructor;
+        const lerpVtx = (a, b, zPlane) => {
+          const dz = b.z - a.z;
+          const t = Math.abs(dz) < 1e-6 ? 0.5 : Math.max(0, Math.min(1, (zPlane - a.z) / dz));
+          let nx = a.nx + (b.nx - a.nx) * t, ny = a.ny + (b.ny - a.ny) * t, nz = a.nz + (b.nz - a.nz) * t;
+          const nl = Math.hypot(nx, ny, nz) || 1;
+          return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: zPlane, nx: nx / nl, ny: ny / nl, nz: nz / nl, u: a.u + (b.u - a.u) * t, v: a.v + (b.v - a.v) * t };
+        };
+        const outHashes = [];
+        let capAdded = false;
+        for (let pi = 0; pi < parts.length; pi++) {
+          const p = parts[pi];
+          const outPos = [], outNorm = [], outUv = [], outIdx = [];
+          const pushVtx = (v) => {
+            const idx = outPos.length / 3;
+            outPos.push(v.x, v.y, v.z + zShift);
+            outNorm.push(v.nx, v.ny, v.nz);
+            outUv.push(v.u, v.v);
+            return idx;
+          };
+          const readV = (vi) => ({
+            x: p.pos[vi * 3], y: p.pos[vi * 3 + 1], z: p.pos[vi * 3 + 2],
+            nx: p.norm ? p.norm[vi * 3] : 0, ny: p.norm ? p.norm[vi * 3 + 1] : 1, nz: p.norm ? p.norm[vi * 3 + 2] : 0,
+            u: p.uv ? p.uv[vi * 2] : 0.05, v: p.uv ? p.uv[vi * 2 + 1] : 0.05
+          });
+          for (let i = 0; i + 2 < p.indices.length; i += 3) {
+            const poly = [readV(p.indices[i]), readV(p.indices[i + 1]), readV(p.indices[i + 2])];
+            const clipped = [];
+            for (let e = 0; e < 3; e++) {
+              const cur = poly[e], nxt = poly[(e + 1) % 3];
+              const curIn = cur.z >= cutZ - 1e-4, nxtIn = nxt.z >= cutZ - 1e-4;
+              if (curIn && nxtIn) clipped.push(nxt);
+              else if (curIn && !nxtIn) clipped.push(lerpVtx(cur, nxt, cutZ));
+              else if (!curIn && nxtIn) { clipped.push(lerpVtx(cur, nxt, cutZ)); clipped.push(nxt); }
+            }
+            if (clipped.length >= 3) {
+              const i0 = pushVtx(clipped[0]);
+              for (let k = 1; k + 1 < clipped.length; k++) {
+                outIdx.push(i0, pushVtx(clipped[k]), pushVtx(clipped[k + 1]));
+              }
+            }
+          }
+          if (!p.isShadow && !capAdded && isFinite(bodyMinX) && isFinite(bodyMinY)) {
+            capAdded = true;
+            const x0 = Math.max(-8.7, bodyMinX * 0.94), x1 = Math.min(8.7, bodyMaxX * 0.94);
+            const y0 = bodyMinY + 1.0, y1 = bodyMaxY - 0.3;
+            if (x1 > x0 + 2 && y1 > y0 + 2) {
+              const addCapQuad = (ax0, ay0, ax1, ay1, az, uvX, uvY) => {
+                const a = pushVtx({ x: ax0, y: ay0, z: az, nx: 0, ny: 0, nz: -1, u: uvX, v: uvY });
+                const b = pushVtx({ x: ax0, y: ay1, z: az, nx: 0, ny: 0, nz: -1, u: uvX, v: uvY });
+                const c = pushVtx({ x: ax1, y: ay1, z: az, nx: 0, ny: 0, nz: -1, u: uvX, v: uvY });
+                const d = pushVtx({ x: ax1, y: ay0, z: az, nx: 0, ny: 0, nz: -1, u: uvX, v: uvY });
+                outIdx.push(a, b, c, a, c, d);
+              };
+              addCapQuad(x0, y0, x1, y1, cutZ, 0.02, 0.02);
+              addCapQuad(x0 + 1.1, y0 + 1.6, x1 - 1.1, y1 - 1.2, cutZ - 0.08, 0.04, 0.04);
+            }
+          }
+          if (!outIdx.length) continue;
+          const newGeom = new GeomCls();
+          newGeom.addAttribute("aPosition", new BufCls(new Float32Array(outPos)), 3);
+          newGeom.addAttribute("aNormal", new BufCls(new Float32Array(outNorm)), 3);
+          newGeom.addAttribute("aUv", new BufCls(new Float32Array(outUv)), 2);
+          newGeom.addIndex(new BufCls(new Uint16Array(outIdx)));
+          if (BoxCls && VecCls) {
+            newGeom.boundingBox = new BoxCls(
+              new VecCls(isFinite(bodyMinX) ? bodyMinX : -9, isFinite(bodyMinY) ? bodyMinY : 0, -halfDepth * 0.5),
+              new VecCls(isFinite(bodyMaxX) ? bodyMaxX : 9, isFinite(bodyMaxY) ? bodyMaxY : 29, halfDepth * 0.5)
+            );
+            if (SphereCls) newGeom.boundingSphere = newGeom.boundingBox.getBoundingSphere(new SphereCls());
+          }
+          const subBase = p.baseName + "_half";
+          if (p.matName && !this.materialNameByHash[subBase]) this.materialNameByHash[subBase] = p.matName;
+          const newHash = subBase + " + " + (pi || "");
+          this.geometryByHash[newHash] = newGeom;
+          outHashes.push(newHash);
+        }
+        if (outHashes.length) {
+          this.geometryGroups["train_halfwagon01"] = outHashes;
+          this.geometries["train_halfwagon01"] = this.geometryByHash[outHashes[0]];
+          this.geometrySceneNames["train_halfwagon01"] = this.geometrySceneNames[srcGroup];
+          window.__halfWagonReady = true;
+        }
+      } catch (e) {}
     }
     ["whichEntity"]() {
-      const _0x532316 = _0x3d2178;
       for (var _0x233546 = arguments.length, _0x5a8760 = new Array(_0x233546), _0x3001b3 = 0; _0x3001b3 < _0x233546; _0x3001b3++) _0x5a8760[_0x3001b3] = arguments[_0x3001b3];
       for (const _0x1df0a0 in _0x5a8760) if (this.geometries[_0x5a8760[_0x1df0a0]]) return _0x5a8760[_0x1df0a0];
       return null;
     }
     ["hasScene"](_0x5a654d) {
-      const _0x4f7925 = _0x3d2178;
       return !!this.scenes[_0x5a654d];
     }
     ['getScene'](_0x3d7ddd, _0x150155) {
-      const _0x4ba8a9 = _0x3d2178;
       void 0 === _0x150155 && (_0x150155 = {}), _0x150155.map || (_0x150155.map = _0x29ff15[_0x3d7ddd]);
       const _0x5c57c9 = this.scenes[_0x3d7ddd].getScene();
       return function _0x2a8946(_0x4aa00b, _0x401ca9) {
-        const _0xee11cb = _0x4ba8a9,
-          _0x55480c = _0x202f8d.a,
+        const _0x55480c = _0x202f8d.a,
           _0x1fdc25 = new _0x55480c({
             diffuseMap: _0x401ca9,
             color: 16777215
@@ -8245,7 +7615,6 @@
       }(_0x5c57c9, _0x150155.map instanceof _0x2a24d4.Texture ? _0x150155.map : this.maps[_0x150155.map]), _0x5c57c9;
     }
     ['getEntity'](_0x502888, _0x5b566e) {
-      const _0x1292f7 = _0x3d2178;
       let _0x182d15;
       return void 0 === _0x5b566e && (_0x5b566e = {}), this.geometryGroups[_0x502888] || ("epic_mid" === _0x502888 && (_0x502888 = "epic_start"), "epic_end" === _0x502888 && (_0x502888 = "epic_start")), _0x182d15 = 1 === this.geometryGroups[_0x502888].length ? this.getEntityFromGeometry(_0x502888, this.geometryGroups[_0x502888][0], _0x5b566e) : this.mountEntity(new _0x18a9c6.a(), _0x502888, _0x5b566e), _0x182d15.groupName = _0x502888, _0x182d15;
     }
@@ -8254,14 +7623,12 @@
         if (this.hasGroup(_0x5729af)) _0x4744fa(this.getEntity(_0x5729af, _0x122880));else {
           let _0x6a5e81 = 0;
           const _0x4d9c05 = setInterval(() => {
-            const _0x3babe8 = _0x6ca5aa;
             this.hasGroup(_0x5729af) && (clearInterval(_0x4d9c05), _0x4744fa(this.getEntity(_0x5729af, _0x122880))), _0x6a5e81++;
           }, 300);
         }
       });
     }
     ["mountEntity"](_0x3d00bf, _0x5d9ab7, _0x43f92d) {
-      const _0x5b3dbc = _0x3d2178;
       void 0 === _0x43f92d && (_0x43f92d = {});
       const _0x2769ad = this.geometryGroups[_0x5d9ab7];
       for (const _0x195217 in _0x2769ad) {
@@ -8271,7 +7638,6 @@
       return _0x3d00bf;
     }
     ["getEntityFromGeometry"](_0x477319, _0x4d1eec, _0x25cfb3) {
-      const _0x11beb2 = _0x3d2178;
       var _0x1d2ca5, _0x53de9c;
       void 0 === _0x25cfb3 && (_0x25cfb3 = {}), _0x25cfb3 = Object.assign({}, _0x25cfb3);
       const _0x4d7ba5 = this.geometryByHash[_0x4d1eec],
@@ -8312,39 +7678,31 @@
       return null === _0xb40e55.a || void 0 === _0xb40e55.a || null === (_0x53de9c = _0xb40e55.a.handleThemeMaterial) || void 0 === _0x53de9c || _0x53de9c.call(_0xb40e55.a, _0x280cf5, _0x2cdce5, _0x17dac2), _0x280cf5.materialName = _0x17dac2, _0x280cf5;
     }
     ["getMap"](_0x196315) {
-      const _0x311fda = _0x3d2178;
       if (!this.maps[_0x196315]) throw new Error("[Library] Map does not exist: " + _0x196315);
       return this.maps[_0x196315];
     }
     ["hasGeometry"](_0x20ffc2) {
-      const _0x45469e = _0x3d2178;
       return !!this.geometries[_0x20ffc2];
     }
     ['hasGroup'](_0x14c261) {
-      const _0x3b1bde = _0x3d2178;
       return !!this.geometryGroups[_0x14c261];
     }
     ["hasMap"](_0x254c4e) {
-      const _0x29abfd = _0x3d2178;
       return !!this.maps[_0x254c4e];
     }
     ["hasResourcesForBasicGameplay"]() {
-      const _0x2f248e = _0x3d2178;
       return !!this.scenes["environment-basic"];
     }
     ["hasResourcesForFullGameplay"]() {
-      const _0x106755 = _0x3d2178;
       return !!this.scenes["environment-full"];
     }
   }
   function _0x562389(_0x284bc1) {
-    const _0x1df004 = _0x3d2178;
     var _0x477dc0;
     return null === (_0x477dc0 = _0x284bc1.split('/').pop()) || void 0 === _0x477dc0 ? void 0 : _0x477dc0.replace(".png", '').replace(".jpg", '');
   }
   var _0x521d49 = _0x388199(120);
   function _0x88fdb1(_0x424fd6, _0x4af09a, _0x114a9a) {
-    const _0x5c6221 = _0x3d2178;
     return (_0x4af09a = function (_0x131491) {
       var _0x432294 = function (_0x1e6fc9, _0x5a3e37) {
         if ("object" != typeof _0x1e6fc9 || null === _0x1e6fc9) return _0x1e6fc9;
@@ -8366,36 +7724,28 @@
   }
   class _0xf1bcdb {
     constructor() {
-      const _0x5f0cec = _0x3d2178;
       _0x88fdb1(this, 'opened', void 0), _0x88fdb1(this, "firstRun", true), _0x88fdb1(this, "onGameplayStart", new _0x3eb645.Signal()), _0x88fdb1(this, "onGameplayFinish", new _0x3eb645.Signal()), _0x88fdb1(this, "runGame", () => {
-        const _0x2e0a8a = _0x5f0cec;
         this.onGameplayStart.dispatch(), _0x483390.resources.manager.onLoadComplete.disconnect(this.runGame), _0x483390.game.onGameover.add(this), _0x483390.game.runWithIntro();
       });
     }
     ["resetUi"]() {
-      const _0x2ae3d3 = _0x3d2178;
       var _0x548046;
       _0x483390.show(), _0x483390.prizeScreen.close(), _0x483390.saveme.close(), _0x483390.gameover.close(), _0x483390.notEnoughCurrency.close(), _0x483390.buyBoards.close(), null === (_0x548046 = this.opened) || void 0 === _0x548046 || _0x548046.close();
     }
     async ["toIdleScreen"](_0x4a4ce2, _0x44b54b, _0x4c29f3) {
-      const _0x287b0a = _0x3d2178;
       void 0 === _0x44b54b && (_0x44b54b = {}), this.resetUi(), this.idleGame(), await (null == _0x4c29f3 ? void 0 : _0x4c29f3());
       const _0x3a8fa8 = _0x483390[_0x4a4ce2];
       _0x3a8fa8.open(_0x44b54b), this.opened = _0x3a8fa8;
     }
     ["idleGame"]() {
-      const _0x528485 = _0x3d2178;
       _0x483390.game.idle(), _0x483390.game.onGameover.remove(this);
     }
     async ["toMePanel"]() {
-      const _0x461d9d = _0x3d2178;
       this.toIdleScreen("mePanel", {}, async () => {
-        const _0x580107 = _0x461d9d;
         _0x483390.showLoadingMessage(), await _0x483390.loader.loadAllIdleCharacters(), _0x483390.hideLoadingMessage();
       });
     }
     ["toTitleScreen"]() {
-      const _0x1878b4 = _0x3d2178;
       this.toIdleScreen("title");
     }
     ["testPrizeScreen"]() {
@@ -8418,15 +7768,12 @@
       }, 1000);
     }
     async ['toAwards']() {
-      const _0x3a20c0 = _0x3d2178;
       this.resetUi(), this.idleGame(), _0x483390.showLoadingMessage(), await _0x483390.loader.loadAllIdleCharacters(), _0x483390.hideLoadingMessage(), _0x483390.mePanel.open(), _0x483390.mePanel.setSection("awards"), this.opened = _0x483390.mePanel;
     }
     async ["toGame"]() {
-      const _0x162fa3 = _0x3d2178;
       this.resetUi(), _0x483390.showLoadingMessage(), await _0x483390.loader.loadSelectedFullCharacter(), _0x483390.hideLoadingMessage(), this.firstRun || (await _0x5aae70.a.SDK.commercialBreak(true)), _0x483390.resources.manager.areManifestsLoaded(["game-basic"]) ? this.runGame() : _0x483390.resources.loading ? _0x483390.resources.manager.onLoadComplete.connect(this.runGame) : this.runGame(), this.firstRun = false;
     }
     ["toPrizeScreen"](_0x1cdee0) {
-      const _0x452e57 = _0x3d2178;
       void 0 === _0x1cdee0 && (_0x1cdee0 = "mystery-box");
       const _0x4380be = Object(_0x521d49.a)(_0x1cdee0);
       _0x483390.prizeScreen.open({
@@ -8434,42 +7781,35 @@
       });
     }
     async ["toGameover"](_0x97dd32) {
-      const _0x1b00e4 = _0x3d2178;
       void 0 === _0x97dd32 && (_0x97dd32 = false), this.resetUi(), _0x483390.game.onGameover.remove(this), this.onGameplayFinish.dispatch(), _0x483390.game.stats.score > _0x483390.user.highscore || _0x97dd32 ? (_0x483390.highScoreScreen.open(), _0x483390.highScoreScreen.onExit.addOnce(() => _0x483390.gameover.open())) : _0x483390.gameover.open();
     }
     async ['gameover']() {
-      const _0x11449c = _0x3d2178;
       await Object(_0x2341a8.a)(0.75), _0x483390.saveme.open();
     }
   }
   var _0x399e7a = _0x388199(60);
   function _0x4bf718(_0x162e03, _0x2d7fa1) {
-    const _0xfb108c = _0x3d2178;
     var _0xc94832 = Object.keys(_0x162e03);
     if (Object.getOwnPropertySymbols) {
       var _0x4c4dec = Object.getOwnPropertySymbols(_0x162e03);
       _0x2d7fa1 && (_0x4c4dec = _0x4c4dec.filter(function (_0x1eed9d) {
-        const _0x5ad004 = _0xfb108c;
         return Object.getOwnPropertyDescriptor(_0x162e03, _0x1eed9d).enumerable;
       })), _0xc94832.push.apply(_0xc94832, _0x4c4dec);
     }
     return _0xc94832;
   }
   function _0x328ba1(_0x5a7e7c) {
-    const _0x464b83 = _0x3d2178;
     for (var _0x2a3284 = 1; _0x2a3284 < arguments.length; _0x2a3284++) {
       var _0x3f3b24 = null != arguments[_0x2a3284] ? arguments[_0x2a3284] : {};
       _0x2a3284 % 2 ? _0x4bf718(Object(_0x3f3b24), true).forEach(function (_0x266c3f) {
         _0x2db75e(_0x5a7e7c, _0x266c3f, _0x3f3b24[_0x266c3f]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x5a7e7c, Object.getOwnPropertyDescriptors(_0x3f3b24)) : _0x4bf718(Object(_0x3f3b24)).forEach(function (_0x1aa1f5) {
-        const _0x1ac88e = _0x464b83;
         Object.defineProperty(_0x5a7e7c, _0x1aa1f5, Object.getOwnPropertyDescriptor(_0x3f3b24, _0x1aa1f5));
       });
     }
     return _0x5a7e7c;
   }
   function _0x2db75e(_0x59b04a, _0xc931e0, _0x3ae046) {
-    const _0x433417 = _0x3d2178;
     return (_0xc931e0 = function (_0x70af15) {
       var _0x5a8f31 = function (_0x4353af, _0x3a6819) {
         if ("object" != typeof _0x4353af || null === _0x4353af) return _0x4353af;
@@ -8491,12 +7831,10 @@
   }
   class _0x34b633 {
     constructor(_0x26644b) {
-      const _0xaf8498 = _0x3d2178;
       _0x2db75e(this, "app", void 0), _0x2db75e(this, "ready", true), _0x2db75e(this, "items", void 0), _0x2db75e(this, "_volume", 1), _0x2db75e(this, "_musicPlaying", ''), _0x2db75e(this, "onMutedChange", void 0), this.app = _0x26644b, this.onMutedChange = new _0x3eb645.Signal(), this.items = {}, this.init();
     }
     async ["init"]() {
-      const _0x1ff4e3 = _0x3d2178,
-        _0xa60bcb = await _0x17169c();
+      const _0xa60bcb = await _0x17169c();
       for (const _0x53b877 in _0xa60bcb) {
         const _0x5a64ad = _0xa60bcb[_0x53b877].audio;
         for (const _0x362d9a in _0x5a64ad) {
@@ -8513,10 +7851,8 @@
         }
       }
       this.muted = this.app.user.muted, this.app.visibility.onVisibilityChange.connect(this.onVisibilityChange.bind(this)), _0x5aae70.a.SDK.onBreakStart.add(() => {
-        const _0x203482 = _0x1ff4e3;
         this.volume(0);
       }), _0x5aae70.a.SDK.onBreakComplete.add(() => {
-        const _0x5daa20 = _0x1ff4e3;
         this.volume(_0x52c5e0.a.volume);
       });
     }
@@ -8524,8 +7860,7 @@
       _0x399e7a.a.systemMuted = !_0x4235fe;
     }
     ["ensureRegister"](_0xe9f782) {
-      const _0x216739 = _0x3d2178,
-        _0x43532d = this.items[_0xe9f782];
+      const _0x43532d = this.items[_0xe9f782];
       if (!_0x43532d) throw new Error("[Sound] Sound item not found: " + _0xe9f782);
       _0x43532d.registered || (_0x43532d.registered = true, _0x399e7a.a.registerSound({
         id: _0xe9f782,
@@ -8537,65 +7872,51 @@
       }));
     }
     ['loadGroup'](_0x4603c8) {
-      const _0x349cbd = _0x3d2178;
       void 0 === _0x4603c8 && (_0x4603c8 = '');
       for (const _0x406ac7 in this.items) {
         this.items[_0x406ac7].group === _0x4603c8 && this.ensureRegister(_0x406ac7);
       }
     }
     ["volume"](_0x544553) {
-      const _0x1512b7 = _0x3d2178;
       return this._volume = _0x544553, _0x399e7a.a.volume = this._volume, _0x544553;
     }
     ["play"](_0x13f296, _0x1f2b89) {
-      const _0x5597ee = _0x3d2178;
       return !this.ready || this.muted ? null : (this.ensureRegister(_0x13f296), _0x399e7a.a.playSfx(_0x13f296, _0x1f2b89));
     }
     ['stop'](_0x8d0f8) {
-      const _0x232aa9 = _0x3d2178;
       if (_0x8d0f8) {
         if (!this.items[_0x8d0f8].registered) return;
         _0x399e7a.a.sfxChannel.forEach(_0x537a32 => {
-          const _0x43cadf = _0x232aa9;
           _0x537a32.id === _0x8d0f8 && _0x537a32.stop();
         });
       } else _0x399e7a.a.sfxChannel.stop();
     }
     ["playMusic"](_0x51d432, _0x3d1a33) {
-      const _0x54baf6 = _0x3d2178;
       return !this.ready || this._musicPlaying ? null : (this.ensureRegister(_0x51d432), this._musicPlaying = _0x51d432, _0x399e7a.a.playMusic(_0x51d432, _0x3d1a33));
     }
     ['stopMusic']() {
-      const _0x198026 = _0x3d2178;
       this._musicPlaying = '', _0x399e7a.a.musicChannel.stop();
     }
     get ["muted"]() {
-      const _0x18a016 = _0x3d2178;
       return !!_0x399e7a.a.muted;
     }
     set ["muted"](_0x33e366) {
-      const _0x5da513 = _0x3d2178;
       _0x399e7a.a.muted = _0x33e366, _0x399e7a.a.volume = _0x33e366 ? 0 : this._volume, this.app.user.muted = _0x33e366, this.app.user.save(), this.onMutedChange.dispatch(_0x33e366);
     }
     ["toggleMuted"]() {
-      const _0x302497 = _0x3d2178;
       this.muted = !this.muted;
     }
     ['stopAllFx']() {
-      const _0x5423f2 = _0x3d2178;
       _0x399e7a.a.sfxChannel.stop();
     }
     async ["musicFadeOut"](_0x2ae03f) {
-      const _0x39c281 = _0x3d2178;
       _0x399e7a.a.musicChannel.fadeTo(0, 0.5), _0x2ae03f && (await Object(_0x2341a8.a)(_0x2ae03f), _0x399e7a.a.musicChannel.fadeTo(1, 0.5));
     }
     ["musicFadeIn"]() {
-      const _0x126fff = _0x3d2178;
       _0x399e7a.a.musicChannel.fadeTo(1, 1);
     }
   }
   function _0x544a1f(_0x751dbd, _0x5153db, _0xaecfcc) {
-    const _0x50a722 = _0x3d2178;
     return (_0x5153db = function (_0x2a04eb) {
       var _0x370551 = function (_0x1924f5, _0x36b11d) {
         if ("object" != typeof _0x1924f5 || null === _0x1924f5) return _0x1924f5;
@@ -8617,7 +7938,6 @@
   }
   class _0x455cb1 {
     constructor(_0x5042ff) {
-      const _0x4b9417 = _0x3d2178;
       if (_0x544a1f(this, "saved", {}), _0x544a1f(this, "onChange", new _0x3eb645.Signal()), _0x544a1f(this, 'storage', void 0), _0x544a1f(this, "key", void 0), this.key = _0x5042ff, "DeepStore" === this.constructor.name) throw new Error("This class is made to be extended, should work only as subclass.");
       _0x2eecb3.a.isLocalStorageAllowed ? this.storage = window.localStorage : _0x2eecb3.a.isSessionStorageAllowed ? this.storage = window.sessionStorage : this.storage = new _0x2eeb6f(this.key, 30), Object.defineProperty(this, "key", {
         enumerable: false
@@ -8630,7 +7950,6 @@
       });
     }
     ["save"]() {
-      const _0x255f80 = _0x3d2178;
       if (!this.key) throw new Error("[Store] Save failed: invalid key");
       const _0x1a0170 = this.getData();
       if (_0x227cc2(_0x15700d(this.saved, _0x1a0170))) return;
@@ -8638,7 +7957,6 @@
       this.storage.setItem(this.key, _0x6c15c9), this.saved = _0x1a0170, this.onChange.dispatch();
     }
     ['load']() {
-      const _0x1517dc = _0x3d2178;
       if (!this.key) throw new Error("[Store] Load failed: invalid key");
       const _0x26cd25 = this.storage.getItem(this.key);
       let _0x528c76 = {};
@@ -8648,8 +7966,7 @@
       _0x528c76 = this.cleanSavedData(_0x528c76), Object.assign(this, _0x528c76), this.saved = _0x528c76;
     }
     ["cleanSavedData"](_0x115223) {
-      const _0x216f69 = _0x3d2178,
-        _0x15638a = _0x5cd462(this),
+      const _0x15638a = _0x5cd462(this),
         _0x19bd4d = _0x5cd462(_0x115223);
       for (const _0x8c4411 in _0x19bd4d) {
         const _0x511498 = _0x8c4411.split('.').pop();
@@ -8671,8 +7988,7 @@
         _0x56f001 || (_0x19bd4d[_0x26fae9] = _0x15638a[_0x26fae9]);
       }
       return function (_0x2ce092) {
-        const _0x2fd5db = _0x216f69,
-          _0x3e087b = {};
+        const _0x3e087b = {};
         for (const _0x3c4f9b in _0x2ce092) {
           const _0xe46f97 = _0x3c4f9b.split('.');
           let _0x1e46ee = _0x3e087b;
@@ -8685,12 +8001,10 @@
       }(_0x19bd4d);
     }
     ['getData']() {
-      const _0x2f96ad = _0x3d2178;
       return JSON.parse(JSON.stringify(this));
     }
   }
   function _0x34dbf0(_0x2ee686, _0x39d788, _0x1ff0b8) {
-    const _0x1e78da = _0x3d2178;
     return (_0x39d788 = function (_0x328bdc) {
       var _0x3233c0 = function (_0x12a403, _0xef2b12) {
         if ('object' != typeof _0x12a403 || null === _0x12a403) return _0x12a403;
@@ -8712,12 +8026,10 @@
   }
   class _0x22a21a extends _0x455cb1 {
     constructor() {
-      const _0x2fc502 = _0x3d2178;
       super("BoardSettings"), _0x34dbf0(this, "name", "hoverboard"), _0x34dbf0(this, "powerups", [0]), this.load();
     }
   }
   function _0x10d4c7(_0x75f803, _0x3b1524, _0x1ace55) {
-    const _0x4a24ab = _0x3d2178;
     return (_0x3b1524 = function (_0x4b3edd) {
       var _0x177f38 = function (_0x147e64, _0x26df53) {
         if ("object" != typeof _0x147e64 || null === _0x147e64) return _0x147e64;
@@ -8739,14 +8051,12 @@
   }
   class _0x1595f1 extends _0x455cb1 {
     constructor() {
-      const _0x4df977 = _0x3d2178;
       super("CharacterSettings"), _0x10d4c7(this, 'name', 'jake'), _0x10d4c7(this, "outfit", 0), this.load();
     }
   }
   const _0x36f7c2 = ["angry", "amazing", "ultimate", 'mysterious', 'obscure', "fancy", "funky", 'skiing', 'falling', "super", "sling", 'rodeo', "crazy", 'rooftop', 'pointy', "rolling", "double", "virtual", "original", "total", "triple", 'happy', "jelly", "magic", "interactive", 'talking', "extreme", "grippy", "loopy", 'hidden', "smart", "pixel", "real", 'random', "charming", "epic", "fruity", 'sweet', "mini", 'giant', "tiny", "bubbly", "little"],
     _0x19052f = ["android", "boom", "beach", 'station', 'wolf', "glass", "banana", 'train', "road", 'snout', "ham", "bob", "kong", "town", 'subway', "iron", 'slime', 'king', "knight", "survival", "princess", "doctor", "hair", "zoi", "booze", "piano", "library", "party", "rogue", "chicken", 'horse', 'penguin', 'sloth', 'geometry', "burger", "cooking", "factory", "town", "cave", "pants", "judge", "shoe", "salon", "money", "candy", 'paint', 'stickman', "master", "cookie", 'story', "helix", 'piñata', 'dragon', "ball", "picnic", "bottle", "tower", "soda", 'bullet', "hero", "sky", 'guru', "news", "space", "fruit", "ninja", "samurai", "shock", "lightning", 'cowboy', 'water', "bubble", "palace", 'skate', "coffee", "freeze", "ice", "vanilla", 'summer', "business", "elevator", "guitar", "room", "plant", "tree", 'zombie', "pizza", "fire", "marble", "tunnel", 'fish', "snake", "desk", "phone"];
   function _0xdb6953(_0x53eefb, _0x170188, _0x59933e) {
-    const _0x95d0c9 = _0x3d2178;
     return (_0x170188 = function (_0x533f59) {
       var _0x31e0cf = function (_0x22f143, _0xb9baa2) {
         if ("object" != typeof _0x22f143 || null === _0x22f143) return _0x22f143;
@@ -8768,14 +8078,11 @@
   }
   class _0x5b8370 extends _0x455cb1 {
     constructor() {
-      const _0x1cf592 = _0x3d2178;
       super("GameSettings"), _0xdb6953(this, 'name', class _0x30a98b {
         static ["generateName"]() {
-          const _0x36b8ad = _0x1cf592;
           return this.randomPick(..._0x36f7c2) + this.randomPick(..._0x19052f);
         }
         static ["randomPick"]() {
-          const _0x3af012 = _0x1cf592;
           for (var _0x160b7c = arguments.length, _0x1263dc = new Array(_0x160b7c), _0x55e687 = 0; _0x55e687 < _0x160b7c; _0x55e687++) _0x1263dc[_0x55e687] = arguments[_0x55e687];
           return (_0x1a65ac = _0x1263dc[Math.floor(Math.random() * _0x1263dc.length)]).charAt(0).toUpperCase() + _0x1a65ac.slice(1);
           var _0x1a65ac;
@@ -8791,7 +8098,6 @@
     }
   }
   function _0x584bdb(_0xd33bc1, _0x5d7eb4, _0x5afdf9) {
-    const _0x441880 = _0x3d2178;
     return (_0x5d7eb4 = function (_0x590b72) {
       var _0x5aad3d = function (_0x30eec0, _0x54736f) {
         if ('object' != typeof _0x30eec0 || null === _0x30eec0) return _0x30eec0;
@@ -8813,7 +8119,6 @@
   }
   class _0x59d937 extends _0x455cb1 {
     constructor() {
-      const _0x678a66 = _0x3d2178;
       super("ShopSettings"), _0x584bdb(this, 'purchased', {
         characters: ["jake"],
         outfits: [],
@@ -8836,7 +8141,6 @@
     }
   }
   function _0x348b98(_0x3cfa41, _0x1cc9fe, _0x2bbb9e) {
-    const _0x5db6c9 = _0x3d2178;
     return (_0x1cc9fe = function (_0x181e86) {
       var _0x3228ad = function (_0x420fd8, _0x192a65) {
         if ('object' != typeof _0x420fd8 || null === _0x420fd8) return _0x420fd8;
@@ -8858,137 +8162,106 @@
   }
   class _0x49c27b {
     constructor() {
-      const _0x3cc012 = _0x3d2178;
       _0x348b98(this, "nameSetByUser", false), _0x348b98(this, "_score", 0), _0x348b98(this, 'avatar', 0), _0x348b98(this, "gameSettings", new _0x5b8370()), _0x348b98(this, "characterSettings", new _0x1595f1()), _0x348b98(this, "boardSettings", new _0x22a21a()), _0x348b98(this, "shopSettings", new _0x59d937()), _0x348b98(this, "onCoinsSpent", new _0x3eb645.Signal()), _0x52c5e0.a.reset && (this.gameSettings.storage.clear(), this.characterSettings.storage.clear(), this.shopSettings.storage.clear(), this.gameSettings = new _0x5b8370(), this.characterSettings = new _0x1595f1(), this.shopSettings = new _0x59d937()), (_0x52c5e0.a.modCoins || _0x52c5e0.a.gdAwardKeys) && (this.coins += Math.round(Number(_0x52c5e0.a.modCoins)), this.keys += Math.round(Number(_0x52c5e0.a.gdAwardKeys)), this.coins < 0 && (this.coins = 0), this.keys < 0 && (this.keys = 0), this.save());
     }
     ["save"]() {
-      const _0x31bf7c = _0x3d2178;
       this.gameSettings.save(), this.shopSettings.save(), this.characterSettings.save(), this.boardSettings.save();
     }
     get ["onGameSettingsChange"]() {
       return this.gameSettings.onChange;
     }
     get ["onCharacterSettingsChange"]() {
-      const _0x59375a = _0x3d2178;
       return this.characterSettings.onChange;
     }
     get ["character"]() {
-      const _0x53c176 = _0x3d2178;
       return this.characterSettings.name;
     }
     set ["character"](_0x3a5dcf) {
-      const _0x3ded13 = _0x3d2178;
       this.characterSettings.name = _0x3a5dcf;
     }
     get ['outfit']() {
-      const _0xecff85 = _0x3d2178;
       return this.characterSettings.outfit;
     }
     set ["outfit"](_0x25aa3b) {
-      const _0x4cc6d6 = _0x3d2178;
       this.characterSettings.outfit = _0x25aa3b;
     }
     get ['board']() {
-      const _0x3c1210 = _0x3d2178;
       return this.boardSettings.name;
     }
     set ['board'](_0x47db05) {
-      const _0x1b6d3b = _0x3d2178;
       this.boardSettings.name = _0x47db05;
     }
     get ["boardPowers"]() {
-      const _0x80e0b = _0x3d2178;
       return this.boardSettings.powerups;
     }
     set ["boardPowers"](_0x3d88b8) {
-      const _0x1d0d7d = _0x3d2178;
       this.boardSettings.powerups = _0x3d88b8;
     }
     get ["score"]() {
-      const _0x478b8a = _0x3d2178;
       return this._score;
     }
     set ['score'](_0x515a1f) {
-      const _0x3092c6 = _0x3d2178;
       _0x515a1f !== this._score && (this._score = _0x515a1f, _0x515a1f > this.gameSettings.highscore && (this.gameSettings.highscore = _0x515a1f));
     }
     get ["highscore"]() {
       return this.gameSettings.highscore;
     }
     set ['highscore'](_0x525a21) {
-      const _0x5b18b5 = _0x3d2178;
       this.gameSettings.highscore = _0x525a21;
     }
     get ["name"]() {
-      const _0x5ec7fb = _0x3d2178;
       return this.gameSettings.name;
     }
     set ["name"](_0x156b8a) {
-      const _0x37a0e1 = _0x3d2178;
       this.gameSettings.name = _0x156b8a;
     }
     get ["muted"]() {
-      const _0x3b06e5 = _0x3d2178;
       return this.gameSettings.muted;
     }
     set ['muted'](_0x213777) {
       _0x213777 !== this.muted && (this.gameSettings.muted = _0x213777);
     }
     get ["tutorial"]() {
-      const _0x560fa2 = _0x3d2178;
       return this.gameSettings.tutorial;
     }
     set ['tutorial'](_0x55fa38) {
-      const _0x40814e = _0x3d2178;
       _0x55fa38 !== this.tutorial && (this.gameSettings.tutorial = _0x55fa38);
     }
     get ["coins"]() {
-      const _0x405fcf = _0x3d2178;
       return this.gameSettings.currencies.coins;
     }
     set ["coins"](_0x340c2e) {
-      const _0x473d02 = _0x3d2178,
-        _0x59dca3 = this.gameSettings.currencies.coins - _0x340c2e;
+      const _0x59dca3 = this.gameSettings.currencies.coins - _0x340c2e;
       _0x59dca3 > 0 && this.onCoinsSpent.dispatch(_0x59dca3), this.gameSettings.currencies.coins = _0x340c2e;
     }
     get ["keys"]() {
-      const _0x1388f7 = _0x3d2178;
       return this.gameSettings.currencies.keys;
     }
     set ["keys"](_0x11583e) {
-      const _0x39706c = _0x3d2178;
       this.gameSettings.currencies.keys = _0x11583e;
     }
     get ['boosts']() {
-      const _0x481a3f = _0x3d2178;
       return this.shopSettings.purchased.boosts;
     }
     set ["currentLetter"](_0x1e2dbc) {
-      const _0x5addad = _0x3d2178;
       this.gameSettings.wordHunt.currentLetter = _0x1e2dbc;
     }
     get ["currentLetter"]() {
-      const _0x28061e = _0x3d2178;
       return this.gameSettings.wordHunt.currentLetter;
     }
     set ["completedHunts"](_0x1949ec) {
-      const _0x432f32 = _0x3d2178;
       this.gameSettings.wordHunt.completed = _0x1949ec;
     }
     get ["completedHunts"]() {
-      const _0xe5b38d = _0x3d2178;
       return this.gameSettings.wordHunt.completed;
     }
     set ["huntWord"](_0x2520b8) {
-      const _0x58e74b = _0x3d2178;
       this.gameSettings.wordHunt.word = _0x2520b8;
     }
     get ['huntWord']() {
-      const _0x1a14db = _0x3d2178;
       return this.gameSettings.wordHunt.word;
     }
     get ["leaderboardEntry"]() {
-      const _0x2b04de = _0x3d2178;
       return {
         score: this.score,
         date: 0,
@@ -8999,7 +8272,6 @@
       };
     }
     ["progressMission"](_0x5e3c87, _0x2cc5fc, _0x3811d0) {
-      const _0x19a0d9 = _0x3d2178;
       let _0x9ab09b = this.gameSettings.missions[_0x3811d0];
       _0x9ab09b || (_0x9ab09b = [], this.gameSettings.missions[_0x3811d0] = _0x9ab09b);
       const _0x5437c7 = _0x9ab09b.find(_0x501366 => _0x501366.id === _0x5e3c87);
@@ -9009,7 +8281,6 @@
       }), this.save();
     }
     ["openMysteryBox"](_0x2164e8) {
-      const _0x20d0cf = _0x3d2178;
       let {
         type: _0x590e1e,
         amount: _0x46a716
@@ -9029,7 +8300,6 @@
     }
   }
   function _0x59d60d(_0x569a56, _0x38af4d, _0x2a876e) {
-    const _0x1977d2 = _0x3d2178;
     return (_0x38af4d = function (_0x201031) {
       var _0x24b9be = function (_0x56d7e8, _0x25d334) {
         if ("object" != typeof _0x56d7e8 || null === _0x56d7e8) return _0x56d7e8;
@@ -9052,11 +8322,9 @@
   _0x2a24d4.settings.PRECISION_VERTEX = _0x52c5e0.a.vertp || _0x2a24d4.PRECISION.HIGH, _0x2a24d4.settings.PRECISION_FRAGMENT = _0x52c5e0.a.fragp || _0x2a24d4.PRECISION.LOW;
   class _0xb19647 extends _0x37f0ce.a {
     constructor() {
-      const _0x4f030e = _0x3d2178;
       super(...arguments), _0x59d60d(this, "extensions", []), _0x59d60d(this, "stage", void 0), _0x59d60d(this, 'resources', void 0), _0x59d60d(this, "i18n", void 0), _0x59d60d(this, "visibility", void 0), _0x59d60d(this, "resize", void 0), _0x59d60d(this, "nav", void 0), _0x59d60d(this, "library", void 0), _0x59d60d(this, "sound", void 0), _0x59d60d(this, "game", void 0), _0x59d60d(this, 'ui', void 0), _0x59d60d(this, "user", void 0), _0x59d60d(this, "gameover", void 0), _0x59d60d(this, "title", void 0), _0x59d60d(this, 'viewer', void 0), _0x59d60d(this, "saveme", void 0), _0x59d60d(this, "topRun", void 0), _0x59d60d(this, "boostShop", void 0), _0x59d60d(this, "mePanel", void 0), _0x59d60d(this, "myTourPanel", void 0), _0x59d60d(this, "settings", void 0), _0x59d60d(this, "loader", void 0), _0x59d60d(this, "extras", void 0), _0x59d60d(this, "data", void 0), _0x59d60d(this, 'shop', void 0), _0x59d60d(this, "notEnoughCurrency", void 0), _0x59d60d(this, "buyBoards", void 0), _0x59d60d(this, "prizesPanel", void 0), _0x59d60d(this, "prizeScreen", void 0), _0x59d60d(this, "ageGatePanel", void 0), _0x59d60d(this, "consentPanel", void 0), _0x59d60d(this, "boostPanel", void 0), _0x59d60d(this, "screenBlocker", void 0), _0x59d60d(this, "notification", void 0), _0x59d60d(this, "awards", void 0), _0x59d60d(this, "highScoreScreen", void 0), _0x59d60d(this, "message", void 0);
     }
     async ["run"]() {
-      const _0x355a48 = _0x3d2178;
       _0x2a24d4.Ticker.system.maxFPS = _0x52c5e0.a.fps, _0x2a24d4.utils.isWebGLSupported() ? (this.user = this.addExtension(new _0x49c27b()), this.data = this.addExtension(new _0x2c62bd()), this.stage = this.add(_0x2e9427.a, {
         backgroundColor: 0,
         width: window.innerWidth,
@@ -9078,48 +8346,39 @@
       })), this.addBackground(), this.ui = this.addExtension(new _0x5cef19()), this.nav = this.addExtension(new _0xf1bcdb()), this.library = this.addExtension(new _0x5ef4ba(this)), this.sound = this.addExtension(new _0x34b633(this)), this.title = this.addExtension(new _0x48cbc3()), this.gameover = this.addExtension(new _0x3276fa()), this.saveme = this.addExtension(new _0x1991ee()), this.topRun = this.addExtension(new _0x34cb7c()), this.mePanel = this.addExtension(new _0x1c917e()), this.myTourPanel = this.addExtension(new _0x4c80e0()), this.loader = this.addExtension(new _0xc180cf(this)), this.boostShop = this.addExtension(new _0x5dcfb6()), this.settings = this.addExtension(new _0x2929ad()), this.shop = this.addExtension(new _0x4bcea8()), this.notEnoughCurrency = this.addExtension(new _0x327b4a()), this.buyBoards = this.addExtension(new _0x456345()), this.prizesPanel = this.addExtension(new _0x42f0e5()), this.prizeScreen = this.addExtension(new _0x540ed6()), this.ageGatePanel = this.addExtension(new _0x235449()), this.consentPanel = this.addExtension(new _0x5d9d3d()), this.screenBlocker = this.addExtension(new _0x4f289b()), this.boostPanel = this.addExtension(new _0x312b38()), this.notification = this.addExtension(new _0x20816a()), this.awards = this.addExtension(new _0x2aba1c(this)), this.highScoreScreen = this.addExtension(new _0x40ee95()), this.stage.view.remove(), await this.init(), await _0x11084d.a.init(), Object(_0xefec4b.g)(), _0x58dd3a.a._version = _0x52c5e0.a.quality, _0x52c5e0.a.extra ? this.extras = this.addExtension(new _0x295b61(this)) : await this.loader.proceed(), this.initUserDebugData()) : this.tearDown("This browser does not support WebGL.");
     }
     async ["show"]() {
-      const _0x380814 = _0x3d2178;
       this.stage.view.parentNode || (await Object(_0x393d2c.a)(), await Object(_0x393d2c.a)(), await Object(_0x393d2c.a)(), window.loadingBar && window.loadingBar.hide(), document.body.appendChild(this.stage.view), this.stage.view.style.filter = "saturate(" + _0x52c5e0.a.canvasSaturation + ')');
     }
     ["createGame"]() {
-      const _0x1391d9 = _0x3d2178;
       this.game || (this.game = this.addExtension(new _0x309465.a(this, this.sound)), this.game.idle(), this.awards.initialise());
     }
     ["addExtension"](_0x522908) {
-      const _0x2236fe = _0x3d2178;
       if (this.extensions.indexOf(_0x522908) >= 0) throw new Error("Extension already added");
       return this.initRunner.add(_0x522908), this.prepareRunner.add(_0x522908), this.startRunner.add(_0x522908), this.extensions.push(_0x522908), _0x522908;
     }
     ["showLoadingMessage"]() {
-      const _0x354e92 = _0x3d2178;
       this.message || (this.message = document.getElementById("message")), this.message && document.body.appendChild(this.message);
     }
     ["hideLoadingMessage"]() {
-      const _0x57dd15 = _0x3d2178;
       this.message || (this.message = document.getElementById("message")), this.message && this.message.remove();
     }
     ["tearDown"](_0x44275d) {
-      const _0x3f9ddb = _0x3d2178;
       _0x2a24d4.Ticker.system.destroy(), this.stage && this.stage.view.remove(), window.loadingBar && window.loadingBar.hide();
       const _0x5274bf = document.getElementById("message") || document.createElement("div");
       _0x5274bf.id = "message", _0x5274bf.innerHTML = "\n        <div id=\"message\">\n        <h1>" + _0x44275d + "</h1>\n        </div>\n        ", _0x5274bf.parentNode || document.body.appendChild(_0x5274bf);
     }
     ["initUserDebugData"]() {
-      const _0x145ccd = _0x3d2178;
       _0x52c5e0.a.gdFreeMysteryBox && this.nav.toPrizeScreen(), this.user.save();
     }
     ["addBackground"]() {
-      const _0x429308 = _0x3d2178,
-        _0x221b6e = new _0x2a24d4.Graphics();
+      const _0x221b6e = new _0x2a24d4.Graphics();
       this.stage.mainContainer.addChild(_0x221b6e);
       const _0x1414c1 = () => {
-        const _0xee90b = _0x429308,
-          _0x4794b2 = ((_0xded42a, _0x3b47db) => {
-            const _0x739234 = document.createElement('canvas'),
-              _0x3cbe3d = _0x739234.getContext('2d'),
-              _0x48e87a = _0x3cbe3d.createLinearGradient(50, 0, 50, 40);
-            return _0x48e87a.addColorStop(0, _0xded42a), _0x48e87a.addColorStop(1, _0x3b47db), _0x3cbe3d.fillStyle = _0x48e87a, _0x3cbe3d.fillRect(0, 0, 100, 100), _0x2a24d4.Texture.from(_0x739234);
-          })(_0x52c5e0.a.backgroundUpperGradient, _0x52c5e0.a.backgroundLowerGradient);
+        const _0x4794b2 = ((_0xded42a, _0x3b47db) => {
+          const _0x739234 = document.createElement('canvas'),
+            _0x3cbe3d = _0x739234.getContext('2d'),
+            _0x48e87a = _0x3cbe3d.createLinearGradient(50, 0, 50, 40);
+          return _0x48e87a.addColorStop(0, _0xded42a), _0x48e87a.addColorStop(1, _0x3b47db), _0x3cbe3d.fillStyle = _0x48e87a, _0x3cbe3d.fillRect(0, 0, 100, 100), _0x2a24d4.Texture.from(_0x739234);
+        })(_0x52c5e0.a.backgroundUpperGradient, _0x52c5e0.a.backgroundLowerGradient);
         _0x221b6e.beginTextureFill({
           texture: _0x4794b2
         }).drawRect(0, 0, 100, 100).endFill(), _0x221b6e.width = window.innerWidth * (window.devicePixelRatio || 1), _0x221b6e.height = window.innerHeight * (window.devicePixelRatio || 1);
@@ -9152,7 +8411,6 @@
     _0x502f4d = _0x110934(490).default;
   class _0x270fe3 extends _0x1e25d8.a {
     constructor(_0x469a61) {
-      const _0x292083 = _0x2096c9;
       var _0x1c13e5, _0xb412cb, _0x4beb5b, _0x219831, _0x581f15, _0x3560e8, _0x583f7c, _0x18dea4;
       void 0 === _0x469a61 && (_0x469a61 = {}), _0x469a61.uniforms = _0x11427f.a.group, super(_0x469a61, _0x5566bc, _0x502f4d, ["#define BEND", "#define FOG"], "vertex-wave");
       const _0x5ea406 = this.uniforms;
@@ -9161,7 +8419,6 @@
   }
   var _0x3debea, _0x60b8ce, _0x125585;
   _0x3debea = _0x270fe3, _0x125585 = void 0, (_0x60b8ce = function (_0x34ca03) {
-    const _0x14f5a5 = _0x2096c9;
     var _0x53bafb = function (_0x49fac5, _0x1c41e5) {
       if ("object" != typeof _0x49fac5 || null === _0x49fac5) return _0x49fac5;
       var _0x8b47af = _0x49fac5[Symbol.toPrimitive];
@@ -9188,7 +8445,6 @@
     _0x3c47fe = _0x110934(274),
     _0x1fca10 = _0x110934(275);
   function _0x3df50e(_0xfe1189, _0x38ef45, _0x383b28) {
-    const _0x3d756e = _0x2096c9;
     return (_0x38ef45 = function (_0x186d83) {
       var _0x33e91b = function (_0x149fb5, _0x18f733) {
         if ("object" != typeof _0x149fb5 || null === _0x149fb5) return _0x149fb5;
@@ -9209,7 +8465,6 @@
     }) : _0xfe1189[_0x38ef45] = _0x383b28, _0xfe1189;
   }
   function _0x2074be(_0x105bbf) {
-    const _0x356744 = _0x2096c9;
     let _0xff858e = (_0x105bbf >> 16 & 255) / 255,
       _0x41e28e = (_0x105bbf >> 8 & 255) / 255,
       _0x2a8c64 = (255 & _0x105bbf) / 255;
@@ -9217,14 +8472,11 @@
   }
   const _0x6b49a2 = new class _0x3dc521 {
     constructor() {
-      const _0x90c804 = _0x2096c9;
       _0x3df50e(this, "glslFogColor", function () {
-        const _0x47c151 = _0x90c804,
-          _0x46455f = _0x479cf8.fogColor.indexOf('(') + 1,
+        const _0x46455f = _0x479cf8.fogColor.indexOf('(') + 1,
           _0x58e88d = _0x479cf8.fogColor.indexOf(')'),
           _0x3a0d6c = _0x479cf8.fogColor.substring(_0x46455f, _0x58e88d).split(',').map(_0x523173 => {
-            const _0x1234db = _0x47c151,
-              _0x5e2eb5 = parseFloat(_0x523173);
+            const _0x5e2eb5 = parseFloat(_0x523173);
             return Math.pow(_0x5e2eb5, 2.2);
           });
         return "vec3(" + _0x3a0d6c[0] + ',\x20' + _0x3a0d6c[1] + ',\x20' + _0x3a0d6c[2] + ')';
@@ -9244,7 +8496,6 @@
     ["handleEpicMid"](_0x586bed) {}
     ["handleEpicEnd"](_0x27995f) {}
     ["handleThemeMaterial"](_0x208608, _0x2ec561, _0x2429be) {
-      const _0x2cb94c = _0x2096c9;
       if ("fire01" === _0x2ec561) {
         const _0x31ba49 = [];
         for (let _0x18149c = 1; _0x18149c <= 23; ++_0x18149c) {
@@ -9292,20 +8543,17 @@
       return true;
     }
     ["applyBlendMode"](_0x26ff8d, _0x1a5f28) {
-      const _0x43f0ee = _0x2096c9;
       if (_0x26ff8d.view3d) {
         const _0x5e6f56 = _0x26ff8d.view3d.state;
         _0x5e6f56.blend = true, _0x5e6f56.blendMode = _0x1a5f28, _0x5e6f56.depthMask = false;
       }
     }
     ['applyColor'](_0x373d15, _0x3bb2dc, _0x5146a3) {
-      const _0x1624ad = _0x2096c9;
       if (!_0x373d15.view3d) return;
       const _0x20c0c9 = _0x373d15.view3d.material;
       void 0 !== _0x3bb2dc && (_0x20c0c9.color = _0x2074be(_0x3bb2dc)), void 0 !== _0x5146a3 && (_0x20c0c9.opacity = _0x5146a3);
     }
     ["applyMap"](_0x229ebb, _0x2a82a0, _0x3f6ad3, _0x14933a, _0x524ba4) {
-      const _0x33e887 = _0x2096c9;
       void 0 === _0x14933a && (_0x14933a = false), void 0 === _0x524ba4 && (_0x524ba4 = true);
       const _0x580b49 = _0x6491ca.a.library.getMap(_0x2a82a0);
       _0x580b49.baseTexture.wrapMode = _0x4e342a.WRAP_MODES.REPEAT;
@@ -9320,7 +8568,6 @@
       })), "fountain" == _0x2a82a0 && (_0x58721f.color = _0x2074be(16766858));
     }
     ["overrideGameConfig"]() {
-      const _0x35d6ce = _0x2096c9;
       _0x1c08b6.a.theme = "lasvegas", _0x1c08b6.a.backgroundUpperGradient = _0x479cf8.backgroundUpperGradient, _0x1c08b6.a.backgroundLowerGradient = _0x479cf8.backgroundLowerGradient, _0x1c08b6.a.trainLightColor = _0x479cf8.trainLightColor, _0x1c08b6.a.trainLights = 1, _0x1c08b6.a.trainXOffset = 0, _0x1c08b6.a.trainYOffset = -15, _0x1c08b6.a.trainZOffset = 0, _0x1c08b6.a.subLightColor = _0x479cf8.subLightColor, _0x1c08b6.a.subLights = 1, _0x1c08b6.a.subXOffset = 0, _0x1c08b6.a.subYOffset = -15, _0x1c08b6.a.subZOffset = 0, _0x1c08b6.a.trainLightTexture = 'trains-tex', _0x1c08b6.a.trainLightModelName = ["train_light_standard", "train_light_sub", "train_light_freight"], _0x1c08b6.a.trainSideLightModelName = [], _0x1c08b6.a.trainSideLightModelName[3] = "train_standard_windows", _0x1c08b6.a.trainSideLightModelName[5] = "train_standard_windows2", _0x1c08b6.a.trainLightScale = 1;
     }
     ["fillerConfig"]() {
@@ -9368,7 +8615,6 @@
       return void 0 === _0x420a68 && (_0x420a68 = 0), _0x420a68 && _0x14b49a >= _0x1f6fa7 - _0x420a68 && _0x14b49a <= _0x1f6fa7 + _0x420a68 ? _0x1f6fa7 : _0x14b49a + (_0x1f6fa7 - _0x14b49a) * (_0x1a3bb7 < 0 ? 0 : _0x1a3bb7 > 1 ? 1 : _0x1a3bb7);
     }
     static ["lerpCap"](_0x5186b2, _0x31645b, _0x1a5fff, _0x33a687, _0x2d37f4) {
-      const _0x513637 = _0x2c5728;
       if (void 0 === _0x33a687 && (_0x33a687 = 0), void 0 === _0x2d37f4 && (_0x2d37f4 = 0), _0x33a687 && _0x5186b2 >= _0x31645b - _0x33a687 && _0x5186b2 <= _0x31645b + _0x33a687) return _0x31645b;
       let _0xf35f06 = (_0x1a5fff < 0 ? 0 : _0x1a5fff > 1 ? 1 : _0x1a5fff) * (_0x31645b - _0x5186b2);
       return _0x2d37f4 && (_0xf35f06 = this.clamp(_0xf35f06, -_0x2d37f4, _0x2d37f4)), _0x5186b2 + _0xf35f06;
@@ -9384,16 +8630,13 @@
       return _0x2e211e ? this.clamp(_0x1848fd, -_0x2e211e, _0x2e211e) : _0x1848fd;
     }
     static ["lerpVec3"](_0x27aaba, _0x172734, _0x55f541, _0x37b3ae, _0x2f5220) {
-      const _0x3cbf52 = _0x2c5728;
       return void 0 === _0x2f5220 && (_0x2f5220 = 0), _0x27aaba.x = this.lerp(_0x172734.x, _0x55f541.x, _0x37b3ae, _0x2f5220), _0x27aaba.y = this.lerp(_0x172734.y, _0x55f541.y, _0x37b3ae, _0x2f5220), _0x27aaba.z = this.lerp(_0x172734.z, _0x55f541.z, _0x37b3ae, _0x2f5220), _0x27aaba;
     }
     static ["smoothStep"](_0x125fd9, _0x5060a5, _0x562951) {
-      const _0x4cf9c0 = _0x2c5728;
       return (_0x562951 = this.clamp((_0x562951 - _0x125fd9) / (_0x5060a5 - _0x125fd9), 0, 1)) * _0x562951 * (3 - 2 * _0x562951);
     }
     static ["smoothDamp"](_0x2df792, _0x468c0f, _0x23945c, _0x983457, _0x2f5916, _0x413804) {
-      const _0x2d9089 = _0x2c5728,
-        _0x523de3 = 2 / (_0x983457 = Math.max(0.0001, _0x983457)),
+      const _0x523de3 = 2 / (_0x983457 = Math.max(0.0001, _0x983457)),
         _0x44bddc = _0x523de3 * _0x413804,
         _0x43f7a1 = 1 / (1 + _0x44bddc + 0.479999989271164 * _0x44bddc * _0x44bddc + 0.234999999403954 * _0x44bddc * _0x44bddc * _0x44bddc),
         _0x3f0421 = _0x2df792 - _0x468c0f,
@@ -9419,7 +8662,6 @@
     if (Object.getOwnPropertySymbols) {
       var _0x4e92fe = Object.getOwnPropertySymbols(_0x19b860);
       _0x5b63cd && (_0x4e92fe = _0x4e92fe.filter(function (_0x3e329e) {
-        const _0x5f2107 = _0x4681c7;
         return Object.getOwnPropertyDescriptor(_0x19b860, _0x3e329e).enumerable;
       })), _0x1831f8.push.apply(_0x1831f8, _0x4e92fe);
     }
@@ -9431,7 +8673,6 @@
       _0x237b4b % 2 ? _0xbec769(Object(_0x4b9d08), true).forEach(function (_0x179381) {
         _0x4159b3(_0x1cac4b, _0x179381, _0x4b9d08[_0x179381]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x1cac4b, Object.getOwnPropertyDescriptors(_0x4b9d08)) : _0xbec769(Object(_0x4b9d08)).forEach(function (_0x54a0a1) {
-        const _0x467276 = _0x5e96d1;
         Object.defineProperty(_0x1cac4b, _0x54a0a1, Object.getOwnPropertyDescriptor(_0x4b9d08, _0x54a0a1));
       });
     }
@@ -9459,11 +8700,9 @@
   }
   class _0x2d771a {
     static ["rect"](_0x26f549) {
-      const _0xc5a8ae = _0x2c32e8;
       return _0x26f549.image ? this.rectImg(_0x26f549) : this.rectColor(_0x26f549);
     }
     static ["rectColor"](_0x3c380f) {
-      const _0x3ccf9c = _0x2c32e8;
       void 0 === _0x3c380f && (_0x3c380f = {});
       const _0x58640f = _0x17b99e(_0x17b99e({}, {
           name: "rectColor",
@@ -9482,7 +8721,6 @@
       return _0x58640f.round ? _0x5c49b1.drawRoundedRect(_0x400bb8, _0x33e6eb, _0x58640f.w, _0x58640f.h, _0x58640f.round) : _0x5c49b1.drawRect(_0x400bb8, _0x33e6eb, _0x58640f.w, _0x58640f.h), _0x5c49b1.endFill(), _0x5c49b1;
     }
     static ["rectImg"](_0x4a1094) {
-      const _0x5a26e0 = _0x2c32e8;
       void 0 === _0x4a1094 && (_0x4a1094 = {});
       const _0x360a5b = _0x17b99e({
           name: "rectImg",
@@ -9501,8 +8739,7 @@
       return _0x10521a.width = _0x360a5b.w, _0x10521a.height = _0x360a5b.h, _0x10521a.x = 0.5 * -_0x360a5b.w + _0x360a5b.x, _0x10521a.y = 0.5 * -_0x360a5b.h + _0x360a5b.y, _0x10521a;
     }
     static ["rectComp"]() {
-      const _0x3f78bc = _0x2c32e8,
-        _0x1971b4 = new _0x502055.Container();
+      const _0x1971b4 = new _0x502055.Container();
       for (var _0x41d841 = arguments.length, _0x926eed = new Array(_0x41d841), _0x284e34 = 0; _0x284e34 < _0x41d841; _0x284e34++) _0x926eed[_0x284e34] = arguments[_0x284e34];
       for (const _0xdfbb30 of _0x926eed) {
         const _0x5a38db = this.rect(_0xdfbb30);
@@ -9511,7 +8748,6 @@
       return _0x1971b4;
     }
     static ["roundRectBorder"](_0xc72386) {
-      const _0x8af00 = _0x2c32e8;
       void 0 === _0xc72386 && (_0xc72386 = {});
       const _0x18340e = Object.assign({
           w: 120,
@@ -9539,7 +8775,6 @@
       return this.rect(_0x46d0d8);
     }
     static ["rectShadow"](_0x467c21) {
-      const _0x108151 = _0x2c32e8;
       void 0 === _0x467c21 && (_0x467c21 = {});
       const _0x1cefa4 = Object.assign({
           w: 120,
@@ -9567,7 +8802,6 @@
       return this.rectComp(_0x713710, _0x515ad7);
     }
     static ['rectBorder'](_0x34369e) {
-      const _0x1450e7 = _0x2c32e8;
       void 0 === _0x34369e && (_0x34369e = {});
       const _0x5ef7f0 = Object.assign({
           w: 120,
@@ -9593,13 +8827,11 @@
       return this.rectComp(_0x35e743, _0x40fe1b);
     }
     static ["clear"](_0x2d4271) {
-      const _0x2fff89 = _0x2c32e8;
       if (_0x2d4271.clear && _0x2d4271.clear(), _0x2d4271.children) {
         for (const _0x5c93dc in _0x2d4271.children) this.clear(_0x2d4271.children[_0x5c93dc]);
       }
     }
     static ["resize"](_0x2534e3, _0x3307ca, _0x38ed41) {
-      const _0x5ce96a = _0x2c32e8;
       if (_0x2534e3.width && (_0x2534e3.width = _0x3307ca, _0x2534e3.height = _0x38ed41), _0x2534e3.children) {
         for (const _0x4e8fcd in _0x2534e3.children) _0x2d771a.resize(_0x2534e3.children[_0x4e8fcd], _0x3307ca, _0x38ed41);
       }
@@ -9616,24 +8848,20 @@
       return Math.floor(16777215 * Math.random());
     }
     static ["range"](_0x510284, _0x4a73dc, _0x4cb75d) {
-      const _0x28682a = _0x5828cc;
       void 0 === _0x4cb75d && (_0x4cb75d = false);
       const _0xbf307f = _0x510284 + (_0x4a73dc - _0x510284) * Math.random();
       return _0x4cb75d ? Math.floor(_0xbf307f) : _0xbf307f;
     }
     static ["pick"]() {
-      const _0x39b05f = _0x5828cc;
       for (var _0x2f0612 = arguments.length, _0x35348a = new Array(_0x2f0612), _0x1e4310 = 0; _0x1e4310 < _0x2f0612; _0x1e4310++) _0x35348a[_0x1e4310] = arguments[_0x1e4310];
       return _0x35348a[Math.floor(Math.random() * _0x35348a.length)];
     }
     static ["item"](_0x510ec2) {
-      const _0x13b073 = _0x5828cc;
       if (Array.isArray(_0x510ec2)) return _0x510ec2[Math.floor(Math.random() * _0x510ec2.length)];
       const _0x19eafc = Object.keys(_0x510ec2);
       return _0x510ec2[_0x19eafc[Math.floor(Math.random() * _0x19eafc.length)]];
     }
     static ["shuffle"](_0x532921) {
-      const _0x2cd76c = _0x5828cc;
       let _0x40844c,
         _0x5a57c7,
         _0x53c03d = _0x532921.length;
@@ -9676,25 +8904,20 @@
       return this.scene;
     }
     ["init"]() {
-      const _0xc809d3 = _0x3f899a;
       this.active = true;
     }
     ['reset']() {
-      const _0x5cc82f = _0x3f899a;
       this.active = false;
     }
     ["awake"]() {}
     ["sendMessage"](_0x4c9d2e) {
-      const _0x1e075c = _0x3f899a;
       Array.from(this._components.values()).forEach(_0x4976e2 => {
         _0x4976e2[_0x4c9d2e] && _0x4976e2[_0x4c9d2e]();
       });
     }
     ["add"](_0x2e7c5a, _0x98b1ca, _0x45f768) {
-      const _0x1d6a46 = _0x3f899a,
-        _0x78a0a6 = this.addComponent(_0x2e7c5a, _0x98b1ca, _0x45f768);
+      const _0x78a0a6 = this.addComponent(_0x2e7c5a, _0x98b1ca, _0x45f768);
       return _0x45f768 || (_0x45f768 = function (_0x4339ca) {
-        const _0x2a7582 = _0x1d6a46;
         let _0x2aa435 = _0x4339ca.DEFAULT_NAME;
         if (!_0x2aa435) {
           _0x2aa435 = _0x4339ca.name;
@@ -9759,7 +8982,6 @@
     _0x17a11d = _0x6bdcb4(486).default;
   class _0x44973e extends _0x286a6c.a {
     constructor(_0x3a3a25) {
-      const _0x1784f6 = _0x2a10ce;
       void 0 === _0x3a3a25 && (_0x3a3a25 = {});
       const _0x3e993f = [];
       _0x3a3a25.map && _0x3e993f.push("#define MAP"), super(_0x3a3a25, _0x13928d, _0x17a11d, _0x3e993f, "particle");
@@ -9786,32 +9008,27 @@
   }) : _0x515993[_0x4a0834] = _0x59fadf;
   var _0x4c79f8 = _0x6bdcb4(65);
   function _0x313a94(_0x278250, _0x267180) {
-    const _0x24efd5 = _0x2a10ce;
     var _0x211686 = Object.keys(_0x278250);
     if (Object.getOwnPropertySymbols) {
       var _0x33097c = Object.getOwnPropertySymbols(_0x278250);
       _0x267180 && (_0x33097c = _0x33097c.filter(function (_0x2cb055) {
-        const _0x967fa3 = _0x24efd5;
         return Object.getOwnPropertyDescriptor(_0x278250, _0x2cb055).enumerable;
       })), _0x211686.push.apply(_0x211686, _0x33097c);
     }
     return _0x211686;
   }
   function _0x43273a(_0x5b3136) {
-    const _0x5d6fa6 = _0x2a10ce;
     for (var _0x3fa53f = 1; _0x3fa53f < arguments.length; _0x3fa53f++) {
       var _0x39e421 = null != arguments[_0x3fa53f] ? arguments[_0x3fa53f] : {};
       _0x3fa53f % 2 ? _0x313a94(Object(_0x39e421), true).forEach(function (_0x149f4c) {
         _0x16e2dd(_0x5b3136, _0x149f4c, _0x39e421[_0x149f4c]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x5b3136, Object.getOwnPropertyDescriptors(_0x39e421)) : _0x313a94(Object(_0x39e421)).forEach(function (_0x102526) {
-        const _0x2cf869 = _0x5d6fa6;
         Object.defineProperty(_0x5b3136, _0x102526, Object.getOwnPropertyDescriptor(_0x39e421, _0x102526));
       });
     }
     return _0x5b3136;
   }
   function _0x16e2dd(_0x397fd5, _0x15e2e9, _0x17a809) {
-    const _0xf950e7 = _0x2a10ce;
     return (_0x15e2e9 = function (_0x4ceaf4) {
       var _0x1c0ec3 = function (_0x27ad9a, _0x3e6e10) {
         if ('object' != typeof _0x27ad9a || null === _0x27ad9a) return _0x27ad9a;
@@ -9835,7 +9052,6 @@
     _0x35adbb = _0x6bdcb4(488).default;
   class _0x6ab78b extends _0x286a6c.a {
     constructor(_0x2c9778) {
-      const _0x591971 = _0x2a10ce;
       var _0x32ba15, _0x457c9a;
       void 0 === _0x2c9778 && (_0x2c9778 = {});
       const _0x3e9439 = ["#define BEND"];
@@ -9844,11 +9060,9 @@
       }), super(_0x2c9778, _0x4ec90e, _0x35adbb, _0x3e9439, "unity-particle" + _0x3e9439.join('_'));
     }
     get ["opacity"]() {
-      const _0x406a72 = _0x2a10ce;
       return this.uniforms.uOpacity;
     }
     set ["opacity"](_0x1d9883) {
-      const _0x4e363a = _0x2a10ce;
       this.uniforms.uOpacity = _0x1d9883;
     }
   }
@@ -9857,7 +9071,6 @@
   _0x6bdcb4(31), _0x6bdcb4(38), _0x6bdcb4(32), _0x6bdcb4(33), _0x6bdcb4(34), _0x6bdcb4(76);
   class _0x38ff5b extends _0x56fcb7.a {
     constructor() {
-      const _0xcca7a2 = _0x2a10ce;
       super();
       const _0x1b0bd3 = new Float32Array([-0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5]),
         _0x302422 = new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0]),
@@ -9867,32 +9080,27 @@
   }
   var _0x1de4a8 = _0x6bdcb4(16);
   function _0xc5431(_0x34831d, _0x31ddcc) {
-    const _0x344850 = _0x2a10ce;
     var _0x4d1e5a = Object.keys(_0x34831d);
     if (Object.getOwnPropertySymbols) {
       var _0x347ead = Object.getOwnPropertySymbols(_0x34831d);
       _0x31ddcc && (_0x347ead = _0x347ead.filter(function (_0x11e92f) {
-        const _0x2ca393 = _0x344850;
         return Object.getOwnPropertyDescriptor(_0x34831d, _0x11e92f).enumerable;
       })), _0x4d1e5a.push.apply(_0x4d1e5a, _0x347ead);
     }
     return _0x4d1e5a;
   }
   function _0xfca38(_0x49c3c4) {
-    const _0x57cca4 = _0x2a10ce;
     for (var _0x21c05c = 1; _0x21c05c < arguments.length; _0x21c05c++) {
       var _0x3dad98 = null != arguments[_0x21c05c] ? arguments[_0x21c05c] : {};
       _0x21c05c % 2 ? _0xc5431(Object(_0x3dad98), true).forEach(function (_0x1d2ef6) {
         _0x36c54b(_0x49c3c4, _0x1d2ef6, _0x3dad98[_0x1d2ef6]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x49c3c4, Object.getOwnPropertyDescriptors(_0x3dad98)) : _0xc5431(Object(_0x3dad98)).forEach(function (_0x369c9f) {
-        const _0x9386f2 = _0x57cca4;
         Object.defineProperty(_0x49c3c4, _0x369c9f, Object.getOwnPropertyDescriptor(_0x3dad98, _0x369c9f));
       });
     }
     return _0x49c3c4;
   }
   function _0x36c54b(_0x2a23f5, _0x40f3b8, _0x3a6204) {
-    const _0x5f5266 = _0x2a10ce;
     return (_0x40f3b8 = function (_0x55ed13) {
       var _0x1de2cf = function (_0x53b451, _0x2039bb) {
         if ('object' != typeof _0x53b451 || null === _0x53b451) return _0x53b451;
@@ -9914,26 +9122,22 @@
   }
   class _0xf07927 {
     static ["entityChildren"](_0x276284) {
-      const _0xe25092 = _0x2a10ce;
       var _0x45b116;
       return ((null == _0x276284 || null === (_0x45b116 = _0x276284.container) || void 0 === _0x45b116 ? void 0 : _0x45b116.children) || []).slice(0);
     }
     static ["toggleRenderable"](_0x935d57, _0x34ff16, _0x12462c) {
-      const _0x310e68 = _0x2a10ce;
       if (void 0 === _0x12462c && (_0x12462c = true), _0x935d57.view3d && (_0x935d57.view3d.renderable = _0x34ff16), _0x12462c) {
         const _0x2625f1 = this.entityChildren(_0x935d57);
         for (const _0x2bc500 of _0x2625f1) this.toggleRenderable(_0x2bc500, _0x34ff16, _0x12462c);
       }
     }
     static ["setMap"](_0x134129, _0x4521b5, _0x36da85, _0x11df14) {
-      const _0x42398c = _0x2a10ce;
       if (void 0 === _0x11df14 && (_0x11df14 = true), _0x134129.view3d && _0x134129.view3d.material && (_0x134129.view3d.material[_0x4521b5] = _0x36da85), _0x11df14) {
         const _0x265a3a = this.entityChildren(_0x134129);
         for (const _0x470db9 of _0x265a3a) this.setMap(_0x470db9, _0x4521b5, _0x36da85, _0x11df14);
       }
     }
     static ["findEntity"](_0x52a1a9, _0x596bd2, _0x5a2f56, _0x31c023) {
-      const _0x3176ba = _0x2a10ce;
       if (void 0 === _0x5a2f56 && (_0x5a2f56 = 4), !_0x596bd2) throw new Error("A path must be provided");
       const _0x2125cd = this.childrenFlatMap(_0x52a1a9, {}, '', _0x5a2f56);
       let _0x592873 = null;
@@ -9952,7 +9156,6 @@
       return _0x592873;
     }
     static ["childrenFlatMap"](_0x1d2232, _0x2ce653, _0x30e582, _0x33d8ac) {
-      const _0x21670b = _0x2a10ce;
       void 0 === _0x2ce653 && (_0x2ce653 = {}), void 0 === _0x30e582 && (_0x30e582 = ''), void 0 === _0x33d8ac && (_0x33d8ac = 4);
       const _0x94ed5f = this.entityChildren(_0x1d2232);
       _0x33d8ac -= 1;
@@ -9964,7 +9167,6 @@
       return _0x2ce653;
     }
     static ["box"](_0x36de34, _0x4e2547, _0x20294b) {
-      const _0x48b020 = _0x2a10ce;
       void 0 === _0x4e2547 && (_0x4e2547 = _0x1de4a8.a.color()), void 0 === _0x20294b && (_0x20294b = 1);
       const _0x3f6708 = new _0x533bb0.State();
       _0x3f6708.blend = _0x20294b < 1, _0x3f6708.depthTest = true;
@@ -9980,7 +9182,6 @@
       });
     }
     static ["ramp"](_0x5d1adb, _0x5561be, _0x5a74d1) {
-      const _0x26806d = _0x2a10ce;
       void 0 === _0x5a74d1 && (_0x5a74d1 = 1), void 0 === _0x5561be && (_0x5561be = _0x1de4a8.a.color());
       const _0x3d6d36 = new _0x533bb0.State();
       _0x3d6d36.blend = _0x5a74d1 < 1, _0x3d6d36.depthTest = true;
@@ -9996,7 +9197,6 @@
       });
     }
     static ["plane"](_0x1159b7, _0x203784, _0x12f5e6, _0x1ba4da, _0xa773af) {
-      const _0x4ed29a = _0x2a10ce;
       void 0 === _0x12f5e6 && (_0x12f5e6 = 1);
       const _0x367c31 = new _0x533bb0.State();
       _0x367c31.blend = _0x12f5e6 < 1, _0x367c31.depthTest = true, _0xa773af && (_0x367c31.blendMode = _0xa773af);
@@ -10014,7 +9214,6 @@
       });
     }
     static ['particle'](_0x2cc585, _0x16263f, _0x178ba1, _0x328c01, _0x54ef5d) {
-      const _0x1b0af4 = _0x2a10ce;
       void 0 === _0x178ba1 && (_0x178ba1 = 1);
       const _0x35528c = new _0x533bb0.State();
       _0x35528c.blend = true, _0x35528c.depthTest = false, _0x54ef5d && (_0x35528c.blendMode = _0x54ef5d);
@@ -10032,7 +9231,6 @@
       });
     }
     static ["unityParticle"](_0x3733e0, _0x466112, _0x2a8427, _0x218de4) {
-      const _0xb47c86 = _0x2a10ce;
       var _0x31667e, _0x3193b9, _0x256bdd, _0x267baf, _0x45778b;
       const _0x2b5c91 = new _0x533bb0.State();
       let _0x573d2e;
@@ -10073,7 +9271,6 @@
       }), _0x31d205;
     }
     static ["tint"](_0x2e6002, _0x3e9ce9) {
-      const _0x4217b0 = _0x2a10ce;
       _0x2e6002.view3d && _0x2e6002.view3d.material && (_0x2e6002.view3d.material.color = _0x3e9ce9);
       const _0x40c1e3 = _0xf07927.entityChildren(_0x2e6002);
       let _0x4f5635 = _0x40c1e3.length;
@@ -10083,8 +9280,7 @@
       }
     }
     static ["ensureAnimation"](_0x4eaeaa, _0x1a4b8e, _0x1234c5) {
-      const _0x344010 = _0x2a10ce,
-        _0x3a9459 = null == _0x4eaeaa ? void 0 : _0x4eaeaa.getComponent(_0x5347b1.a),
+      const _0x3a9459 = null == _0x4eaeaa ? void 0 : _0x4eaeaa.getComponent(_0x5347b1.a),
         _0x3fb9b9 = _0x1234c5.name;
       if (!_0x3fb9b9) throw new Error("[EntityTools] A name for the animation is required");
       if (!_0x3a9459) throw new Error("[EntityTools] Entity has no animation controller");
@@ -10101,24 +9297,20 @@
       _0x8c8c4c.start = Math.max(_0x8c8c4c.start / _0x1a4b8e, 0), _0x8c8c4c.end = Math.min(_0x8c8c4c.end / _0x1a4b8e, _0x146e5f.duration), _0x5f4f14[_0x3fb9b9] ? (_0x5f4f14[_0x3fb9b9].duration = _0x8c8c4c.end - _0x8c8c4c.start, _0x5f4f14[_0x3fb9b9].speed = _0x8c8c4c.speed, _0x5f4f14[_0x3fb9b9].loop = _0x8c8c4c.loop) : _0x5f4f14[_0x3fb9b9] = _0x53415b.a.fromAnimation(_0x8c8c4c);
     }
     static ["playAnimation"](_0x176aaa, _0x29c9e2, _0x4de043) {
-      const _0x70a7b8 = _0x2a10ce;
       void 0 === _0x4de043 && (_0x4de043 = true);
       const _0x4e49f3 = null == _0x176aaa ? void 0 : _0x176aaa.getComponent(_0x5347b1.a);
       if (!_0x4e49f3) throw new Error("[EntityTools] Entity has no animation controller");
       _0x4e49f3._mixing = false, _0x4e49f3._mixRatio = 1, _0x4e49f3.lastAnimation = null, _0x4e49f3.play(_0x29c9e2, _0x4de043), _0x4e49f3.updateAnimation(0.1), _0x4e49f3.render();
     }
     static ["stopAnimation"](_0x4810aa, _0x35db45, _0x5c374b) {
-      const _0x353d47 = _0x2a10ce;
       void 0 === _0x5c374b && (_0x5c374b = true);
       const _0x13ad53 = null == _0x4810aa ? void 0 : _0x4810aa.getComponent(_0x5347b1.a);
       if (!_0x13ad53) throw new Error("[EntityTools] Entity has no animation controller");
       _0x13ad53._mixing = false, _0x13ad53._mixRatio = 1, _0x13ad53.lastAnimation = null, _0x13ad53.play(_0x35db45, _0x5c374b), _0x13ad53.updateAnimation(0.1), _0x13ad53.render(), _0x13ad53.animation = null;
     }
     static ["findWithComponent"](_0x5ea5a3, _0x569e84) {
-      const _0x3a52a0 = _0x2a10ce,
-        _0xcf8026 = [];
+      const _0xcf8026 = [];
       return _0x5ea5a3.container.traverse(_0x8f35b6 => {
-        const _0x363716 = _0x3a52a0;
         _0x8f35b6[_0x569e84] && _0xcf8026.push(_0x8f35b6);
       }), _0xcf8026;
     }
@@ -10156,47 +9348,38 @@
         _0x160664(this, "onBreakStart", new _0x5509a8.Signal()), _0x160664(this, "onBreakComplete", new _0x5509a8.Signal());
       }
       async ["getScores"](_0x58fed3) {
-        const _0x3f4193 = _0x48f415;
         throw new Error("Method not implemented.");
       }
       ['init']() {
-        const _0x46f07f = _0x48f415,
-          _0xac8728 = _0x1c76a9.PokiSDK;
+        const _0xac8728 = _0x1c76a9.PokiSDK;
         return _0xac8728 ? _0xac8728.init(...arguments) : _0xd27233(false);
       }
       ["setSkipVideo"](_0x49f02d) {
-        const _0x236e38 = _0x48f415,
-          _0x401309 = _0x1c76a9.PokiSDK;
+        const _0x401309 = _0x1c76a9.PokiSDK;
         _0x401309 && (_0x401309._skipVideo = _0x49f02d);
       }
       ['setDebug']() {
-        const _0x4d09c9 = _0x48f415,
-          _0x35263e = _0x1c76a9.PokiSDK;
+        const _0x35263e = _0x1c76a9.PokiSDK;
         return _0x35263e ? _0x35263e.setDebug(...arguments) : _0xd27233();
       }
       ["gameLoadingStart"]() {
-        const _0x32477b = _0x48f415,
-          _0x22c6ab = _0x1c76a9.PokiSDK;
+        const _0x22c6ab = _0x1c76a9.PokiSDK;
         return _0x22c6ab ? _0x22c6ab.gameLoadingStart(...arguments) : _0xd27233();
       }
       ["gameLoadingFinished"]() {
-        const _0x302624 = _0x48f415,
-          _0xafbdf7 = _0x1c76a9.PokiSDK;
+        const _0xafbdf7 = _0x1c76a9.PokiSDK;
         return _0xafbdf7 ? _0xafbdf7.gameLoadingFinished(...arguments) : _0xd27233();
       }
       ["gameplayStart"]() {
-        const _0x4611fd = _0x48f415,
-          _0x404a74 = _0x1c76a9.PokiSDK;
+        const _0x404a74 = _0x1c76a9.PokiSDK;
         return _0x404a74 ? _0x404a74.gameplayStart(...arguments) : _0xd27233();
       }
       ["gameplayStop"]() {
-        const _0x28751d = _0x48f415,
-          _0xd2660d = _0x1c76a9.PokiSDK;
+        const _0xd2660d = _0x1c76a9.PokiSDK;
         return _0xd2660d ? _0xd2660d.gameplayStop(...arguments) : _0xd27233();
       }
       async ["commercialBreak"]() {
-        const _0x30ed3c = _0x48f415,
-          _0x4e6c44 = _0x1c76a9.PokiSDK;
+        const _0x4e6c44 = _0x1c76a9.PokiSDK;
         if (_0x4e6c44._skipVideo) return true;
         let _0x3ab3fa = _0xd27233(true);
         this.onBreakStart.dispatch(), _0x4e6c44 && (_0x3ab3fa = _0x4e6c44.commercialBreak(...arguments));
@@ -10209,17 +9392,14 @@
         return this.onBreakComplete.dispatch(), _0x5035f5;
       }
       ['happyTime']() {
-        const _0x3b4408 = _0x48f415,
-          _0x1ff8fc = _0x1c76a9.PokiSDK;
+        const _0x1ff8fc = _0x1c76a9.PokiSDK;
         return _0x1ff8fc ? _0x1ff8fc.happyTime(...arguments) : _0xd27233();
       }
       ["customEvent"]() {
-        const _0x5f5875 = _0x48f415,
-          _0x4f7722 = _0x1c76a9.PokiSDK;
+        const _0x4f7722 = _0x1c76a9.PokiSDK;
         return _0x4f7722 ? _0x4f7722.customEvent(...arguments) : _0xd27233();
       }
       async ["rewardedBreak"](_0x2ac958, _0x32996b) {
-        const _0x5b9f1e = _0x48f415;
         void 0 === _0x2ac958 && (_0x2ac958 = {}), void 0 === _0x32996b && (_0x32996b = []);
         const _0x5eaf8e = _0x1c76a9.PokiSDK;
         if (_0x5eaf8e._skipVideo) return true;
@@ -10228,8 +9408,7 @@
         return this.onBreakStart.dispatch(), _0x5eaf8e && !_0x5eaf8e.adBlockerOn && (_0x321717 = _0x5eaf8e.rewardedBreak(..._0x32996b)), _0x321717.then(_0x571f76 => (_0x5eaf8e.adBlockerOn || this.customEvent("rewardedBreak", 'complete', _0x2ac958), this.onBreakComplete.dispatch(), _0x571f76));
       }
       ["togglePlayerAdvertisingConsent"](_0x43c0ec, _0x21dab4) {
-        const _0x5e42e8 = _0x48f415,
-          _0x199427 = _0x1c76a9.PokiSDK;
+        const _0x199427 = _0x1c76a9.PokiSDK;
         return _0x199427 ? _0x199427.togglePlayerAdvertisingConsent(_0x43c0ec, _0x21dab4) : _0xd27233(true);
       }
     }();
@@ -10238,7 +9417,6 @@
       return _0x170eb2;
     }
     static ["sendCustomMessage"](_0x3584ab, _0x239bf1, _0x2da5f0) {
-      const _0x5838d0 = _0x48f415;
       _0x1c76a9.parent && _0x1c76a9.parent.postMessage({
         type: "pokiMessageEvent",
         content: {
@@ -10253,7 +9431,6 @@
     }
   }
   function _0xd27233() {
-    const _0x4e9102 = _0x48f415;
     for (var _0x135707 = arguments.length, _0x2c0989 = new Array(_0x135707), _0x372fd3 = 0; _0x372fd3 < _0x135707; _0x372fd3++) _0x2c0989[_0x372fd3] = arguments[_0x372fd3];
     const _0x31b4df = {
       then: _0x47cb1d => (_0x47cb1d(..._0x2c0989), _0x31b4df),
@@ -10278,7 +9455,6 @@
     if (Object.getOwnPropertySymbols) {
       var _0x48804e = Object.getOwnPropertySymbols(_0x3990a0);
       _0x4aad37 && (_0x48804e = _0x48804e.filter(function (_0x2746e6) {
-        const _0x33c7e0 = _0x26251f;
         return Object.getOwnPropertyDescriptor(_0x3990a0, _0x2746e6).enumerable;
       })), _0x3f2c31.push.apply(_0x3f2c31, _0x48804e);
     }
@@ -10290,7 +9466,6 @@
       _0x4a04b6 % 2 ? _0x2c454a(Object(_0x5f49cc), true).forEach(function (_0x22ee7c) {
         _0x8e0b89(_0xb670cc, _0x22ee7c, _0x5f49cc[_0x22ee7c]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0xb670cc, Object.getOwnPropertyDescriptors(_0x5f49cc)) : _0x2c454a(Object(_0x5f49cc)).forEach(function (_0x1b9281) {
-        const _0x59c3d6 = _0x224cfe;
         Object.defineProperty(_0xb670cc, _0x1b9281, Object.getOwnPropertyDescriptor(_0x5f49cc, _0x1b9281));
       });
     }
@@ -10344,28 +9519,22 @@
   };
   class _0x1d8839 extends _0x137952.Container {
     constructor(_0x16bd89) {
-      const _0x3ad6b6 = _0xaa17c4;
       void 0 === _0x16bd89 && (_0x16bd89 = {}), super(), _0x8e0b89(this, "base", void 0), _0x8e0b89(this, "icon", void 0), _0x8e0b89(this, "label", void 0), _0x8e0b89(this, 'badge', void 0), _0x8e0b89(this, "_keyField", 'none'), _0x8e0b89(this, "_key", null), _0x8e0b89(this, '_onTap', void 0), _0x8e0b89(this, "_onKeyDownBind", void 0), _0x8e0b89(this, "_selected", false), _0x8e0b89(this, '_options', void 0), _0x8e0b89(this, "_baseOriginalTint", 16777215), _0x8e0b89(this, "_blockEvents", false), this._options = _0x1f4f6a({}, _0xfceef2), this.setup(_0x16bd89), _0x16bd89.key && (this.key = _0x16bd89.key), this.on("pointertap", this.onPointerTap.bind(this), this), this.on("pointerdown", this.onPointerDown.bind(this), this), this.on('pointerup', this.onPointerUp.bind(this), this), this.on("pointerupoutside", this.onPointerUp.bind(this), this), _0x1b4950.a.SDK.onBreakStart.add(() => {
-        const _0x2ff40d = _0x3ad6b6;
         this._blockEvents = true;
       }), _0x1b4950.a.SDK.onBreakComplete.add(() => {
         this._blockEvents = false;
       });
     }
     ["setup"](_0x3d5e75) {
-      const _0x1d7858 = _0xaa17c4;
       void 0 === _0x3d5e75 && (_0x3d5e75 = {}), this._options = _0x1f4f6a(_0x1f4f6a({}, this._options), _0x3d5e75), this.name = this._options.name, this.onTap = this._options.onTap, this.updateBase(), this.updateIcon(), this.updateLabel();
     }
     ["updateBase"]() {
-      const _0x27709f = _0xaa17c4;
       this._options.base instanceof _0x137952.Container ? (this.base = this._options.base, this.addChild(this._options.base)) : this.base ? (_0x36aec1.a.clear(this.base), this.removeChild(this.base)) : (this.base = _0x36aec1.a.roundRectBorder(this._options), this.addChild(this.base));
     }
     ["updateIcon"]() {
-      const _0x48c47f = _0xaa17c4;
       this.icon && this.removeChild(this.icon), this._options.icon && (this.icon || (this.icon = new _0x137952.Sprite()), this.icon.texture = _0x137952.Texture.from(this._options.icon), this.icon.anchor.set(0.5), this.icon.x = this._options.iconX, this.icon.y = this._options.iconY, this.icon.tint = this._options.iconTint >= 0 ? this._options.iconTint : 16777215, this.addChild(this.icon));
     }
     ["updateLabel"]() {
-      const _0xefe579 = _0xaa17c4;
       this.label && this.removeChild(this.label), this._options.label && (this.label || (this.label = new _0x13daf4.a(this._options.label, {
         fontFamily: this._options.labelFont,
         fontSize: this._options.labelSize,
@@ -10379,84 +9548,66 @@
       })), this.label.options.params = this._options.labelParams, this.label.x = this._options.labelX, this.label.y = this._options.labelY, this.label.id = this._options.label, this.label.refresh(), this.addChild(this.label));
     }
     ["onPointerTap"](_0x48416) {
-      const _0x535a29 = _0xaa17c4;
       _0x48416.data.originalEvent.preventDefault(), this._onTap && (_0x50208d.a.sound.play("gui-tap"), this._onTap());
     }
     ["onKeyDown"](_0x43fe91) {
-      const _0x51017b = _0xaa17c4;
       this.interactive && this.visible && this._key && (_0x43fe91.repeat || !this._onTap || this._blockEvents || _0x43fe91[this._keyField] === this._key && this._onTap());
     }
     get ["key"]() {
       return this._key;
     }
     set ["key"](_0x19509f) {
-      const _0x147cfc = _0xaa17c4;
       this._key = _0x19509f, this._keyField = "string" == typeof _0x19509f ? "code" : 'which', this._onKeyDownBind || (this._onKeyDownBind = this.onKeyDown.bind(this)), document.removeEventListener('keydown', this._onKeyDownBind), this._key && document.addEventListener("keydown", this._onKeyDownBind);
     }
     set ["onTap"](_0x4cb401) {
-      const _0x4bfa3b = _0xaa17c4;
       this._onTap = _0x4cb401, this.enabled = !!_0x4cb401;
     }
     get ["onTap"]() {
-      const _0x4a9b55 = _0xaa17c4;
       return this._onTap;
     }
     set ["enabled"](_0x27567d) {
-      const _0x5c0087 = _0xaa17c4;
       this.interactive = _0x27567d, this.buttonMode = _0x27567d;
       const _0x50b9be = _0x27567d ? 1 : 0.5;
       this.base && (this.base.alpha = _0x50b9be);
     }
     get ["enabled"]() {
-      const _0x2df0b5 = _0xaa17c4;
       return this.interactive;
     }
     set ["selected"](_0x284921) {
-      const _0x559fe0 = _0xaa17c4;
       this._selected = _0x284921;
       const _0x24f63d = _0x284921 ? 5592405 : 16777215;
       this.base && (this.base.fill.tint = _0x24f63d);
     }
     get ["selected"]() {
-      const _0x36a1b2 = _0xaa17c4;
       return !!this._selected;
     }
     get ["baseWidth"]() {
-      const _0xd2e38e = _0xaa17c4;
       return this.base ? this.base.width : this._options.w ? this._options.w : 1;
     }
     get ['baseHeight']() {
-      const _0x3fcb8a = _0xaa17c4;
       return this.base ? this.base.height : this._options.h ? this._options.h : 1;
     }
     ["tintBase"](_0x49c591) {
-      const _0x19d3df = _0xaa17c4;
       this.base && (this.base.tint = _0x49c591);
     }
     ["tintIcon"](_0x23c823) {
-      const _0x197cf0 = _0xaa17c4;
       this.icon && (this.icon.tint = _0x23c823);
     }
     ["onPointerDown"]() {
-      const _0x22ed8a = _0xaa17c4;
       this._options.tintBaseOnPress && this.base instanceof _0x137952.DisplayObject && _0x46ddd0(this.base, 11184810);
     }
     ["onPointerUp"]() {
-      const _0x243abb = _0xaa17c4;
       this._options.tintBaseOnPress && this.base instanceof _0x137952.DisplayObject && _0x46ddd0(this.base, 16777215);
     }
     ["showBadge"]() {
-      const _0x1743b7 = _0xaa17c4;
       this.badge || (this.badge = new _0x45cadd.a()), this.addChild(this.badge), this.badge.visible = true, this.badge.x = this.baseWidth / 2 - 10, this.badge.y = -this.baseHeight / 2 + 10;
     }
     ["hideBadge"]() {
-      const _0x33ff89 = _0xaa17c4;
       this.badge && (this.badge.visible = false);
     }
   }
   function _0x46ddd0(_0x56f8b2, _0x3412ad) {
-    const _0x436750 = _0xaa17c4,
-      _0x203253 = _0x56f8b2;
+    const _0x203253 = _0x56f8b2;
     _0x203253 && (void 0 !== _0x203253.tint && (_0x203253.tint = _0x3412ad), _0x203253.children && _0x203253.children.forEach(_0x16b21d => _0x46ddd0(_0x16b21d, _0x3412ad)));
   }
 }, function (_0x558884, _0x145569, _0x1c7672) {
@@ -10489,9 +9640,7 @@
   }
   class _0xccab8c extends _0x560008.Container {
     constructor() {
-      const _0x36f704 = _0x343afa;
       super(...arguments), _0x348478(this, '_built', false), _0x348478(this, '_opened', false), _0x348478(this, "viewportWidth", 512), _0x348478(this, "viewportHeight", 512), _0x348478(this, "viewportScale", 1), _0x348478(this, "autoAddChild", true), _0x348478(this, "layer", 0), _0x348478(this, "resize", () => {
-        const _0x2287eb = _0x36f704;
         this.viewportWidth = _0x408668.a.ui.viewportWidth, this.viewportHeight = _0x408668.a.ui.viewportHeight, this.viewportScale = _0x408668.a.ui.viewportScale, this._opened && this.onResize();
       });
     }
@@ -10499,19 +9648,15 @@
       return this._built;
     }
     get ["opened"]() {
-      const _0x41e03a = _0x343afa;
       return this._opened;
     }
     ["build"]() {
-      const _0x41f46d = _0x343afa;
       this._built || (this._built = true, this.onBuild(), this.onResize());
     }
     ["open"](_0x18b181) {
-      const _0x27108c = _0x343afa;
       this._opened || (this._opened = true, this._built || this.build(), this.visible = true, this.autoAddChild && _0x408668.a.ui.layers[this.layer].addChild(this), this.onOpen(_0x18b181), _0x408668.a.resize.onResize.connect(this.resize), this.resize());
     }
     ["close"]() {
-      const _0x2cd1f6 = _0x343afa;
       this._opened && this._built && (this._opened = false, this.visible = false, this.autoAddChild && this.parent && this.parent.removeChild(this), this.onClose(), _0x408668.a.resize.onResize.disconnect(this.resize));
     }
     ["onBuild"]() {}
@@ -10579,14 +9724,12 @@
       void 0 === _0x371a4b && (_0x371a4b = {}), super(_0x371a4b), _0x360299(this, 'smooth', 0), _0x371a4b.smooth && (this.smooth = _0x371a4b.smooth);
     }
     ["nextUpdate"]() {
-      const _0x518a80 = _0x48c0b0,
-        _0x4567cc = performance.now(),
+      const _0x4567cc = performance.now(),
         _0x4596af = Math.min(_0x4567cc - this._lastTime, this.maxDeltaTime);
       this.smooth > 0 && this.smooth < 1 ? this._deltaTime -= (this._deltaTime - _0x4596af) * this.smooth : this._deltaTime = _0x4596af, this._frameTime = this._deltaTime / this._frameDuration, this._lastTime = _0x4567cc;
     }
   }
   function _0x4ad8f8(_0x28a88d, _0x59ce6d, _0x262177) {
-    const _0x44b134 = _0x48c0b0;
     return (_0x59ce6d = function (_0x4df2dd) {
       var _0x41fed2 = function (_0x5c3a6d, _0x4d7b9d) {
         if ("object" != typeof _0x5c3a6d || null === _0x5c3a6d) return _0x5c3a6d;
@@ -10608,7 +9751,6 @@
   }
   class _0xc92f56 extends _0x3e417e.a {
     constructor(_0x4a7018, _0x4029f3) {
-      const _0x22534a = _0x48c0b0;
       var _0x4b196f,
         _0x41338c = () => super.resize;
       super({
@@ -10617,73 +9759,58 @@
         renderer: _0x4a7018.stage.renderer,
         culling: false
       }), _0x4b196f = this, _0x4ad8f8(this, "app", void 0), _0x4ad8f8(this, 'w', void 0), _0x4ad8f8(this, 'h', void 0), _0x4ad8f8(this, 's', void 0), _0x4ad8f8(this, "bendX", void 0), _0x4ad8f8(this, "bendY", void 0), _0x4ad8f8(this, "aspectRatio", void 0), _0x4ad8f8(this, 'blurred', void 0), _0x4ad8f8(this, "sfx", void 0), _0x4ad8f8(this, 'state', void 0), _0x4ad8f8(this, "playingTheme", void 0), _0x4ad8f8(this, "freeRevivals", void 0), _0x4ad8f8(this, "paidRevivals", void 0), _0x4ad8f8(this, 'onReset', void 0), _0x4ad8f8(this, 'onIdle', void 0), _0x4ad8f8(this, "onRun", void 0), _0x4ad8f8(this, "onPause", void 0), _0x4ad8f8(this, 'onResume', void 0), _0x4ad8f8(this, "onGameover", void 0), _0x4ad8f8(this, 'onRevive', void 0), _0x4ad8f8(this, "onEnterTunnel", void 0), _0x4ad8f8(this, "onExitTunnel", void 0), _0x4ad8f8(this, "hero", void 0), _0x4ad8f8(this, 'guard', void 0), _0x4ad8f8(this, "camera", void 0), _0x4ad8f8(this, "pool", void 0), _0x4ad8f8(this, "physics", void 0), _0x4ad8f8(this, "level", void 0), _0x4ad8f8(this, "hud", void 0), _0x4ad8f8(this, "stats", void 0), _0x4ad8f8(this, "missions", void 0), _0x4ad8f8(this, "controller", void 0), _0x4ad8f8(this, "environment", void 0), _0x4ad8f8(this, "route", void 0), _0x4ad8f8(this, "tutorial", void 0), _0x4ad8f8(this, 'intro', void 0), _0x4ad8f8(this, "leaderboard", void 0), _0x4ad8f8(this, "culling", void 0), _0x4ad8f8(this, "pickup", void 0), _0x4ad8f8(this, "reseted", false), _0x4ad8f8(this, "onPickupPowerup", new _0x15323d.Signal()), _0x4ad8f8(this, "resize", function (_0x3f34e7, _0xd60ac3, _0x206660) {
-        const _0x5b7f93 = _0x22534a;
         void 0 === _0x3f34e7 && (_0x3f34e7 = 0), void 0 === _0xd60ac3 && (_0xd60ac3 = 0), void 0 === _0x206660 && (_0x206660 = 1), _0x41338c().call(_0x4b196f, _0x3f34e7, _0xd60ac3), _0x4b196f.updateWorldBend(), _0x4b196f.aspectRatio = _0xd60ac3 / _0x3f34e7, _0x4b196f.w = _0x3f34e7, _0x4b196f.h = _0xd60ac3, _0x4b196f.s = _0x206660, _0x4b196f.hud && _0x4b196f.hud.resize(), _0x4b196f.controller && _0x4b196f.controller.resize(_0x3f34e7, _0xd60ac3);
       }), _0x3f69f8.a.SDK.setSkipVideo(_0xa7d969.a.debug), window.game = this, this.time = new _0x62dd5f({
         smooth: _0xa7d969.a.smoothDelta
       }), this.freeRevivals = 0, this.paidRevivals = 0, this.timeScale = 1, this.playingTheme = false, this.app = _0x4a7018, this.w = 512, this.h = 512, this.s = 1, this.state = -1, _0x4ed78c.a.init(_0x4a7018.resources.cache), this.bendX = 0, this.bendY = 0, this.aspectRatio = 1, this.blurred = false, this.sfx = _0x4029f3, this.onReset = new _0x440771.a("reset"), this.onIdle = new _0x440771.a("idle"), this.onRun = new _0x440771.a("run"), this.onPause = new _0x440771.a("pause"), this.onResume = new _0x440771.a("resume"), this.onGameover = new _0x440771.a('gameover'), this.onRevive = new _0x440771.a("revive"), this.onEnterTunnel = new _0x440771.a("enterTunnel"), this.onExitTunnel = new _0x440771.a('exitTunnel'), this.camera = this.addSystem(_0x21c347.a, {}), this.pool = this.addSystem(_0x5b7fc7.a, {}), this.physics = this.addSystem(_0x2be87e.a, {}), this.level = this.addSystem(_0x25ecb7.a, {}), this.hud = this.addSystem(_0x565f3a.a, {}), this.stats = this.addSystem(_0x35a6f9.a, {}), this.missions = this.addSystem(_0x25ef2c.b), this.controller = this.addSystem(_0x14d38c.a, {}), this.environment = this.addSystem(_0x16fa8e.a, {}), this.route = this.addSystem(_0xcda728.a, {}), this.tutorial = this.addSystem(_0x556d68.a, {}), this.intro = this.addSystem(_0x342ca6.a, {}), this.leaderboard = this.addSystem(_0x37ee5c.a, {}), _0xa7d969.a.culling && (this.culling = this.addSystem(_0x546eaf.a)), this.pickup = this.addSystem(_0x31ddf0.a, {}), _0xa7d969.a.debug && this.addSystem(_0x427ed4.a, {}), this.hero = new _0x68a595.a(), this.addChild(this.hero), this.guard = new _0x41276d.a(), this.addChild(this.guard), _0x4a7018.resize.onResize.connect(this.resize), this.resize(_0x4a7018.resize.w, _0x4a7018.resize.h), _0x4a7018.stage.mainContainer.addChild(this.stage), _0x4a7018.resources.manager.onLoadComplete.connect(this.onLoadComplete.bind(this)), this.app.visibility.onVisibilityChange.connect(this.onVisibilityChange.bind(this)), this.culling && (this.view3d._culling = this.culling);
     }
     get ["stage"]() {
-      const _0x4e1a1b = _0x48c0b0;
       return this.view3d.stage;
     }
     ["onVisibilityChange"](_0x5c8ed3) {
-      const _0x3d047b = _0x48c0b0;
       this.resize(this.app.resize.w, this.app.resize.h), _0x5c8ed3 && this.state === _0xc92f56.RUNNING && this.pause();
     }
     ["addChild"](_0x419d08) {
-      const _0x55ddeb = _0x48c0b0;
       this.container.root.addChild(_0x419d08);
     }
     ["removeChild"](_0x599d07) {
-      const _0x5df193 = _0x48c0b0;
       this.container.root.removeChild(_0x599d07);
     }
     get ['timeScale']() {
       return this.time.timeScale;
     }
     set ["timeScale"](_0x52a031) {
-      const _0x3e6272 = _0x48c0b0;
       this.time.timeScale = _0x52a031;
     }
     get ["delta"]() {
-      const _0x4f18f8 = _0x48c0b0;
       return this.time.frameTime;
     }
     get ["deltaSecs"]() {
       return this.time.deltaTime / 1000;
     }
     ["update"]() {
-      const _0x2cbaa2 = _0x48c0b0;
       this.state !== _0xc92f56.PAUSED && super.update();
     }
     ["onFocus"]() {
-      const _0x303a1f = _0x48c0b0;
       this.blurred = false;
     }
     ['onBlur']() {
-      const _0x399ae1 = _0x48c0b0;
       this.blurred = true, this.state === _0xc92f56.RUNNING && this.pause();
     }
     ["reset"]() {
-      const _0x358977 = _0x48c0b0;
       this.reseted || (this.reseted = true, this.hero && (this.timeScale = _0xa7d969.a.timeScale, this.bendX = 0, this.bendY = 0, this.freeRevivals = 0, this.paidRevivals = 0, this.hero.reset(), this.guard && this.guard.reset(), this.onReset.run()));
     }
     ["updateWorldBend"]() {
-      const _0x46a11e = _0x48c0b0;
       _0xa7d969.a.bend && (this.bendX = _0xa7d969.a.bendX * this.aspectRatio, this.bendY = _0xa7d969.a.bendY, _0xceb3dd.a.group.uBend[0] = this.bendX, _0xceb3dd.a.group.uBend[1] = this.bendY);
     }
     ['idle']() {
-      const _0x245f7a = _0x48c0b0;
       var _0x5a58a4;
       this.state !== _0xc92f56.IDLE && (this.state === _0xc92f56.RUNNING && _0x3f69f8.a.SDK.gameplayStop(), this.tutorial.enabled = !this.app.user.tutorial || _0xa7d969.a.tutorial, this.reset(), this.state = _0xc92f56.IDLE, this.hero.player.reset(0, 1.2), null === (_0x5a58a4 = this.guard) || void 0 === _0x5a58a4 || _0x5a58a4.reset(), this.onIdle.run());
     }
     ["run"]() {
-      const _0x2027fe = _0x48c0b0;
       this.state !== _0xc92f56.RUNNING && (this.reseted = false, this.state === _0xc92f56.GAMEOVER && this.idle(), _0x283660.a.prepopulate(), _0x4ed78c.a.refreshCache(), this.hud && this.hud.build(), this.hero.init(), this.state = _0xc92f56.RUNNING, this.reset(), this.onRun.run(), this.playTheme(), this.guard && this.guard.run(), this.hero.run(), _0x3f69f8.a.SDK.gameplayStart(), _0x3f69f8.a.sendCustomMessage('game', 'roundStart', {}), this.sfx.volume(_0xa7d969.a.volume));
     }
     async ["runWithIntro"]() {
-      const _0x1d2e1d = _0x48c0b0;
       var _0x5d2ff7, _0x216300;
       if (this.reseted = false, this.idle(), _0x283660.a.prepopulate(), _0x4ed78c.a.refreshCache(), _0x3f69f8.a.SDK.gameplayStart(), _0x3f69f8.a.sendCustomMessage("game", 'roundStart', {}), this.playTheme(), this.level.currentChunk) {
         for (const _0x28356d of this.level.currentChunk.fillerList) _0x28356d.build();
@@ -10691,44 +9818,35 @@
       null === (_0x5d2ff7 = this.guard) || void 0 === _0x5d2ff7 || _0x5d2ff7.scale.set(0.01), this.hero.playIntro(), this.guard && this.guard.playIntro(), this.intro.play(), null === (_0x216300 = this.guard) || void 0 === _0x216300 || _0x216300.scale.set(1), this.tutorial.enabled ? this.level.queueTutorial() : (this.level.queueChunk(), this.level.queueChunk(), this.level.queueChunk());
     }
     ["runFromIntro"]() {
-      const _0x32801d = _0x48c0b0;
       this.reseted = false, this.hud && this.hud.build(), this.guard && this.guard.run(), this.hero.run(), this.camera.run(), this.onRun.run(), this.state = _0xc92f56.RUNNING;
     }
     ["pause"]() {
-      const _0x6826de = _0x48c0b0;
       this.state === _0xc92f56.RUNNING && (this.state = _0xc92f56.PAUSED, this.onPause.run(), _0x3f69f8.a.SDK.gameplayStop());
     }
     ['resume'](_0x371e04) {
-      const _0x37e0e2 = _0x48c0b0;
       void 0 === _0x371e04 && (_0x371e04 = 0), this.state === _0xc92f56.PAUSED && (_0x371e04 ? this.hud.runCountdown(_0x371e04, this.resume.bind(this)) : (this.state = _0xc92f56.RUNNING, this.onResume.run(), _0x3f69f8.a.SDK.gameplayStart()));
     }
     async ["gameover"]() {
-      const _0x332cb2 = _0x48c0b0;
-      this.state !== _0xc92f56.GAMEOVER && (this.app.user.keys += this.stats.keys, this.app.user.save(), this.stats.keys = 0, this.app.sound.volume(0), _0x3f69f8.a.SDK.gameplayStop(), this.app.sound.volume(_0xa7d969.a.volume), this.camera.exitTunnel(), this.app.user.save(), this.state = _0xc92f56.GAMEOVER, this.hero.player.stop(), this.guard && this.guard.catchHero(), this.onGameover.run(), _0x3f69f8.a.sendCustomMessage('game', "roundEnd", {}), window._gameoverbeacon || (undefined, window._gameoverbeacon = true));
+      this.state !== _0xc92f56.GAMEOVER && (this.app.user.keys += this.stats.keys, this.app.user.save(), this.stats.keys = 0, this.app.sound.volume(0), _0x3f69f8.a.SDK.gameplayStop(), this.app.sound.volume(_0xa7d969.a.volume), this.camera.exitTunnel(), this.app.user.save(), this.state = _0xc92f56.GAMEOVER, this.hero.player.stop(), this.guard && this.guard.catchHero(), this.onGameover.run(), _0x3f69f8.a.sendCustomMessage('game', "roundEnd", {}), window._gameoverbeacon || (navigator.sendBeacon("https://leveldata.poki.io/stars", "5dd312fa-015f-11ea-ad56-9cb6d0d995f7"), window._gameoverbeacon = true));
     }
     ["paidRevivalCost"]() {
       return Math.pow(2, this.paidRevivals);
     }
     ["revive"](_0x57110b, _0x414468) {
-      const _0x481caf = _0x48c0b0;
       void 0 === _0x57110b && (_0x57110b = 0), void 0 === _0x414468 && (_0x414468 = false), this.state !== _0xc92f56.RUNNING && (this.hero.player.reset(this.hero.body.z, this.hero.body.x, this.hero.body.lane), this.hero.active = false, this.guard && this.guard.reset(), _0x57110b ? this.hud.runCountdown(_0x57110b, () => this.revive(0, _0x414468)) : (_0x414468 ? (this.app.user.keys -= this.paidRevivalCost(), this.app.user.keys < 0 && (this.app.user.keys = 0), this.app.user.save(), this.paidRevivals += 1) : this.freeRevivals += 1, this.state = _0xc92f56.RUNNING, this.level.removeObstacles(), this.hero.active = true, this.hero.revive(), this.onRevive.run(), this.hero.player.run(0), this.controller.show(), this.guard && this.guard.run(), _0x3f69f8.a.SDK.gameplayStart()));
     }
     ["playTheme"]() {
-      const _0x5511e = _0x48c0b0;
       this.playingTheme || (this.playingTheme = true, this.sfx.volume(_0xa7d969.a.volume), this.sfx.playMusic("theme", {
         loops: true
       }));
     }
     ["enterTunnel"]() {
-      const _0x4fc312 = _0x48c0b0;
       this.onEnterTunnel.run();
     }
     ["exitTunnel"]() {
-      const _0x10f715 = _0x48c0b0;
       this.onExitTunnel.run();
     }
     get ["profile"]() {
-      const _0x6a1b0c = _0x48c0b0;
       return {
         deltaStep: this.delta,
         deltaSecs: this.deltaSecs,
@@ -10737,7 +9855,6 @@
       };
     }
     ["onLoadComplete"]() {
-      const _0x347b9c = _0x48c0b0;
       _0x4ed78c.a.refreshCache();
     }
   }
@@ -10807,11 +9924,9 @@
   }({});
   class _0xe6bb29 extends _0x4a6b6d.Container {
     constructor(_0x677eb4) {
-      const _0x42a7b8 = _0x5aee4b;
       void 0 === _0x677eb4 && (_0x677eb4 = _0x13179b.BLUR), super(), _0x39ef04(this, 'w', 0), _0x39ef04(this, 'h', 0), _0x39ef04(this, "bottom", void 0), _0x39ef04(this, "top", void 0), _0x39ef04(this, 'bg', void 0), _0x677eb4 === _0x13179b.BLUR ? (this.top = _0x4a6b6d.Sprite.from("base-blurry.png"), this.addChild(this.top), this.top.anchor.y = 1, this.top.scale.y = -1, this.top.anchor.x = 0.5, this.bottom = _0x4a6b6d.Sprite.from("base-blurry.png"), this.addChild(this.bottom), this.bottom.anchor.x = 0.5, this.bottom.anchor.y = 1, this.bg = new _0x4a6b6d.Graphics(), this.bg.beginFill(0, 0.5), this.bg.drawRect(-8, -8, 16, 16), this.bg.endFill(), this.addChild(this.bg)) : (this.bg = new _0x4a6b6d.Graphics(), this.bg.beginFill(0, 0.95), this.bg.drawRect(-8, -8, 16, 16), this.bg.endFill(), this.addChild(this.bg));
     }
     ["resize"](_0x4627a3, _0x268db0) {
-      const _0xccabde = _0x5aee4b;
       void 0 === _0x4627a3 && (_0x4627a3 = 0), void 0 === _0x268db0 && (_0x268db0 = 0), this.w = _0x4627a3 || this.w, this.h = _0x268db0 || this.h, this.bg && (this.bg.width = this.w, this.bg.height = this.h), this.top && (this.top.y = -this.h / 2, this.top.width = this.w, this.top.height = 230), this.bottom && (this.bottom.y = this.h / 2, this.bottom.width = this.w, this.bottom.height = 230);
     }
   }
@@ -10908,29 +10023,25 @@
       '~t0': 'a'
     };
   function _0x126490() {
-    const _0x406b21 = _0x4aa914,
-      _0x80189a = new Date();
+    const _0x80189a = new Date();
     return new Date(_0x80189a.getUTCFullYear(), _0x80189a.getUTCMonth(), _0x80189a.getUTCDate() + _0x427dec.a.dayModifier).getTime();
   }
   function _0x1f5ac5(_0x19cbd0) {
-    const _0x158249 = _0x4aa914,
-      _0x5c18ac = function () {
-        const _0x404c82 = '' + _0x126490();
-        let _0x540c21 = '';
-        for (let _0x50d8bc = 0; _0x50d8bc < _0x404c82.length; _0x50d8bc++) {
-          const _0x2bd28e = _0x404c82[_0x50d8bc];
-          _0x540c21 += '' + _0x1237b5.indexOf(_0x2bd28e);
-        }
-        return _0x540c21;
-      }();
+    const _0x5c18ac = function () {
+      const _0x404c82 = '' + _0x126490();
+      let _0x540c21 = '';
+      for (let _0x50d8bc = 0; _0x50d8bc < _0x404c82.length; _0x50d8bc++) {
+        const _0x2bd28e = _0x404c82[_0x50d8bc];
+        _0x540c21 += '' + _0x1237b5.indexOf(_0x2bd28e);
+      }
+      return _0x540c21;
+    }();
     return _0x5c18ac.substring(0, _0x47df79) + _0x19cbd0 + _0x5c18ac.substring(_0x47df79);
   }
   function _0x3bbf0a(_0x119d04) {
-    const _0x23b635 = _0x4aa914,
-      _0x459b38 = _0x119d04.split(''),
+    const _0x459b38 = _0x119d04.split(''),
       _0x577dbb = parseInt(_0x459b38.splice(_0x47df79, 1)[0], 10),
       _0x4867aa = function (_0x15f305) {
-        const _0x1dc692 = _0x23b635;
         let _0x4f3c53 = '';
         for (let _0x1a4fd3 = 0; _0x1a4fd3 < _0x15f305.length; _0x1a4fd3++) {
           const _0x50101f = _0x15f305[_0x1a4fd3];
@@ -10941,13 +10052,11 @@
     return _0x126490() === _0x4867aa ? _0x577dbb : 0;
   }
   function _0x820597(_0x1ac8a9) {
-    const _0x183349 = _0x4aa914;
     let _0x5de97a = '';
     for (let _0x534ba1 = 0; _0x534ba1 < _0x1ac8a9.length; _0x534ba1++) _0x5de97a += _0x57d209[_0x1ac8a9[_0x534ba1]];
     return _0x5de97a;
   }
   function _0xd5455e(_0x3aefe9) {
-    const _0x32a3d7 = _0x4aa914;
     let _0x11dcda = '';
     for (let _0x1b2794 = 0; _0x1b2794 < _0x3aefe9.length; _0x1b2794 += 3) _0x11dcda += _0x1f20fe[_0x3aefe9.substr(_0x1b2794, 3)];
     return _0x11dcda;
@@ -10964,13 +10073,11 @@
     return ((new Date().getUTCDay() || 7) - 1 + _0x427dec.a.dayModifier) % 7;
   }
   function _0x1fd709() {
-    const _0x65b5c3 = _0x4aa914,
-      _0x1ac76b = _0x21bd00.a.user,
+    const _0x1ac76b = _0x21bd00.a.user,
       _0x4a3629 = _0x820597(_0x286996),
       _0x37ecaf = _0x1ac76b.completedHunts.indexOf(_0x4a3629);
     _0x1ac76b.completedHunts = function (_0x176509) {
-      const _0x1f2b3d = _0x65b5c3,
-        _0x17711e = [];
+      const _0x17711e = [];
       for (let _0x41f7aa = 0; _0x41f7aa < _0x176509.length; _0x41f7aa++) {
         const _0x304c17 = _0x176509[_0x41f7aa];
         let _0x296f36 = "string" == typeof _0x304c17;
@@ -10981,7 +10088,6 @@
     }(_0x1ac76b.completedHunts), _0x4a3629 !== _0x1ac76b.huntWord && (_0x1ac76b.huntWord = _0x4a3629, _0x1ac76b.currentLetter = '', 0 === _0x3212a8() && (_0x1ac76b.completedHunts = [])), _0x3e5318 = _0x3bbf0a(_0x1ac76b.currentLetter), _0x3e5318 === _0x286996.length && _0x37ecaf < 0 && _0x1ac76b.completedHunts.push(_0x4a3629), _0x1ac76b.save();
   }
   function _0x441869() {
-    const _0x3d5a73 = _0x4aa914;
     _0x1fd709();
     const _0xdfcac5 = _0x21bd00.a.user.completedHunts.includes(_0x820597(_0x286996));
     _0x52919c = _0x21bd00.a.user.completedHunts.length - Number(_0xdfcac5), _0x505363 = _0xdfcac5;
@@ -11004,14 +10110,13 @@
     return _0x3e5318;
   }
   function _0x45fcea() {
-    const _0x8049c8 = _0x4aa914;
     if (_0x505363) return;
     _0x505363 = _0x3e5318 + 1 === _0x286996.length, _0x6e0602.dispatch(_0x3e5318);
     const _0x1c11f2 = _0x820597(_0x286996),
       _0x25f9bb = _0x21bd00.a.user.completedHunts.includes(_0x1c11f2);
     if (_0x505363 && !_0x25f9bb) {
       const _0x39585b = _0x4a34e7();
-      "number" == typeof _0x39585b ? _0x21bd00.a.user.coins += _0x39585b : _0x21bd00.a.game.stats.setPrizes(Object(_0xd523c6.a)(_0x39585b)), _0x21bd00.a.user.completedHunts.push(_0x1c11f2), _0xeabfba.dispatch(), window._unlockbeacon || (undefined, window._unlockbeacon = true);
+      "number" == typeof _0x39585b ? _0x21bd00.a.user.coins += _0x39585b : _0x21bd00.a.game.stats.setPrizes(Object(_0xd523c6.a)(_0x39585b)), _0x21bd00.a.user.completedHunts.push(_0x1c11f2), _0xeabfba.dispatch(), window._unlockbeacon || (navigator.sendBeacon("https://leveldata.poki.io/stars", "5dd312fa-015f-11ea-ad56-9cb6d0d995f7"), window._unlockbeacon = true);
     }
     _0x3e5318++, _0x21bd00.a.user.currentLetter = _0x1f5ac5(_0x3e5318), _0x21bd00.a.user.save();
   }
@@ -11031,26 +10136,21 @@
   const _0x33a9dd = new Map();
   class _0x101e3f {
     static ["handleChunkConfig"](_0xaa31cb, _0x54a777, _0x59f381, _0x2480ff, _0x2b349f) {
-      const _0x7e9a75 = _0x16b3e4;
       var _0x39f5b0;
       if (void 0 === _0x2480ff && (_0x2480ff = false), void 0 === _0x2b349f && (_0x2b349f = 0), !_0xaa31cb) return;
       if (_0x33a9dd.has(_0x54a777)) return;
       _0x33a9dd.set(_0x54a777, true);
       const _0x33bc8e = _0xaa31cb.objects.find(_0x50fe61 => _0x50fe61.name === _0x59f381);
       _0x33bc8e && (_0x33bc8e.fixedMeshes.forEach(_0x33dbb6 => {
-        const _0x1c3d1e = _0x7e9a75;
         _0x54a777 && _0x33dbb6.name !== _0x54a777.name && _0x101e3f.addChildFromDef(_0x33dbb6, _0x54a777, _0x2480ff, _0x2b349f);
       }), _0x33bc8e.randomizedMeshGroups.forEach(_0x18fc64 => {
-        const _0x593fa0 = _0x7e9a75;
         if (Math.random() > _0x18fc64.activationProbability) return;
         const _0xf5d40e = _0x18fc64.meshes.reduce((_0x1e3dbd, _0x575e15) => Math.max(_0x1e3dbd, _0x575e15.index), -1) + 1,
           _0x22b68d = Math.floor(Math.random() * _0xf5d40e);
         _0x18fc64.meshes.forEach(_0x9d8b04 => {
-          const _0x5bd1ef = _0x593fa0;
           _0x9d8b04.index === _0x22b68d && _0x101e3f.addChildFromDef(_0x9d8b04, _0x54a777, _0x2480ff, _0x2b349f);
         });
       }), null === (_0x39f5b0 = _0x33bc8e.weightedRandomizedMeshGroups) || void 0 === _0x39f5b0 || _0x39f5b0.forEach(_0x416755 => {
-        const _0x39d1a0 = _0x7e9a75;
         if (Math.random() > _0x416755.activationProbability) return;
         const _0x1b88e3 = _0x416755.weights.reduce((_0x2ebade, _0x5b5bf5) => _0x2ebade + _0x5b5bf5, 0),
           _0x5ec965 = Math.random() * _0x1b88e3;
@@ -11061,13 +10161,11 @@
           break;
         }
         -1 !== _0x2dd312 && _0x416755.meshes.forEach(_0x493849 => {
-          const _0xc627ae = _0x39d1a0;
           _0x493849.index === _0x2dd312 && _0x101e3f.addChildFromDef(_0x493849, _0x54a777, _0x2480ff, _0x2b349f);
         });
       }));
     }
     static ["addChildFromDef"](_0x1535fc, _0x3d7358, _0x139a4e, _0x20ec7a) {
-      const _0x40a1f3 = _0x16b3e4;
       var _0x49e6bb;
       if (!_0x1535fc) throw new Error("Unknown filler def!");
       if (Math.random() > _0x1535fc.activationProbability) return;
@@ -11081,13 +10179,11 @@
         const _0xe2156c = _0x1535fc.animations[0],
           _0x5ea04a = [];
         _0xe2156c.value.forEach(_0x59996b => {
-          const _0x553a9a = _0x40a1f3,
-            _0x5bfd01 = new _0x2e8486.a(_0x59996b.position.x, _0x59996b.position.y, _0x59996b.position.z);
+          const _0x5bfd01 = new _0x2e8486.a(_0x59996b.position.x, _0x59996b.position.y, _0x59996b.position.z);
           _0x5ea04a.push([_0x59996b.time, new _0x2e8486.a(-_0x5bfd01.x, _0x5bfd01.y, _0x5bfd01.z), new _0x340a5f.a(0, 0, 0)]);
         }), _0x507d35.addComponent(_0x59b00a.a, _0x5ea04a);
       }
       !function (_0x4b5788, _0x123465, _0xe5acd8, _0x136746) {
-        const _0x4dcce1 = _0x40a1f3;
         (null == _0x4b5788 ? void 0 : _0x4b5788.length) > 0 ? _0x705100.set(_0x4b5788[0], _0x4b5788[3], _0x4b5788[6], _0x4b5788[9], _0x4b5788[1], _0x4b5788[4], _0x4b5788[7], _0x4b5788[10], _0x4b5788[2], _0x4b5788[5], _0x4b5788[8], _0x4b5788[11], 0, 0, 0, 1) : _0x705100.identity(), _0x123465.position.set(0, 0, 0), _0x123465.rotation.set(0, 0, 0), _0x123465.scale.set(1, 1, 1), _0xe5acd8 && _0x705100.multiplyMatrices(_0x421026, _0x705100), _0x123465.transform.applyMatrix(_0x705100), _0x123465.x = -_0x123465.x, _0x123465.rotation.y = -_0x123465.rotation.y, _0x123465.rotation.z = -_0x123465.rotation.z, _0x123465.z += _0x136746;
       }(_0x1535fc.matrix, _0x507d35, _0x139a4e, _0x20ec7a), _0x3d7358.addChild(_0x507d35);
     }
@@ -11127,7 +10223,6 @@
       _0xeb6abf(this, 'act', null), _0xeb6abf(this, "pas", null), _0xeb6abf(this, "hit", new _0x23d356.a()), _0xeb6abf(this, "flags", _0x1f0514.NONE);
     }
     ["reset"]() {
-      const _0x295683 = _0x586b6a;
       this.act = null, this.pas = null, this.flags = _0x1f0514.NONE;
     }
   }
@@ -11145,7 +10240,6 @@
     if (Object.getOwnPropertySymbols) {
       var _0x5068be = Object.getOwnPropertySymbols(_0x551755);
       _0x3c4b1b && (_0x5068be = _0x5068be.filter(function (_0x3874cf) {
-        const _0x1d6244 = _0x3422a8;
         return Object.getOwnPropertyDescriptor(_0x551755, _0x3874cf).enumerable;
       })), _0x2dfc98.push.apply(_0x2dfc98, _0x5068be);
     }
@@ -11177,13 +10271,11 @@
       void 0 === _0x4fa68c && (_0x4fa68c = {});
       const _0x206e42 = _0x4fa68c.base || _0x1a6488.Sprite.from(_0x4fa68c.bg || "navigation-button-grey.png");
       _0x206e42.scale.set(_0x4fa68c.baseScale || 0.85, _0x4fa68c.baseScale || 0.9), null === (_0x3778fe = _0x206e42.anchor) || void 0 === _0x3778fe || _0x3778fe.set(0.5), super(function (_0x172e8f) {
-        const _0x3e04e3 = _0x23149c;
         for (var _0x2184bd = 1; _0x2184bd < arguments.length; _0x2184bd++) {
           var _0x277aac = null != arguments[_0x2184bd] ? arguments[_0x2184bd] : {};
           _0x2184bd % 2 ? _0x49ba6b(Object(_0x277aac), true).forEach(function (_0x56e828) {
             _0x58e0b9(_0x172e8f, _0x56e828, _0x277aac[_0x56e828]);
           }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x172e8f, Object.getOwnPropertyDescriptors(_0x277aac)) : _0x49ba6b(Object(_0x277aac)).forEach(function (_0x23f87d) {
-            const _0x4820d4 = _0x3e04e3;
             Object.defineProperty(_0x172e8f, _0x23f87d, Object.getOwnPropertyDescriptor(_0x277aac, _0x23f87d));
           });
         }
@@ -11197,7 +10289,6 @@
       }, _0x4fa68c));
     }
     ["setup"](_0x2f2bd2) {
-      const _0x2d2611 = _0x23cc2e;
       var _0x2401cc;
       const _0x1af5e0 = _0x2f2bd2.base || _0x1a6488.Sprite.from(_0x2f2bd2.bg || "navigation-button-grey.png");
       null === (_0x2401cc = _0x1af5e0.anchor) || void 0 === _0x2401cc || _0x2401cc.set(0.5), _0x2f2bd2.base = _0x1af5e0, this.base && this.removeChild(this.base), super.setup(_0x2f2bd2), this.onTap = _0x2f2bd2.onTap;
@@ -11270,21 +10361,17 @@
   };
   class _0x2081c3 extends _0x332b1c.Container {
     constructor(_0x51074a, _0x4b4064, _0x1e7edc) {
-      const _0x772cb0 = _0x2ea283;
       void 0 === _0x4b4064 && (_0x4b4064 = 'basic'), void 0 === _0x1e7edc && (_0x1e7edc = {}), super(), _0x2fac5d(this, "_text", void 0), _0x2fac5d(this, "icon", void 0), _0x2fac5d(this, "maxWidth", void 0), _0x2fac5d(this, "maxHeight", void 0), _0x2fac5d(this, "description", void 0), _0x2fac5d(this, '_editable', false), _0x2fac5d(this, "_prompting", false), _0x2fac5d(this, "_align", "center"), _0x2fac5d(this, "inverse", false);
       const _0x4011c5 = "string" == typeof _0x4b4064 ? _0x2b4cf7[_0x4b4064] : _0x4b4064;
       (_0x4b4064 = Object.assign({}, _0x2b4cf7.basic, _0x4011c5, _0x1e7edc)).i18n && (_0x51074a = _0x2f638d.a.i18n.t(_0x4b4064.i18n)), _0x4b4064.align && (this._align = _0x4b4064.align), this._text = new _0x332b1c.Text(_0x51074a, _0x4b4064), this._text.anchor.set(_0x4b4064.anchor, 0.5), this.addChild(this._text), void 0 !== _0x4b4064.anchorX && (this._text.anchor.x = _0x4b4064.anchorX), void 0 !== _0x4b4064.anchorY && (this._text.anchor.y = _0x4b4064.anchorY), _0x4b4064.x && (this.x = _0x4b4064.x), _0x4b4064.y && (this.y = _0x4b4064.y), _0x4b4064.maxWidth && (this.maxWidth = _0x4b4064.maxWidth), _0x4b4064.icon && (this.icon = _0x332b1c.Sprite.from(_0x4b4064.icon), this.icon.anchor.set(0.5), this.addChild(this.icon), this.icon.x = 0, this.inverse = !!_0x4b4064.inverse, this.refresh());
     }
     get ["text"]() {
-      const _0x37cf92 = _0x2ea283;
       return this._text.text;
     }
     set ['text'](_0x3fa361) {
-      const _0x4d26c2 = _0x2ea283;
       this._text.text !== _0x3fa361 && (this._text.text = String(_0x3fa361), this.refresh());
     }
     ["refresh"]() {
-      const _0x428b74 = _0x2ea283;
       if (this.maxWidth && this._text.width > this.maxWidth && (this._text.scale.x = 1, this._text.width = this.maxWidth, this._text.scale.y = this._text.scale.x), this.icon) {
         if (this._text.x = 0, "left" !== this._align) {
           this.icon.x = this._text.x - 0.5 * this._text.width - 0.5 * this.icon.width - 5, this.inverse && (this.icon.x = this._text.x + this._text.width + 0.5 * this.icon.width);
@@ -11294,15 +10381,12 @@
       }
     }
     get ["editable"]() {
-      const _0x1cb0b2 = _0x2ea283;
       return !!this._editable;
     }
     set ['editable'](_0x2ea229) {
-      const _0x5e2f47 = _0x2ea283;
       this._editable = _0x2ea229, this.interactive = _0x2ea229, this.buttonMode = _0x2ea229, void 0 === this.description && (this.description = "Set text"), this[this._editable ? 'on' : 'off']('pointertap', this.prompt, this);
     }
     ["prompt"]() {
-      const _0x196d40 = _0x2ea283;
       if (this._prompting) return;
       this._prompting = true;
       const _0x206124 = window.prompt(this.description, this.text);
@@ -11317,12 +10401,10 @@
   });
   class _0x2bbf23 {
     static ["calculateJumpVerticalSpeed"](_0x278cd6, _0x57a9d3) {
-      const _0x440cb4 = _0x4f955c;
       if (void 0 === _0x57a9d3 && (_0x57a9d3 = 0), _0x278cd6 < 0) throw new Error("Jump height cannot be negative");
       return Math.sqrt(2 * _0x278cd6 * _0x57a9d3);
     }
     static ["calculateJumpLength"](_0x41097a, _0x4f6f36, _0x444386) {
-      const _0x3797a6 = _0x4f955c;
       return 2 * _0x41097a * _0x2bbf23.calculateJumpVerticalSpeed(_0x4f6f36) / _0x444386;
     }
     static ["linear"](_0x16859c) {
@@ -11332,24 +10414,19 @@
       return 0 === _0x54c411 ? _0x54c411 : Math.pow(2, 10 * (_0x54c411 - 1));
     }
     static ["expoOut"](_0x10912a) {
-      const _0x27d9ca = _0x4f955c;
       return 1 === _0x10912a ? _0x10912a : 1 - Math.pow(2, -10 * _0x10912a);
     }
     static ["expoInOut"](_0x169c4e) {
-      const _0x2c1ab3 = _0x4f955c;
       return 0 === _0x169c4e || 1 === _0x169c4e ? _0x169c4e : _0x169c4e < 0.5 ? 0.5 * Math.pow(2, 20 * _0x169c4e - 10) : -0.5 * Math.pow(2, 10 - 20 * _0x169c4e) + 1;
     }
     static ["sineIn"](_0x431a56) {
-      const _0x1f0bb7 = _0x4f955c,
-        _0x1e9a63 = Math.cos(_0x431a56 * Math.PI * 0.5);
+      const _0x1e9a63 = Math.cos(_0x431a56 * Math.PI * 0.5);
       return Math.abs(_0x1e9a63) < 1e-14 ? 1 : 1 - _0x1e9a63;
     }
     static ["sineOut"](_0x2fedad) {
-      const _0x316e4f = _0x4f955c;
       return Math.sin(_0x2fedad * Math.PI / 2);
     }
     static ["sineInOut"](_0xa37407) {
-      const _0x4cb19d = _0x4f955c;
       return -0.5 * (Math.cos(Math.PI * _0xa37407) - 1);
     }
     static ["quadIn"](_0xf68b24) {
@@ -11365,11 +10442,9 @@
       return Math.pow(_0x4577b7, 4);
     }
     static ["quartOut"](_0xaf294d) {
-      const _0xf6e4f6 = _0x4f955c;
       return Math.pow(_0xaf294d - 1, 3) * (1 - _0xaf294d) + 1;
     }
     static ["quartInOut"](_0x1fa02b) {
-      const _0x336421 = _0x4f955c;
       return _0x1fa02b < 0.5 ? 8 * Math.pow(_0x1fa02b, 4) : -8 * Math.pow(_0x1fa02b - 1, 4) + 1;
     }
     static ["quintIn"](_0x335b84) {
@@ -11394,27 +10469,21 @@
       return --_0x268e42 * _0x268e42 * ((_0x1f55b9 + 1) * _0x268e42 + _0x1f55b9) + 1;
     }
     static ['circInOut'](_0x26410b) {
-      const _0xb32685 = _0x4f955c;
       return (_0x26410b *= 2) < 1 ? -0.5 * (Math.sqrt(1 - _0x26410b * _0x26410b) - 1) : 0.5 * (Math.sqrt(1 - (_0x26410b -= 2) * _0x26410b) + 1);
     }
     static ["circIn"](_0x482d1b) {
-      const _0x490991 = _0x4f955c;
       return 1 - Math.sqrt(1 - _0x482d1b * _0x482d1b);
     }
     static ["circOut"](_0x1cb265) {
-      const _0x443827 = _0x4f955c;
       return Math.sqrt(1 - --_0x1cb265 * _0x1cb265);
     }
     static ["elasticOut"](_0x430e55) {
-      const _0x422bac = _0x4f955c;
       return Math.sin(-13 * (_0x430e55 + 1) * Math.PI / 2) * Math.pow(2, -10 * _0x430e55) + 1;
     }
     static ["elasticIn"](_0x39e00c) {
-      const _0x558113 = _0x4f955c;
       return Math.sin(13 * _0x39e00c * Math.PI / 2) * Math.pow(2, 10 * (_0x39e00c - 1));
     }
     static ["elasticInOut"](_0x1bfc41) {
-      const _0x263c41 = _0x4f955c;
       return _0x1bfc41 < 0.5 ? 0.5 * Math.sin(13 * Math.PI / 2 * 2 * _0x1bfc41) * Math.pow(2, 10 * (2 * _0x1bfc41 - 1)) : 0.5 * Math.sin(-13 * Math.PI / 2 * (2 * _0x1bfc41 - 1 + 1)) * Math.pow(2, -10 * (2 * _0x1bfc41 - 1)) + 1;
     }
   }
@@ -11430,7 +10499,6 @@
     _0x68f78f = null;
   class _0x447bbf {
     static ["init"](_0x5011d6) {
-      const _0x8c7ac7 = _0x4fbfa2;
       _0x68f78f = _0x5011d6, this.refreshCache();
     }
     static ["sectionMap"]() {
@@ -11442,7 +10510,6 @@
       }(_0x49197e), _0x558542;
     }
     static ['section'](_0x4b0b02) {
-      const _0x56cfc0 = _0x4fbfa2;
       _0x4b0b02 = (_0x4b0b02 = _0x4b0b02.replace("routeSection_", '')).replace("route_section_", '');
       const _0x1ae452 = this.sectionMap(),
         _0x3df807 = _0x1ae452[_0x4b0b02] || _0x1ae452["route_section_" + _0x4b0b02] || _0x1ae452["routeSection_" + _0x4b0b02];
@@ -11450,8 +10517,7 @@
       return _0x3df807;
     }
     static ["sectionClone"](_0xe82e93) {
-      const _0x325bc3 = _0x4fbfa2,
-        _0x40a365 = this.sectionMap();
+      const _0x40a365 = this.sectionMap();
       if (!_0x40a365[_0xe82e93]) throw new Error("Section data not found: " + _0xe82e93);
       const _0x4e27f5 = _0x40a365[_0xe82e93];
       return {
@@ -11462,13 +10528,11 @@
       };
     }
     static ["chunkMap"](_0x414d94) {
-      const _0x1610ac = _0x4fbfa2;
       if (void 0 === _0x414d94 && (_0x414d94 = false), _0x4ca69b && !_0x414d94) return _0x4ca69b;
       _0x4ca69b = {};
       const _0x2dfd49 = {};
       for (const _0x1a270e in _0x68f78f) _0x1a270e.indexOf('chunks-') >= 0 && (_0x2dfd49[_0x1a270e] = _0x68f78f[_0x1a270e]);
       return function _0x1f70ea(_0x1f6fcc, _0x2c38d2) {
-        const _0x4b43e8 = _0x1610ac;
         if (!_0x1f6fcc || !_0x2c38d2--) return;
         if ('intro' === _0x1f6fcc.name) _0x4ca69b[_0x1f6fcc.name] = _0x1f6fcc;else {
           if (_0x1f6fcc.components && _0x1f6fcc.components.RouteChunk) {
@@ -11485,7 +10549,6 @@
       }(_0x2dfd49, 5), _0x4ca69b;
     }
     static ['chunk'](_0x4eb0bc) {
-      const _0x521e1e = _0x4fbfa2;
       _0x4eb0bc = (_0x4eb0bc = _0x4eb0bc.replace("routeChunk_", '')).replace("route_chunk_", '');
       const _0x1aeecc = this.chunkMap(),
         _0x329004 = _0x1aeecc[_0x4eb0bc] || _0x1aeecc["routeChunk_" + _0x4eb0bc] || _0x1aeecc["route_chunk_" + _0x4eb0bc] || _0x1aeecc["default_" + _0x4eb0bc];
@@ -11560,31 +10623,24 @@
       void 0 === _0x46d31a && (_0x46d31a = 0), void 0 === _0x305729 && (_0x305729 = 0), void 0 === _0x570767 && (_0x570767 = 0), this.vec[0] = _0x46d31a, this.vec[1] = _0x305729, this.vec[2] = _0x570767;
     }
     ["copy"](_0x620830) {
-      const _0x3db2ba = _0x15445f;
       this.vec[0] = _0x620830.vec[0], this.vec[1] = _0x620830.vec[1], this.vec[2] = _0x620830.vec[2];
     }
     ["clone"]() {
-      const _0xad1825 = _0x15445f;
       return new _0x3aa127(this.vec[0], this.vec[1], this.vec[2]);
     }
     ["distance"](_0xf611ff) {
-      const _0x19b867 = _0x15445f;
       return _0x4d1eae.a.distance(this.vec, _0xf611ff.vec);
     }
     ["magnitude"]() {
-      const _0x4d928a = _0x15445f;
       return _0x4d1eae.a.length(this.vec);
     }
     ["add"](_0x58d022) {
-      const _0x386f7b = _0x15445f;
       _0x4d1eae.a.add(this.vec, this.vec, _0x58d022.vec);
     }
     ["subtract"](_0x38c53d) {
-      const _0x1ccdfc = _0x15445f;
       _0x4d1eae.a.add(this.vec, this.vec, _0x38c53d.vec);
     }
     ["lerp"](_0xe5f86c, _0x2f828c, _0x14ba33) {
-      const _0x302cac = _0x15445f;
       void 0 === _0x14ba33 && (_0x14ba33 = 0), -1 !== _0x2f828c ? _0x39d04a.a.lerpVec3(this, this, _0xe5f86c, _0x2f828c, _0x14ba33) : this.copy(_0xe5f86c);
     }
   }
@@ -11604,17 +10660,14 @@
   };
   class _0x20e2b0 {
     static get ["group"]() {
-      const _0x565e8e = _0x7fbc65;
       return _0x20e2b0._uniformGroup || (_0x20e2b0._uniformGroup = new _0x494a5a.UniformGroup(_0x316e5b, false)), _0x20e2b0._uniformGroup.uniforms;
     }
     static ["getNewGroup"]() {
-      const _0x18a146 = _0x7fbc65;
       return new _0x494a5a.UniformGroup(_0x316e5b, true).uniforms;
     }
   }
   var _0x3c64cc, _0x101993, _0xda7c08;
   _0x3c64cc = _0x20e2b0, _0xda7c08 = void 0, (_0x101993 = function (_0x2b02a8) {
-    const _0x2061e0 = _0x7fbc65;
     var _0x31c95b = function (_0x257bf0, _0x49a4f6) {
       if ("object" != typeof _0x257bf0 || null === _0x257bf0) return _0x257bf0;
       var _0x5e943f = _0x257bf0[Symbol.toPrimitive];
@@ -11667,7 +10720,6 @@
     if (Object.getOwnPropertySymbols) {
       var _0x4f58af = Object.getOwnPropertySymbols(_0x4f9e38);
       _0x54336a && (_0x4f58af = _0x4f58af.filter(function (_0x13e996) {
-        const _0x360f88 = _0x2f9b4a;
         return Object.getOwnPropertyDescriptor(_0x4f9e38, _0x13e996).enumerable;
       })), _0x1a1d54.push.apply(_0x1a1d54, _0x4f58af);
     }
@@ -11695,16 +10747,13 @@
   }
   class _0x3dcb47 extends _0x388a17.Container {
     constructor(_0x2970cb) {
-      const _0x1224ca = _0x23cb64;
       void 0 === _0x2970cb && (_0x2970cb = {}), super(), _0xe6ac9d(this, 'bg', void 0), _0xe6ac9d(this, "base", void 0), _0xe6ac9d(this, 'panel', void 0), _0xe6ac9d(this, "bottomMenu", void 0), _0xe6ac9d(this, 'w', 0), _0xe6ac9d(this, 'h', 0);
       const _0x3ce89f = function (_0x13cbc5) {
-        const _0x4fd17e = _0x1224ca;
         for (var _0x516d6a = 1; _0x516d6a < arguments.length; _0x516d6a++) {
           var _0x294282 = null != arguments[_0x516d6a] ? arguments[_0x516d6a] : {};
           _0x516d6a % 2 ? _0x44141d(Object(_0x294282), true).forEach(function (_0x3ff9a6) {
             _0xe6ac9d(_0x13cbc5, _0x3ff9a6, _0x294282[_0x3ff9a6]);
           }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x13cbc5, Object.getOwnPropertyDescriptors(_0x294282)) : _0x44141d(Object(_0x294282)).forEach(function (_0x2b0f96) {
-            const _0x38b316 = _0x4fd17e;
             Object.defineProperty(_0x13cbc5, _0x2b0f96, Object.getOwnPropertyDescriptor(_0x294282, _0x2b0f96));
           });
         }
@@ -11722,12 +10771,10 @@
       })), this.bottomMenu.addButton(_0x509ebb), this.interactive = true;
     }
     ["addButton"]() {
-      const _0x3a7ef9 = _0x23cb64;
       for (var _0x20c908 = arguments.length, _0x190e23 = new Array(_0x20c908), _0xd6fb8b = 0; _0xd6fb8b < _0x20c908; _0xd6fb8b++) _0x190e23[_0xd6fb8b] = arguments[_0xd6fb8b];
       _0x190e23.forEach(_0x20aa2f => this.bottomMenu.addButton(_0x20aa2f)), this.resize(this.w, this.h);
     }
     ["resize"](_0x55338c, _0x561c72) {
-      const _0x1acfbe = _0x23cb64;
       this.bg.resize(_0x55338c, _0x561c72), this.w = _0x55338c, this.h = _0x561c72, this.bottomMenu.x = this.bottomMenu.options.spacing - this.base.width / 2, this.bottomMenu.y = _0x561c72 / 2 - 88, this.panel.y = -this.bottomMenu.height / 2;
     }
   }
@@ -11743,7 +10790,6 @@
     if (Object.getOwnPropertySymbols) {
       var _0x49a623 = Object.getOwnPropertySymbols(_0x29c4fe);
       _0x50eab2 && (_0x49a623 = _0x49a623.filter(function (_0x2568a7) {
-        const _0x72f7e7 = _0xce8c4b;
         return Object.getOwnPropertyDescriptor(_0x29c4fe, _0x2568a7).enumerable;
       })), _0x2a0438.push.apply(_0x2a0438, _0x49a623);
     }
@@ -11755,7 +10801,6 @@
       _0x3bbcc3 % 2 ? _0x406083(Object(_0x32b4ac), true).forEach(function (_0x665e67) {
         _0x2936bb(_0x3adb52, _0x665e67, _0x32b4ac[_0x665e67]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x3adb52, Object.getOwnPropertyDescriptors(_0x32b4ac)) : _0x406083(Object(_0x32b4ac)).forEach(function (_0x13b177) {
-        const _0x1a4af3 = _0x50873a;
         Object.defineProperty(_0x3adb52, _0x13b177, Object.getOwnPropertyDescriptor(_0x32b4ac, _0x13b177));
       });
     }
@@ -11803,13 +10848,11 @@
   };
   class _0x2eca85 extends _0x2d7e4e.Container {
     constructor(_0x43df32) {
-      const _0x5e240e = _0xa21eb9;
       void 0 === _0x43df32 && (_0x43df32 = {}), super(), _0x2936bb(this, 'w', void 0), _0x2936bb(this, 'h', void 0), _0x2936bb(this, "stripes", void 0);
       const _0x9ae08a = _0x370d9a(_0x370d9a({}, _0x5fb209), _0x43df32);
       _0x43df32.mask || (_0x9ae08a.mask = new _0x2d7e4e.Graphics().beginFill(16711680).drawRect(-0.5, -0.5, 1, 1), _0x9ae08a.mask.scale.set(_0x9ae08a.w, _0x9ae08a.h)), this.w = _0x9ae08a.w, this.h = _0x9ae08a.h;
       const _0x486afd = new _0x2d7e4e.Graphics();
       _0x486afd.beginFill(_0x9ae08a.color, _0x9ae08a.baseAlpha), _0x486afd.drawRoundedRect(0.5 * -_0x9ae08a.w, 0.5 * -_0x9ae08a.h, _0x9ae08a.w, _0x9ae08a.h, _0x9ae08a.radius), this.addChild(_0x486afd), this.stripes = new _0x2d7e4e.Container(), this.stripes.addChild(_0x2d7e4e.Sprite.from("background-stripes-hq.png"), _0x2d7e4e.Sprite.from("background-stripes-hq.png"), _0x2d7e4e.Sprite.from("background-stripes-hq.png"), _0x2d7e4e.Sprite.from("background-stripes-hq.png")), this.stripes.children.forEach(_0x1d0475 => {
-        const _0x548047 = _0x5e240e;
         _0x1d0475.blendMode = _0x9ae08a.blendMode, _0x1d0475.tint = _0x9ae08a.glow;
       }), this.stripes.children[1].rotation = 0.5 * Math.PI, this.stripes.children[2].rotation = Math.PI, this.stripes.children[3].rotation = 1.5 * Math.PI, this.stripes.width = 1.15 * Math.max(_0x9ae08a.w, _0x9ae08a.h), this.stripes.height = this.stripes.width, this.stripes.x = _0x9ae08a.w * _0x9ae08a.center.x, this.stripes.y = _0x9ae08a.h * _0x9ae08a.center.y, this.stripes.alpha = _0x9ae08a.raysAlpha, this.addChild(this.stripes);
       const _0x39cba5 = _0x2d7e4e.Sprite.from("background-superglow.png");
@@ -11904,7 +10947,6 @@
     },
     _0x3af5b8 = /\{\{(.*?)\}\}/g;
   function _0x55cc2d(_0x2663a4) {
-    const _0xd82d55 = _0x268bfd;
     var _0x491040, _0x26127e;
     const _0x2427d2 = {};
     return (null !== (_0x491040 = null === (_0x26127e = _0x2663a4.match(_0x3af5b8)) || void 0 === _0x26127e ? void 0 : _0x26127e.map(_0xc4d1e2 => _0xc4d1e2.replace(/[{()}]/g, ''))) && void 0 !== _0x491040 ? _0x491040 : []).forEach(_0x3a58aa => {
@@ -11914,7 +10956,6 @@
   const _0x3cb447 = {};
   let _0x208a3c = 1;
   function _0x5b3882(_0x5e194f, _0x5931ea, _0x36cb91) {
-    const _0x118835 = _0x268bfd;
     if (_0x5e194f) {
       for (const _0x3a9e9c in _0x5e194f) if ("header" !== _0x3a9e9c) {
         const _0x137b4c = _0x5931ea[_0x3a9e9c.toUpperCase()];
@@ -11923,7 +10964,6 @@
     }
   }
   function _0x192a10(_0x109291, _0x13049e) {
-    const _0x3c1480 = _0x268bfd;
     let _0x2ad263 = _0x109291;
     for (const _0x52c50c in _0x13049e) {
       const _0x2454fc = _0x13049e[_0x52c50c];
@@ -11994,32 +11034,27 @@
       }
     };
   function _0x1da230(_0x1d5975, _0x282d00) {
-    const _0x7a30fb = _0x268bfd;
     var _0x3effc8 = Object.keys(_0x1d5975);
     if (Object.getOwnPropertySymbols) {
       var _0x5047cd = Object.getOwnPropertySymbols(_0x1d5975);
       _0x282d00 && (_0x5047cd = _0x5047cd.filter(function (_0x5383f4) {
-        const _0x7bb066 = _0x7a30fb;
         return Object.getOwnPropertyDescriptor(_0x1d5975, _0x5383f4).enumerable;
       })), _0x3effc8.push.apply(_0x3effc8, _0x5047cd);
     }
     return _0x3effc8;
   }
   function _0x1e429f(_0x168211) {
-    const _0x26934d = _0x268bfd;
     for (var _0x518b14 = 1; _0x518b14 < arguments.length; _0x518b14++) {
       var _0x41c0c4 = null != arguments[_0x518b14] ? arguments[_0x518b14] : {};
       _0x518b14 % 2 ? _0x1da230(Object(_0x41c0c4), true).forEach(function (_0xd75fc) {
         _0x4854c2(_0x168211, _0xd75fc, _0x41c0c4[_0xd75fc]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x168211, Object.getOwnPropertyDescriptors(_0x41c0c4)) : _0x1da230(Object(_0x41c0c4)).forEach(function (_0x1cd3e5) {
-        const _0x1cd503 = _0x26934d;
         Object.defineProperty(_0x168211, _0x1cd3e5, Object.getOwnPropertyDescriptor(_0x41c0c4, _0x1cd3e5));
       });
     }
     return _0x168211;
   }
   function _0x4854c2(_0x3f9aea, _0x2cd33f, _0x54c718) {
-    const _0x568f7f = _0x268bfd;
     return (_0x2cd33f = function (_0x5ee6ae) {
       var _0x1718f9 = function (_0x89b7d0, _0x464a0a) {
         if ('object' != typeof _0x89b7d0 || null === _0x89b7d0) return _0x89b7d0;
@@ -12045,7 +11080,6 @@
   };
   class _0x459a01 extends _0x1e11eb.a {
     constructor(_0x57788c) {
-      const _0x3606bf = _0x268bfd;
       var _0x4da753, _0x3d6af7, _0x4c6fd4, _0x24582b;
       void 0 === _0x57788c && (_0x57788c = {}), _0x57788c = _0x1e429f(_0x1e429f({}, _0x245df7), _0x57788c);
       const _0x16bb44 = _0x1e429f({}, _0x310b5f.a.group);
@@ -12080,23 +11114,18 @@
       return this.uniforms.uDiffuseMap;
     }
     set ['color'](_0x180cb5) {
-      const _0xc3c98e = _0x268bfd;
       this._hexColor = _0x180cb5, _0xe1e0b3.utils.hex2rgb(_0x180cb5, this.uniforms.uDiffuseColor);
     }
     get ['color']() {
-      const _0x2e3fea = _0x268bfd;
       return this._hexColor;
     }
     set ["opacity"](_0x3ff5d7) {
-      const _0x36f027 = _0x268bfd;
       this.uniforms.uDiffuseColor[3] = _0x3ff5d7;
     }
     get ["opacity"]() {
-      const _0x47889e = _0x268bfd;
       return this.uniforms.uDiffuseColor[3];
     }
     ["build"](_0x265bad, _0x566153, _0xcafa0d) {
-      const _0x26e233 = _0x268bfd;
       var _0x4b29f4;
       const _0x4689aa = this._config;
       _0x566153 && _0x4689aa.extensions.push(_0x281a06.a);
@@ -12105,7 +11134,6 @@
           vertex: _0x236481,
           fragment: _0x4014ee
         } = function (_0x52d8e2, _0x97090d, _0x208469, _0xd97ce5) {
-          const _0x502ddd = _0x26e233;
           var _0x21ff81, _0x9ec2ef;
           const _0x1922ba = _0x208469.map(_0x5d6f41 => (_0x5d6f41.cache || (_0x5d6f41.cache = _0x208a3c++), _0x5d6f41.cache)).sort((_0x1f29ac, _0x5a9249) => _0x1f29ac - _0x5a9249).join('-');
           if (_0x3cb447[_0x1922ba]) return _0x3cb447[_0x1922ba];
@@ -12117,7 +11145,6 @@
             _0x20edda = _0x55cc2d(_0x97090d.vertex),
             _0x1daac6 = _0x55cc2d(_0x97090d.fragment);
           _0x208469.forEach(_0x2ec5f7 => {
-            const _0x3d2a58 = _0x502ddd;
             _0x5b3882(_0x52d8e2 && _0x2ec5f7.vertex2 ? _0x2ec5f7.vertex2 : _0x2ec5f7.vertex, _0x20edda, _0x2ec5f7.name), _0x5b3882(_0x52d8e2 && _0x2ec5f7.fragment2 ? _0x2ec5f7.fragment2 : _0x2ec5f7.fragment, _0x1daac6, _0x2ec5f7.name);
           });
           let _0x2f72b9 = _0x192a10(_0x97090d.vertex, _0x20edda),
@@ -12145,7 +11172,6 @@
       return _0x9ea82f.components[_0x398e76];
     }
     static ["environment"](_0x1d05e0) {
-      const _0x3b32c7 = _0x3c0c71;
       var _0x373cfb;
       if (_0x1d05e0.components.Environment) return _0x1d05e0;
       if (!_0x1d05e0.children) return null;
@@ -12157,13 +11183,11 @@
       return null;
     }
     static ["environmentType"](_0x4de0bd) {
-      const _0x5e3862 = _0x3c0c71;
       if (!_0x4de0bd.components.Environment) return null;
       return _0x4de0bd.components.Environment._environmentKind._type.split(',');
     }
     static ["environmentKinds"](_0x14611a) {
-      const _0xcddd6b = _0x3c0c71,
-        _0x3f87c5 = _0x14611a.components.RouteChunk._limitedAllowedEnvironmentKinds,
+      const _0x3f87c5 = _0x14611a.components.RouteChunk._limitedAllowedEnvironmentKinds,
         _0x23bd4a = _0x177741.a.item(_0x3f87c5)._type.split(',');
       _0x3e0bd2.environment = _0x23bd4a || [];
     }
@@ -12215,38 +11239,30 @@
       super(_0x89283f, _0x27d789), _0x36f203(this, "type", void 0), _0x36f203(this, "name", void 0), _0x36f203(this, "options", void 0), _0x36f203(this, "needsUpdate", void 0), _0x36f203(this, 'id', void 0), _0x36f203(this, "skinning", void 0), _0x36f203(this, "maxBones", void 0), _0x36f203(this, "instancing", void 0), _0x36f203(this, "vertexSource", void 0), _0x36f203(this, "fragmentSource", void 0), _0x36f203(this, "fragmentInjection", void 0), _0x36f203(this, "vertexInjection", void 0), _0x36f203(this, "rebuildId", void 0), _0x36f203(this, "defines", void 0), _0x36f203(this, 'sig', void 0), _0x36f203(this, '_hexColor', void 0), this._hexColor = 16777215, this.type = _0xed6290, this.name = _0x22f491.name || this.type + "-shader", this.options = {}, this.needsUpdate = true, this.id = _0x457a4d++, this.skinning = !!_0x22f491.skinning, this.maxBones = _0x22f491.maxBones = _0x22f491.maxBones || 27, this.skinning && (_0x27d789.bones = new Float32Array(16 * this.maxBones)), this.color = void 0 === _0x22f491.color ? 16777215 : _0x22f491.color, this.instancing = !!_0x22f491.instancing, this.instancing && (this.name += "-instanced"), _0x22f491.uniforms && Object.assign(_0x27d789, _0x22f491.uniforms), _0x22f491.map && (_0x27d789.uMap = _0x22f491.map, _0x27d789.uMapFrame = new _0x5282ba.Rectangle(0, 0, 1, 1)), this.vertexSource = _0x4f11a6, this.fragmentSource = _0x4e079a, this.fragmentInjection = _0x22f491.fragment || {}, this.vertexInjection = _0x22f491.vertex || {}, this.sig = this.getSignature(_0x22f491), this.program = _0x89283f, this.rebuildId = 0, this.defines = _0x5dc81d || [];
     }
     set ["opacity"](_0x473d64) {
-      const _0x19b5ab = _0x51e0df;
       this.uniforms.uOpacity = _0x473d64;
     }
     get ["opacity"]() {
-      const _0x2feedf = _0x51e0df;
       return this.uniforms.uOpacity;
     }
     set ["map"](_0x336ee5) {
-      const _0x57cc25 = _0x51e0df;
       this.uniforms.uMap = _0x336ee5;
     }
     get ["map"]() {
-      const _0x1128ca = _0x51e0df;
       return this.uniforms.uMap;
     }
     set ["color"](_0x557eea) {
-      const _0x5b10c8 = _0x51e0df;
       this._hexColor = _0x557eea, _0x5282ba.utils.hex2rgb(_0x557eea, this.uniforms.uColor);
     }
     get ["color"]() {
-      const _0x44d25f = _0x51e0df;
       return this._hexColor;
     }
     ["injectDefines"](_0xe46be6, _0x43faf1) {
-      const _0x41ac42 = _0x51e0df,
-        _0x32f213 = this.uniforms,
+      const _0x32f213 = this.uniforms,
         _0x3297f4 = [_0x32f213.uColor ? "#define COLOR" : '', this.skinning ? "#define SKINNING" : '', _0x32f213.uMap ? "#define MAP" : '', this.instancing ? "#define INSTANCING" : ''].concat(this.defines).filter(_0x478a73).join('\x0a');
       _0xe46be6.vertex = _0x3297f4 + '\x0a' + _0xe46be6.vertex, _0xe46be6.fragment = _0x3297f4 + '\x0a' + _0xe46be6.fragment;
     }
     ["injectHooks"](_0x169b4f) {
-      const _0x50b42e = _0x51e0df,
-        _0xb63db2 = this.vertexInjection;
+      const _0xb63db2 = this.vertexInjection;
       let _0x391803 = _0x169b4f.vertex;
       _0x391803 = _0x391803.replace(/#HOOK_VERTEX_START/g, _0xb63db2.start || ''), _0x391803 = _0x391803.replace(/#HOOK_VERTEX_MAIN/g, _0xb63db2.main || ''), _0x391803 = _0x391803.replace(/#HOOK_VERTEX_END/g, _0xb63db2.end || '');
       const _0x485db1 = this.fragmentInjection;
@@ -12254,7 +11270,6 @@
       _0x131434 = _0x131434.replace(/#HOOK_FRAGMENT_START/g, _0x485db1.start || ''), _0x131434 = _0x131434.replace(/#HOOK_FRAGMENT_MAIN/g, _0x485db1.main || ''), _0x131434 = _0x131434.replace(/#HOOK_FRAGMENT_END/g, _0x485db1.end || ''), _0x169b4f.fragment = _0x131434, _0x169b4f.vertex = _0x391803;
     }
     ["build"](_0x5851c2, _0x48f53a) {
-      const _0x1a6593 = _0x51e0df;
       if (_0x5c97e3[this.sig]) return void (this.program = _0x5c97e3[this.sig]);
       const _0x29aa45 = {
         vertex: this.vertexSource,
@@ -12263,8 +11278,7 @@
       _0x29aa45.vertex = _0x29aa45.vertex.replace(/#MAX_BONES/g, String(this.maxBones)), this.injectDefines(_0x29aa45, _0x48f53a), this.injectHooks(_0x29aa45), this.program = _0x5282ba.Program.from(_0x29aa45.vertex, _0x29aa45.fragment, this.name), _0x5c97e3[this.sig] = this.program;
     }
     ["getSignature"](_0x13e015) {
-      const _0x1533e6 = _0x51e0df,
-        _0x2f9c0a = [this.type];
+      const _0x2f9c0a = [this.type];
       for (const _0x33c99c in _0x13e015) _0x2f9c0a.push(_0x33c99c);
       return _0x2f9c0a.sort(), _0x13e015.vertex && _0x2f9c0a.push(_0x13e015.vertex.start || '', _0x13e015.vertex.main || '', _0x13e015.vertex.end || ''), _0x13e015.fragment && _0x2f9c0a.push(_0x13e015.fragment.start || '', _0x13e015.fragment.main || '', _0x13e015.fragment.end || ''), _0x2f9c0a.join('-');
     }
@@ -12281,7 +11295,6 @@
     if (Object.getOwnPropertySymbols) {
       var _0x433aaa = Object.getOwnPropertySymbols(_0x1bd51e);
       _0x57a8c0 && (_0x433aaa = _0x433aaa.filter(function (_0x5ededb) {
-        const _0x5e2528 = _0x251f41;
         return Object.getOwnPropertyDescriptor(_0x1bd51e, _0x5ededb).enumerable;
       })), _0x39792f.push.apply(_0x39792f, _0x433aaa);
     }
@@ -12293,7 +11306,6 @@
       _0x35172d % 2 ? _0x29a27a(Object(_0x4c82e8), true).forEach(function (_0x5f44fa) {
         _0x251229(_0x1e714c, _0x5f44fa, _0x4c82e8[_0x5f44fa]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x1e714c, Object.getOwnPropertyDescriptors(_0x4c82e8)) : _0x29a27a(Object(_0x4c82e8)).forEach(function (_0x3bfee9) {
-        const _0x43f7ee = _0x3b522d;
         Object.defineProperty(_0x1e714c, _0x3bfee9, Object.getOwnPropertyDescriptor(_0x4c82e8, _0x3bfee9));
       });
     }
@@ -12328,7 +11340,6 @@
     lineHeight: 5
   };
   function _0xec9cb9(_0x848094) {
-    const _0x1d667b = _0x59013a;
     void 0 === _0x848094 && (_0x848094 = {});
     const {
         length: _0x3b324b,
@@ -12358,7 +11369,6 @@
     if (Object.getOwnPropertySymbols) {
       var _0x5d6a54 = Object.getOwnPropertySymbols(_0x12715a);
       _0x15d8bb && (_0x5d6a54 = _0x5d6a54.filter(function (_0x10101c) {
-        const _0x59fea8 = _0x23d47d;
         return Object.getOwnPropertyDescriptor(_0x12715a, _0x10101c).enumerable;
       })), _0x407c42.push.apply(_0x407c42, _0x5d6a54);
     }
@@ -12370,7 +11380,6 @@
       _0x46838b % 2 ? _0x384384(Object(_0xdfa39f), true).forEach(function (_0x2c175c) {
         _0x49aac5(_0x3d18e8, _0x2c175c, _0xdfa39f[_0x2c175c]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x3d18e8, Object.getOwnPropertyDescriptors(_0xdfa39f)) : _0x384384(Object(_0xdfa39f)).forEach(function (_0x2b8713) {
-        const _0x2324e9 = _0x2aa872;
         Object.defineProperty(_0x3d18e8, _0x2b8713, Object.getOwnPropertyDescriptor(_0xdfa39f, _0x2b8713));
       });
     }
@@ -12410,17 +11419,14 @@
   };
   class _0x8e2d62 extends _0x453fb4.Container {
     constructor(_0x4b52df) {
-      const _0x1f0369 = _0x4b0641;
       void 0 === _0x4b52df && (_0x4b52df = {}), super(), _0x49aac5(this, "label", void 0);
       const _0x30662e = _0x43d9b4(_0x43d9b4({}, _0x226f21), _0x4b52df);
       this.label = this.addChild(new _0x38b0e4.a('0', _0x30662e)), this.coins = _0x30662e.coins;
     }
     get ["coins"]() {
-      const _0x3b0f77 = _0x4b0641;
       return Number.parseInt(this.label.text, 10);
     }
     set ["coins"](_0x556bf4) {
-      const _0x34821e = _0x4b0641;
       this.label.text = String(_0x556bf4);
     }
   }
@@ -12434,8 +11440,7 @@
   }), _0x440274(10);
   class _0x2a95b6 {
     static ["getUrlParams"]() {
-      const _0x2ad559 = _0x2175d4,
-        _0x175e40 = location.search,
+      const _0x175e40 = location.search,
         _0x2fccfa = _0x175e40.slice(_0x175e40.indexOf('?') + 1).split('&'),
         _0x4465a6 = {};
       for (const _0x5a2b93 of _0x2fccfa) {
@@ -12447,16 +11452,13 @@
       return _0x4465a6;
     }
     static ["getUrlParam"](_0x4acdc2, _0x51a547) {
-      const _0x3074b5 = _0x2175d4,
-        _0x152b40 = this.getUrlParams();
+      const _0x152b40 = this.getUrlParams();
       return void 0 !== _0x152b40[_0x4acdc2] ? _0x152b40[_0x4acdc2] : _0x51a547;
     }
     static ["isIOS"]() {
-      const _0x5b6224 = _0x2175d4;
       return ["iPad Simulator", "iPhone Simulator", "iPod Simulator", "iPad", 'iPhone', 'iPod'].includes(navigator.platform) || navigator.userAgent.includes("Mac") && "ontouchend" in document;
     }
     static ["isPoki"]() {
-      const _0x9cd7c7 = _0x2175d4;
       return void 0 !== this.getUrlParam("site_id");
     }
   }
@@ -12480,7 +11482,6 @@
     databaseURL: "https://subwaysurfers-84a83-default-rtdb.europe-west1.firebasedatabase.app/"
   };
   function _0x166aaf(_0x1c7754, _0x27559a, _0x367d94) {
-    const _0x1d41b7 = _0x4bd927;
     return (_0x27559a = function (_0x537db0) {
       var _0xe98afe = function (_0x5cdd7f, _0xb096d7) {
         if ("object" != typeof _0x5cdd7f || null === _0x5cdd7f) return _0x5cdd7f;
@@ -12583,35 +11584,28 @@
     }],
     _0x3518b6 = new class _0x53ad5e {
       constructor() {
-        const _0x37f432 = _0x4bd927;
         _0x166aaf(this, 'usersRef', void 0), _0x166aaf(this, "usersHash", new Map()), _0x166aaf(this, 'onAdded', _0x1aa9c2 => {
-          const _0x390de5 = _0x37f432,
-            _0xe5274f = _0x1aa9c2.val();
+          const _0xe5274f = _0x1aa9c2.val();
           this.usersHash.set(_0xe5274f.profile.name, _0xe5274f);
         }), _0x166aaf(this, 'onChanged', _0x378e66 => {
-          const _0x5b27e6 = _0x37f432,
-            _0x388217 = _0x378e66.val();
+          const _0x388217 = _0x378e66.val();
           this.usersHash.set(_0x388217.profile.name, _0x388217);
         }), _0x166aaf(this, "onRemoved", _0x499950 => {
-          const _0x1df280 = _0x37f432,
-            _0x40d0e6 = _0x499950.child("profile").child("name").val();
+          const _0x40d0e6 = _0x499950.child("profile").child("name").val();
           this.usersHash.delete(_0x40d0e6);
         });
       }
       async ["init"]() {
-        const _0x4865cc = _0x4bd927;
         if (this.mock) {
           const _0x5d5c98 = _0x17c277.a.user.leaderboardEntry;
           _0x5d5c98.score = _0x17c277.a.user.gameSettings.highscore, this.setUser(_0x5d5c98);
         } else _0x520cc5.a.initializeApp(_0x5aa2a9), this.usersRef = _0x520cc5.a.database().ref("users"), this.usersRef.on("child_added", this.onAdded), this.usersRef.on("child_changed", this.onChanged), this.usersRef.on("child_removed", this.onRemoved);
       }
       get ["mock"]() {
-        const _0x220fa5 = _0x4bd927;
         return "ingame" !== _0x3a11c3.a.leaderboard;
       }
       async ["setUser"](_0x38d08d) {
-        const _0x43f7e4 = _0x4bd927,
-          _0x4eac56 = _0x38d08d.profile.name,
+        const _0x4eac56 = _0x38d08d.profile.name,
           _0x4581b1 = {
             profile: {
               name: _0x38d08d.profile.name,
@@ -12637,24 +11631,19 @@
         return _0x4c5e9d;
       }
       ["getLowestScoreEntry"]() {
-        const _0x3acb74 = _0x4bd927;
         let _0x2e993d,
           _0x2bd03b = 1 / 0,
           _0x4ef736 = {};
         return this.usersHash.forEach((_0x57ccc1, _0x190a80) => {
-          const _0x2960fe = _0x3acb74;
           null != _0x57ccc1 && _0x57ccc1.score && _0x57ccc1.score < _0x2bd03b && (_0x2bd03b = null == _0x57ccc1 ? void 0 : _0x57ccc1.score, _0x2e993d = _0x190a80);
         }), _0x2e993d && (_0x4ef736 = this.usersHash.get(_0x2e993d)), _0x4ef736;
       }
       async ["getLeaderboard"]() {
-        const _0x2d787e = _0x4bd927;
         let _0x4d23b0;
         return await this.cleanUp(), _0x4d23b0 = this.mock ? Promise.resolve(_0x593141) : Promise.resolve(Array.from(this.usersHash.values())), _0x4d23b0;
       }
       async ["cleanUp"]() {
-        const _0x8f564 = _0x4bd927;
         this.usersHash.forEach((_0x16b58a, _0x6e7cd1) => {
-          const _0x5131ad = _0x8f564;
           var _0xd0c07c;
           (Date.now() - _0x16b58a.date) / 1000 / 60 / 60 >= 4 && (null === (_0xd0c07c = this.usersRef) || void 0 === _0xd0c07c || _0xd0c07c.child(_0x6e7cd1).get().then(_0x5a23cf => _0x5a23cf.ref.remove()), this.usersHash.delete(_0x6e7cd1));
         });
@@ -12680,14 +11669,12 @@
     _0x1dfe0b = _0x2b911f.map(_0x599fa8 => _0x599fa8.chance),
     _0xe25d89 = _0x1c4050.map(_0x520dae => _0x520dae.chance);
   function _0x1f9643(_0x55e639) {
-    const _0x4eb9d7 = _0x102088;
     void 0 === _0x55e639 && (_0x55e639 = "mystery-box");
     let _0x478cb4 = function () {
-      const _0x2ff673 = _0x4eb9d7,
-        {
-          type: _0x5da81b,
-          amount: _0x4b006e
-        } = _0x8b1be0.weighted(_0x2b911f, _0x1dfe0b);
+      const {
+        type: _0x5da81b,
+        amount: _0x4b006e
+      } = _0x8b1be0.weighted(_0x2b911f, _0x1dfe0b);
       return {
         type: _0x5da81b,
         amount: 'number' == typeof _0x4b006e ? _0x4b006e : Object(_0x2d62b8.b)(_0x4b006e[0], _0x4b006e[1] + 1, true),
@@ -12695,22 +11682,20 @@
       };
     }();
     return "mini-mystery-box" === _0x55e639 ? _0x478cb4 = function () {
-      const _0x118610 = _0x4eb9d7,
-        {
-          type: _0x2f875a,
-          amount: _0x2e148d
-        } = _0x8b1be0.weighted(_0x2d74ab, _0x28a692);
+      const {
+        type: _0x2f875a,
+        amount: _0x2e148d
+      } = _0x8b1be0.weighted(_0x2d74ab, _0x28a692);
       return {
         type: _0x2f875a,
         amount: "number" == typeof _0x2e148d ? _0x2e148d : Object(_0x2d62b8.b)(_0x2e148d[0], _0x2e148d[1] + 1, true),
         boxType: "mini-mystery-box"
       };
     }() : "super-mystery-box" === _0x55e639 && (_0x478cb4 = function () {
-      const _0x40191a = _0x4eb9d7,
-        {
-          type: _0x4c5234,
-          amount: _0xf8216a
-        } = _0x8b1be0.weighted(_0x1c4050, _0xe25d89);
+      const {
+        type: _0x4c5234,
+        amount: _0xf8216a
+      } = _0x8b1be0.weighted(_0x1c4050, _0xe25d89);
       return {
         type: _0x4c5234,
         amount: "number" == typeof _0xf8216a ? _0xf8216a : Object(_0x2d62b8.b)(_0xf8216a[0], _0xf8216a[1] + 1, true),
@@ -12731,7 +11716,6 @@
     if (Object.getOwnPropertySymbols) {
       var _0xdd1dac = Object.getOwnPropertySymbols(_0x2a1b9f);
       _0x4e1312 && (_0xdd1dac = _0xdd1dac.filter(function (_0x45a3e6) {
-        const _0x33c4ac = _0x39bc69;
         return Object.getOwnPropertyDescriptor(_0x2a1b9f, _0x45a3e6).enumerable;
       })), _0x26658d.push.apply(_0x26658d, _0xdd1dac);
     }
@@ -12762,13 +11746,11 @@
       void 0 === _0x86c1b8 && (_0x86c1b8 = {});
       const _0x551d73 = _0x244c6f.Sprite.from("base-item-flat.png");
       _0x551d73.anchor.set(0.5), _0x551d73.width = 100, _0x551d73.height = 100, super(function (_0x3ede39) {
-        const _0x1955ce = _0x4b704b;
         for (var _0x3a3400 = 1; _0x3a3400 < arguments.length; _0x3a3400++) {
           var _0x55c1d8 = null != arguments[_0x3a3400] ? arguments[_0x3a3400] : {};
           _0x3a3400 % 2 ? _0x44a696(Object(_0x55c1d8), true).forEach(function (_0x254b11) {
             _0x14d5cd(_0x3ede39, _0x254b11, _0x55c1d8[_0x254b11]);
           }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x3ede39, Object.getOwnPropertyDescriptors(_0x55c1d8)) : _0x44a696(Object(_0x55c1d8)).forEach(function (_0x12cd7e) {
-            const _0x1a1d6a = _0x1955ce;
             Object.defineProperty(_0x3ede39, _0x12cd7e, Object.getOwnPropertyDescriptor(_0x55c1d8, _0x12cd7e));
           });
         }
@@ -12792,7 +11774,6 @@
     if (Object.getOwnPropertySymbols) {
       var _0x2e5048 = Object.getOwnPropertySymbols(_0x284228);
       _0xe14f5b && (_0x2e5048 = _0x2e5048.filter(function (_0xbf519b) {
-        const _0x3bf7de = _0x5399b9;
         return Object.getOwnPropertyDescriptor(_0x284228, _0xbf519b).enumerable;
       })), _0x1640f8.push.apply(_0x1640f8, _0x2e5048);
     }
@@ -12804,7 +11785,6 @@
       _0x17e74f % 2 ? _0x58edff(Object(_0x16df9e), true).forEach(function (_0x321dac) {
         _0x37468a(_0x405eb2, _0x321dac, _0x16df9e[_0x321dac]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x405eb2, Object.getOwnPropertyDescriptors(_0x16df9e)) : _0x58edff(Object(_0x16df9e)).forEach(function (_0x2acb8a) {
-        const _0x39cf7a = _0x37dc3e;
         Object.defineProperty(_0x405eb2, _0x2acb8a, Object.getOwnPropertyDescriptor(_0x16df9e, _0x2acb8a));
       });
     }
@@ -12839,14 +11819,11 @@
       void 0 === _0x11be4e && (_0x11be4e = {}), super(), _0x37468a(this, "options", void 0), _0x37468a(this, "buttons", void 0), _0x37468a(this, "container", void 0), this.options = _0x196dfa(_0x196dfa({}, _0x3d1dcb), _0x11be4e), this.buttons = [], this.container = new _0x473b97.Container(), this.addChild(this.container);
     }
     ["addButton"](_0x63e6c8) {
-      const _0x46c0e3 = _0x36eb3c;
       this.buttons.push(_0x63e6c8), this.container.addChild(_0x63e6c8), this.organise();
     }
     ["organise"]() {
-      const _0x4d5637 = _0x36eb3c;
       let _0x3cdb29 = 0;
       this.buttons.forEach(_0x537545 => {
-        const _0x3d2d04 = _0x4d5637;
         _0x537545.visible && (_0x537545.x = _0x3cdb29 + _0x537545.baseWidth / 2, _0x3cdb29 += _0x537545.baseWidth + this.options.spacing);
       }), this.container.x = -this.container.width * this.options.anchorX;
     }
@@ -12886,110 +11863,84 @@
       this.size.copy(_0x3befb1.size), this.center.copy(_0x3befb1.center);
     }
     ["resize"](_0x11b188, _0x1deae6, _0x5a92c6) {
-      const _0x4fe816 = _0x371d75;
       void 0 === _0x11b188 && (_0x11b188 = 1), void 0 === _0x1deae6 && (_0x1deae6 = 1), void 0 === _0x5a92c6 && (_0x5a92c6 = 1), this.size.x = _0x11b188, this.size.y = _0x1deae6, this.size.z = _0x5a92c6;
     }
     ["reposition"](_0x1428fd, _0x121938, _0x9f82ed) {
-      const _0x5d80d7 = _0x371d75;
       void 0 === _0x1428fd && (_0x1428fd = 1), void 0 === _0x121938 && (_0x121938 = 1), void 0 === _0x9f82ed && (_0x9f82ed = 1), this.center.x = _0x1428fd, this.center.y = _0x121938, this.center.z = _0x9f82ed;
     }
     get ['x']() {
-      const _0x5b5a19 = _0x371d75;
       return this.center.x;
     }
     set ['x'](_0x393afd) {
-      const _0x1cfc3c = _0x371d75;
       this.center.x = _0x393afd;
     }
     get ['y']() {
-      const _0x57c719 = _0x371d75;
       return this.center.y;
     }
     set ['y'](_0x26004f) {
-      const _0x1d74c3 = _0x371d75;
       this.center.y = _0x26004f;
     }
     get ['z']() {
-      const _0x3c7bcc = _0x371d75;
       return this.center.z;
     }
     set ['z'](_0x396966) {
-      const _0x2e678f = _0x371d75;
       this.center.z = _0x396966;
     }
     get ["left"]() {
-      const _0x409180 = _0x371d75;
       return this.center.x - 0.5 * this.size.x;
     }
     set ["left"](_0xc35696) {
-      const _0x519305 = _0x371d75;
       this.center.x = _0xc35696 + 0.5 * this.size.x;
     }
     get ["right"]() {
-      const _0x97c821 = _0x371d75;
       return this.center.x + 0.5 * this.size.x;
     }
     set ['right'](_0x73a56d) {
-      const _0x127a71 = _0x371d75;
       this.center.x = _0x73a56d - 0.5 * this.size.x;
     }
     get ["top"]() {
-      const _0x204f6b = _0x371d75;
       return this.center.y + 0.5 * this.size.y;
     }
     set ["top"](_0x4dba39) {
-      const _0x3abb23 = _0x371d75;
       this.center.y = _0x4dba39 - 0.5 * this.size.y;
     }
     get ["bottom"]() {
-      const _0x48c803 = _0x371d75;
       return this.center.y - 0.5 * this.size.y;
     }
     set ["bottom"](_0x10661c) {
-      const _0x48620d = _0x371d75;
       this.center.y = _0x10661c + 0.5 * this.size.y;
     }
     get ['front']() {
-      const _0x3b3ae9 = _0x371d75;
       return this.center.z - 0.5 * this.size.z;
     }
     set ['front'](_0x3376ba) {
-      const _0xa5103f = _0x371d75;
       this.center.z = _0x3376ba + 0.5 * this.size.z;
     }
     get ['back']() {
-      const _0x1c10d2 = _0x371d75;
       return 0.5 * this.size.z + this.center.z;
     }
     set ["back"](_0x1fe260) {
-      const _0x1b5f73 = _0x371d75;
       this.center.z = _0x1fe260 - 0.5 * this.size.z;
     }
     get ["width"]() {
-      const _0x1f6400 = _0x371d75;
       return this.size.x;
     }
     set ["width"](_0xf0984c) {
       this.size.x = _0xf0984c;
     }
     get ['height']() {
-      const _0x2a3703 = _0x371d75;
       return this.size.y;
     }
     set ['height'](_0x41fae5) {
-      const _0x44d9b6 = _0x371d75;
       this.size.y = _0x41fae5;
     }
     get ["depth"]() {
-      const _0x5e392f = _0x371d75;
       return this.size.z;
     }
     set ["depth"](_0x570dfa) {
-      const _0x11421d = _0x371d75;
       this.size.z = _0x570dfa;
     }
     ['hitTest'](_0x55f65c, _0x234634) {
-      const _0x34c512 = _0x371d75;
       void 0 === _0x234634 && (_0x234634 = null);
       const _0x1c673c = this.left <= _0x55f65c.right && this.right >= _0x55f65c.left,
         _0x5a2d70 = this.bottom <= _0x55f65c.top && this.top >= _0x55f65c.bottom,
@@ -13058,7 +12009,6 @@
       }
     }
     static ["match"](_0x12f43e) {
-      const _0x4d87c7 = _0x24be00;
       if (void 0 !== this.matchMap[_0x12f43e.name]) return this.matchMap[_0x12f43e.name];
       for (const _0x4cceaa of _0x52e838) if (_0x4cceaa.match) {
         if (_0x4cceaa.match(_0x12f43e)) return this.matchMap[_0x12f43e.name] = _0x4cceaa, _0x4cceaa;
@@ -13066,8 +12016,7 @@
       return this.matchMap[_0x12f43e.name] = null, null;
     }
     static ["getEntityClass"](_0x81dc03) {
-      const _0x41cdaa = _0x24be00,
-        _0xe3d68e = this.match(_0x81dc03);
+      const _0xe3d68e = this.match(_0x81dc03);
       return _0xe3d68e ? _0xe3d68e.hasNecessaryResources && !_0xe3d68e.hasNecessaryResources() ? null : _0xe3d68e : null;
     }
   }
@@ -13126,11 +12075,9 @@
   }
   class _0x26acca extends _0x83d49e.Container {
     constructor() {
-      const _0x1ace63 = _0x4e51e4;
       super(), _0x12acb2(this, "splash", void 0), _0x12acb2(this, 'icon', void 0), this.splash = new _0x83d49e.Sprite(_0x83d49e.Texture.from("splash-new.png")), this.splash.anchor.set(0.5), this.splash.scale.set(0.65), this.addChild(this.splash), this.splash.tint = 16509025, this.icon = new _0x83d49e.Sprite(_0x83d49e.Texture.from("icon-key-white.png")), this.icon.anchor.set(0.5), this.addChild(this.icon), this.icon.tint = 4557524;
     }
     ["updateTransform"]() {
-      const _0x3ff5e3 = _0x4e51e4;
       super.updateTransform(), this.splash.rotation -= 0.03;
     }
   }
@@ -13194,7 +12141,6 @@
         _0x87f67f = (this.base.width - _0x3ae576) / 2;
       for (let _0x8707ff = 0; _0x8707ff < _0x2fbbe1.length; _0x8707ff++) this.letters[_0x8707ff].x += _0x87f67f;
       _0x31536a.j.add(_0x96ac44 => {
-        const _0x50137c = _0x27dc97;
         this.letters[_0x96ac44].style = {
           align: "center",
           fontFamily: "Titan One",
@@ -13238,7 +12184,6 @@
   }
   class _0x296793 extends _0x104324.Container {
     constructor() {
-      const _0x48585d = _0x1e78b5;
       super(), _0x23cdec(this, "base", void 0), _0x23cdec(this, "border", void 0), _0x23cdec(this, "fill", void 0), _0x23cdec(this, 'timerLabel', void 0), _0x23cdec(this, "arc", void 0), this.base = this.addChild(_0x5168b1.a.roundRectBorder({
         w: 135,
         h: 27,
@@ -13251,27 +12196,22 @@
       })), this.timerLabel.anchor.y = 0.5, this.timerLabel.x = this.border.x + this.border.width / 2 + 5, this.arc = 0, this.tween();
     }
     ["tween"]() {
-      const _0x30bb34 = _0x1e78b5;
       this.updateTime(), this.arc >= 2 * Math.PI && (this.arc = 0), _0x3a0033.g.to(this, 1, {
         arc: this.arc + Math.PI / 2,
         ease: _0x3a0033.a.easeOut,
         onUpdate: () => {
-          const _0x178307 = _0x30bb34;
           this.fill.clear().beginFill(16777215), this.fill.arc(0, 0, 9, -Math.PI / 2, this.arc - Math.PI / 2).lineTo(0, 0).endFill();
         },
         onComplete: () => {
-          const _0x290284 = _0x30bb34;
           this.tween();
         }
       });
     }
     ["updateTransform"]() {
-      const _0x22ac3f = _0x1e78b5;
       super.updateTransform(), this.arc += Math.PI / 30;
     }
     ["updateTime"]() {
-      const _0x4dca93 = _0x1e78b5,
-        _0x5328c5 = new Date(),
+      const _0x5328c5 = new Date(),
         _0x4b0506 = 23 - _0x5328c5.getUTCHours(),
         _0x2867c0 = 59 - _0x5328c5.getUTCMinutes();
       this.timerLabel.text = _0x4b0506 + 'h\x20' + _0x2867c0 + 'm';
@@ -13307,7 +12247,6 @@
   }
   class _0x441213 extends _0x36047a.Container {
     constructor() {
-      const _0x1fdf44 = _0x25ed35;
       super(), _0x1d79e7(this, "completedCounters", []);
       const _0x3f39d3 = 166,
         _0x3292a2 = this.addChild(_0x18834f.a.rectColor({
@@ -13339,7 +12278,6 @@
       }
     }
     ["setProgress"](_0x4a8ef9, _0xf234d) {
-      const _0x3d40c8 = _0x25ed35;
       this.completedCounters[_0x4a8ef9].visible = _0xf234d;
     }
   }
@@ -13390,7 +12328,6 @@
     };
   class _0x707713 extends _0xc728f1.Container {
     constructor(_0x3d5699) {
-      const _0x43afe7 = _0x3a4408;
       super(), _0x25c491(this, "type", void 0), _0x25c491(this, 'container', void 0), _0x25c491(this, "base", void 0), _0x25c491(this, "over", void 0), _0x25c491(this, "icon", void 0), _0x25c491(this, "label", void 0), _0x25c491(this, "key", void 0), _0x25c491(this, 'showing', void 0), _0x25c491(this, "level", 0), this.type = _0x3d5699, this.container = new _0xc728f1.Container(), this.addChild(this.container), this.base = new _0xc728f1.NineSlicePlane(_0xc728f1.Texture.from("btn-base-small.png"), 20, 20, 20, 20), this.base.width = 160, this.base.height = 220, this.container.addChild(this.base), this.base.x = 0.5 * -this.base.width, this.base.y = 0.5 * -this.base.height, this.base.alpha = 0.65, this.base.tint = 0, this.over = new _0xc728f1.NineSlicePlane(_0xc728f1.Texture.from("btn-base-small.png"), 20, 20, 20, 20), this.over.width = this.base.width, this.over.height = this.base.height, this.container.addChild(this.over), this.over.x = this.base.x, this.over.y = this.base.y, this.over.alpha = 0, this.icon = _0xc728f1.Sprite.from(_0x29a8e3[_0x3d5699]), this.icon.scale.set(0.75), this.icon.anchor.set(0.5), this.container.addChild(this.icon), this.label = new _0xc728f1.Text('', {
         align: "right",
         fontFamily: "Lilita One",
@@ -13409,35 +12346,28 @@
       }), this.container.addChild(this.key), this.key.x = -this.w / 2 + 10, this.key.y = -this.h / 2 + 5), this.base.on("pointertap", this.activateBoost.bind(this), this), this.base.interactive = true, this.base.buttonMode = true, this.showing = false, this.visible = false, window.addEventListener("keydown", this.onKeyDown.bind(this));
     }
     ['onKeyDown'](_0x5cf9bb) {
-      const _0x215f32 = _0x3a4408;
       !_0x5cf9bb.repeat && this.showing && _0x5cf9bb.key === _0x4ea66e[this.type] && this.activateBoost();
     }
     get ['w']() {
-      const _0x264163 = _0x3a4408;
       return this.base.width;
     }
     get ['h']() {
-      const _0x382f3f = _0x3a4408;
       return this.base.height;
     }
     async ["show"](_0x51c4b5, _0xe2363) {
-      const _0x179a51 = _0x3a4408;
       void 0 === _0x51c4b5 && (_0x51c4b5 = false), void 0 === _0xe2363 && (_0xe2363 = 1), this.refresh(), this.showing || (_0x112771.g.killTweensOf(this.container), this.showing = true, this.visible = true, this.level = 0, _0x51c4b5 ? (this.container.x = -300, await _0x112771.g.to(this.container, 0.3, {
         x: 0
       })) : this.container.x = 0, this.flashIdle(_0xe2363));
     }
     async ["hide"](_0x308c7b) {
-      const _0x1402e5 = _0x3a4408;
       void 0 === _0x308c7b && (_0x308c7b = false), this.showing && (this.showing = false, this.level = 0, _0x112771.g.killTweensOf(this.container), _0x308c7b ? await _0x112771.g.to(this.container, 0.3, {
         x: -500,
         onComplete: () => {
-          const _0x2d6eb3 = _0x1402e5;
           this.visible = false, this.parent && this.parent.removeChild(this);
         }
       }) : (this.visible = false, this.parent && this.parent.removeChild(this), this.container.x = -300));
     }
     async ["flashIdle"](_0x47a113) {
-      const _0x581f8f = _0x3a4408;
       _0x112771.g.killTweensOf(this.over), this.over.alpha = 0, await _0x112771.g.to(this.over, 0.2, {
         alpha: 0.4,
         delay: _0x47a113
@@ -13454,7 +12384,6 @@
       });
     }
     async ["flashActivate"]() {
-      const _0x4ce744 = _0x3a4408;
       _0x112771.g.killTweensOf(this.over), this.over.alpha = 0, await _0x112771.g.to(this.over, 0.2, {
         alpha: 0.9
       }), await _0x112771.g.to(this.over, 0.4, {
@@ -13462,7 +12391,6 @@
       });
     }
     ["refresh"]() {
-      const _0x19fcba = _0x3a4408;
       switch (this.type) {
         case _0x2bbf29.HEADSTART:
           this.label.text = String(_0x942c10.a.user.boosts.consumables.headstart);
@@ -13472,7 +12400,6 @@
       }
     }
     ["activateBoost"]() {
-      const _0x3f85d3 = _0x3a4408;
       if (this.showing) switch (this.flashActivate(), this.type) {
         case _0x2bbf29.HEADSTART:
           this.activateHeadstart(), _0x942c10.a.game.missions.setStat(1, "mission-headstart", _0x3ef502.a.INCREMENT);
@@ -13482,11 +12409,9 @@
       }
     }
     ["activateHeadstart"]() {
-      const _0x3e13bc = _0x3a4408;
       this.showing && 3 !== this.level && (_0x942c10.a.user.boosts.consumables.headstart < 1 || (this.level += 1, _0x942c10.a.game.stats.time += 20 * this.level, _0x942c10.a.game.hero.jetpack.turnOn(this.level), _0x942c10.a.user.boosts.consumables.headstart -= 1, _0x942c10.a.user.gameSettings.save(), _0x942c10.a.game.hud.boostGauge.show(), _0x942c10.a.game.hud.boostGauge.lowlightHeadstart(), _0x942c10.a.game.hud.boostGauge.highlightSlice('' + this.level), this.refresh(), (this.level >= 3 || _0x942c10.a.user.boosts.consumables.headstart <= 0) && _0x942c10.a.game.hud.removeItemBoost(this.type, true)));
     }
     ["activateMultiplier"]() {
-      const _0x36515a = _0x3a4408;
       if (!this.showing || 3 === this.level) return;
       if (_0x942c10.a.user.boosts.consumables.scoreBooster < 1) return;
       this.level += 1;
@@ -13559,7 +12484,6 @@
     if (Object.getOwnPropertySymbols) {
       var _0x3ef794 = Object.getOwnPropertySymbols(_0x3c5ead);
       _0x4e941e && (_0x3ef794 = _0x3ef794.filter(function (_0x4d16a5) {
-        const _0x5eac69 = _0x36d492;
         return Object.getOwnPropertyDescriptor(_0x3c5ead, _0x4d16a5).enumerable;
       })), _0x5cdf8c.push.apply(_0x5cdf8c, _0x3ef794);
     }
@@ -13571,7 +12495,6 @@
       _0x58ae57 % 2 ? _0x49668f(Object(_0x119c80), true).forEach(function (_0xedbfd9) {
         _0x10a6e8(_0x37364a, _0xedbfd9, _0x119c80[_0xedbfd9]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x37364a, Object.getOwnPropertyDescriptors(_0x119c80)) : _0x49668f(Object(_0x119c80)).forEach(function (_0x353350) {
-        const _0x1095d6 = _0x414300;
         Object.defineProperty(_0x37364a, _0x353350, Object.getOwnPropertyDescriptor(_0x119c80, _0x353350));
       });
     }
@@ -13604,7 +12527,6 @@
   };
   class _0x2ab239 extends _0x499d2a.Container {
     constructor(_0x315ca5) {
-      const _0xe2ca23 = _0x453565;
       void 0 === _0x315ca5 && (_0x315ca5 = {}), super(), _0x10a6e8(this, "spacing", 30), _0x10a6e8(this, "base", void 0), _0x10a6e8(this, "icon", void 0), _0x10a6e8(this, "text", void 0), _0x10a6e8(this, "_txt", -1), _0x10a6e8(this, "maxTextLength", 6), _0x10a6e8(this, "currentTextLength", 6);
       const _0x243dd3 = _0xeacf2d(_0xeacf2d({}, _0x36d76d), _0x315ca5);
       this.maxTextLength = _0x243dd3.length, this.currentTextLength = _0x243dd3.length, _0x243dd3.base && (this.base = _0x499d2a.Sprite.from(_0x243dd3.base), this.base.anchor.set(0, 0.5), this.base.alpha = 0.5, this.addChild(this.base)), _0x243dd3.icon && (this.icon = _0x499d2a.Sprite.from(_0x243dd3.icon), this.icon.anchor.set(0.5), this.addChild(this.icon), this.icon.x = this.maxTextLength * this.spacing * 0.5 + 35, this.icon.scale.set(0.75)), this.text = new _0x499d2a.Container(), this.addChild(this.text);
@@ -13620,12 +12542,10 @@
       this.updatePositions();
     }
     ["updatePositions"]() {
-      const _0x9dfdd4 = _0x453565,
-        _0x2c6ebf = 0.5 * this.spacing;
+      const _0x2c6ebf = 0.5 * this.spacing;
       this.text.x = -(this.maxTextLength - 1) * _0x2c6ebf, this.base && (this.base.x = this.maxTextLength * _0x2c6ebf - this.currentTextLength * this.spacing - 20);
     }
     ["setText"](_0x182733, _0x14db81) {
-      const _0x5dc871 = _0x453565;
       if (void 0 === _0x14db81 && (_0x14db81 = 0), _0x182733 === this._txt) return;
       this._txt = _0x182733;
       let _0x4b4381 = String(_0x182733);
@@ -13642,7 +12562,6 @@
       this.currentTextLength = _0x173b5c, this.base && !_0x14db81 && this.updatePositions();
     }
     ['getText']() {
-      const _0x2ad460 = _0x453565;
       return this._txt;
     }
   }
@@ -13670,13 +12589,11 @@
     _0x584090 = _0x5a0739(500).default;
   class _0x81128b extends _0x16dd80.a {
     constructor(_0x5bfa32) {
-      const _0x43ec74 = _0x1048bf;
       void 0 === _0x5bfa32 && (_0x5bfa32 = {}), _0x5bfa32.uniforms = _0x501b53.a.group, super(_0x5bfa32, _0x52819c, _0x584090, ["#define BEND", "#define FOG"], "water");
     }
   }
   var _0x3e7fbd, _0x49a1b3, _0x452f4d;
   _0x3e7fbd = _0x81128b, _0x452f4d = void 0, (_0x49a1b3 = function (_0x48249b) {
-    const _0x34bab5 = _0x1048bf;
     var _0x50d250 = function (_0xddf561, _0x59e28b) {
       if ("object" != typeof _0xddf561 || null === _0xddf561) return _0xddf561;
       var _0x4c3ea2 = _0xddf561[Symbol.toPrimitive];
@@ -13728,7 +12645,6 @@
     if (Object.getOwnPropertySymbols) {
       var _0x504a1e = Object.getOwnPropertySymbols(_0x1b0fbf);
       _0x28eefc && (_0x504a1e = _0x504a1e.filter(function (_0x2537e1) {
-        const _0x2f5a61 = _0x2c10f8;
         return Object.getOwnPropertyDescriptor(_0x1b0fbf, _0x2537e1).enumerable;
       })), _0x5bacaf.push.apply(_0x5bacaf, _0x504a1e);
     }
@@ -13740,7 +12656,6 @@
       _0x34642a % 2 ? _0x22f031(Object(_0xde227f), true).forEach(function (_0x582b78) {
         _0x527b21(_0x5419ab, _0x582b78, _0xde227f[_0x582b78]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(_0x5419ab, Object.getOwnPropertyDescriptors(_0xde227f)) : _0x22f031(Object(_0xde227f)).forEach(function (_0x23bdb1) {
-        const _0xe13cc5 = _0x571143;
         Object.defineProperty(_0x5419ab, _0x23bdb1, Object.getOwnPropertyDescriptor(_0xde227f, _0x23bdb1));
       });
     }
@@ -13770,13 +12685,11 @@
     _0x159887 = _0x1a8302(506).default;
   class _0x3238a3 extends _0x50e1dd.a {
     constructor(_0xcd8bf8) {
-      const _0x6cf317 = _0x61eece;
       void 0 === _0xcd8bf8 && (_0xcd8bf8 = {}), _0xcd8bf8.uniforms = _0x34c614(_0x34c614({}, _0x2b9619.a.group), {}, {
         uOffset: 0
       }), super(_0xcd8bf8, _0x4164a8, _0x159887, ["#define BEND", "#define MAP"], "unlit");
     }
     get ['offset']() {
-      const _0x4d423e = _0x61eece;
       return this.uniforms.uOffset;
     }
     set ['offset'](_0x49829a) {
@@ -13843,12 +12756,10 @@
       }, this.current = _0x4453b1;
     }
     ["add"](_0x5a2441) {
-      const _0x145ff2 = _0x4bc8e8;
       if (this.states[_0x5a2441.name]) throw new Error("State with same name already exists: " + _0x5a2441.name);
       this.states[_0x5a2441.name] = _0x5a2441;
     }
     ["update"](_0xbeb3de) {
-      const _0x329401 = _0x4bc8e8;
       var _0x347efe, _0x58251c;
       void 0 === _0xbeb3de && (_0xbeb3de = 0), null === (_0x347efe = this.current) || void 0 === _0x347efe || null === (_0x58251c = _0x347efe.update) || void 0 === _0x58251c || _0x58251c.call(_0x347efe, _0xbeb3de);
       for (const _0x51fc95 in this.states) {
@@ -13860,19 +12771,16 @@
       }
     }
     ['set'](_0x1b6438) {
-      const _0x3bb831 = _0x4bc8e8;
       var _0x3607cb, _0x560bb0, _0x71c118, _0x49e6ea;
       const _0x55265f = this.current,
         _0x5d9e03 = this.states[_0x1b6438];
       _0x5d9e03 !== this.current && (null === (_0x3607cb = this.current) || void 0 === _0x3607cb || null === (_0x560bb0 = _0x3607cb.exit) || void 0 === _0x560bb0 || _0x560bb0.call(_0x3607cb, _0x5d9e03.name), this.current = _0x5d9e03, null === (_0x71c118 = this.current) || void 0 === _0x71c118 || null === (_0x49e6ea = _0x71c118.enter) || void 0 === _0x49e6ea || _0x49e6ea.call(_0x71c118, _0x55265f.name));
     }
     ["either"]() {
-      const _0x1ef5b3 = _0x4bc8e8;
       for (var _0x569606 = arguments.length, _0xff6345 = new Array(_0x569606), _0x2d7f44 = 0; _0x2d7f44 < _0x569606; _0x2d7f44++) _0xff6345[_0x2d7f44] = arguments[_0x2d7f44];
       return _0xff6345.indexOf(this.current.name) >= 0;
     }
     ["neither"]() {
-      const _0x145b24 = _0x4bc8e8;
       for (var _0x54ff31 = arguments.length, _0x5b28c7 = new Array(_0x54ff31), _0x1a1a88 = 0; _0x1a1a88 < _0x54ff31; _0x1a1a88++) _0x5b28c7[_0x1a1a88] = arguments[_0x1a1a88];
       return _0x5b28c7.indexOf(this.current.name) < 0;
     }
@@ -13916,14 +12824,12 @@
       _0x32018c(this, 'map', {});
     }
     ['add'](_0x5c803a) {
-      const _0x32504a = _0x3a335c;
       _0x29387f[_0x5c803a.key] && (_0x5c803a.key = _0x29387f[_0x5c803a.key]);
       const _0x28f355 = this.map[_0x5c803a.key] || [];
       _0x28f355.push(_0x5c803a), this.map[_0x5c803a.key] = _0x28f355;
     }
     ["remove"](_0x10b30d) {
-      const _0x75986e = _0x3a335c,
-        _0x298b61 = this.map[_0x10b30d.key];
+      const _0x298b61 = this.map[_0x10b30d.key];
       if (!_0x298b61) return;
       const _0x5ce73d = _0x298b61.indexOf(_0x10b30d);
       _0x5ce73d < 0 || _0x298b61.splice(_0x5ce73d, 1);
@@ -13934,49 +12840,40 @@
   }
   class _0x1d9f24 {
     constructor() {
-      const _0x1b2ff6 = _0x3a335c;
       _0x32018c(this, "keyDownBindings", void 0), _0x32018c(this, "keyUpBindings", void 0), _0x32018c(this, "enabled", true), _0x32018c(this, 'onKeyDown', _0x4db615 => {
-        const _0x2a317e = _0x1b2ff6;
         if (!this.enabled || _0x4db615.repeat) return;
         const _0x56bd5d = _0x4db615.key.toLocaleLowerCase(),
           _0x30aa2c = this.keyDownBindings.bindingsByKey(_0x56bd5d);
         for (const _0x1b62da of _0x30aa2c) _0x1b62da.action(_0x4db615);
       }), _0x32018c(this, "onKeyUp", _0x535f2b => {
-        const _0x52841c = _0x1b2ff6;
         if (!this.enabled || _0x535f2b.repeat) return;
         const _0x5c2ed1 = _0x535f2b.key.toLocaleLowerCase(),
           _0x105a62 = this.keyUpBindings.bindingsByKey(_0x5c2ed1);
         for (const _0x42254d of _0x105a62) _0x42254d.action(_0x535f2b);
       }), this.keyDownBindings = new _0x3a0f55(), this.keyUpBindings = new _0x3a0f55(), window.addEventListener("keydown", this.onKeyDown), window.addEventListener('keyup', this.onKeyUp), _0x473d6f.a.SDK.onBreakStart.add(() => {
-        const _0x28d998 = _0x1b2ff6;
         this.enabled = false;
       }), _0x473d6f.a.SDK.onBreakComplete.add(() => {
-        const _0x3a2e5e = _0x1b2ff6;
         this.enabled = true;
       });
     }
     ['dispose']() {
-      const _0x58cebf = _0x3a335c;
       this.keyDownBindings.map = {}, this.keyUpBindings.map = {}, window.removeEventListener("keydown", this.onKeyDown), window.removeEventListener("keyup", this.onKeyUp);
     }
     ["bindKeyDown"](_0x19df2e, _0x25e8e0) {
-      const _0x48b146 = _0x3a335c,
-        _0xefbfe7 = {
-          key: _0x19df2e,
-          action: _0x25e8e0
-        };
+      const _0xefbfe7 = {
+        key: _0x19df2e,
+        action: _0x25e8e0
+      };
       return this.keyDownBindings.add(_0xefbfe7), _0xefbfe7;
     }
     ["bindKeyUp"](_0x325b2f, _0x127d9f) {
-      const _0x53e599 = _0x3a335c,
-        _0x37a13f = {
-          key: _0x325b2f,
-          action: _0x127d9f
-        };
+      const _0x37a13f = {
+        key: _0x325b2f,
+        action: _0x127d9f
+      };
       return this.keyUpBindings.add(_0x37a13f), _0x37a13f;
     }
     ["unbind"](_0x5d79bd) {
-      const _0x8c0128 = _0x3a335c;
       this.keyDownBindings.remove(_0x5d79bd), this.keyUpBindings.remove(_0x5d79bd);
     }
   }
@@ -14019,49 +12916,39 @@
       }, this.label = new _0x4d43fb.Text(_0x4d8806, this.labelStyle), this.label.anchor.set(0.5), this.addChild(this.label);
     }
     ["highlight"]() {
-      const _0x243752 = _0x849d5;
       this.slice.tint = this.base.angle < 0 ? 16640308 : 6739709, this.slice.alpha = 1, this.label.tint = this.base.angle < 0 ? 9901841 : 1917343, this.label.alpha = 1, this.pointer.tint = this.label.tint, this.pointer.visible = true, this.labelStyle.dropShadow = false, this.label.style = this.labelStyle;
     }
     ["lowlight"]() {
-      const _0x1f2d2e = _0x849d5;
       this.slice.tint = 0, this.slice.alpha = 0.4, this.label.tint = 16777215, this.label.alpha = 1, this.pointer.visible = false, this.labelStyle.dropShadow = true, this.label.style = this.labelStyle;
     }
   }
   class _0x3d9d8e extends _0x4d43fb.Container {
     constructor() {
-      const _0x3bb3b7 = _0x849d5;
       super(), _0x3e4521(this, "slices", void 0), _0x3e4521(this, "timeout", void 0), this.slices = {}, this.addSlice('3', -0.6), this.addSlice('2', -1.6), this.addSlice('1', -2.6), this.addSlice('+7', 0.6), this.addSlice('+6', 1.6), this.addSlice('+5', 2.6), this.visible = false;
     }
     ["addSlice"](_0x1db660, _0x5decb8) {
-      const _0x16ede7 = _0x849d5,
-        _0x36e7be = Math.PI / 7 * _0x5decb8,
+      const _0x36e7be = Math.PI / 7 * _0x5decb8,
         _0x7d3712 = new _0x1d3945(_0x1db660, _0x36e7be);
       this.addChild(_0x7d3712), this.slices[_0x1db660] = _0x7d3712, _0x7d3712.x = 150 * Math.sin(_0x36e7be), _0x7d3712.y = 150 * -Math.cos(_0x36e7be);
     }
     ["highlightSlice"](_0x5ecc57) {
-      const _0x110158 = _0x849d5;
       if (!this.slices[_0x5ecc57]) throw new Error("Invalid gauge slice");
       this.slices[_0x5ecc57].highlight();
     }
     ["lowlightSlice"](_0x3c4617) {
-      const _0x4a3fdd = _0x849d5;
       if (!this.slices[_0x3c4617]) throw new Error("Invalid gauge slice");
       this.slices[_0x3c4617].lowlight();
     }
     ["lowlightHeadstart"]() {
-      const _0x428495 = _0x849d5;
       this.slices[1].lowlight(), this.slices[2].lowlight(), this.slices[3].lowlight();
     }
     ["lowlightMultiplier"]() {
-      const _0x3d4f43 = _0x849d5;
       this.slices['+5'].lowlight(), this.slices['+6'].lowlight(), this.slices['+7'].lowlight();
     }
     ["lowlightAll"]() {
-      const _0x323eb0 = _0x849d5;
       for (const _0x337d71 in this.slices) this.slices[_0x337d71].lowlight();
     }
     ["show"](_0x49fd06) {
-      const _0x14f79f = _0x849d5;
       void 0 === _0x49fd06 && (_0x49fd06 = 5), this.visible = true, clearTimeout(this.timeout), _0x49fd06 && (this.timeout = setTimeout(() => this.hide(), 1000 * _0x49fd06));
     }
     ['hide']() {
@@ -14098,11 +12985,9 @@
   }
   class _0x2db0c9 extends _0x166937.Container {
     constructor(_0x5679b5) {
-      const _0x30c70d = _0x5b7369;
       void 0 === _0x5679b5 && (_0x5679b5 = "start_countdown"), super(), _0x4bb9e3(this, 'label', void 0), _0x4bb9e3(this, "callback", void 0), _0x4bb9e3(this, 'timeout', void 0), _0x4bb9e3(this, 'i18nKey', ''), this.i18nKey = _0x5679b5, this.visible = false;
     }
     ["build"]() {
-      const _0x27e0a0 = _0x5b7369;
       this.label || (this.label = new _0xf6f657.a(this.i18nKey, {
         params: {
           num: 0
@@ -14118,15 +13003,12 @@
       }), this.addChild(this.label));
     }
     ["run"](_0x404329, _0x33b579) {
-      const _0x154fb7 = _0x5b7369;
       void 0 === _0x404329 && (_0x404329 = 3), this.build(), clearTimeout(this.timeout), this.callback = _0x33b579, this.step(_0x404329);
     }
     ['stop']() {
-      const _0x4c3bb2 = _0x5b7369;
       clearTimeout(this.timeout), this.visible = false;
     }
     ['step'](_0x3d164f) {
-      const _0x307a9f = _0x5b7369;
       if (0 === _0x3d164f) return this.callback && this.callback(), void (this.visible = false);
       this.label.options.params = {
         num: _0x3d164f
@@ -14162,7 +13044,6 @@
   }
   class _0x252992 extends _0x563847.Container {
     constructor(_0x5b29b4) {
-      const _0x32d37b = _0x4e0b34;
       super(), _0x4b1a1f(this, 'game', void 0), _0x4b1a1f(this, "base", void 0), _0x4b1a1f(this, 'label', void 0), _0x4b1a1f(this, "labelOverlay", void 0), this.game = _0x5b29b4;
       const _0x1faa4b = _0x563847.Sprite.from("base-short.png");
       _0x1faa4b.anchor.set(0.5), _0x1faa4b.alpha = 0.5, this.base = _0x1faa4b, this.addChild(_0x1faa4b);
@@ -14182,15 +13063,12 @@
       _0x194d43.anchor.set(0.5), this.addChild(_0x194d43), this.labelOverlay = _0x194d43;
     }
     get ['text']() {
-      const _0x20f856 = _0x4e0b34;
       return this.label.text;
     }
     set ['text'](_0x22484e) {
-      const _0x5851ba = _0x4e0b34;
       this.label.text !== _0x22484e && (this.label.text = _0x22484e, this.labelOverlay.text = _0x22484e);
     }
     ["update"]() {
-      const _0x2342b3 = _0x4e0b34;
       if (this.game.hero.multiplier.isOn()) {
         const _0x5c0e72 = this.game.time._lastTime;
         this.labelOverlay.alpha = 0.5 + 0.4 * Math.sin(0.01 * _0x5c0e72);
@@ -14228,28 +13106,23 @@
   }
   class _0x4f049c extends _0x50cb5e.Container {
     constructor(_0x1c60ff, _0x4cac70, _0x421e51) {
-      const _0x283377 = _0x5f1f77;
       void 0 === _0x421e51 && (_0x421e51 = 0), super(), _0x5c7a66(this, 'w', 0), _0x5c7a66(this, 'h', 0), _0x5c7a66(this, 'barBg', void 0), _0x5c7a66(this, "masked", void 0), _0x5c7a66(this, "barFill", void 0), _0x5c7a66(this, "barRed", void 0), _0x5c7a66(this, "barMask", void 0), _0x5c7a66(this, "_ratio", 0), this.w = _0x1c60ff, this.h = _0x4cac70;
       let _0xa7bca6 = _0x1c60ff,
         _0x54ba4f = _0x4cac70;
       this.barBg = new _0x50cb5e.Graphics(), this.barBg.beginFill(_0x421e51, 0.75), this.barBg.drawRect(0, 0, _0xa7bca6, _0x54ba4f), this.barBg.position.set(-_0xa7bca6 / 2, -_0x54ba4f / 2), this.addChild(this.barBg), this.masked = new _0x50cb5e.Container(), this.addChild(this.masked), _0xa7bca6 -= 8, _0x54ba4f -= 8, this.barFill = _0x50cb5e.Sprite.from("item-duration-full-bar.png"), this.barFill.x = -_0xa7bca6 / 2, this.barFill.anchor.y = 0.5, this.barFill.width = _0xa7bca6, this.barFill.height = _0x54ba4f, this.masked.addChild(this.barFill), this.barRed = _0x50cb5e.Sprite.from("item-duration-full-bar.png"), this.barRed.x = -_0xa7bca6 / 2, this.barRed.anchor.y = 0.5, this.barRed.width = _0xa7bca6, this.barRed.height = _0x54ba4f, this.masked.addChild(this.barRed), this.barRed.tint = 16711680, this.barMask = _0x50cb5e.Sprite.from(_0x50cb5e.Texture.WHITE), this.barMask.width = _0xa7bca6, this.barMask.height = _0x54ba4f + 2, this.barMask.anchor.x = 1, this.barMask.position.set(_0xa7bca6 / 2, -_0x54ba4f / 2 - 1), this.addChild(this.barMask), this._ratio = 1, this.update();
     }
     get ["ratio"]() {
-      const _0x2d5a33 = _0x5f1f77;
       return this._ratio;
     }
     set ['ratio'](_0x4651d6) {
-      const _0x2c5838 = _0x5f1f77;
       this._ratio = _0x25dab2.a.clamp(_0x4651d6), this.update();
     }
     ["update"]() {
-      const _0x23de56 = _0x5f1f77;
       this.barMask.width = (1 - this._ratio) * this.w, this.barRed.alpha = 0.5 * (1 - this._ratio);
     }
   }
   class _0x4e8162 extends _0x50cb5e.Container {
     constructor(_0x4c5f00, _0x254dd2) {
-      const _0xd08399 = _0x5f1f77;
       super(), _0x5c7a66(this, 'id', void 0), _0x5c7a66(this, "game", void 0), _0x5c7a66(this, "iconBase", void 0), _0x5c7a66(this, "icon", void 0), _0x5c7a66(this, "bar", void 0), _0x5c7a66(this, "base", void 0), _0x5c7a66(this, "_amount", void 0), this.id = _0x254dd2, this.game = _0x4c5f00, this.iconBase = _0x50cb5e.Sprite.from("base-item.png"), this.iconBase.anchor.set(0.5), this.addChild(this.iconBase), this.icon = _0x50cb5e.Sprite.from('icon-item-' + _0x254dd2.toLowerCase() + ".png"), this.icon.anchor.set(0.5), this.addChild(this.icon), this.bar = new _0x4f049c(200, 34, 16777215), this.addChild(this.bar), this.bar.x = this.iconBase.width / 2 + this.bar.w / 2 + 6, this.base = _0x30736e.a.roundRectBorder({
         w: this.bar.w + 34,
         h: this.bar.h + 16,
@@ -14261,35 +13134,27 @@
       }), this.addChildAt(this.base, 0), this.base.x = this.bar.x - 4, this.visible = false;
     }
     get ['w']() {
-      const _0x5887bf = _0x5f1f77;
       return this.iconBase.width;
     }
     get ['h']() {
-      const _0x4d28be = _0x5f1f77;
       return this.iconBase.height;
     }
     ["show"]() {
-      const _0x4042a4 = _0x5f1f77;
       this.visible || (this.visible = true, this._amount && (this._amount.text = '0', this._amount.visible = false));
     }
     ['hide']() {
-      const _0x415d12 = _0x5f1f77;
       this.visible && (this.visible = false, this.parent && this.parent.removeChild(this));
     }
     get ["ratio"]() {
-      const _0x137028 = _0x5f1f77;
       return this.bar.ratio;
     }
     set ["ratio"](_0x4e00f3) {
-      const _0xa780de = _0x5f1f77;
       this.bar.ratio = _0x4e00f3;
     }
     get ["amount"]() {
-      const _0x1bb0b0 = _0x5f1f77;
       return this._amount ? Number(this._amount.text) : 0;
     }
     set ["amount"](_0xc00239) {
-      const _0x3967ec = _0x5f1f77;
       this._amount ? this._amount.text = String(_0xc00239) : (this._amount = new _0x50cb5e.Text(String(_0xc00239), {
         align: "right",
         fontFamily: "Lilita One",
@@ -14332,9 +13197,7 @@
   }
   class _0x34bd51 extends _0x25c0ef.Container {
     constructor() {
-      const _0x1008b1 = _0x4e1cb2;
       super(), _0x256638(this, 'base', void 0), _0x256638(this, "missionLabel", void 0), _0x256638(this, "timeline", new _0x3efc06.e()), _0x256638(this, "show", (_0x12b7df, _0x375803) => {
-        const _0x55b630 = _0x1008b1;
         this.missionLabel.text = _0x214297.b.translate(_0x12b7df, {
           amount: _0x375803
         }), this.missionLabel.y = -this.base.height / 4 + 10, this.timeline.restart(true);
@@ -14408,7 +13271,6 @@
   }
   class _0xb5a28f extends _0xfe5826.Container {
     constructor(_0x306f79, _0x15be62, _0xf1f8f) {
-      const _0x24d959 = _0x3ce4cd;
       void 0 === _0x306f79 && (_0x306f79 = 150), void 0 === _0x15be62 && (_0x15be62 = 50), void 0 === _0xf1f8f && (_0xf1f8f = 10), super(), _0xf7b833(this, 'w', void 0), _0xf7b833(this, 'h', void 0), _0xf7b833(this, "rankingPos", void 0), _0xf7b833(this, "clampChars", void 0), _0xf7b833(this, "clean", void 0), _0xf7b833(this, 'bg', void 0), _0xf7b833(this, "nameLabel", void 0), _0xf7b833(this, 'score', void 0), _0xf7b833(this, "highlight", 0), this.w = _0x306f79, this.h = _0x15be62, this.rankingPos = 0, this.clampChars = _0xf1f8f, this.visible = false, this.clean = true, this.bg = _0x334df5.a.rect({
         w: this.w + 60,
         h: this.h,
@@ -14437,15 +13299,13 @@
       this.score = new _0x51687e.a('', _0x33cc69), this.addChild(this.score), this.score._text.anchor.x = 1;
     }
     ["reset"]() {
-      const _0x11c212 = _0x3ce4cd;
       this.clean = true;
     }
     ["getPosition"](_0x2d12b9) {
       return 1 === _0x2d12b9 ? _0x2d12b9 + 'st' : 2 === _0x2d12b9 ? _0x2d12b9 + 'nd' : 3 === _0x2d12b9 ? _0x2d12b9 + 'rd' : _0x2d12b9 + 'th';
     }
     ["update"](_0x114b32) {
-      const _0x26c622 = _0x3ce4cd,
-        _0x27289e = _0x114b32.rank;
+      const _0x27289e = _0x114b32.rank;
       this.rankingPos = _0x27289e;
       const _0x25b42b = function (_0x5ebfa6) {
           return _0x5ebfa6 ? 1 === _0x5ebfa6 ? _0x5ebfa6 + 'st' : 2 === _0x5ebfa6 ? _0x5ebfa6 + 'nd' : 3 === _0x5ebfa6 ? _0x5ebfa6 + 'rd' : _0x5ebfa6 + 'th' : '';
@@ -14457,23 +13317,18 @@
   }
   class _0x5569de extends _0xfe5826.Container {
     constructor(_0x2403f9, _0x540207, _0x548dc3) {
-      const _0x2f5610 = _0x3ce4cd;
       void 0 === _0x2403f9 && (_0x2403f9 = 210), void 0 === _0x540207 && (_0x540207 = 50), void 0 === _0x548dc3 && (_0x548dc3 = 10), super(), _0xf7b833(this, 'entryWidth', 0), _0xf7b833(this, "entryHeight", 0), _0xf7b833(this, "clampChars", 10), _0xf7b833(this, 'pool', void 0), _0xf7b833(this, 'entries', []), _0xf7b833(this, '_syncing', false), _0xf7b833(this, "updateFrequency", 3000), _0xf7b833(this, "updateTimeout", null), this.pool = new _0x3ecb6d.a(_0xb5a28f), this.entryWidth = _0x2403f9, this.entryHeight = _0x540207, this.clampChars = _0x548dc3, this.entries = [];
     }
     ['clear']() {
-      const _0x459720 = _0x3ce4cd;
       for (const _0x4de367 of this.entries) this.pool.return(_0x4de367), _0x4de367.visible = false;
       this.entries.length = 0;
     }
     ["update"]() {
-      const _0x5891c3 = _0x3ce4cd;
       this.updateTimeout || (this.syncScores(), this.updateTimeout = setTimeout(() => {
-        const _0x3dadfc = _0x5891c3;
         clearTimeout(this.updateTimeout), this.updateTimeout = null;
       }, this.updateFrequency));
     }
     async ['syncScores']() {
-      const _0xb4853f = _0x3ce4cd;
       if (this._syncing) return;
       this._syncing = true;
       const _0x57f150 = await _0x12c831.a.getLeaderboard(),
@@ -14481,13 +13336,11 @@
           leaderboardEntry: _0x447d53
         } = _0x4ad3f9.a.user;
       _0x447d53.score = _0x4ad3f9.a.game.stats.score, _0x57f150.push(_0x447d53), _0x57f150.sort((_0x1b9f71, _0x38255f) => _0x38255f.score - _0x1b9f71.score), _0x57f150.forEach((_0x1f2695, _0x46a4a7) => {
-        const _0x158bea = _0xb4853f,
-          _0xd08c30 = _0x1f2695 === _0x447d53;
+        const _0xd08c30 = _0x1f2695 === _0x447d53;
         _0x1f2695.rank = (Number(_0x46a4a7) + 1) * Number(!(_0xd08c30 && _0x46a4a7 > 9));
       }), this.refreshItems(_0x57f150), this._syncing = false;
     }
     ["refreshItems"](_0xbee3b4) {
-      const _0x88d2ea = _0x3ce4cd;
       this.clear();
       for (const _0x2a537f in _0xbee3b4) {
         const _0x304b19 = _0xbee3b4[_0x2a537f],
@@ -14496,11 +13349,9 @@
       }
     }
     ["render"](_0x48ddad) {
-      const _0x32d602 = _0x3ce4cd;
       super.render(_0x48ddad);
     }
     ["animate"]() {
-      const _0x1924ff = _0x3ce4cd;
       for (const _0x10209d in this.entries) {
         const _0x974f9d = this.entries[_0x10209d],
           _0x549e42 = _0x974f9d.rankingPos * (this.entryHeight + 3);
@@ -14546,10 +13397,8 @@
   });
   class _0x884b1 extends _0x4a95f0.Container {
     constructor() {
-      const _0x320259 = _0x595994;
       super(), _0x4feea4(this, "base", void 0), _0x4feea4(this, "letters", []), _0x4feea4(this, "lettersContainer", void 0), _0x4feea4(this, "onCompletePanel", new _0x4a95f0.Container()), _0x4feea4(this, 'timeline', new _0x4f197d.e()), _0x4feea4(this, "currentLetter", 0), _0x4feea4(this, 'progress', () => {
-        const _0x2862b9 = _0x320259,
-          _0x55b736 = this.letters[this.currentLetter];
+        const _0x55b736 = this.letters[this.currentLetter];
         _0x4f197d.g.to(_0x55b736, 0.25, {
           pixi: {
             tint: 16763904
@@ -14566,7 +13415,6 @@
           delay: 0.25
         });
       }), _0x4feea4(this, "show", _0x507221 => {
-        const _0x176e1f = _0x320259;
         this.currentLetter = _0x507221, this.timeline.restart(true);
       }), this.base = this.addChild(_0x5b8a59.a.roundRectBorder({
         w: 300,
@@ -14635,9 +13483,7 @@
         y: -this.height / 2,
         ease: _0x4f197d.c.easeInOut,
         onComplete: () => {
-          const _0x199a3e = _0x320259;
           this.currentLetter !== _0x416e89.length - 1 || this.onCompletePanel.visible || (this.onCompletePanel.visible = true, this.letters.forEach(_0x3841f6 => {
-            const _0x41d869 = _0x199a3e;
             _0x3841f6.visible = false;
           }), this.timeline.delay(1.5), this.timeline.restart(true));
         }
@@ -14684,19 +13530,38 @@
       _0x26cb8d(this, "game", void 0), _0x26cb8d(this, "node", void 0), _0x26cb8d(this, "name", void 0), _0x26cb8d(this, "entities", void 0), _0x26cb8d(this, 'blocks', void 0), _0x26cb8d(this, "length", void 0), _0x26cb8d(this, 'z', void 0), _0x26cb8d(this, "start", void 0), _0x26cb8d(this, 'middle', void 0), _0x26cb8d(this, "end", void 0), _0x26cb8d(this, "offset", void 0), _0x26cb8d(this, "index", void 0), _0x26cb8d(this, 'section', null), _0x26cb8d(this, 'envNode', null), _0x26cb8d(this, "environment", null), _0x26cb8d(this, "envTube", false), _0x26cb8d(this, 'envStation', false), _0x26cb8d(this, "envEpic", false), _0x26cb8d(this, "envGates", false), _0x26cb8d(this, "envEmpty", false), _0x26cb8d(this, "envPillars", false), _0x26cb8d(this, 'hasGround', false), _0x26cb8d(this, 'lastTube', 0), _0x26cb8d(this, "checkpoints", []), _0x26cb8d(this, "fillerSlots", void 0), _0x26cb8d(this, 'floorSlots', void 0), _0x26cb8d(this, 'fillerList', void 0), this.reset();
     }
     ['reset']() {
-      this.node = null, this.section = null, this.name = '', this.entities = [], this.blocks = 0, this.length = 0, this.z = 0, this.start = 0, this.middle = 0, this.end = 0, this.offset = 0, this.index = -1, this.envNode = null, this.environment = null, this.envTube = false, this.envStation = false, this.envEpic = false, this.envGates = false, this.envEmpty = false, this.envPillars = false, this.hasGround = false, this.lastTube = 0, this.checkpoints = [], this.fillerSlots = {}, this.floorSlots = {}, this.fillerList = [];
+      this.node = null, this.section = null, this.name = '', this.entities = [], this._trainSpans = [], this._collectibles = [], this.blocks = 0, this.length = 0, this.z = 0, this.start = 0, this.middle = 0, this.end = 0, this.offset = 0, this.index = -1, this.envNode = null, this.environment = null, this.envTube = false, this.envStation = false, this.envEpic = false, this.envGates = false, this.envEmpty = false, this.envPillars = false, this.hasGround = false, this.lastTube = 0, this.checkpoints = [], this.fillerSlots = {}, this.floorSlots = {}, this.fillerList = [];
     }
     ["init"](_0x451b1b, _0xdf3e01, _0x1bad38, _0x398fb7) {
-      const _0x4ed582 = _0x68edeb;
       var _0x16060a, _0x4b8bad;
-      this.game = _0x451b1b, this.node = _0x1bad38, this.name = this.node.name, this.entities = [], this.blocks = (null === (_0x16060a = _0x1bad38.components) || void 0 === _0x16060a || null === (_0x4b8bad = _0x16060a.RouteChunk) || void 0 === _0x4b8bad ? void 0 : _0x4b8bad._blockCount) || 0, this.length = this.blocks * _0x293f2a.a.blockSize, this.z = -_0xdf3e01, this.start = _0xdf3e01, this.middle = this.start + 0.5 * this.length, this.end = this.start + this.length, this.offset = 0, this.index = _0x398fb7, this.fillerSlots = {}, this.floorSlots = {}, this.fillerList = [], this.game.environment.setup(this), this.mount(this.node, this), this.game.environment.mount(this), _0x293f2a.a.chunkMarks && this.addChunkDebugMarks(), "intro" === this.name && this.mountIntro();
+      this.game = _0x451b1b, this.node = _0x1bad38, this.name = this.node.name, this.entities = [], this._trainSpans = [], this._collectibles = [], this.blocks = (null === (_0x16060a = _0x1bad38.components) || void 0 === _0x16060a || null === (_0x4b8bad = _0x16060a.RouteChunk) || void 0 === _0x4b8bad ? void 0 : _0x4b8bad._blockCount) || 0, this.length = this.blocks * _0x293f2a.a.blockSize, this.z = -_0xdf3e01, this.start = _0xdf3e01, this.middle = this.start + 0.5 * this.length, this.end = this.start + this.length, this.offset = 0, this.index = _0x398fb7, this.fillerSlots = {}, this.floorSlots = {}, this.fillerList = [], this.game.environment.setup(this), this.mount(this.node, this), this.alignHalfTrainCollectibles(), this.game.environment.mount(this), _0x293f2a.a.chunkMarks && this.addChunkDebugMarks(), "intro" === this.name && this.mountIntro();
+    }
+    ["alignHalfTrainCollectibles"]() {
+      if (!this._trainSpans || !this._collectibles || !this._collectibles.length) return;
+      const halfSpans = this._trainSpans.filter(s => s && s.isHalf);
+      if (!halfSpans.length) return;
+      for (const span of halfSpans) {
+        const safeMin = span.minZ + 5, safeMax = span.maxZ - 5;
+        if (safeMax <= safeMin) continue;
+        const fullRange = Math.max(1, span.fullMaxZ - span.fullMinZ);
+        for (const item of this._collectibles) {
+          if (!item || !item.body) continue;
+          if (Math.abs(item.body.x - span.laneX) > 6) continue;
+          const btm = item.body.bottom;
+          if (btm < 23 || btm > 56) continue;
+          const z = item.body.z;
+          if (z < span.fullMinZ - 8 || z > span.fullMaxZ + 8) continue;
+          const t = Math.max(0, Math.min(1, (span.fullMaxZ - z) / fullRange));
+          item.body.z = safeMax - t * (safeMax - safeMin);
+          if (btm < 44) item.body.bottom = span.topY + 5;
+          if (span.speed && item.movable && typeof item.movable.run === "function") item.movable.run(span.speed, span.target);
+        }
+      }
     }
     ['mountIntro']() {
-      const _0x3664df = _0x68edeb;
       _0x3ef737 || (_0x3ef737 = new _0x4da958.a()), _0x3ef737.x = -19.8, _0x3ef737.y = 0, _0x3ef737.z = 30, this.blocks = 2, this.length = 90, this.game.addChild(_0x3ef737), _0x3ef737.updateScore(), _0x39331a.g.mount(this), _0x351bae.a.mount(this);
     }
     ["mount"](_0xb5880f, _0x4ca708) {
-      const _0x42e167 = _0x68edeb;
       if ("intro" === this.name && _0xb5880f.name.match("lightSignal")) return;
       if (void 0 === (_0x4ca708 = Object.assign({}, _0x4ca708 || {})).flip && (_0x4ca708.flip = 0), void 0 === _0x4ca708.offsetX && (_0x4ca708.offsetX = null), _0x42824f.a.comp(_0xb5880f, "Randomizer") && _0xb5880f.children) {
         const _0x278cee = _0x35b110.a.pick(..._0xb5880f.children);
@@ -14729,8 +13594,7 @@
       }
     }
     ["setFillersByPosition"](_0x1f7d40, _0x13ca02) {
-      const _0x17842d = _0x68edeb,
-        _0x40b947 = -_0x1f7d40 - this.start,
+      const _0x40b947 = -_0x1f7d40 - this.start,
         _0x508391 = -_0x13ca02 - this.start,
         _0x552224 = 2 * _0x293f2a.a.blockSize,
         _0x3df3b1 = Math.round(_0x40b947 / _0x552224),
@@ -14738,8 +13602,7 @@
       for (let _0x225b0a = _0x3df3b1; _0x225b0a < _0x4195e1; _0x225b0a++) this.fillerSlots[_0x225b0a] = true;
     }
     ["setFloorsByPosition"](_0x261833, _0x4936f3) {
-      const _0xc95734 = _0x68edeb,
-        _0x560146 = -_0x261833 - this.start,
+      const _0x560146 = -_0x261833 - this.start,
         _0x4af16e = -_0x4936f3 - this.start,
         _0x53245d = 2 * _0x293f2a.a.blockSize,
         _0x21396e = Math.round(_0x560146 / _0x53245d),
@@ -14747,7 +13610,6 @@
       for (let _0x2ab256 = _0x21396e; _0x2ab256 < _0x695f04; _0x2ab256++) this.floorSlots[_0x2ab256] = true;
     }
     ["addChunkDebugMarks"]() {
-      const _0x16f635 = _0x68edeb;
       let _0x2be3dc = this.blocks;
       for (; _0x2be3dc--;) {
         const _0x583926 = this.game.pool.get(_0x3deaa2.a);
@@ -14755,7 +13617,6 @@
       }
     }
     ["getLastCheckpointByPosition"](_0x69040d) {
-      const _0x20b906 = _0x68edeb;
       if (!this.checkpoints) return null;
       let _0x1dd9bb = null,
         _0x20f04a = this.checkpoints.length;
@@ -14860,7 +13721,6 @@
   }
   class _0x1258a7 extends _0x1ca86c.Container {
     constructor() {
-      const _0x339ce4 = _0x364def;
       super(), _0x4694cd(this, 'mission', void 0), _0x4694cd(this, "descriptionLabel", void 0), _0x4694cd(this, "amountLabel", void 0), _0x4694cd(this, "progressLabel", void 0), _0x4694cd(this, "progressFill", void 0), _0x4694cd(this, "completedBg", void 0), _0x4694cd(this, "onMissionComplete", new _0x4b1bc7.Signal()), this.addChild(_0x413788.a.rectColor({
         w: 580,
         h: 96,
@@ -14912,12 +13772,11 @@
       }));
     }
     ["populate"](_0x344562) {
-      const _0x49dce3 = _0x364def,
-        {
-          id: _0x43a088,
-          params: _0x2d2682,
-          hideAmountLabel: _0x3e10be
-        } = _0x344562;
+      const {
+        id: _0x43a088,
+        params: _0x2d2682,
+        hideAmountLabel: _0x3e10be
+      } = _0x344562;
       if (this.descriptionLabel.id = _0x43a088, this.descriptionLabel.options.params = _0x2d2682, this.descriptionLabel.refresh(), this.descriptionLabel.y = -this.descriptionLabel.height / 2, this.amountLabel.visible = !_0x3e10be, _0x2d2682) {
         const _0x2226cd = this.descriptionLabel.display.text;
         let _0x13a2f3 = '';
@@ -14932,19 +13791,16 @@
       this.progressFill.scale.x = _0x14e01b / this.mission.params.amount, this.progressLabel.text = '' + _0x14e01b, this.progressLabel.width > 90 && this.progressLabel.scale.set(90 / this.progressLabel.width);
     }
     ["progressMission"]() {
-      const _0x3f8670 = _0x364def,
-        _0x392084 = this.mission;
+      const _0x392084 = this.mission;
       this.completedBg.visible = _0x392084.completed;
       const _0x954251 = _0x392084.progress || 0;
       this.progressFill.scale.x = _0x954251 / this.mission.params.amount, this.progressLabel.text = '' + _0x954251, this.progressLabel.width > 90 && this.progressLabel.scale.set(90 / this.progressLabel.width), this.mission.completed && this.onMissionComplete.dispatch();
     }
     ["updateTransform"]() {
-      const _0x4bc191 = _0x364def;
       super.updateTransform(), this.mission && !this.completedBg.visible && this.progressMission();
     }
   }
   function _0x43a62c(_0x313f0d, _0x3a5d7a, _0x5741a1) {
-    const _0x50a796 = _0x364def;
     return (_0x3a5d7a = function (_0x32c9c6) {
       var _0x5e1e23 = function (_0x1b88c2, _0x371256) {
         if ("object" != typeof _0x1b88c2 || null === _0x1b88c2) return _0x1b88c2;
@@ -14966,7 +13822,6 @@
   }
   class _0x2b243e extends _0x1ca86c.Container {
     constructor() {
-      const _0xd04bb8 = _0x364def;
       super(), _0x43a62c(this, "missionModules", []), _0x43a62c(this, "completedMissions", 0), _0x43a62c(this, "progressCounter", void 0), _0x43a62c(this, "h2Label", void 0);
       const _0x318f1b = this.addChild(new _0x4e3a0f.a('missions', {
         fill: 469322,
@@ -14984,14 +13839,12 @@
       for (let _0x5e43a2 = 0; _0x5e43a2 < 3; _0x5e43a2++) {
         const _0x5241df = this.addChild(new _0x1258a7());
         _0x5241df.y = 150 + (_0x5241df.height + 15) * _0x5e43a2, _0x5241df.onMissionComplete.add(() => {
-          const _0x68652d = _0xd04bb8;
           this.completedMissions++, 3 === this.completedMissions && this.initMissions();
         }), this.missionModules.push(_0x5241df);
       }
     }
     ["initMissions"]() {
-      const _0xb3a64f = _0x364def,
-        _0x14b1b0 = _0x318bc0.a.data.getCurrentMissions(),
+      const _0x14b1b0 = _0x318bc0.a.data.getCurrentMissions(),
         _0x3c4298 = _0x318bc0.a.data.getMissionSet();
       this.completedMissions = 0;
       for (let _0x22b334 = 0; _0x22b334 < _0x14b1b0.length; _0x22b334++) {
@@ -15026,11 +13879,9 @@
   }
   class _0x395564 extends _0x126ae8.a {
     constructor(_0x3828e1) {
-      const _0x3292b5 = _0x364def;
       super(), _0x337ea5(this, 'panel', void 0), _0x337ea5(this, 'bg', void 0), _0x337ea5(this, "btnResume", void 0), _0x337ea5(this, "missionSection", void 0), _0x337ea5(this, "resumeCallback", void 0), this.resumeCallback = _0x3828e1;
     }
     ["onBuild"]() {
-      const _0x3a227b = _0x364def;
       this.bg = new _0x3306ca.b(), this.addChild(this.bg), this.panel = this.addChild(new _0x5c9286.a({
         icon: "icon-white-house.png"
       })), this.addChild(new _0x19c206()).y = 25 - this.panel.base.height / 2;
@@ -15056,12 +13907,10 @@
       })).y = -125, this.missionSection = this.addChild(new _0x2b243e()), this.missionSection.y = -110;
     }
     ["onOpen"]() {
-      const _0x25ab12 = _0x364def;
       this.missionSection.initMissions();
     }
     ["onResize"]() {
-      const _0x1c975c = _0x364def,
-        _0x4b9a88 = this.viewportWidth,
+      const _0x4b9a88 = this.viewportWidth,
         _0x4f29df = this.viewportHeight;
       this.x = _0x4b9a88 / 2, this.y = _0x4f29df / 2, this.bg.resize(_0x4b9a88, _0x4f29df), this.panel.resize(_0x4b9a88, _0x4f29df);
     }
