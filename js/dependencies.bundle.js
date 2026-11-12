@@ -37606,7 +37606,7 @@
         this.spendHoverboard(), this.entity.game.missions.addStat(1, "mission-hoverboard"), this.show(), null === (i = this.entity.anim) || void 0 === i || i.play(this.animations.start, {
           loop: !1,
           sudden: !0
-        }), this.count = this.duration, this.paused = !1, null === (n = this.entity.player) || void 0 === n || n.dizzyEnd(), null === (o = this.entity.state) || void 0 === o || o.set("empty"), null !== (a = this.powers) && void 0 !== a && a.includes("super-jump") && (null === (s = this.entity.jump) || void 0 === s || s.enableSuperJump()), null !== (h = this.powers) && void 0 !== h && h.includes("double-jump") && (null === (l = this.entity.jump) || void 0 === l || l.enableDoubleJump()), null !== (u = this.powers) && void 0 !== u && u.includes("smooth-drift") && (null === (c = this.entity.jump) || void 0 === c || c.enableSmoothDrift()), null !== (d = this.powers) && void 0 !== d && d.includes("zap-sideways") && (this.entity.lane.zapping = !0), null !== (f = this.powers) && void 0 !== f && f.includes("stay-low") && (this.entity.regularHeight = 5), null !== (m = this.powers) && void 0 !== m && m.includes("speed-up") && (this.entity.game.stats.data.speedIncrease.min = 50, this.entity.game.stats.data.speedIncrease.max = 20), this.entity.popPickup && this.entity.popPickup.play(), r.a.sound.play("pickup-powerup");
+        }), this.count = this.duration, this.paused = !1, null === (n = this.entity.player) || void 0 === n || n.dizzyEnd(), null === (o = this.entity.state) || void 0 === o || o.set("empty"), this.entity.jump && this.entity.jump.enableDoubleJump && this.entity.jump.enableDoubleJump(), null !== (a = this.powers) && void 0 !== a && a.includes("super-jump") && (null === (s = this.entity.jump) || void 0 === s || s.enableSuperJump()), null !== (h = this.powers) && void 0 !== h && h.includes("double-jump") && (null === (l = this.entity.jump) || void 0 === l || l.enableDoubleJump()), null !== (u = this.powers) && void 0 !== u && u.includes("smooth-drift") && (null === (c = this.entity.jump) || void 0 === c || c.enableSmoothDrift()), null !== (d = this.powers) && void 0 !== d && d.includes("zap-sideways") && (this.entity.lane.zapping = !0), null !== (f = this.powers) && void 0 !== f && f.includes("stay-low") && (this.entity.regularHeight = 5), null !== (m = this.powers) && void 0 !== m && m.includes("speed-up") && (this.entity.game.stats.data.speedIncrease.min = 50, this.entity.game.stats.data.speedIncrease.max = 20), this.entity.popPickup && this.entity.popPickup.play(), r.a.sound.play("pickup-powerup");
       }
     }
     turnOff(t) {
@@ -39146,8 +39146,9 @@
         t.__swBaseScale || (t.__swBaseScale = { x: t.scale.x || 1, y: t.scale.y || 1, z: t.scale.z || 1 });
         t.scale.set(t.__swBaseScale.x, t.__swBaseScale.y, t.__swBaseScale.z);
         const isBlack = !!window.__SW_JAKE_BLACK__ || "stick" === e;
-        const skinId = isBlack ? "jake_stick" : (window.__SW_JAKE_SKIN_ID__ || "jake_classic");
-        const jakeTint = isBlack ? 1118486 : ("number" == typeof window.__SW_JAKE_TINT__ ? window.__SW_JAKE_TINT__ : 16777215);
+        const isWhite = !!window.__SW_JAKE_WHITE__;
+        const skinId = isBlack ? "jake_stick" : (isWhite ? "jake_white" : (window.__SW_JAKE_SKIN_ID__ || "jake_classic"));
+        const jakeTint = isBlack ? 1118486 : (isWhite ? 16777215 : ("number" == typeof window.__SW_JAKE_TINT__ ? window.__SW_JAKE_TINT__ : 16777215));
         const customSkinTex = window.__SW_BUILD_SKIN_TEX__ && origTex ? window.__SW_BUILD_SKIN_TEX__(origTex, skinId) : null;
         const targetTex = customSkinTex || origTex;
         const blkRef = r.a.library.getMap("stick-black-tex") || window.__SW_STICK_TEX__;
@@ -39161,7 +39162,7 @@
               if (targetTex) { m.diffuseMap = targetTex; if ("map" in m) m.map = targetTex; }
               else if (origTex && (!m.diffuseMap || m.diffuseMap === blkRef)) { m.diffuseMap = origTex; if ("map" in m) m.map = origTex; }
               const isEye = m.name && /eye/i.test(m.name);
-              m.color = isEye ? (isBlack ? 1118486 : 16777215) : (customSkinTex ? 16777215 : jakeTint);
+              m.color = isEye ? (isBlack ? 1118486 : 16777215) : (isWhite ? 16777215 : (customSkinTex ? 16777215 : jakeTint));
               try { m.dirty = !0; } catch (err) {}
             });
           }

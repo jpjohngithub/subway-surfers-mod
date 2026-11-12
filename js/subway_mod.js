@@ -129,6 +129,7 @@
         showFps: localStorage.getItem('sw_show_fps') === '1',
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 300
         contrast: parseInt(localStorage.getItem('sw_contrast') || '100', 10), // 50 - 300
+        aspectRatio: localStorage.getItem('sw_aspect_ratio') || 'native', // 'native' | 'stretched_4_3' | 'stretched_16_10' | 'square_1_1'
         resolution: localStorage.getItem('sw_resolution') || '100', // '100' | '75' | '50' | '35'
         coinOutline: localStorage.getItem('sw_coin_outline') === '1',
         volume: _swSavedVol !== null ? Math.max(0, Math.min(100, parseInt(_swSavedVol, 10) || 0)) : 30, // 0 - 100 (padrão 30%)
@@ -746,10 +747,38 @@
     };
 
     function getResolutionLabel(val) {
-        if (val === '35') return '35% (Ultra Leve)';
+        if (val === '35') return '35% (Ultra Leve / FPS Máximo)';
         if (val === '50') return '50% (Média / Rápida)';
         if (val === '75') return '75% (Alta)';
         return '100% (Nativa)';
+    }
+
+    function getAspectRatioLabel(val) {
+        if (val === 'stretched_4_3') return '4:3 Esticada (Pro)';
+        if (val === 'stretched_16_10') return '16:10 Esticada';
+        if (val === 'square_1_1') return '1:1 Quadrado';
+        return 'Padrão (Auto)';
+    }
+
+    function applyScreenAspectRatio(val) {
+        try {
+            const canvas = document.querySelector('canvas');
+            if (!canvas) return;
+            if (val === 'stretched_4_3') {
+                canvas.style.transform = 'scaleX(1.333)';
+                canvas.style.transformOrigin = 'center center';
+                document.body.style.overflow = 'hidden';
+            } else if (val === 'stretched_16_10') {
+                canvas.style.transform = 'scaleX(1.18)';
+                canvas.style.transformOrigin = 'center center';
+                document.body.style.overflow = 'hidden';
+            } else if (val === 'square_1_1') {
+                canvas.style.transform = 'scaleX(0.75)';
+                canvas.style.transformOrigin = 'center center';
+            } else {
+                canvas.style.transform = 'none';
+            }
+        } catch(e) {}
     }
 
     function applyRenderResolution(val) {
@@ -758,11 +787,12 @@
         try {
             const renderer = (window.app && window.app.renderer) || (window.game && window.game.renderer);
             if (renderer) {
-                renderer.resolution = scale;
                 const baseW = window.innerWidth || 800;
                 const baseH = window.innerHeight || 600;
+                const rw = Math.max(320, Math.round(baseW * scale));
+                const rh = Math.max(240, Math.round(baseH * scale));
                 if (typeof renderer.resize === 'function') {
-                    renderer.resize(baseW, baseH);
+                    renderer.resize(rw, rh);
                 }
                 const view = renderer.view;
                 if (view) {
@@ -771,6 +801,7 @@
                     view.style.imageRendering = scale < 1 ? 'pixelated' : 'auto';
                 }
             }
+            applyScreenAspectRatio(GFX_SETTINGS.aspectRatio);
         } catch(e) {}
     }
 
@@ -783,6 +814,17 @@
         const el = document.getElementById('val-gfx-resolution');
         if (el) el.textContent = getResolutionLabel(GFX_SETTINGS.resolution);
         showHUDNotification('Resolução: ' + getResolutionLabel(GFX_SETTINGS.resolution));
+    };
+
+    window.__cycleAspectRatio = function() {
+        const seq = ['native', 'stretched_4_3', 'stretched_16_10', 'square_1_1'];
+        const idx = seq.indexOf(String(GFX_SETTINGS.aspectRatio));
+        GFX_SETTINGS.aspectRatio = seq[(idx + 1) % seq.length];
+        localStorage.setItem('sw_aspect_ratio', GFX_SETTINGS.aspectRatio);
+        applyScreenAspectRatio(GFX_SETTINGS.aspectRatio);
+        const el = document.getElementById('val-gfx-aspectratio');
+        if (el) el.textContent = getAspectRatioLabel(GFX_SETTINGS.aspectRatio);
+        showHUDNotification('Proporção: ' + getAspectRatioLabel(GFX_SETTINGS.aspectRatio));
     };
 
     window.__toggleCoinOutline = function() {
@@ -1801,6 +1843,9 @@
         });
         widget.classList.toggle('is-ready', skateEnergy >= ENERGY_MAX);
         widget.classList.toggle('is-active', active);
+        if (hero && hero.jump && hero.jump.enableDoubleJump) {
+            if (active) hero.jump.enableDoubleJump();
+        }
         widget.setAttribute('aria-label', active ? 'Energia do skate carregando enquanto ativo' : 'Energia do skate');
     }
 
@@ -1874,6 +1919,7 @@
             board.spendHoverboard = () => {};
             board.__energyPermit = true;
             board.turnOn();
+            if (hero.jump && hero.jump.enableDoubleJump) hero.jump.enableDoubleJump();
             if (!board.isOn || !board.isOn()) {
                 skateEnergy = ENERGY_MAX;
                 showEnergyToast('NÃO FOI POSSÍVEL ATIVAR');
@@ -1944,8 +1990,10 @@
         }
         coin._isDashItem = false;
         coin.visible = true;
-        if (coin.model && coin.model.scale) {
-            coin.model.scale.set(1, 1, 1);
+        if (coin._dashModel) coin._dashModel.visible = false;
+        if (coin.model) {
+            coin.model.visible = true;
+            if (coin.model.scale) coin.model.scale.set(1, 1, 1);
         }
 
         const coinZ = coin.body ? coin.body.z : (coin.z || 0);
@@ -1973,14 +2021,32 @@
                 coin.body.height = 6.2;
                 coin.body.depth = 6.2;
             }
-            if (coin.model) {
-                applyBoostCoinTexture(coin.model);
-                setEntityHexColor(coin.model, 0x00ff66);
-                if (coin.model.scale) coin.model.scale.set(1.5, 1.5, 1.5);
+            // Hide normal coin model to prevent any conflict with red/gold coins
+            if (coin.model) coin.model.visible = false;
+            // Create/show separate dedicated Boost Coin 3D model
+            if (!coin._dashModel && window.__lib && window.__lib.getEntity) {
+                try {
+                    const dm = window.__lib.getEntity('currency_coin');
+                    if (dm) {
+                        applyBoostCoinTexture(dm);
+                        setEntityHexColor(dm, 0x00ff66);
+                        if (dm.scale) dm.scale.set(1.5, 1.5, 1.5);
+                        coin.addChild(dm);
+                        coin._dashModel = dm;
+                    }
+                } catch(e) {}
+            }
+            if (coin._dashModel) {
+                coin._dashModel.visible = true;
+                applyBoostCoinTexture(coin._dashModel);
+                setEntityHexColor(coin._dashModel, 0x00ff66);
             }
             if (coin.shine) {
                 coin.shine.active = true;
-                if (coin.shine.view) setEntityHexColor(coin.shine.view, 0x00ff66);
+                if (coin.shine.view) {
+                    setEntityHexColor(coin.shine.view, 0x00ff66);
+                    if (coin.shine.view.scale) coin.shine.view.scale.set(1.4, 1.4, 1.4);
+                }
             }
             return;
         }
@@ -2049,27 +2115,22 @@
 
         if (coin.model) {
             setEntityHexColor(coin.model, isNoCoin ? 0xff1e1e : 0xffffff);
-            if (GFX_SETTINGS.coinOutline) {
-                try {
-                    if (!coin._outlineMesh && window.__lib && window.__lib.getEntity) {
-                        const ol = window.__lib.getEntity('currency_coin');
-                        if (ol) {
-                            setEntityHexColor(ol, 0x050505);
-                            ol.rx = Math.PI / 2;
-                            if (ol.scale) ol.scale.set(1.14, 1.14, 1.14);
-                            coin.addChild(ol);
-                            coin._outlineMesh = ol;
-                        }
-                    }
-                    if (coin._outlineMesh) coin._outlineMesh.visible = true;
-                } catch(e) {}
-            } else if (coin._outlineMesh) {
-                coin._outlineMesh.visible = false;
-            }
         }
         if (coin.shine) {
-            coin.shine.active = !isNoCoin;
-            if (!isNoCoin && coin.shine.view) setEntityHexColor(coin.shine.view, 0xffffff);
+            if (isNoCoin) {
+                if (GFX_SETTINGS.coinOutline) {
+                    coin.shine.active = true;
+                    if (coin.shine.view) {
+                        setEntityHexColor(coin.shine.view, 0x000000);
+                        if (coin.shine.view.scale) coin.shine.view.scale.set(1.10, 1.10, 1.10);
+                    }
+                } else {
+                    coin.shine.active = false;
+                }
+            } else {
+                coin.shine.active = true;
+                if (coin.shine.view) setEntityHexColor(coin.shine.view, 0xffffff);
+            }
         }
     };
 
@@ -3034,7 +3095,6 @@
         breakRedCoinsNearTrampoline(obs);
         trampolineHitCount = 0;
         try {
-            if (heroBody) heroBody.ghost = true;
             if (hero.jump && hero.jump.perform) hero.jump.perform(72, true);
             else if (heroBody.velocity) heroBody.velocity.y = 68;
             trampolineLaunchAt = now;
@@ -3255,6 +3315,20 @@
         }
         if (freeGroundLanes.length === 0) return;
 
+        // Guaranteed Parkour: Wooden Ramp or Double Train every 3 chunks
+        if (obstacleChunkCount % 3 === 1 && freeGroundLanes.length > 0) {
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            if (!isPositionBlocked(lane, 0, centerZ, 45)) {
+                if (Math.random() > 0.45) {
+                    const r = createObstacle3D('wooden_ramp', lane, 0, centerZ, { targetHeight: 29 });
+                    if (r) { customObstacles.push(r); return; }
+                } else {
+                    const dt = createObstacle3D('double_train', lane, 0, centerZ);
+                    if (dt) { customObstacles.push(dt); return; }
+                }
+            }
+        }
+
         // Pattern selector: readable coin formations across tracks and rooftops.
         // 0: Moeda Móvel Oscilante (desliza de um lado pro outro continuamente)
         // 1: Muro de Moedas (2 pistas bloqueadas com moedas no chão e no ar, 1 brecha)
@@ -3269,11 +3343,11 @@
         // 13: trampoline; the only new solid obstacle
         // 14: familiar native obstacle
         // 15–17: new coin formations (diamond, fork merge and triple wave)
-        // Keep the full route pool, but weight the classic moving/floating
-        // formations so they remain a regular part of runs as the pool grows.
-        const pattern = Math.random() < 0.24
+        // 18: wooden_ramp
+        // 19: double_train
+        const pattern = Math.random() < 0.20
             ? [0, 6, 7][Math.floor(Math.random() * 3)]
-            : Math.floor(Math.random() * 18);
+            : Math.floor(Math.random() * 20);
 
         if (pattern === 0) {
             // 1. MOEDA MÓVEL OSCILANTE: Desliza de -20 a +20 através das 3 pistas
@@ -3451,6 +3525,20 @@
                     if (coin) customObstacles.push(coin);
                 }
             });
+        } else if (pattern === 18) {
+            // RAMPA DE MADEIRA PARKOUR
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            if (!isPositionBlocked(lane, 0, centerZ, 40)) {
+                const r = createObstacle3D('wooden_ramp', lane, 0, centerZ, { targetHeight: 29 });
+                if (r) customObstacles.push(r);
+            }
+        } else if (pattern === 19) {
+            // VAGÃO DUPLO (DOUBLE TRAIN)
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            if (!isPositionBlocked(lane, 0, centerZ, 40)) {
+                const dt = createObstacle3D('double_train', lane, 0, centerZ);
+                if (dt) customObstacles.push(dt);
+            }
         } else {
             // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
@@ -3495,13 +3583,11 @@
             const feetY = Number.isFinite(heroBody.bottom) ? heroBody.bottom : heroY;
             const groundY = Number.isFinite(heroBody.ground) ? heroBody.ground : 0;
             const elapsedAir = Date.now() - trampolineLaunchAt;
-            heroBody.ghost = true;
             if (elapsedAir > 180 && (heroBody.landed || feetY <= groundY + 0.55)) {
                 trampolineCameraUntil = 0;
                 trampolineLaunchAt = 0;
                 trampolineHitCount = 0;
                 window.__SW_TRAMPOLINE_AIR_UNTIL__ = 0;
-                heroBody.ghost = false;
                 hero.player.cameraTargetY = groundY;
                 hero.player.cameraY = groundY;
             } else {
@@ -4820,7 +4906,7 @@
     function runCountdown(seconds, label, done) {
         window.__runCountdown = runCountdown;
         removeEl('subway-cd-overlay');
-        const countSec = Math.min(seconds || 2, 2); // Snappy 2s count for instant race start
+        const countSec = Math.max(3, parseInt(seconds, 10) || 3); // Strictly 3 -> 2 -> 1 -> VAI!
         const ov = document.createElement('div');
         ov.className = 'subway-countdown-overlay';
         ov.id = 'subway-cd-overlay';
@@ -4858,9 +4944,9 @@
                         ov.remove();
                         done();
                     }, 80);
-                }, 220);
+                }, 280);
             }
-        }, 650); // Snappy 650ms interval for zero-delay feel
+        }, 700);
     }
 
     window.__runCountdown = runCountdown;
@@ -5628,7 +5714,18 @@
     let hubSkinAppliedInitial = false;
     let hubSwitching = false;
 
+    let _johnSurfLogoImg = null;
+    try {
+        _johnSurfLogoImg = new Image();
+        _johnSurfLogoImg.crossOrigin = 'anonymous';
+        _johnSurfLogoImg.src = 'bundles/lasvegas/game-idle/train-start.png?v=logo1';
+    } catch(e) {}
+
     const SKIN_THEMES = {
+        jake_classic: { base: '#1d4ed8', accent: '#3b82f6', hi: '#93c5fd', isOriginal: true },
+        jake_dark:    { base: '#0f172a', accent: '#334155', hi: '#94a3b8', isOriginal: true },
+        jake_star:    { base: '#b45309', accent: '#f59e0b', hi: '#fde68a', isOriginal: true },
+        jake_white:   { base: '#ffffff', accent: '#ffffff', hi: '#ffffff', sat: 0, con: 1.0, bri: 2.0, swatch: 'linear-gradient(135deg,#cbd5e1,#ffffff 60%,#f8fafc)' },
         jake_stick:   { base: '#09090b', accent: '#64748b', hi: '#e2e8f0', sat: 0.15, con: 1.35, bri: 0.35, swatch: 'linear-gradient(135deg,#09090b,#27272a 60%,#52525b)' },
         jake_cyan:    { base: '#0284c7', accent: '#22d3ee', hi: '#a5f3fc', sat: 1.45, con: 1.18, bri: 1.06, swatch: 'linear-gradient(135deg,#0369a1,#22d3ee 65%,#e0f2fe)' },
         jake_gold:    { base: '#d97706', accent: '#fbbf24', hi: '#fef08a', sat: 1.50, con: 1.20, bri: 1.08, swatch: 'linear-gradient(135deg,#92400e,#f59e0b 55%,#fef08a)' },
@@ -5642,7 +5739,11 @@
     window.__SW_SKIN_TEX_CACHE__ = window.__SW_SKIN_TEX_CACHE__ || new Map();
     try {
         const _savedSkinId = localStorage.getItem('sw_selected_skin');
-        if (_savedSkinId) window.__SW_JAKE_SKIN_ID__ = _savedSkinId;
+        if (_savedSkinId) {
+            window.__SW_JAKE_SKIN_ID__ = _savedSkinId;
+            if (_savedSkinId === 'jake_white') window.__SW_JAKE_WHITE__ = true;
+            if (_savedSkinId === 'jake_stick') window.__SW_JAKE_BLACK__ = true;
+        }
     } catch (e) {}
     window.__SW_BUILD_SKIN_TEX__ = function(origTex, skinId) {
         if (!origTex || !skinId || !SKIN_THEMES[skinId]) return null;
@@ -5672,40 +5773,67 @@
         const cHi = parseHex(t.hi);
 
         ctx.drawImage(img, 0, 0, w, h);
+
+        // Replace Subway Surfers logo on Jake's clothes with John Surf logo across all skins
         try {
-            const imgData = ctx.getImageData(0, 0, w, h);
-            const d = imgData.data;
-            for (let i = 0; i < d.length; i += 4) {
-                const a = d[i + 3];
-                if (a < 10) continue;
-                const r = d[i], g = d[i + 1], b = d[i + 2];
-                // Keep natural face/skin pixels intact unless obsidian silhouette
-                const isSkin = skinId !== 'jake_stick' && r > 155 && g > 105 && b > 70 && r > g + 10 && g >= b && (r - b) < 110;
-                if (isSkin) continue;
-                const luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-                let nr, ng, nb;
-                if (skinId === 'jake_stick') {
-                    const f = Math.min(1, luma);
-                    nr = 4 + f * 14;
-                    ng = 4 + f * 14;
-                    nb = 6 + f * 18;
-                } else if (luma < 0.5) {
-                    const p = luma * 2;
-                    nr = cBase[0] * (0.22 + 0.78 * p) + cAcc[0] * p * 0.35;
-                    ng = cBase[1] * (0.22 + 0.78 * p) + cAcc[1] * p * 0.35;
-                    nb = cBase[2] * (0.22 + 0.78 * p) + cAcc[2] * p * 0.35;
-                } else {
-                    const p = (luma - 0.5) * 2;
-                    nr = cAcc[0] * (1 - p) + cHi[0] * p;
-                    ng = cAcc[1] * (1 - p) + cHi[1] * p;
-                    nb = cAcc[2] * (1 - p) + cHi[2] * p;
-                }
-                d[i] = Math.max(0, Math.min(255, Math.round(nr)));
-                d[i + 1] = Math.max(0, Math.min(255, Math.round(ng)));
-                d[i + 2] = Math.max(0, Math.min(255, Math.round(nb)));
+            const bx = Math.round(w * (67 / 256));
+            const by = Math.round(h * (174 / 256));
+            const bw = Math.round(w * (103 / 256));
+            const bh = Math.round(h * (80 / 256));
+            let patchBg = '#e6e8ee';
+            if (skinId === 'jake_stick') patchBg = '#09090b';
+            else if (skinId === 'jake_white') patchBg = '#ffffff';
+            else if (skinId === 'jake_dark') patchBg = '#22252c';
+            else if (skinId === 'jake_star') patchBg = '#f3f4f6';
+            ctx.fillStyle = patchBg;
+            ctx.fillRect(bx, by, bw, bh);
+
+            if (_johnSurfLogoImg && _johnSurfLogoImg.complete && _johnSurfLogoImg.naturalWidth) {
+                const pad = Math.round(bw * 0.04);
+                ctx.drawImage(_johnSurfLogoImg, bx + pad, by + pad, bw - 2 * pad, bh - 2 * pad);
             }
-            ctx.putImageData(imgData, 0, 0);
-        } catch (e) {}
+        } catch(e) {}
+
+        if (!t.isOriginal) {
+            try {
+                const imgData = ctx.getImageData(0, 0, w, h);
+                const d = imgData.data;
+                for (let i = 0; i < d.length; i += 4) {
+                    const a = d[i + 3];
+                    if (a < 10) continue;
+                    const r = d[i], g = d[i + 1], b = d[i + 2];
+                    // Keep natural face/skin pixels intact unless obsidian or full white silhouette
+                    const isSkin = skinId !== 'jake_stick' && skinId !== 'jake_white' && r > 155 && g > 105 && b > 70 && r > g + 10 && g >= b && (r - b) < 110;
+                    if (isSkin) continue;
+                    const luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                    let nr, ng, nb;
+                    if (skinId === 'jake_stick') {
+                        const f = Math.min(1, luma);
+                        nr = 4 + f * 14;
+                        ng = 4 + f * 14;
+                        nb = 6 + f * 18;
+                    } else if (skinId === 'jake_white') {
+                        nr = 255;
+                        ng = 255;
+                        nb = 255;
+                    } else if (luma < 0.5) {
+                        const p = luma * 2;
+                        nr = cBase[0] * (0.22 + 0.78 * p) + cAcc[0] * p * 0.35;
+                        ng = cBase[1] * (0.22 + 0.78 * p) + cAcc[1] * p * 0.35;
+                        nb = cBase[2] * (0.22 + 0.78 * p) + cAcc[2] * p * 0.35;
+                    } else {
+                        const p = (luma - 0.5) * 2;
+                        nr = cAcc[0] * (1 - p) + cHi[0] * p;
+                        ng = cAcc[1] * (1 - p) + cHi[1] * p;
+                        nb = cAcc[2] * (1 - p) + cHi[2] * p;
+                    }
+                    d[i] = Math.max(0, Math.min(255, Math.round(nr)));
+                    d[i + 1] = Math.max(0, Math.min(255, Math.round(ng)));
+                    d[i + 2] = Math.max(0, Math.min(255, Math.round(nb)));
+                }
+                ctx.putImageData(imgData, 0, 0);
+            } catch (e) {}
+        }
 
         const tex = TexCls.from(cv);
         try { tex.baseTexture.mipmap = origTex.baseTexture ? origTex.baseTexture.mipmap : 1; } catch(e) {}
@@ -5716,17 +5844,18 @@
 
     function getSkinCatalog() {
         return [
-            { skinId: 'jake_classic', charId: 'jake', outfit: 0, blackTex: false, tint: null,     title: 'Jake', sub: 'Clássico',      swatch: 'linear-gradient(135deg,#1d4ed8,#3b82f6 60%,#93c5fd)' },
-            { skinId: 'jake_dark',    charId: 'jake', outfit: 1, blackTex: false, tint: null,     title: 'Jake', sub: 'Dark Edition',  swatch: 'linear-gradient(135deg,#0f172a,#334155 60%,#94a3b8)' },
-            { skinId: 'jake_star',    charId: 'jake', outfit: 2, blackTex: false, tint: null,     title: 'Jake', sub: 'Star Jacket',   swatch: 'linear-gradient(135deg,#b45309,#f59e0b 60%,#fde68a)' },
-            { skinId: 'jake_stick',   charId: 'jake', outfit: 0, blackTex: true,  tint: 0x09090b, title: 'Jake', sub: 'Obsidian',      swatch: SKIN_THEMES.jake_stick.swatch },
-            { skinId: 'jake_cyan',    charId: 'jake', outfit: 0, blackTex: false, tint: 0xe6f9ff, title: 'Jake', sub: 'Cyber Ciano',   swatch: SKIN_THEMES.jake_cyan.swatch },
-            { skinId: 'jake_gold',    charId: 'jake', outfit: 2, blackTex: false, tint: 0xfff8dc, title: 'Jake', sub: 'Ouro 24K',      swatch: SKIN_THEMES.jake_gold.swatch },
-            { skinId: 'jake_crimson', charId: 'jake', outfit: 1, blackTex: false, tint: 0xffeef2, title: 'Jake', sub: 'Carmesim Pro',  swatch: SKIN_THEMES.jake_crimson.swatch },
-            { skinId: 'jake_violet',  charId: 'jake', outfit: 0, blackTex: false, tint: 0xf7edff, title: 'Jake', sub: 'Ultravioleta',  swatch: SKIN_THEMES.jake_violet.swatch },
-            { skinId: 'jake_emerald', charId: 'jake', outfit: 0, blackTex: false, tint: 0xebfff6, title: 'Jake', sub: 'Esmeralda',     swatch: SKIN_THEMES.jake_emerald.swatch },
-            { skinId: 'jake_arctic',  charId: 'jake', outfit: 2, blackTex: false, tint: 0xf0f9ff, title: 'Jake', sub: 'Ártico Gelo',   swatch: SKIN_THEMES.jake_arctic.swatch },
-            { skinId: 'jake_lava',    charId: 'jake', outfit: 1, blackTex: false, tint: 0xfff2e6, title: 'Jake', sub: 'Magma Forge',   swatch: SKIN_THEMES.jake_lava.swatch },
+            { skinId: 'jake_classic', charId: 'jake', outfit: 0, blackTex: false, whiteTex: false, tint: null,     title: 'Jake', sub: 'Clássico',      swatch: 'linear-gradient(135deg,#1d4ed8,#3b82f6 60%,#93c5fd)' },
+            { skinId: 'jake_white',   charId: 'jake', outfit: 0, blackTex: false, whiteTex: true,  tint: 0xffffff, title: 'Jake', sub: 'Full White',     swatch: 'linear-gradient(135deg,#cbd5e1,#ffffff 60%,#f8fafc)' },
+            { skinId: 'jake_dark',    charId: 'jake', outfit: 1, blackTex: false, whiteTex: false, tint: null,     title: 'Jake', sub: 'Dark Edition',  swatch: 'linear-gradient(135deg,#0f172a,#334155 60%,#94a3b8)' },
+            { skinId: 'jake_star',    charId: 'jake', outfit: 2, blackTex: false, whiteTex: false, tint: null,     title: 'Jake', sub: 'Star Jacket',   swatch: 'linear-gradient(135deg,#b45309,#f59e0b 60%,#fde68a)' },
+            { skinId: 'jake_stick',   charId: 'jake', outfit: 0, blackTex: true,  whiteTex: false, tint: 0x09090b, title: 'Jake', sub: 'Obsidian',      swatch: SKIN_THEMES.jake_stick.swatch },
+            { skinId: 'jake_cyan',    charId: 'jake', outfit: 0, blackTex: false, whiteTex: false, tint: 0xe6f9ff, title: 'Jake', sub: 'Cyber Ciano',   swatch: SKIN_THEMES.jake_cyan.swatch },
+            { skinId: 'jake_gold',    charId: 'jake', outfit: 2, blackTex: false, whiteTex: false, tint: 0xfff8dc, title: 'Jake', sub: 'Ouro 24K',      swatch: SKIN_THEMES.jake_gold.swatch },
+            { skinId: 'jake_crimson', charId: 'jake', outfit: 1, blackTex: false, whiteTex: false, tint: 0xffeef2, title: 'Jake', sub: 'Carmesim Pro',  swatch: SKIN_THEMES.jake_crimson.swatch },
+            { skinId: 'jake_violet',  charId: 'jake', outfit: 0, blackTex: false, whiteTex: false, tint: 0xf7edff, title: 'Jake', sub: 'Ultravioleta',  swatch: SKIN_THEMES.jake_violet.swatch },
+            { skinId: 'jake_emerald', charId: 'jake', outfit: 0, blackTex: false, whiteTex: false, tint: 0xebfff6, title: 'Jake', sub: 'Esmeralda',     swatch: SKIN_THEMES.jake_emerald.swatch },
+            { skinId: 'jake_arctic',  charId: 'jake', outfit: 2, blackTex: false, whiteTex: false, tint: 0xf0f9ff, title: 'Jake', sub: 'Ártico Gelo',   swatch: SKIN_THEMES.jake_arctic.swatch },
+            { skinId: 'jake_lava',    charId: 'jake', outfit: 1, blackTex: false, whiteTex: false, tint: 0xfff2e6, title: 'Jake', sub: 'Magma Forge',   swatch: SKIN_THEMES.jake_lava.swatch },
         ];
     }
 
@@ -5746,6 +5875,7 @@
         hubSwitching = true;
         try {
             window.__SW_JAKE_BLACK__ = !!entry.blackTex;
+            window.__SW_JAKE_WHITE__ = !!entry.whiteTex;
             window.__SW_JAKE_TINT__ = typeof entry.tint === 'number' ? entry.tint : null;
             window.__SW_JAKE_SKIN_ID__ = entry.skinId || 'jake_classic';
             localStorage.setItem('sw_selected_skin', entry.skinId || 'jake_classic');
@@ -5844,6 +5974,7 @@
         const entry = getCurrentSkinEntry();
         if (entry) {
             window.__SW_JAKE_BLACK__ = !!entry.blackTex;
+            window.__SW_JAKE_WHITE__ = !!entry.whiteTex;
             window.__SW_JAKE_TINT__ = typeof entry.tint === 'number' ? entry.tint : null;
         }
         updateSkinHubVisibility();
@@ -6039,6 +6170,15 @@
                                 <span class="setting-desc">Desfoque de movimento em alta velocidade</span>
                             </div>
                             <span class="setting-pill" id="val-gfx-motionblur">${getMotionBlurLabel(GFX_SETTINGS.motionBlur)}</span>
+                        </div>
+
+                        <!-- Proporção da Tela (Tela Esticada) Setting -->
+                        <div class="subway-setting-row" onclick="window.__cycleAspectRatio()" title="Mude a proporção da tela para tela esticada (4:3, 16:10)">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Proporção da Tela (Esticada)</span>
+                                <span class="setting-desc">4:3 Esticada (Pro / FPS), 16:10 ou Nativa</span>
+                            </div>
+                            <span class="setting-pill" id="val-gfx-aspectratio">${getAspectRatioLabel(GFX_SETTINGS.aspectRatio)}</span>
                         </div>
 
                         <!-- Resolução do Jogo Setting -->
@@ -8686,64 +8826,53 @@
                 justify-content: center;
                 position: relative;
             }
-            .cd-circle-glow {
-                position: absolute;
-                width: 180px;
-                height: 180px;
-                border-radius: 50%;
-                border: 1.5px solid rgba(56, 189, 248, 0.25);
-                box-shadow: 0 0 50px rgba(56, 189, 248, 0.25), inset 0 0 30px rgba(56, 189, 248, 0.12);
-                animation: cdPulse 1s infinite alternate ease-in-out;
-            }
-            @keyframes cdPulse {
-                0% { transform: scale(0.94); opacity: 0.6; }
-                100% { transform: scale(1.06); opacity: 1; }
-            }
+            .cd-circle-glow { display: none !important; }
             .countdown-num {
-                font-size: 96px;
-                font-weight: 900;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background: linear-gradient(180deg, #ffffff 40%, #38bdf8 100%);
+                font-size: 80px;
+                font-weight: 800;
+                font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+                color: #ffffff;
+                background: linear-gradient(180deg, #ffffff 40%, #e2e8f0 100%);
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
-                filter: drop-shadow(0 4px 20px rgba(56, 189, 248, 0.6));
+                text-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+                filter: drop-shadow(0 2px 10px rgba(255, 255, 255, 0.25));
                 line-height: 1;
                 margin: 0;
+                letter-spacing: -2px;
                 z-index: 1;
             }
             .countdown-num.pop {
-                animation: cdPop 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+                animation: cdMinimalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1);
             }
             .countdown-num.go {
-                font-size: 80px;
-                background: linear-gradient(180deg, #ffffff 30%, #10b981 100%);
+                font-size: 64px;
+                font-weight: 900;
+                background: linear-gradient(180deg, #ffffff 30%, #34d399 100%);
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
-                filter: drop-shadow(0 4px 24px rgba(16, 185, 129, 0.7));
-                animation: cdGo 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                filter: drop-shadow(0 4px 20px rgba(52, 211, 153, 0.4));
+                letter-spacing: 2px;
+                animation: cdMinimalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1);
             }
-            @keyframes cdPop {
-                0% { transform: scale(1.4); opacity: 0; filter: blur(4px); }
-                50% { transform: scale(0.96); opacity: 1; filter: blur(0); }
-                100% { transform: scale(1); opacity: 1; }
-            }
-            @keyframes cdGo {
-                0% { transform: scale(0.7); opacity: 0; }
-                60% { transform: scale(1.15); opacity: 1; }
+            @keyframes cdMinimalPop {
+                0% { transform: scale(1.18); opacity: 0.6; }
                 100% { transform: scale(1); opacity: 1; }
             }
             .countdown-sub {
-                margin-top: 20px;
-                padding: 5px 16px;
+                margin-top: 14px;
+                padding: 4px 14px;
                 border-radius: 9999px;
-                background: rgba(56, 189, 248, 0.1);
-                border: 1px solid rgba(56, 189, 248, 0.3);
-                color: #38bdf8;
-                font-size: 11px;
-                font-weight: 800;
-                letter-spacing: 2px;
+                background: rgba(15, 23, 42, 0.75);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                color: #94a3b8;
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 1.8px;
                 text-transform: uppercase;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
                 z-index: 1;
             }
 
