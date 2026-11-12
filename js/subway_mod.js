@@ -75,8 +75,7 @@
     // ==========================================
     // 2. STATE MANAGEMENT
     // ==========================================
-    window.UNLIMITED_MODE = true;
-    try { localStorage.setItem('subway_unlimited_v2', 'true'); } catch(e) {}
+    window.UNLIMITED_MODE = localStorage.getItem('subway_unlimited_v2') !== 'false';
     window.GAME_MODE = localStorage.getItem('subway_game_mode') || 'normal'; // 'normal' | 'nocoin'
     window.NO_COIN_MODE = (window.GAME_MODE === 'nocoin');
 
@@ -130,7 +129,6 @@
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 300
         contrast: parseInt(localStorage.getItem('sw_contrast') || '100', 10), // 50 - 300
         aspectRatio: localStorage.getItem('sw_aspect_ratio') || 'native', // 'native' | 'stretched_4_3' | 'stretched_16_10' | 'square_1_1'
-        resolution: localStorage.getItem('sw_resolution') || '100', // '100' | '75' | '50' | '35'
         coinOutline: localStorage.getItem('sw_coin_outline') === '1',
         volume: _swSavedVol !== null ? Math.max(0, Math.min(100, parseInt(_swSavedVol, 10) || 0)) : 30, // 0 - 100 (padrão 30%)
         motionBlur: localStorage.getItem('sw_motion_blur') || 'soft', // 'off' | 'soft' | 'high'
@@ -409,7 +407,8 @@
         // 2. Ultra-Fluid Framerate (Unlock Pixi System & Shared Tickers up to 240Hz)
         const targetMaxFPS = Math.min(240, parseInt(GFX_SETTINGS.fps, 10) || 240);
         applyTickerMaxFPS(targetMaxFPS);
-        applyRenderResolution(GFX_SETTINGS.resolution);
+        applyScreenAspectRatio(GFX_SETTINGS.aspectRatio);
+        if (typeof updateFPSVisibility === 'function') updateFPSVisibility();
 
         // 3. Smooth Hero Character Skeletal Animation & Snappy Movement
         optimizeHeroAnimAndFluidity();
@@ -746,13 +745,6 @@
         showHUDNotification('Shaders & Sombras: ' + label);
     };
 
-    function getResolutionLabel(val) {
-        if (val === '35') return '35% (Ultra Leve / FPS Máximo)';
-        if (val === '50') return '50% (Média / Rápida)';
-        if (val === '75') return '75% (Alta)';
-        return '100% (Nativa)';
-    }
-
     function getAspectRatioLabel(val) {
         if (val === 'stretched_4_3') return '4:3 Esticada (Pro)';
         if (val === 'stretched_16_10') return '16:10 Esticada';
@@ -780,42 +772,6 @@
             }
         } catch(e) {}
     }
-
-    function applyRenderResolution(val) {
-        const pct = parseInt(val, 10) || 100;
-        const scale = pct === 100 ? Math.min(window.devicePixelRatio || 1, 2) : (pct / 100);
-        window.__SW_RES_SCALE__ = scale;
-        try {
-            const stagePlugin = window.app && window.app.stage;
-            const renderer = (stagePlugin && stagePlugin.renderer) || (window.app && window.app.renderer) || (window.game && window.game.renderer);
-            if (renderer) {
-                renderer.resolution = scale;
-                const baseW = window.innerWidth || 800;
-                const baseH = window.innerHeight || 600;
-                if (typeof renderer.resize === 'function') {
-                    renderer.resize(baseW, baseH);
-                }
-            }
-            const view = document.getElementById('pixi-canvas') || (renderer && renderer.view) || document.querySelector('canvas');
-            if (view) {
-                view.style.width = '100vw';
-                view.style.height = '100vh';
-                view.style.imageRendering = pct < 100 ? 'pixelated' : 'auto';
-            }
-            applyScreenAspectRatio(GFX_SETTINGS.aspectRatio);
-        } catch(e) {}
-    }
-
-    window.__cycleResolution = function() {
-        const seq = ['100', '75', '50', '35'];
-        const idx = seq.indexOf(String(GFX_SETTINGS.resolution));
-        GFX_SETTINGS.resolution = seq[(idx + 1) % seq.length];
-        localStorage.setItem('sw_resolution', GFX_SETTINGS.resolution);
-        applyRenderResolution(GFX_SETTINGS.resolution);
-        const el = document.getElementById('val-gfx-resolution');
-        if (el) el.textContent = getResolutionLabel(GFX_SETTINGS.resolution);
-        showHUDNotification('Resolução: ' + getResolutionLabel(GFX_SETTINGS.resolution));
-    };
 
     window.__cycleAspectRatio = function() {
         const seq = ['native', 'stretched_4_3', 'stretched_16_10', 'square_1_1'];
@@ -2167,7 +2123,7 @@
         if (coin.model) {
             setEntityHexColor(coin.model, isNoCoin ? 0xff1e1e : 0xffffff);
         }
-        if (GFX_SETTINGS.coinOutline) {
+        if (GFX_SETTINGS.coinOutline && coin.model) {
             try {
                 if (!coin._strokeHull && window.__lib && window.__lib.getEntity) {
                     const ol = window.__lib.getEntity('currency_coin');
@@ -2180,7 +2136,7 @@
                                 if (v.state) {
                                     const st = Object.assign(Object.create(Object.getPrototypeOf(v.state)), v.state);
                                     st.culling = true;
-                                    st.clockwiseFrontFace = !v.state.clockwiseFrontFace;
+                                    st.clockwiseFrontFace = false;
                                     v.state = st;
                                 }
                                 if (v.material) {
@@ -2189,7 +2145,8 @@
                                         const cm = (typeof m.clone === 'function') ? m.clone() : Object.assign(Object.create(Object.getPrototypeOf(m)), m);
                                         cm.diffuseMap = null;
                                         if ('map' in cm) cm.map = null;
-                                        cm.color = 0x040404;
+                                        if ('doubleSided' in cm) cm.doubleSided = false;
+                                        cm.color = 0x050505;
                                         cm.emissive = 0x000000;
                                         return cm;
                                     };
@@ -2200,15 +2157,15 @@
                             if (ch) for (let i = 0; i < ch.length; i++) setupHull(ch[i]);
                         };
                         setupHull(ol);
-                        if (ol.scale) ol.scale.set(1.10, 1.10, 1.10);
-                        coin.addChild(ol);
+                        if (ol.scale) ol.scale.set(1.12, 1.12, 1.12);
+                        coin.model.addChild(ol);
                         coin._strokeHull = ol;
                     }
                 }
                 if (coin._strokeHull) {
                     coin._strokeHull.active = true;
                     coin._strokeHull.visible = true;
-                    if (coin._strokeHull.scale) coin._strokeHull.scale.set(1.10, 1.10, 1.10);
+                    if (coin._strokeHull.scale) coin._strokeHull.scale.set(1.12, 1.12, 1.12);
                 }
             } catch(e) {}
         } else if (coin._strokeHull) {
@@ -3827,14 +3784,16 @@
                         continue;
                     }
                     if (obs.type === 'double_train') {
-                        if (heroY >= 52) {
+                        if (heroY >= 48) {
                             heroBody.ground = Math.max(heroBody.ground || 0, 58);
-                            continue;
-                        }
-                        if (heroY >= 24 && heroY < 34) {
+                            heroBody.bottom = Math.max(heroBody.bottom || 0, 58);
+                            heroBody.landed = true;
+                        } else if (heroY >= 20) {
                             heroBody.ground = Math.max(heroBody.ground || 0, 29);
-                            continue;
+                            heroBody.bottom = Math.max(heroBody.bottom || 0, 29);
+                            heroBody.landed = true;
                         }
+                        continue;
                     }
 
                     if (obs.type === 'blocker_jump' && isJumping) {
@@ -6220,15 +6179,6 @@
                                 <span class="setting-desc">4:3 Esticada (Pro / FPS), 16:10 ou Nativa</span>
                             </div>
                             <span class="setting-pill" id="val-gfx-aspectratio">${getAspectRatioLabel(GFX_SETTINGS.aspectRatio)}</span>
-                        </div>
-
-                        <!-- Resolução do Jogo Setting -->
-                        <div class="subway-setting-row" onclick="window.__cycleResolution()" title="Diminua a escala para aumentar o FPS e reduzir delay">
-                            <div class="setting-text-col">
-                                <span class="setting-title">Resolução do Jogo</span>
-                                <span class="setting-desc">Diminua a escala para mais FPS e zero delay</span>
-                            </div>
-                            <span class="setting-pill" id="val-gfx-resolution">${getResolutionLabel(GFX_SETTINGS.resolution)}</span>
                         </div>
 
                         <!-- Contorno Preto nas Moedas Setting -->

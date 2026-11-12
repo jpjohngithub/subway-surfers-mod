@@ -1258,7 +1258,6 @@
             var n = e._resizeTo;
             t = n.clientWidth, i = n.clientHeight;
           }
-          if (window.__SW_RES_SCALE__) e.renderer.resolution = window.__SW_RES_SCALE__;
           e.renderer.resize(t, i);
         }
       }, this._resizeId = null, this._resizeTo = null, this.resizeTo = t.resizeTo || null;
