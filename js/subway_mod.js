@@ -1808,6 +1808,8 @@
         if (!parent || !point || !window.__lib || !window.__lib.getEntity) return;
         const x = Number(point.x), y = Number(point.y), z = Number(point.z);
         if (![x, y, z].every(Number.isFinite)) return;
+        const isEnergyBurst = (color === 0x23caff);
+        const blueTex = isEnergyBurst ? getEnergyCoinBlueTexture() : null;
         for (let i = 0; i < count; i++) {
             let shard;
             try { shard = window.__lib.getEntity('currency_coin'); } catch(e) { continue; }
@@ -1815,7 +1817,26 @@
             shard.rx = Math.PI / 2;
             shard.x = x; shard.y = y; shard.z = z;
             if (shard.scale) shard.scale.set(0.34 * intensity, 0.34 * intensity, 0.08);
-            setEntityHexColor(shard, color);
+            if (isEnergyBurst && blueTex) {
+                const pending = [shard];
+                while (pending.length) {
+                    const node = pending.shift();
+                    const mat = node && node.view3d && node.view3d.material;
+                    if (mat) {
+                        const mats = Array.isArray(mat) ? mat : [mat];
+                        mats.forEach(m => {
+                            if (!m) return;
+                            m.diffuseMap = blueTex;
+                            m.color = 0x7ae6ff;
+                            try { m.emissiveColor = 0x0ea5e9; m.emissive = 0x0ea5e9; } catch(e) {}
+                        });
+                    }
+                    const ch = node && (node.children || (node.container && node.container.children));
+                    if (ch) for (let k = 0; k < ch.length; k++) pending.push(ch[k]);
+                }
+            } else {
+                setEntityHexColor(shard, isEnergyBurst ? 0x0088ff : color);
+            }
             try { parent.addChild(shard); } catch(e) { continue; }
             const angle = (i / Math.max(count, 1)) * Math.PI * 2 + Math.random() * 0.22;
             const speed = (0.018 + Math.random() * 0.016) * intensity;
@@ -5096,14 +5117,20 @@
     };
 
     window.__SW_SKIN_TEX_CACHE__ = window.__SW_SKIN_TEX_CACHE__ || new Map();
+    try {
+        const _savedSkinId = localStorage.getItem('sw_selected_skin');
+        if (_savedSkinId) window.__SW_JAKE_SKIN_ID__ = _savedSkinId;
+    } catch (e) {}
     window.__SW_BUILD_SKIN_TEX__ = function(origTex, skinId) {
         if (!origTex || !skinId || !SKIN_THEMES[skinId]) return null;
-        const img = origTex.image;
+        const res = origTex.baseTexture && origTex.baseTexture.resource;
+        const img = origTex.image || (res && (res.bitmap || res.source)) || (origTex.baseTexture && origTex.baseTexture.source);
         if (!img || (!img.width && !img.naturalWidth)) return null;
-        const key = `${skinId}_${origTex.uuid || origTex.id || 'tex'}`;
+        const texKeyId = origTex.baseTexture ? (origTex.baseTexture.uid || 'bt') : (origTex.uuid || origTex.id || 'tex');
+        const key = `${skinId}_${texKeyId}`;
         if (window.__SW_SKIN_TEX_CACHE__.has(key)) return window.__SW_SKIN_TEX_CACHE__.get(key);
-        const THREE_REF = window.THREE;
-        if (!THREE_REF || !THREE_REF.CanvasTexture) return null;
+        const TexCls = origTex.constructor;
+        if (!TexCls || typeof TexCls.from !== 'function') return null;
 
         const w = Math.min(512, img.naturalWidth || img.width || 256);
         const h = Math.min(512, img.naturalHeight || img.height || 256);
@@ -5112,39 +5139,54 @@
         const ctx = cv.getContext('2d');
         if (!ctx) return null;
 
+        const parseHex = (hx) => {
+            const v = parseInt(hx.replace('#', ''), 16);
+            return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+        };
         const t = SKIN_THEMES[skinId];
-        ctx.filter = `contrast(${t.con}) saturate(${t.sat}) brightness(${t.bri})`;
+        const cBase = parseHex(t.base);
+        const cAcc = parseHex(t.accent);
+        const cHi = parseHex(t.hi);
+
         ctx.drawImage(img, 0, 0, w, h);
-        ctx.filter = 'none';
+        try {
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+                const a = d[i + 3];
+                if (a < 10) continue;
+                const r = d[i], g = d[i + 1], b = d[i + 2];
+                // Keep natural face/skin pixels intact unless obsidian silhouette
+                const isSkin = skinId !== 'jake_stick' && r > 155 && g > 105 && b > 70 && r > g + 10 && g >= b && (r - b) < 110;
+                if (isSkin) continue;
+                const luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                let nr, ng, nb;
+                if (skinId === 'jake_stick') {
+                    const f = Math.min(1, luma * 0.45);
+                    nr = 12 + cAcc[0] * f * 0.35;
+                    ng = 14 + cAcc[1] * f * 0.35;
+                    nb = 20 + cAcc[2] * f * 0.42;
+                } else if (luma < 0.5) {
+                    const p = luma * 2;
+                    nr = cBase[0] * (0.22 + 0.78 * p) + cAcc[0] * p * 0.35;
+                    ng = cBase[1] * (0.22 + 0.78 * p) + cAcc[1] * p * 0.35;
+                    nb = cBase[2] * (0.22 + 0.78 * p) + cAcc[2] * p * 0.35;
+                } else {
+                    const p = (luma - 0.5) * 2;
+                    nr = cAcc[0] * (1 - p) + cHi[0] * p;
+                    ng = cAcc[1] * (1 - p) + cHi[1] * p;
+                    nb = cAcc[2] * (1 - p) + cHi[2] * p;
+                }
+                d[i] = Math.max(0, Math.min(255, Math.round(nr)));
+                d[i + 1] = Math.max(0, Math.min(255, Math.round(ng)));
+                d[i + 2] = Math.max(0, Math.min(255, Math.round(nb)));
+            }
+            ctx.putImageData(imgData, 0, 0);
+        } catch (e) {}
 
-        ctx.globalCompositeOperation = 'color';
-        ctx.globalAlpha = skinId === 'jake_stick' ? 0.85 : 0.62;
-        const grad = ctx.createLinearGradient(0, 0, w, h);
-        grad.addColorStop(0, t.base);
-        grad.addColorStop(0.55, t.accent);
-        grad.addColorStop(1, t.hi);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, w, h);
-
-        ctx.globalCompositeOperation = 'overlay';
-        ctx.globalAlpha = skinId === 'jake_stick' ? 0.35 : 0.30;
-        const sheen = ctx.createLinearGradient(0, h, w, 0);
-        sheen.addColorStop(0, t.base);
-        sheen.addColorStop(0.5, t.accent);
-        sheen.addColorStop(1, t.hi);
-        ctx.fillStyle = sheen;
-        ctx.fillRect(0, 0, w, h);
-
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = 1;
-
-        const tex = new THREE_REF.CanvasTexture(cv);
-        tex.flipY = origTex.flipY;
-        if (origTex.colorSpace !== undefined) tex.colorSpace = origTex.colorSpace;
-        if (origTex.encoding !== undefined) tex.encoding = origTex.encoding;
-        tex.wrapS = origTex.wrapS;
-        tex.wrapT = origTex.wrapT;
-        tex.needsUpdate = true;
+        const tex = TexCls.from(cv);
+        try { tex.baseTexture.mipmap = origTex.baseTexture ? origTex.baseTexture.mipmap : 1; } catch(e) {}
+        try { tex.baseTexture.update(); } catch(e) {}
         window.__SW_SKIN_TEX_CACHE__.set(key, tex);
         return tex;
     };

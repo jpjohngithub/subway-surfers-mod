@@ -57,9 +57,9 @@ function initApp()
 
     // index.js reads the engine's webpack modules as soon as it executes.
     // Sequence the scripts to prevent the startup race that leaves only the blue page background.
-    loadScript('./js/dependencies.bundle.js?v=52', function ()
+    loadScript('./js/dependencies.bundle.js?v=53', function ()
     {
-        loadScript(window.MAIN ? window.MAIN : './js/index.js?v=45', null, function ()
+        loadScript(window.MAIN ? window.MAIN : './js/index.js?v=46', null, function ()
         {
             showStartupError('o código principal do jogo');
         });

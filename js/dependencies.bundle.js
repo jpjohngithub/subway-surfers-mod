@@ -37795,7 +37795,7 @@
       const h = -this.entity.body.z,
         l = h + this.calculateDistance(),
         u = this.entity.game.level.setSafeLanding(l);
-      this.distanceTotal = u - h, this.distance = this.distanceTotal, this.takeOffStartY = this.entity.body.y, this.takeOffEndY = 100, this.takeOffTime = 0, this.takeOffDuration = 2, this.rig = this.entity.game.camera.takeControl(), this.rigStartY = this.rig.mainY, this.rigStartZ = this.rig.mainZ, this.show(), t ? this.spawnPickups(this.entity.game, this.takeOffEndY, -u) : (this.entity.game.hud.addItemTimer("jetpack"), !window.__SW_NO_COINS__ && this.spawnCoins(this.entity.game, this.takeOffEndY, this.distance));
+      this.distanceTotal = u - h, this.distance = this.distanceTotal, this.takeOffStartY = this.entity.body.y, this.takeOffEndY = 100, this.takeOffTime = 0, this.takeOffDuration = 2, this.rig = this.entity.game.camera.takeControl(), this.rigStartY = this.rig.mainY, this.rigStartZ = this.rig.mainZ, this.show(), t ? this.spawnPickups(this.entity.game, this.takeOffEndY, -u) : (this.entity.game.hud.addItemTimer("jetpack"), !window.NO_COIN_MODE && this.spawnCoins(this.entity.game, this.takeOffEndY, this.distance));
     }
     turnOff(t) {
       var e, i, n, o;
@@ -38318,7 +38318,7 @@
         if (s < 1) continue;
         const h = s / a,
           l = this.jumpCurveEvaluate(h);
-        r = S.a.lerp(t, e, l), o = S.a.lerp(i, n, h), s < a ? (!window.__SW_NO_COINS__ && this.spawnCoinsRow(r, o)) : this.spawnPowerup(r, o);
+        r = S.a.lerp(t, e, l), o = S.a.lerp(i, n, h), s < a ? (!window.NO_COIN_MODE && this.spawnCoinsRow(r, o)) : this.spawnPowerup(r, o);
       }
     }
     spawnCoinsRow(t, e) {
@@ -39152,10 +39152,11 @@
             const mats = Array.isArray(v.material) ? v.material : [v.material];
             mats.forEach(m => {
               if (!m) return;
-              if (targetTex) m.diffuseMap = targetTex;
-              else if (origTex && (!m.diffuseMap || m.diffuseMap === blkRef)) m.diffuseMap = origTex;
+              if (targetTex) { m.diffuseMap = targetTex; if ("map" in m) m.map = targetTex; }
+              else if (origTex && (!m.diffuseMap || m.diffuseMap === blkRef)) { m.diffuseMap = origTex; if ("map" in m) m.map = origTex; }
               const isEye = m.name && /eye/i.test(m.name);
               m.color = isEye ? 16777215 : (customSkinTex ? 16777215 : jakeTint);
+              try { m.dirty = !0; } catch (err) {}
             });
           }
           const ch = obj.children || (obj.container && obj.container.children);

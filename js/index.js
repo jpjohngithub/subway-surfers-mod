@@ -869,7 +869,7 @@
       if ("object" == typeof _0x27f257) for (const _0xc1237e in _0x27f257) {
         if ('shortcut' === _0xc1237e) continue;
         const _0xa9bb5 = _0x27f257[_0xc1237e];
-        'string' == typeof _0xa9bb5 && _0xa9bb5.includes("assets/") && !_0xa9bb5.match(/ui(.*?)\.json/) ? _0x27f257[_0xc1237e] = _0xa9bb5 + "?h=40599v1onlst4h9vc" : 'object' == typeof _0xa9bb5 && _0x363c0e(_0xa9bb5);
+        'string' == typeof _0xa9bb5 && _0xa9bb5.includes("assets/") && !_0xa9bb5.match(/ui(.*?)\.json/) ? _0x27f257[_0xc1237e] = _0xa9bb5 + (_0xa9bb5.includes("train-start") ? "?h=johnsurf5" : "?h=40599v1onlst4h9vc") : 'object' == typeof _0xa9bb5 && _0x363c0e(_0xa9bb5);
       }
     }(_0x324ddd), _0x324ddd;
   }
@@ -6883,7 +6883,7 @@
       }), this.addChild(this.label);
     }
     ["updateTransform"]() {
-      super.updateTransform(), this.label.rotation = 0.1 * Math.cos(0.1 * this.count), this.count += 1;
+      super.updateTransform(), this.label.rotation = 0.075 * Math.cos(performance.now() * 0.004);
     }
   }
   function _0x464c3d(_0x1241b4, _0x478d76, _0x429267) {
