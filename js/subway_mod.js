@@ -1361,15 +1361,21 @@
             const visit = obj => {
                 if (!obj) return;
                 const view = obj.view3d || obj;
-                const source = view && view.material;
-                const materials = Array.isArray(source) ? source : (source ? [source] : []);
-                for (const material of materials) {
-                    if (!material) continue;
-                    material.diffuseMap = tex;
-                    if ('map' in material) material.map = tex;
-                    material.color = 0x00ff66;
-                    material.emissive = 0x00471a;
-                    material.emissiveIntensity = 0.35;
+                if (view && view.material) {
+                    const source = view.material;
+                    const cloneMat = m => {
+                        if (!m) return m;
+                        if (m._isBoostMat) return m;
+                        const cloned = (typeof m.clone === 'function') ? m.clone() : Object.assign(Object.create(Object.getPrototypeOf(m)), m);
+                        cloned.diffuseMap = tex;
+                        if ('map' in cloned) cloned.map = tex;
+                        cloned.color = 0xffffff;
+                        cloned.emissive = 0x00471a;
+                        cloned.emissiveIntensity = 0.35;
+                        cloned._isBoostMat = true;
+                        return cloned;
+                    };
+                    view.material = Array.isArray(source) ? source.map(cloneMat) : cloneMat(source);
                     applied = true;
                 }
                 const children = obj.children || (obj.container && obj.container.children);
@@ -1380,6 +1386,50 @@
             visit(mesh);
             return applied;
         } catch(e) { return false; }
+    }
+
+    function buildBoostCoinModel() {
+        if (!window.__lib || !window.__lib.getEntity) return null;
+        let face, ring;
+        try {
+            face = window.__lib.getEntity('currency_coin');
+            ring = window.__lib.getEntity('currency_coin');
+        } catch(e) { return face || null; }
+        if (!face) return null;
+        face.rx = 0; face.ry = 0; face.rz = 0;
+        if (face.scale) face.scale.set(1, 1, 1);
+
+        let protoView = null;
+        let protoChildScale = 1;
+        {
+            const q = [{ node: face, s: 1 }];
+            while (q.length) {
+                const cur = q.shift();
+                const c = cur.node;
+                const sc = cur.s * (c && c.scale && Number.isFinite(c.scale.x) ? c.scale.x : 1);
+                if (c && c.view3d && c.view3d.geometry) {
+                    protoView = c.view3d;
+                    protoChildScale = sc;
+                    break;
+                }
+                const ch = c && (c.children || (c.container && c.container.children));
+                if (ch) for (let i = 0; i < ch.length; i++) q.push({ node: ch[i], s: sc });
+            }
+        }
+        const geos = protoView ? buildEnergyCoinGeometries(protoView, protoChildScale) : null;
+        if (geos) {
+            setFirstViewGeometry(face, geos.coreGeom);
+            if (ring) setFirstViewGeometry(ring, geos.ringGeom);
+        }
+        applyBoostCoinTexture(face);
+
+        if (ring) {
+            ring.rx = 0.42; ring.ry = 0; ring.rz = 0.24;
+            if (ring.scale) ring.scale.set(1.06, 1.06, 1.06);
+            applyBoostCoinTexture(ring);
+            face.addChild(ring);
+        }
+        return face;
     }
 
     window.__SW_GET_JOHNSURF_TEX__ = function() {
@@ -1990,8 +2040,8 @@
         }
         coin._isDashItem = false;
         coin.visible = true;
-        if (coin._dashModel) coin._dashModel.visible = false;
         if (coin.model) {
+            coin.model.active = true;
             coin.model.visible = true;
             if (coin.model.scale) coin.model.scale.set(1, 1, 1);
         }
@@ -2011,6 +2061,20 @@
             coin._isDashItem = true;
             lastDashZ = coinZ;
             lastDashLaneX = coinX;
+            // Clear any previously spawned overlapping red coins on the same lane
+            if (isNoCoin && window.__activeCoins) {
+                for (const other of window.__activeCoins) {
+                    if (!other || other === coin || other._isDashItem || !other.active) continue;
+                    const ox = other.body ? other.body.x : (other.x || 0);
+                    const oz = other.body ? other.body.z : (other.z || 0);
+                    if (Math.abs(ox - coinX) < 5 && Math.abs(oz - coinZ) < 42) {
+                        other.active = false;
+                        other.visible = false;
+                        if (other.model) { other.model.active = false; other.model.visible = false; }
+                        if (other.body) { other.body.width = 0; other.body.height = 0; other.body.depth = 0; }
+                    }
+                }
+            }
             if (coin.attractable) {
                 if (coin.attractable.__normalMagnetUpdate) coin.attractable.update = coin.attractable.__normalMagnetUpdate;
                 if (coin.attractable.__normalMagnetStart) coin.attractable.attractionStart = coin.attractable.__normalMagnetStart;
@@ -2021,32 +2085,13 @@
                 coin.body.height = 6.2;
                 coin.body.depth = 6.2;
             }
-            // Hide normal coin model to prevent any conflict with red/gold coins
-            if (coin.model) coin.model.visible = false;
-            // Create/show separate dedicated Boost Coin 3D model
-            if (!coin._dashModel && window.__lib && window.__lib.getEntity) {
-                try {
-                    const dm = window.__lib.getEntity('currency_coin');
-                    if (dm) {
-                        applyBoostCoinTexture(dm);
-                        setEntityHexColor(dm, 0x00ff66);
-                        if (dm.scale) dm.scale.set(1.5, 1.5, 1.5);
-                        coin.addChild(dm);
-                        coin._dashModel = dm;
-                    }
-                } catch(e) {}
-            }
-            if (coin._dashModel) {
-                coin._dashModel.visible = true;
-                applyBoostCoinTexture(coin._dashModel);
-                setEntityHexColor(coin._dashModel, 0x00ff66);
+            if (coin.model) {
+                setEntityHexColor(coin.model, 0x00ff66);
+                if (coin.model.scale) coin.model.scale.set(1.5, 1.5, 1.5);
             }
             if (coin.shine) {
                 coin.shine.active = true;
-                if (coin.shine.view) {
-                    setEntityHexColor(coin.shine.view, 0x00ff66);
-                    if (coin.shine.view.scale) coin.shine.view.scale.set(1.4, 1.4, 1.4);
-                }
+                if (coin.shine.view) setEntityHexColor(coin.shine.view, 0x00ff66);
             }
             return;
         }
@@ -2138,7 +2183,7 @@
     window.__onDashCollect = function(coin) {
         dashInvulnUntil = Date.now() + 750;
         window.__dashSpeedMult = Math.min((window.__dashSpeedMult || 1.0) + 0.14, 1.95);
-        playCoinShatterEffect(coin, 0x00ff66, 1.45, 14, false, true);
+        playCoinShatterEffect(coin, 0x16a34a, 1.35, 14, false, true);
 
         // Boost de tempo adicional (APENAS no modo online ativo)
         if (MP.inMatch && MPX.roundActive && !MPX.isPracticing && isRunActive && !deathFrozen) {
@@ -2249,10 +2294,10 @@
                 '<div class="coin-crack-spark">💥</div>' +
                 '</div>';
         } else if (isBoost) {
-            burst.innerHTML = '<span class="coin-shatter-flash" style="background: radial-gradient(circle at 50% 59%, rgba(0,255,102,0.55), transparent 45%);"></span>' +
-                '<span class="coin-shatter-ring" style="border-color: #00ff66; box-shadow: 0 0 28px #00ff66;"></span>' +
-                '<span class="coin-shatter-ring coin-shatter-ring-inner" style="border-color: #a3ffb8;"></span>' +
-                '<span class="coin-shatter-core" style="background: radial-gradient(circle at 35% 30%, #e0ffe8, #00ff66 75%); box-shadow: 0 0 35px #00ff66; text-shadow: 0 0 16px #00ff66;">⚡</span>';
+            burst.innerHTML = '<span class="coin-shatter-flash" style="background: radial-gradient(circle at 50% 59%, rgba(22,163,74,0.28), transparent 45%);"></span>' +
+                '<span class="coin-shatter-ring" style="border-color: #16a34a;"></span>' +
+                '<span class="coin-shatter-ring coin-shatter-ring-inner" style="border-color: #15803d;"></span>' +
+                '<span class="coin-shatter-core" style="background: radial-gradient(circle at 35% 30%, #4ade80, #15803d 75%); box-shadow: 0 2px 10px rgba(21,128,61,0.45); color: #ffffff;">⚡</span>';
         } else {
             burst.innerHTML = '<span class="coin-shatter-flash"></span><span class="coin-shatter-ring"></span><span class="coin-shatter-ring coin-shatter-ring-inner"></span><span class="coin-shatter-core">✦</span>';
         }
@@ -2670,7 +2715,7 @@
 
     function createObstacle3D(type, x, y, z, options = {}) {
         if (!window.__lib || !window.__lib.getEntity) return null;
-        const margin = (type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20;
+        const margin = (type === 'wooden_ramp' || type === 'double_train') ? 70 : ((type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20);
         try {
             if ((type === 'coin' || type === 'energyCoin') && !options.platformEntity && window.game && window.game.physics && Array.isArray(window.game.physics.entities)) {
                 const ents = window.game.physics.entities;
@@ -2785,48 +2830,17 @@
                     bounds = { depth: 60, width: 18, height: 58, isDoubleTrain: true };
                 }
             } else if (type === 'wooden_ramp') {
-                const targetH = options.targetHeight || 29;
-                const rDepth = options.depth || (targetH >= 50 ? 150 : 85);
-                const rWidth = options.width || 18;
-                const getBlock = () => {
-                    try { return window.__lib.getEntity('dumpster'); } catch(e) {}
-                    try { return window.__lib.getEntity('blocker_jump'); } catch(e) {}
-                    return null;
-                };
-                const b1 = getBlock();
-                const b2 = getBlock();
-                const b3 = getBlock();
-                if (b1) {
-                    const stepH1 = targetH * 0.33;
-                    const stepH2 = targetH * 0.67;
-                    const stepH3 = targetH * 1.00;
-                    const segD = rDepth * 0.34;
-                    b1.scale.set(rWidth / 16, stepH1 / 12, segD / 10);
-                    b1.rx = 0; b1.rz = 0; b1.ry = Math.PI;
-                    setEntityHexColor(b1, 0x543217);
-                    b1._zOffset = segD;
-                    b1._yOffset = 0;
-                    b1._xOffset = 0;
-
-                    if (b2) {
-                        b2.scale.set(rWidth / 16, stepH2 / 12, segD / 10);
-                        b2.rx = 0; b2.rz = 0; b2.ry = Math.PI;
-                        setEntityHexColor(b2, 0x6d401e);
-                        b2._zOffset = 0;
-                        b2._yOffset = 0;
-                        b2._xOffset = 0;
+                let rampMesh = null;
+                try {
+                    if (window.__lib && window.__lib.hasGeometry && window.__lib.hasGeometry('train_ramp')) {
+                        rampMesh = window.__lib.getEntity('train_ramp');
                     }
-                    if (b3) {
-                        b3.scale.set(rWidth / 16, stepH3 / 12, segD / 10);
-                        b3.rx = 0; b3.rz = 0; b3.ry = Math.PI;
-                        setEntityHexColor(b3, 0x8b5428);
-                        b3._zOffset = -segD;
-                        b3._yOffset = 0;
-                        b3._xOffset = 0;
-                    }
-                    mesh = b1;
-                    mesh._woodenRampParts = [b2, b3].filter(Boolean);
-                    bounds = { depth: rDepth, width: rWidth, height: targetH, isWoodenRamp: true };
+                } catch(e) {}
+                if (rampMesh) {
+                    rampMesh.rx = 0; rampMesh.rz = 0; rampMesh.ry = Math.PI;
+                    if (rampMesh.scale) rampMesh.scale.set(1.0, 1.0, 1.0);
+                    mesh = rampMesh;
+                    bounds = { depth: 70, width: 18, height: 29, isWoodenRamp: true };
                 }
             }
 
