@@ -1358,119 +1358,41 @@
         } catch(e) { return false; }
     }
 
-    let noCoinRedTexture = null;
-    function createNoCoinRedAtlas(TextureClass) {
-        if (noCoinRedTexture) return noCoinRedTexture;
-        try {
-            if (typeof document !== 'undefined') {
-                const canvas = document.createElement('canvas');
-                canvas.width = 256; canvas.height = 256;
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    const gCore = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
-                    gCore.addColorStop(0.0, '#ffffff');
-                    gCore.addColorStop(0.24, '#ff5e72');
-                    gCore.addColorStop(0.58, '#d60024');
-                    gCore.addColorStop(0.86, '#4f000b');
-                    gCore.addColorStop(1.0, '#1c0004');
-                    ctx.fillStyle = gCore;
-                    ctx.fillRect(0, 0, 128, 128);
-
-                    ctx.strokeStyle = 'rgba(25, 0, 5, 0.78)';
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.arc(64, 64, 56, 0, Math.PI * 2);
-                    ctx.stroke();
-
-                    ctx.fillStyle = '#ffffff';
-                    ctx.shadowColor = '#ff1e38';
-                    ctx.shadowBlur = 8;
-                    ctx.beginPath();
-                    ctx.arc(64, 64, 20, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
-                    ctx.fillStyle = '#b80018';
-                    ctx.beginPath();
-                    ctx.arc(64, 64, 14, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    const gRim = ctx.createLinearGradient(128, 0, 256, 128);
-                    gRim.addColorStop(0.0, '#ff7a8a');
-                    gRim.addColorStop(0.35, '#c4001e');
-                    gRim.addColorStop(0.72, '#380008');
-                    gRim.addColorStop(1.0, '#e60026');
-                    ctx.fillStyle = gRim;
-                    ctx.fillRect(128, 0, 128, 128);
-                    ctx.fillStyle = 'rgba(255, 210, 220, 0.45)';
-                    for (let k = 0; k < 5; k++) ctx.fillRect(132 + k * 24, 48, 12, 32);
-
-                    ctx.fillStyle = '#260005';
-                    ctx.fillRect(0, 128, 128, 128);
-                    ctx.fillStyle = '#ff1e38';
-                    for (let c = 0; c < 2; c++) {
-                        const ox = 26 + c * 38;
-                        ctx.beginPath();
-                        ctx.moveTo(ox, 150); ctx.lineTo(ox + 22, 192); ctx.lineTo(ox, 234);
-                        ctx.lineTo(ox + 16, 234); ctx.lineTo(ox + 38, 192); ctx.lineTo(ox + 16, 150);
-                        ctx.closePath();
-                        ctx.fill();
+    function restoreCoinNativeTexture(mesh, isNoCoin) {
+        if (!mesh) return;
+        const propsMap = (window.__lib && window.__lib.getMap && window.__lib.getMap('props-tex')) || null;
+        const visit = obj => {
+            if (!obj) return;
+            const view = obj.view3d || obj;
+            if (view && view.material) {
+                const mats = Array.isArray(view.material) ? view.material : [view.material];
+                for (const m of mats) {
+                    if (!m) continue;
+                    if (!m._origMap && (m.diffuseMap || m.map)) {
+                        m._origMap = m.diffuseMap || m.map;
                     }
-
-                    const gRing = ctx.createLinearGradient(128, 128, 256, 256);
-                    gRing.addColorStop(0.0, '#ff3b52');
-                    gRing.addColorStop(0.5, '#ffa8b4');
-                    gRing.addColorStop(1.0, '#850012');
-                    ctx.fillStyle = gRing;
-                    ctx.fillRect(128, 128, 128, 128);
-
-                    noCoinRedTexture = TextureClass.from(canvas);
+                    const targetMap = m._origMap || propsMap;
+                    if (targetMap) {
+                        m.diffuseMap = targetMap;
+                        if ('map' in m) m.map = targetMap;
+                    }
+                    if (isNoCoin) {
+                        m.color = 0xff1e28;
+                        m.emissive = 0x380008;
+                        m.emissiveIntensity = 0.32;
+                    } else {
+                        m.color = 0xffffff;
+                        m.emissive = 0x000000;
+                        m.emissiveIntensity = 0;
+                    }
                 }
             }
-        } catch(e) {}
-        return noCoinRedTexture;
-    }
-
-    function getNoCoinRedTexture() {
-        if (noCoinRedTexture) return noCoinRedTexture;
-        try {
-            const origMap = window.__lib && window.__lib.getMap && window.__lib.getMap('props-tex');
-            return createNoCoinRedAtlas(origMap && origMap.constructor);
-        } catch(e) { return null; }
-    }
-
-    function applyNoCoinRedTexture(mesh) {
-        try {
-            const tex = getNoCoinRedTexture();
-            if (!mesh || !tex) return false;
-            let applied = false;
-            const visit = obj => {
-                if (!obj) return;
-                const view = obj.view3d || obj;
-                if (view && view.material) {
-                    const source = view.material;
-                    const cloneMat = m => {
-                        if (!m) return m;
-                        if (m._isNoCoinRedMat) return m;
-                        const cloned = (typeof m.clone === 'function') ? m.clone() : Object.assign(Object.create(Object.getPrototypeOf(m)), m);
-                        cloned.diffuseMap = tex;
-                        if ('map' in cloned) cloned.map = tex;
-                        cloned.color = 0xffffff;
-                        cloned.emissive = 0x3d0008;
-                        cloned.emissiveIntensity = 0.28;
-                        cloned._isNoCoinRedMat = true;
-                        return cloned;
-                    };
-                    view.material = Array.isArray(source) ? source.map(cloneMat) : cloneMat(source);
-                    applied = true;
-                }
-                const children = obj.children || (obj.container && obj.container.children);
-                if (children && children.length) {
-                    for (let i = 0; i < children.length; i++) visit(children[i]);
-                }
-            };
-            visit(mesh);
-            return applied;
-        } catch(e) { return false; }
+            const children = obj.children || (obj.container && obj.container.children);
+            if (children && children.length) {
+                for (let i = 0; i < children.length; i++) visit(children[i]);
+            }
+        };
+        visit(mesh);
     }
 
     function buildBoostCoinModel() {
@@ -2295,10 +2217,8 @@
         if (coin.model) {
             if (coinStyle === '2') {
                 setEntityHexColor(coin.model, 0x020202);
-            } else if (isNoCoin) {
-                applyNoCoinRedTexture(coin.model);
             } else {
-                setEntityHexColor(coin.model, 0xffffff);
+                restoreCoinNativeTexture(coin.model, isNoCoin);
             }
         }
         if (coinStyle === '1' && coin.model && !isNoCoin) {
@@ -2927,11 +2847,9 @@
                         const coinStyle = String(GFX_SETTINGS.coinOutline || '0');
                         if (coinStyle === '2') {
                             setEntityHexColor(mesh, 0x020202);
-                        } else if (window.NO_COIN_MODE) {
-                            applyNoCoinRedTexture(mesh);
                         } else {
-                            setEntityHexColor(mesh, 0xffc928);
-                            if (coinStyle === '1') applyCoinCelOutline(mesh, mesh);
+                            restoreCoinNativeTexture(mesh, window.NO_COIN_MODE);
+                            if (coinStyle === '1' && !window.NO_COIN_MODE) applyCoinCelOutline(mesh, mesh);
                         }
                     }
                     bounds = energyCoin ? { depth: 9, width: 8, height: 11 } : { depth: 5, width: 4, height: 6 };
@@ -5880,10 +5798,10 @@
         // Replace Subway Surfers logo on Jake's clothes with John Surf logo without any background box
         try {
             if (_johnSurfLogoImg && _johnSurfLogoImg.complete && _johnSurfLogoImg.naturalWidth) {
-                const bx = Math.round(w * (52 / 256));
-                const by = Math.round(h * (158 / 256));
-                const bw = Math.round(w * (132 / 256));
-                const bh = Math.round(h * (104 / 256));
+                const bx = Math.round(w * (67 / 256));
+                const by = Math.round(h * (174 / 256));
+                const bw = Math.round(w * (103 / 256));
+                const bh = Math.round(h * (80 / 256));
                 ctx.drawImage(_johnSurfLogoImg, bx, by, bw, bh);
             }
         } catch(e) {}
