@@ -313,35 +313,11 @@
             }
             if (vig) vig.style.opacity = mode === 'off' ? '0' : '1';
 
-            let bloom = document.getElementById('sw-bloom-canvas');
+            const bloom = document.getElementById('sw-bloom-canvas');
+            if (bloom) bloom.remove();
             const src = document.getElementById('pixi-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
-            if (mode !== 'off' && src && document.body) {
-                if (!bloom) {
-                    bloom = document.createElement('canvas');
-                    bloom.id = 'sw-bloom-canvas';
-                    bloom.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:4;mix-blend-mode:screen;opacity:0.42;filter:blur(12px) contrast(230%) brightness(135%) saturate(130%);transform:var(--sw-canvas-transform, none);transform-origin:center center;';
-                    if (src.parentNode) src.parentNode.insertBefore(bloom, src.nextSibling);
-                    else document.body.appendChild(bloom);
-                }
-                bloom.style.display = 'block';
-                if (!window.__swBloomLoopStarted) {
-                    window.__swBloomLoopStarted = true;
-                    const tickBloom = () => {
-                        requestAnimationFrame(tickBloom);
-                        const bc = document.getElementById('sw-bloom-canvas');
-                        if (!bc || GFX_SETTINGS.shaders === 'off') return;
-                        const gc = document.getElementById('pixi-canvas') || (window.app && window.app.view);
-                        if (!gc || !gc.width || !gc.height) return;
-                        const bw = Math.max(120, Math.floor(gc.width / 6));
-                        const bh = Math.max(80, Math.floor(gc.height / 6));
-                        if (bc.width !== bw || bc.height !== bh) { bc.width = bw; bc.height = bh; }
-                        const bctx = bc.getContext('2d');
-                        if (bctx) bctx.drawImage(gc, 0, 0, bw, bh);
-                    };
-                    requestAnimationFrame(tickBloom);
-                }
-            } else if (bloom) {
-                bloom.style.display = 'none';
+            if (src) {
+                applyCanvasGraphicsFilter(src, GFX_SETTINGS.saturation, GFX_SETTINGS.contrast);
             }
         } catch(e) {}
     }
@@ -473,54 +449,14 @@
 
     function applyCanvasGraphicsFilter(canvas, saturation = GFX_SETTINGS.saturation || 100, contrast = GFX_SETTINGS.contrast || 100) {
         if (!canvas) return;
-        canvas.style.filter = `saturate(${saturation}%) contrast(${contrast}%)`;
+        const bloomEffect = GFX_SETTINGS.shaders !== 'off' ? ' drop-shadow(0 0 5px rgba(255, 235, 175, 0.16))' : '';
+        canvas.style.filter = `saturate(${saturation}%) contrast(${contrast}%)${bloomEffect}`;
     }
 
     function optimizeHeroAnimAndFluidity() {
         try {
             const game = window.game || (window.app && window.app.game);
             const hero = (game && game.hero) || null;
-            const scene = (game && game.scene) || (window.app && window.app.scene);
-            if (scene && scene.time) {
-                scene.time.maxDeltaTime = 45;
-            }
-            if (hero && hero.anim && !hero.anim.__swFluidPatched) {
-                hero.anim.__swFluidPatched = true;
-                hero.anim.fpsGame = 240;
-
-                const isGameplayClip = (name) => {
-                    const s = Array.isArray(name) ? String(name[0] || '') : String(name || '');
-                    if (!s) return false;
-                    return /run|jump|roll|dodge|fall|grind|hover|hang|fly|surf|land/i.test(s) && !/crash|die|caught|idle|intro/i.test(s);
-                };
-
-                if (typeof hero.anim.play === 'function') {
-                    const origPlay = hero.anim.play.bind(hero.anim);
-                    hero.anim.play = function(clip, opts) {
-                        const cfg = (opts && typeof opts === 'object') ? Object.assign({}, opts) : {};
-                        if (isGameplayClip(clip) && !cfg.sudden) {
-                            cfg.mixRatio = Math.max(cfg.mixRatio || 0, 0.62);
-                        }
-                        return origPlay(clip, Object.keys(cfg).length ? cfg : opts);
-                    };
-                }
-
-                if (typeof hero.anim.update === 'function') {
-                    const origUpdate = hero.anim.update.bind(hero.anim);
-                    hero.anim.update = function(timeObj) {
-                        const savedSpeed = this.speed;
-                        if (isGameplayClip(this.currentAnimationClipName)) {
-                            this.speed = (savedSpeed || 1) * 1.24;
-                        }
-                        try {
-                            return origUpdate(timeObj);
-                        } finally {
-                            this.speed = savedSpeed;
-                        }
-                    };
-                }
-            }
-
             if (hero && hero.lane && typeof hero.lane.change === 'function' && !hero.lane.__swSnappyPatched) {
                 hero.lane.__swSnappyPatched = true;
                 const origLaneChange = hero.lane.change.bind(hero.lane);
@@ -802,22 +738,29 @@
 
     function applyScreenAspectRatio(val) {
         try {
-            let tf = 'none';
-            if (val === 'stretched_4_3') tf = 'scaleX(1.333)';
-            else if (val === 'stretched_16_10') tf = 'scaleX(1.18)';
-            else if (val === 'square_1_1') tf = 'scaleX(0.75)';
-            document.documentElement.style.setProperty('--sw-canvas-transform', tf);
-            if (val !== 'native' && document.body) document.body.style.overflow = 'hidden';
-            if (!document.getElementById('sw-aspect-style') && document.head) {
-                const st = document.createElement('style');
-                st.id = 'sw-aspect-style';
-                st.textContent = '#pixi-canvas, #game-canvas { transform: var(--sw-canvas-transform, none) !important; transform-origin: center center !important; }';
-                document.head.appendChild(st);
-            }
+            let mult = 1.0;
+            if (val === 'stretched_4_3') mult = 0.75;
+            else if (val === 'stretched_16_10') mult = 0.847;
+            else if (val === 'square_1_1') mult = 1.333;
+            window.__SW_ASPECT_MULT__ = mult;
+
             const canvas = document.getElementById('pixi-canvas') || document.getElementById('game-canvas') || document.querySelector('canvas');
             if (canvas) {
-                canvas.style.transform = tf;
-                canvas.style.transformOrigin = 'center center';
+                canvas.style.transform = 'none';
+                canvas.style.width = '100vw';
+                canvas.style.height = '100vh';
+                canvas.style.margin = '0';
+            }
+            const st = document.getElementById('sw-aspect-style');
+            if (st) st.remove();
+
+            const w = window.innerWidth || 800;
+            const h = window.innerHeight || 600;
+            if (window.game && window.game.camera && typeof window.game.camera.updateProjection === 'function') {
+                window.game.camera.updateProjection(w, h);
+            }
+            if (window.game && window.game.scene && window.game.scene.camera && typeof window.game.scene.camera.updateProjection === 'function') {
+                window.game.scene.camera.updateProjection(w, h);
             }
         } catch(e) {}
     }
@@ -2033,72 +1976,25 @@
     }
 
     function applyCoinCelOutline(targetModel, holder) {
-        const mode = String(GFX_SETTINGS.coinOutline || '0');
-        if (!targetModel || !holder || mode === '0') return;
+        if (!targetModel || !holder || String(GFX_SETTINGS.coinOutline || '0') !== '1') return;
         try {
-            const getShaderForMode = (m, mMode) => {
-                if (!m || !m.program) return null;
-                const ProgramCls = m.program.constructor;
-                if (mMode === '2') {
-                    if (!window.__SW_COIN_BLACK_PROG__) {
-                        window.__SW_COIN_BLACK_PROG__ = ProgramCls.from(
-                            "attribute vec3 aPosition;\nuniform mat4 uModelMatrix;\nuniform mat4 uViewMatrix;\nuniform mat4 uProjectionMatrix;\nvoid main() {\n  vec4 viewPos = uViewMatrix * uModelMatrix * vec4(aPosition, 1.0);\n  viewPos.z += 0.25;\n  gl_Position = uProjectionMatrix * viewPos;\n}\n",
-                            "void main() {\n  gl_FragColor = vec4(0.02, 0.02, 0.02, 1.0);\n}\n",
-                            "sw_coin_solid_black"
-                        );
-                    }
-                    const ShaderCls = (window.PIXI && window.PIXI.Shader) || Object.getPrototypeOf(m.constructor);
-                    return new ShaderCls(window.__SW_COIN_BLACK_PROG__, {});
-                }
-                if (!window.__SW_COIN_OUTLINE_PROG__) {
-                    window.__SW_COIN_OUTLINE_PROG__ = ProgramCls.from(
-                        "attribute vec3 aPosition;\nuniform mat4 uModelMatrix;\nuniform mat4 uViewMatrix;\nuniform mat4 uProjectionMatrix;\nvoid main() {\n  vec4 viewPos = uViewMatrix * uModelMatrix * vec4(aPosition, 1.0);\n  viewPos.z -= 1.5;\n  gl_Position = uProjectionMatrix * viewPos;\n}\n",
-                        "void main() {\n  gl_FragColor = vec4(0.02, 0.02, 0.02, 1.0);\n}\n",
-                        "sw_coin_cel_outline"
-                    );
-                }
-                const ShaderCls = (window.PIXI && window.PIXI.Shader) || Object.getPrototypeOf(m.constructor);
-                return new ShaderCls(window.__SW_COIN_OUTLINE_PROG__, {});
-            };
-
-            const applyToHull = (obj, mMode) => {
-                if (!obj) return;
-                const v = obj.view3d;
-                if (v) {
-                    const st = v._state || v.state;
-                    if (st) {
-                        st.culling = false;
-                        st.depthTest = true;
-                    }
-                    const baseMat = v._origOutlineMat || (Array.isArray(v.material) ? v.material[0] : v.material);
-                    if (baseMat && baseMat.program) {
-                        v._origOutlineMat = baseMat;
-                        const sh = getShaderForMode(baseMat, mMode);
-                        if (sh) v.material = sh;
-                    }
-                }
-                const ch = obj.children || (obj.container && obj.container.children);
-                if (ch) for (let i = 0; i < ch.length; i++) applyToHull(ch[i], mMode);
-            };
-
             if (!holder._strokeHull && window.__lib && window.__lib.getEntity) {
                 const ol = window.__lib.getEntity('currency_coin');
                 if (ol) {
                     ol.rx = 0; ol.ry = 0; ol.rz = 0;
-                    applyToHull(ol, mode);
+                    setEntityHexColor(ol, 0x020202);
+                    ol.z = -0.4;
+                    if (ol.scale) ol.scale.set(1.14, 1.14, 0.8);
                     targetModel.addChild(ol);
                     holder._strokeHull = ol;
-                    holder._strokeHullMode = mode;
                 }
-            } else if (holder._strokeHull && holder._strokeHullMode !== mode) {
-                applyToHull(holder._strokeHull, mode);
-                holder._strokeHullMode = mode;
             }
             if (holder._strokeHull) {
                 holder._strokeHull.active = true;
                 holder._strokeHull.visible = true;
-                const sc = mode === '2' ? 1.03 : 1.13;
-                if (holder._strokeHull.scale) holder._strokeHull.scale.set(sc, sc, sc);
+                setEntityHexColor(holder._strokeHull, 0x020202);
+                holder._strokeHull.z = -0.4;
+                if (holder._strokeHull.scale) holder._strokeHull.scale.set(1.14, 1.14, 0.8);
             }
         } catch(e) {}
     }
@@ -2250,10 +2146,15 @@
             return;
         }
 
+        const coinStyle = String(GFX_SETTINGS.coinOutline || '0');
         if (coin.model) {
-            setEntityHexColor(coin.model, isNoCoin ? 0xff1e1e : 0xffffff);
+            if (coinStyle === '2') {
+                setEntityHexColor(coin.model, 0x020202);
+            } else {
+                setEntityHexColor(coin.model, isNoCoin ? 0xff1e1e : 0xffffff);
+            }
         }
-        if (String(GFX_SETTINGS.coinOutline || '0') !== '0' && coin.model) {
+        if (coinStyle === '1' && coin.model) {
             applyCoinCelOutline(coin.model, coin);
         } else if (coin._strokeHull) {
             coin._strokeHull.active = false;
@@ -2876,8 +2777,15 @@
                 if (mesh) {
                     if (!energyCoin && mesh.scale) mesh.scale.set(1.15, 1.15, 1.15);
                     if (!energyCoin) {
-                        setEntityHexColor(mesh, window.NO_COIN_MODE ? 0xff1e1e : 0xffc928);
-                        applyCoinCelOutline(mesh, mesh);
+                        const coinStyle = String(GFX_SETTINGS.coinOutline || '0');
+                        if (coinStyle === '2') {
+                            setEntityHexColor(mesh, 0x020202);
+                        } else {
+                            setEntityHexColor(mesh, window.NO_COIN_MODE ? 0xff1e1e : 0xffc928);
+                        }
+                        if (coinStyle === '1') {
+                            applyCoinCelOutline(mesh, mesh);
+                        }
                     }
                     bounds = energyCoin ? { depth: 9, width: 8, height: 11 } : { depth: 5, width: 4, height: 6 };
                 }
@@ -5822,24 +5730,14 @@
 
         ctx.drawImage(img, 0, 0, w, h);
 
-        // Replace Subway Surfers logo on Jake's clothes with John Surf logo without white box
+        // Replace Subway Surfers logo on Jake's clothes with John Surf logo without any background box
         try {
-            const bx = Math.round(w * (67 / 256));
-            const by = Math.round(h * (174 / 256));
-            const bw = Math.round(w * (103 / 256));
-            const bh = Math.round(h * (80 / 256));
-            const sx = Math.min(w - 1, Math.max(0, bx + Math.floor(bw * 0.5)));
-            const sy = Math.max(0, by - 4);
-            const px = ctx.getImageData(sx, sy, 1, 1).data;
-            let patchBg = `rgb(${px[0]}, ${px[1]}, ${px[2]})`;
-            if (skinId === 'jake_stick') patchBg = '#09090b';
-            else if (skinId === 'jake_white') patchBg = '#ffffff';
-            ctx.fillStyle = patchBg;
-            ctx.fillRect(bx, by, bw, bh);
-
             if (_johnSurfLogoImg && _johnSurfLogoImg.complete && _johnSurfLogoImg.naturalWidth) {
-                const pad = Math.round(bw * 0.04);
-                ctx.drawImage(_johnSurfLogoImg, bx + pad, by + pad, bw - 2 * pad, bh - 2 * pad);
+                const bx = Math.round(w * (67 / 256));
+                const by = Math.round(h * (174 / 256));
+                const bw = Math.round(w * (103 / 256));
+                const bh = Math.round(h * (80 / 256));
+                ctx.drawImage(_johnSurfLogoImg, bx, by, bw, bh);
             }
         } catch(e) {}
 

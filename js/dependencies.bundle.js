@@ -39454,7 +39454,8 @@
       this.lookAtTarget && this.entity.transform.lookAt(this.lookAtTarget);
     }
     updateProjection(t, e) {
-      if (this.width = t, this.height = e, this._updateView(), this.mode === f.PERSPECTIVE) this.projection.makePerspective(this.fov / this.zoom, t / e, this.near, this.far);else if (this.mode === f.ORTHOGRAPHIC) {
+      const _aspMult = window.__SW_ASPECT_MULT__ || 1.0;
+      if (this.width = t, this.height = e, this._updateView(), this.mode === f.PERSPECTIVE) this.projection.makePerspective(this.fov / this.zoom, (t / e) * _aspMult, this.near, this.far);else if (this.mode === f.ORTHOGRAPHIC) {
         const i = e / t,
           n = this.zoom * this.orthographicSize;
         this.projection.makeOrthographic(-n, n, -n * i, n * i, this.near, this.far);
