@@ -141,6 +141,7 @@
     try {
         document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
         document.documentElement.style.setProperty('--game-contrast', GFX_SETTINGS.contrast + '%');
+        applyScreenAspectRatio(GFX_SETTINGS.aspectRatio);
     } catch(e) {}
 
     function applyGameVolume(pct) {
@@ -754,21 +755,22 @@
 
     function applyScreenAspectRatio(val) {
         try {
-            const canvas = document.querySelector('canvas');
-            if (!canvas) return;
-            if (val === 'stretched_4_3') {
-                canvas.style.transform = 'scaleX(1.333)';
+            let tf = 'none';
+            if (val === 'stretched_4_3') tf = 'scaleX(1.333)';
+            else if (val === 'stretched_16_10') tf = 'scaleX(1.18)';
+            else if (val === 'square_1_1') tf = 'scaleX(0.75)';
+            document.documentElement.style.setProperty('--sw-canvas-transform', tf);
+            if (val !== 'native' && document.body) document.body.style.overflow = 'hidden';
+            if (!document.getElementById('sw-aspect-style') && document.head) {
+                const st = document.createElement('style');
+                st.id = 'sw-aspect-style';
+                st.textContent = '#pixi-canvas, #game-canvas { transform: var(--sw-canvas-transform, none) !important; transform-origin: center center !important; }';
+                document.head.appendChild(st);
+            }
+            const canvas = document.getElementById('pixi-canvas') || document.getElementById('game-canvas') || document.querySelector('canvas');
+            if (canvas) {
+                canvas.style.transform = tf;
                 canvas.style.transformOrigin = 'center center';
-                document.body.style.overflow = 'hidden';
-            } else if (val === 'stretched_16_10') {
-                canvas.style.transform = 'scaleX(1.18)';
-                canvas.style.transformOrigin = 'center center';
-                document.body.style.overflow = 'hidden';
-            } else if (val === 'square_1_1') {
-                canvas.style.transform = 'scaleX(0.75)';
-                canvas.style.transformOrigin = 'center center';
-            } else {
-                canvas.style.transform = 'none';
             }
         } catch(e) {}
     }
@@ -2132,32 +2134,31 @@
                         const setupHull = obj => {
                             if (!obj) return;
                             const v = obj.view3d;
-                            if (v) {
-                                if (v.state) {
-                                    const st = Object.assign(Object.create(Object.getPrototypeOf(v.state)), v.state);
-                                    st.culling = true;
-                                    st.clockwiseFrontFace = false;
-                                    v.state = st;
-                                }
-                                if (v.material) {
-                                    const makeBlk = m => {
-                                        if (!m) return m;
-                                        const cm = (typeof m.clone === 'function') ? m.clone() : Object.assign(Object.create(Object.getPrototypeOf(m)), m);
-                                        cm.diffuseMap = null;
-                                        if ('map' in cm) cm.map = null;
-                                        if ('doubleSided' in cm) cm.doubleSided = false;
-                                        cm.color = 0x050505;
-                                        cm.emissive = 0x000000;
-                                        return cm;
-                                    };
-                                    v.material = Array.isArray(v.material) ? v.material.map(makeBlk) : makeBlk(v.material);
-                                }
+                            if (v && v.material) {
+                                const makeBlk = m => {
+                                    if (!m) return m;
+                                    const cm = (typeof m.clone === 'function') ? m.clone() : Object.assign(Object.create(Object.getPrototypeOf(m)), m);
+                                    if (cm.state) {
+                                        const st = Object.assign(Object.create(Object.getPrototypeOf(cm.state)), cm.state);
+                                        st.culling = true;
+                                        st.depthTest = true;
+                                        st.clockwiseFrontFace = !cm.state.clockwiseFrontFace;
+                                        cm.state = st;
+                                    }
+                                    cm.diffuseMap = null;
+                                    if ('map' in cm) cm.map = null;
+                                    if ('doubleSided' in cm) cm.doubleSided = false;
+                                    cm.color = 0x050505;
+                                    cm.emissive = 0x000000;
+                                    return cm;
+                                };
+                                v.material = Array.isArray(v.material) ? v.material.map(makeBlk) : makeBlk(v.material);
                             }
                             const ch = obj.children || (obj.container && obj.container.children);
                             if (ch) for (let i = 0; i < ch.length; i++) setupHull(ch[i]);
                         };
                         setupHull(ol);
-                        if (ol.scale) ol.scale.set(1.12, 1.12, 1.12);
+                        if (ol.scale) ol.scale.set(1.10, 1.10, 1.10);
                         coin.model.addChild(ol);
                         coin._strokeHull = ol;
                     }
@@ -2165,7 +2166,7 @@
                 if (coin._strokeHull) {
                     coin._strokeHull.active = true;
                     coin._strokeHull.visible = true;
-                    if (coin._strokeHull.scale) coin._strokeHull.scale.set(1.12, 1.12, 1.12);
+                    if (coin._strokeHull.scale) coin._strokeHull.scale.set(1.10, 1.10, 1.10);
                 }
             } catch(e) {}
         } else if (coin._strokeHull) {
