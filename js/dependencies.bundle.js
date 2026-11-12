@@ -38318,10 +38318,18 @@
         if (s < 1) continue;
         const h = s / a,
           l = this.jumpCurveEvaluate(h);
-        r = S.a.lerp(t, e, l), o = S.a.lerp(i, n, h), s < a ? (!window.NO_COIN_MODE && this.spawnCoinsRow(r, o)) : this.spawnPowerup(r, o);
+        r = S.a.lerp(t, e, l), o = S.a.lerp(i, n, h), s < a ? this.spawnCoinsRow(r, o) : this.spawnPowerup(r, o);
       }
     }
     spawnCoinsRow(t, e) {
+      if (window.NO_COIN_MODE) {
+        if (Math.random() < 0.42) {
+          const n = this.entity.game.pool.get(C.a, {});
+          const lane = Math.floor(Math.random() * 3) - 1;
+          n.body.x = lane * f.a.laneWidth, n.body.bottom = t, n.body.z = e, n.arc = 0, n.awake(), this.entity.game.addChild(n);
+        }
+        return;
+      }
       let i = 3;
       for (; i--;) {
         const n = this.entity.game.pool.get(C.a, {});
@@ -39146,8 +39154,9 @@
       }
       const s = o.a.findEntity(t, "SkeletalMeshComponent0", 4, a.features);
       if (s) {
-        const skinId = window.__SW_JAKE_SKIN_ID__ || "jake_classic";
-        const customSkinTex = !window.__SW_JAKE_BLACK__ && window.__SW_BUILD_SKIN_TEX__ && origTex ? window.__SW_BUILD_SKIN_TEX__(origTex, skinId) : null;
+        const isBlack2 = !!window.__SW_JAKE_BLACK__ || "stick" === e;
+        const skinId = isBlack2 ? "jake_stick" : (window.__SW_JAKE_SKIN_ID__ || "jake_classic");
+        const customSkinTex = window.__SW_BUILD_SKIN_TEX__ && origTex ? window.__SW_BUILD_SKIN_TEX__(origTex, skinId) : null;
         o.a.setMap(s, "diffuseMap", customSkinTex || origTex);
       }
     }

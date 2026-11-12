@@ -123,13 +123,14 @@
     try { localStorage.removeItem('sw_shader_lighting'); } catch (e) {}
 
     const _swSavedVol = localStorage.getItem('sw_volume');
+    const _swSavedFps = localStorage.getItem('sw_fps');
     const GFX_SETTINGS = {
-        fps: localStorage.getItem('sw_fps') || '240', // '60' | '120' | '240' | 'unlimited'
+        fps: (_swSavedFps === '60' || _swSavedFps === '120' || _swSavedFps === '240') ? _swSavedFps : '240', // '60' | '120' | '240'
         showFps: localStorage.getItem('sw_show_fps') === '1',
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 200
         volume: _swSavedVol !== null ? Math.max(0, Math.min(100, parseInt(_swSavedVol, 10) || 0)) : 30, // 0 - 100 (padrão 30%)
         motionBlur: localStorage.getItem('sw_motion_blur') || 'soft', // 'off' | 'soft' | 'high'
-        shaders: localStorage.getItem('sw_shaders') || 'medium', // 'off' | 'medium' | 'ultra'
+        shaders: (localStorage.getItem('sw_shaders') === 'off') ? 'off' : 'medium', // 'off' | 'medium' (Ativado)
         noRevive: localStorage.getItem('sw_no_revive') !== '0', // true by default
     };
     window.__SW_VOLUME_OVERRIDE__ = GFX_SETTINGS.volume / 100;
@@ -161,7 +162,7 @@
     }
 
     window.__SW_PRO_HUB__ = false;
-    window.__SW_UNLIMITED_TICK__ = (GFX_SETTINGS.fps === 'unlimited');
+    window.__SW_UNLIMITED_TICK__ = ((parseInt(GFX_SETTINGS.fps, 10) || 240) > 65);
     window.__SW_TUNING__ = Object.assign({
         halfWagonChance: 0.1,
         energyCoinScale: 2.05,
@@ -169,14 +170,11 @@
     }, window.__SW_TUNING__ || {});
 
     function getFPSLabel(val) {
-        if (val === 'unlimited') return 'Ilimitado (1000 FPS)';
-        return val + ' FPS';
+        return (parseInt(val, 10) || 240) + ' FPS';
     }
 
     function getShaderLabel(val) {
-        if (val === 'off') return 'Desativado';
-        if (val === 'ultra') return 'Ultra (Iluminação 3D)';
-        return 'Médio (Iluminação 3D)';
+        return val === 'off' ? 'Desativado' : 'Ativado';
     }
 
     function ensureReformulatedShadowTexture() {
@@ -204,15 +202,15 @@
     }
 
     function applyShaderAndShadowPipeline() {
-        const mode = GFX_SETTINGS.shaders || 'medium';
+        const mode = (GFX_SETTINGS.shaders === 'off') ? 'off' : 'medium';
         window.__SW_SHADER_MODE__ = mode;
-        const lv = mode === 'ultra' ? 2.0 : (mode === 'medium' ? 1.0 : 0.0);
+        const lv = mode === 'off' ? 0.0 : 1.0;
         if (!window.__SW_SHADER_VEC__) window.__SW_SHADER_VEC__ = new Float32Array([lv, 0, 0, 0]);
         window.__SW_SHADER_VEC__[0] = lv;
         const tex = ensureReformulatedShadowTexture();
         if (tex) window.__SW_SHADOW_TEX__ = tex;
 
-        // 1) Tune 3D Lights dramatically per mode (cool ambient fill vs warm sun key)
+        // 1) Tune 3D Lights per mode (cool ambient fill vs warm sun key)
         try {
             const systems = (window.__SW_LIGHT_SYSTEMS__ || []).slice();
             const gScene = window.game && window.game.scene && window.game.scene.view3d && window.game.scene.view3d.lights;
@@ -223,12 +221,9 @@
                     if (mode === 'off') {
                         ls.ambientLight.color = 0xffffff;
                         ls.ambientLight.intensity = 0.5;
-                    } else if (mode === 'ultra') {
-                        ls.ambientLight.color = 0x9cb8f0;
-                        ls.ambientLight.intensity = 0.36;
                     } else {
-                        ls.ambientLight.color = 0xdde8ff;
-                        ls.ambientLight.intensity = 0.48;
+                        ls.ambientLight.color = 0xc8ddff;
+                        ls.ambientLight.intensity = 0.46;
                     }
                     ls.ambientLight.dirty = true;
                     if (typeof ls.ambientLight.update === 'function') ls.ambientLight.update();
@@ -240,13 +235,9 @@
                         if (mode === 'off') {
                             l.color = 0xffffff;
                             l.intensity = 1.0;
-                        } else if (mode === 'ultra') {
-                            l.color = 0xffe3b5;
-                            l.intensity = 1.34;
-                            if (l.direction && l.direction.set) l.direction.set(0.54, -0.76, -0.34);
                         } else {
-                            l.color = 0xfff3de;
-                            l.intensity = 1.15;
+                            l.color = 0xfff0d4;
+                            l.intensity = 1.24;
                             if (l.direction && l.direction.set) l.direction.set(0.45, -0.84, -0.28);
                         }
                         if (typeof l.update === 'function') l.update();
@@ -404,8 +395,8 @@
             if (GFX_SETTINGS.motionBlur === 'off') blurCanvas.style.display = 'none';
         }
 
-        // 2. Ultra-Fluid Framerate (Unlock Pixi System & Shared Tickers up to 240Hz / Unlimited)
-        const targetMaxFPS = GFX_SETTINGS.fps === 'unlimited' ? 0 : (parseInt(GFX_SETTINGS.fps, 10) || 240);
+        // 2. Ultra-Fluid Framerate (Unlock Pixi System & Shared Tickers up to 240Hz)
+        const targetMaxFPS = Math.min(240, parseInt(GFX_SETTINGS.fps, 10) || 240);
         applyTickerMaxFPS(targetMaxFPS);
 
         // 3. Smooth Hero Character Skeletal Animation & Snappy Movement
@@ -703,7 +694,7 @@
     };
 
     window.__cycleFPS = function() {
-        const order = ['240', 'unlimited', '120', '60'];
+        const order = ['240', '120', '60'];
         const curIdx = order.indexOf(GFX_SETTINGS.fps);
         GFX_SETTINGS.fps = order[(curIdx + 1) % order.length];
         localStorage.setItem('sw_fps', GFX_SETTINGS.fps);
@@ -734,9 +725,7 @@
     };
 
     window.__cycleShaders = function() {
-        const order = ['off', 'medium', 'ultra'];
-        const curIdx = order.indexOf(GFX_SETTINGS.shaders);
-        GFX_SETTINGS.shaders = order[(curIdx + 1) % order.length];
+        GFX_SETTINGS.shaders = (GFX_SETTINGS.shaders === 'off') ? 'medium' : 'off';
         localStorage.setItem('sw_shaders', GFX_SETTINGS.shaders);
         applyGraphicsSettings();
         const label = getShaderLabel(GFX_SETTINGS.shaders);
@@ -1158,6 +1147,14 @@
             }
         } catch(e) {}
         return energyCoinBlueTexture;
+    }
+
+    function getEnergyCoinBlueTexture() {
+        if (energyCoinBlueTexture) return energyCoinBlueTexture;
+        try {
+            const origMap = window.__lib && window.__lib.getMap && window.__lib.getMap('props-tex');
+            return createEnergyCoinAtlas(origMap && origMap.constructor);
+        } catch(e) { return null; }
     }
 
     function applyEnergyCoinTexture(mesh) {
@@ -1818,24 +1815,29 @@
             shard.x = x; shard.y = y; shard.z = z;
             if (shard.scale) shard.scale.set(0.34 * intensity, 0.34 * intensity, 0.08);
             if (isEnergyBurst && blueTex) {
-                const pending = [shard];
-                while (pending.length) {
-                    const node = pending.shift();
-                    const mat = node && node.view3d && node.view3d.material;
-                    if (mat) {
-                        const mats = Array.isArray(mat) ? mat : [mat];
-                        mats.forEach(m => {
-                            if (!m) return;
-                            m.diffuseMap = blueTex;
-                            m.color = 0x7ae6ff;
-                            try { m.emissiveColor = 0x0ea5e9; m.emissive = 0x0ea5e9; } catch(e) {}
-                        });
+                try {
+                    const pending = [shard];
+                    while (pending.length) {
+                        const node = pending.shift();
+                        const mat = node && node.view3d && node.view3d.material;
+                        if (mat) {
+                            const mats = Array.isArray(mat) ? mat : [mat];
+                            mats.forEach(m => {
+                                if (!m) return;
+                                m.diffuseMap = blueTex;
+                                if ('map' in m) m.map = blueTex;
+                                m.color = 0x7ae6ff;
+                                try { m.emissiveColor = 0x0ea5e9; m.emissive = 0x0ea5e9; } catch(e) {}
+                            });
+                        }
+                        const ch = node && (node.children || (node.container && node.container.children));
+                        if (ch) for (let k = 0; k < ch.length; k++) pending.push(ch[k]);
                     }
-                    const ch = node && (node.children || (node.container && node.container.children));
-                    if (ch) for (let k = 0; k < ch.length; k++) pending.push(ch[k]);
+                } catch(e) {
+                    setEntityHexColor(shard, 0x00aaff);
                 }
             } else {
-                setEntityHexColor(shard, isEnergyBurst ? 0x0088ff : color);
+                setEntityHexColor(shard, isEnergyBurst ? 0x00aaff : color);
             }
             try { parent.addChild(shard); } catch(e) { continue; }
             const angle = (i / Math.max(count, 1)) * Math.PI * 2 + Math.random() * 0.22;
@@ -2373,7 +2375,7 @@
                                     if (!m) return;
                                     m.diffuseMap = shadTex;
                                     if ('map' in m) m.map = shadTex;
-                                    m.color = (GFX_SETTINGS.shaders === 'ultra') ? 0x10182e : 0x1e2944;
+                                    m.color = 0x1e2944;
                                     const alpha = (type === 'coin' || type === 'energyCoin') ? 0.56 : 0.72;
                                     m.alpha = alpha;
                                     if (m.uniforms && m.uniforms.uDiffuseColor) m.uniforms.uDiffuseColor[3] = alpha;
@@ -9083,13 +9085,14 @@
             if (found) return applySkinSelection(found, false);
         },
         setShader: mode => {
-            if (!['off', 'medium', 'ultra'].includes(mode)) return;
+            if (!['off', 'medium'].includes(mode)) return;
             GFX_SETTINGS.shaders = mode;
             localStorage.setItem('sw_shaders', mode);
             applyGraphicsSettings();
         },
         setFPS: fpsVal => {
-            GFX_SETTINGS.fps = String(fpsVal);
+            const clamped = String(Math.min(240, parseInt(fpsVal, 10) || 240));
+            GFX_SETTINGS.fps = clamped;
             localStorage.setItem('sw_fps', GFX_SETTINGS.fps);
             applyGraphicsSettings();
         },
@@ -9118,7 +9121,7 @@
         applyGameVolume(GFX_SETTINGS.volume);
         optimizeHeroAnimAndFluidity();
         initMotionBlurEngine();
-        const targetMaxFPS = GFX_SETTINGS.fps === 'unlimited' ? 0 : (parseInt(GFX_SETTINGS.fps, 10) || 240);
+        const targetMaxFPS = Math.min(240, parseInt(GFX_SETTINGS.fps, 10) || 240);
         applyTickerMaxFPS(targetMaxFPS);
         updateSkinHubVisibility();
     }
