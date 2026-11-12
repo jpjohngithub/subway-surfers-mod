@@ -1363,19 +1363,40 @@
         if (window.__SW_PROPS_SHADOW_TEX__) return window.__SW_PROPS_SHADOW_TEX__;
         try {
             const res = origTex.baseTexture && origTex.baseTexture.resource;
-            const img = origTex.image || (res && (res.bitmap || res.source)) || (origTex.baseTexture && origTex.baseTexture.source);
+            const img = origTex.image || (res && (res.source || res.bitmap)) || (origTex.baseTexture && (origTex.baseTexture.source || origTex.baseTexture._source));
             const TexCls = origTex.constructor;
             if (!img || !TexCls || typeof TexCls.from !== 'function') return origTex;
             const w = img.naturalWidth || img.width || 512;
             const h = img.naturalHeight || img.height || 512;
+            if (!w || !h) return origTex;
             const cv = document.createElement('canvas');
             cv.width = w; cv.height = h;
             const ctx = cv.getContext('2d');
             if (!ctx) return origTex;
-            ctx.filter = 'contrast(175%) brightness(92%)';
             ctx.drawImage(img, 0, 0, w, h);
+            try {
+                const imgData = ctx.getImageData(0, 0, w, h);
+                const d = imgData.data;
+                for (let i = 0; i < d.length; i += 4) {
+                    if (d[i + 3] < 10) continue;
+                    const r = d[i], g = d[i + 1], b = d[i + 2];
+                    const luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                    if (luma < 0.80) {
+                        const k = Math.pow(luma / 0.80, 2.8);
+                        const mult = k * 0.82;
+                        d[i] = Math.round(r * mult);
+                        d[i + 1] = Math.round(g * mult);
+                        d[i + 2] = Math.round(b * mult);
+                    }
+                }
+                ctx.putImageData(imgData, 0, 0);
+            } catch (e) {
+                ctx.filter = 'contrast(240%) brightness(82%)';
+                ctx.drawImage(img, 0, 0, w, h);
+            }
             const tex = TexCls.from(cv);
             try { tex.baseTexture.mipmap = origTex.baseTexture ? origTex.baseTexture.mipmap : 1; } catch(e) {}
+            try { tex.baseTexture.update(); } catch(e) {}
             window.__SW_PROPS_SHADOW_TEX__ = tex;
             return tex;
         } catch(e) { return origTex; }
