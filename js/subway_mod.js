@@ -129,7 +129,14 @@
         saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 300
         contrast: parseInt(localStorage.getItem('sw_contrast') || '100', 10), // 50 - 300
         aspectRatio: localStorage.getItem('sw_aspect_ratio') || 'native', // 'native' | 'stretched_4_3' | 'stretched_16_10' | 'square_1_1'
-        coinOutline: localStorage.getItem('sw_coin_outline') || '0', // '0' | '1' (contorno) | '2' (preta)
+        coinOutline: (() => {
+            const p = localStorage.getItem('sw_coin_outline_pct');
+            if (p !== null) return Math.max(0, Math.min(100, parseInt(p, 10) || 0));
+            const leg = localStorage.getItem('sw_coin_outline');
+            if (leg === '2') return 100;
+            if (leg === '1') return 70;
+            return 0;
+        })(), // 0 - 100 (100 = moeda totalmente preta)
         volume: _swSavedVol !== null ? Math.max(0, Math.min(100, parseInt(_swSavedVol, 10) || 0)) : 30, // 0 - 100 (padrão 30%)
         motionBlur: localStorage.getItem('sw_motion_blur') || 'soft', // 'off' | 'soft' | 'high'
         shaders: (localStorage.getItem('sw_shaders') === 'off') ? 'off' : 'medium', // 'off' | 'medium' (Ativado)
@@ -788,21 +795,45 @@
     };
 
     function getCoinOutlineLabel(val) {
-        if (String(val) === '1') return 'Só Contorno';
-        if (String(val) === '2') return 'Moeda Preta';
-        return 'Desativado';
+        const p = Math.max(0, Math.min(100, parseInt(val, 10) || 0));
+        if (p <= 0) return '0% (Desativado)';
+        if (p >= 100) return '100% (Moeda Preta)';
+        return p + '%';
     }
 
-    window.__toggleCoinOutline = function() {
-        const seq = ['0', '1', '2'];
-        const cur = String(GFX_SETTINGS.coinOutline || '0');
-        const idx = seq.indexOf(cur);
-        GFX_SETTINGS.coinOutline = seq[(idx + 1) % seq.length];
-        localStorage.setItem('sw_coin_outline', GFX_SETTINGS.coinOutline);
-        const label = getCoinOutlineLabel(GFX_SETTINGS.coinOutline);
+    window.__setCoinOutline = function(val) {
+        const p = Math.max(0, Math.min(100, parseInt(val, 10) || 0));
+        GFX_SETTINGS.coinOutline = p;
+        localStorage.setItem('sw_coin_outline_pct', String(p));
+        window.__SW_PROPS_SHADOW_TEX__ = null;
+        window.__SW_PROPS_SHADOW_TEX_PCT__ = -1;
         const el = document.getElementById('val-gfx-coinoutline');
-        if (el) el.textContent = label;
-        showHUDNotification('Estilo das Moedas: ' + label);
+        if (el) el.textContent = getCoinOutlineLabel(p);
+        const s = document.getElementById('slider-coin-outline');
+        if (s && s.value != p) s.value = p;
+        try {
+            const isNoCoin = !!window.NO_COIN_MODE;
+            if (window.__activeCoins) {
+                window.__activeCoins.forEach(c => {
+                    if (!c || !c.active || !c.model || c._isDashItem) return;
+                    if (p >= 100) setEntityHexColor(c.model, 0x020202);
+                    else restoreCoinNativeTexture(c.model, isNoCoin, p);
+                });
+            }
+            if (Array.isArray(customObstacles)) {
+                customObstacles.forEach(obs => {
+                    if (!obs || obs.type !== 'coin' || !obs.mesh) return;
+                    if (p >= 100) setEntityHexColor(obs.mesh, 0x020202);
+                    else restoreCoinNativeTexture(obs.mesh, isNoCoin, p);
+                });
+            }
+        } catch(e) {}
+    };
+
+    window.__toggleCoinOutline = function() {
+        const cur = parseInt(GFX_SETTINGS.coinOutline, 10) || 0;
+        const next = cur === 0 ? 50 : (cur < 100 ? 100 : 0);
+        window.__setCoinOutline(next);
     };
 
     window.__setSaturation = function(val) {
@@ -1358,9 +1389,10 @@
         } catch(e) { return false; }
     }
 
-    function getHighContrastPropsTex(origTex) {
+    function getHighContrastPropsTex(origTex, pct) {
         if (!origTex) return null;
-        if (window.__SW_PROPS_SHADOW_TEX__) return window.__SW_PROPS_SHADOW_TEX__;
+        const p = Math.max(1, Math.min(99, parseInt(pct, 10) || 50));
+        if (window.__SW_PROPS_SHADOW_TEX__ && window.__SW_PROPS_SHADOW_TEX_PCT__ === p) return window.__SW_PROPS_SHADOW_TEX__;
         try {
             const res = origTex.baseTexture && origTex.baseTexture.resource;
             const img = origTex.image || (res && (res.source || res.bitmap)) || (origTex.baseTexture && (origTex.baseTexture.source || origTex.baseTexture._source));
@@ -1374,6 +1406,10 @@
             const ctx = cv.getContext('2d');
             if (!ctx) return origTex;
             ctx.drawImage(img, 0, 0, w, h);
+            const t = p / 100;
+            const thresh = 0.62 + t * 0.34;
+            const power = 1.2 + t * 5.2;
+            const darkMult = 1.0 - t * 0.88;
             try {
                 const imgData = ctx.getImageData(0, 0, w, h);
                 const d = imgData.data;
@@ -1381,9 +1417,9 @@
                     if (d[i + 3] < 10) continue;
                     const r = d[i], g = d[i + 1], b = d[i + 2];
                     const luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-                    if (luma < 0.80) {
-                        const k = Math.pow(luma / 0.80, 2.8);
-                        const mult = k * 0.82;
+                    if (luma < thresh) {
+                        const k = Math.pow(luma / thresh, power);
+                        const mult = k * darkMult;
                         d[i] = Math.round(r * mult);
                         d[i + 1] = Math.round(g * mult);
                         d[i + 2] = Math.round(b * mult);
@@ -1391,19 +1427,21 @@
                 }
                 ctx.putImageData(imgData, 0, 0);
             } catch (e) {
-                ctx.filter = 'contrast(240%) brightness(82%)';
+                ctx.filter = `contrast(${100 + Math.round(t * 200)}%) brightness(${100 - Math.round(t * 35)}%)`;
                 ctx.drawImage(img, 0, 0, w, h);
             }
             const tex = TexCls.from(cv);
             try { tex.baseTexture.mipmap = origTex.baseTexture ? origTex.baseTexture.mipmap : 1; } catch(e) {}
             try { tex.baseTexture.update(); } catch(e) {}
             window.__SW_PROPS_SHADOW_TEX__ = tex;
+            window.__SW_PROPS_SHADOW_TEX_PCT__ = p;
             return tex;
         } catch(e) { return origTex; }
     }
 
-    function restoreCoinNativeTexture(mesh, isNoCoin, shadowContrast) {
+    function restoreCoinNativeTexture(mesh, isNoCoin, outlinePct) {
         if (!mesh) return;
+        const pct = Math.max(0, Math.min(100, parseInt(outlinePct, 10) || 0));
         const propsMap = (window.__lib && window.__lib.getMap && window.__lib.getMap('props-tex')) || null;
         const visit = obj => {
             if (!obj) return;
@@ -1416,7 +1454,7 @@
                         m._origMap = m.diffuseMap || m.map;
                     }
                     const baseMap = m._origMap || propsMap;
-                    const targetMap = (shadowContrast && baseMap) ? getHighContrastPropsTex(baseMap) : baseMap;
+                    const targetMap = (pct > 0 && pct < 100 && baseMap) ? getHighContrastPropsTex(baseMap, pct) : baseMap;
                     if (targetMap) {
                         m.diffuseMap = targetMap;
                         if ('map' in m) m.map = targetMap;
@@ -2258,12 +2296,12 @@
             return;
         }
 
-        const coinStyle = String(GFX_SETTINGS.coinOutline || '0');
+        const outlinePct = Math.max(0, Math.min(100, parseInt(GFX_SETTINGS.coinOutline, 10) || 0));
         if (coin.model) {
-            if (coinStyle === '2') {
+            if (outlinePct >= 100) {
                 setEntityHexColor(coin.model, 0x020202);
             } else {
-                restoreCoinNativeTexture(coin.model, isNoCoin, coinStyle === '1');
+                restoreCoinNativeTexture(coin.model, isNoCoin, outlinePct);
             }
         }
         if (coin._strokeHull) {
@@ -2887,11 +2925,11 @@
                 if (mesh) {
                     if (!energyCoin && mesh.scale) mesh.scale.set(1.15, 1.15, 1.15);
                     if (!energyCoin) {
-                        const coinStyle = String(GFX_SETTINGS.coinOutline || '0');
-                        if (coinStyle === '2') {
+                        const outlinePct = Math.max(0, Math.min(100, parseInt(GFX_SETTINGS.coinOutline, 10) || 0));
+                        if (outlinePct >= 100) {
                             setEntityHexColor(mesh, 0x020202);
                         } else {
-                            restoreCoinNativeTexture(mesh, window.NO_COIN_MODE, coinStyle === '1');
+                            restoreCoinNativeTexture(mesh, window.NO_COIN_MODE, outlinePct);
                         }
                     }
                     bounds = energyCoin ? { depth: 9, width: 8, height: 11 } : { depth: 5, width: 4, height: 6 };
@@ -6235,15 +6273,6 @@
                             <span class="setting-pill" id="val-gfx-aspectratio">${getAspectRatioLabel(GFX_SETTINGS.aspectRatio)}</span>
                         </div>
 
-                        <!-- Contorno Preto nas Moedas Setting -->
-                        <div class="subway-setting-row" onclick="window.__toggleCoinOutline()" title="Contorno preto nas moedas para melhor visibilidade">
-                            <div class="setting-text-col">
-                                <span class="setting-title">Contorno Preto nas Moedas</span>
-                                <span class="setting-desc">Destaca as moedas com borda nítida</span>
-                            </div>
-                            <span class="setting-pill" id="val-gfx-coinoutline">${getCoinOutlineLabel(GFX_SETTINGS.coinOutline)}</span>
-                        </div>
-
                         <!-- No Revive (Hardcore) Setting -->
                         <div class="subway-setting-row" onclick="window.__toggleNoRevive()" title="Bloqueia reviver por chave/moeda ou anúncio">
                             <div class="setting-text-col">
@@ -6290,6 +6319,26 @@
                                 <button class="btn-sat-chip" onclick="window.__setContrast(100)">100% Padrão</button>
                                 <button class="btn-sat-chip" onclick="window.__setContrast(150)">150% Alto</button>
                                 <button class="btn-sat-chip" onclick="window.__setContrast(220)">220% Forte</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coin Outline Intensity Slider Card -->
+                    <div class="subway-setting-card">
+                        <div class="setting-row-top">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Contorno da Moeda</span>
+                                <span class="setting-desc">Intensidade da sombra (100% = moeda preta)</span>
+                            </div>
+                            <span class="setting-pill" id="val-gfx-coinoutline">${getCoinOutlineLabel(GFX_SETTINGS.coinOutline)}</span>
+                        </div>
+                        <div class="sat-slider-wrap">
+                            <input type="range" id="slider-coin-outline" min="0" max="100" step="5" value="${parseInt(GFX_SETTINGS.coinOutline, 10) || 0}" oninput="window.__setCoinOutline(this.value)" />
+                            <div class="sat-presets-row">
+                                <button class="btn-sat-chip" onclick="window.__setCoinOutline(0)">0% Desativado</button>
+                                <button class="btn-sat-chip" onclick="window.__setCoinOutline(40)">40% Suave</button>
+                                <button class="btn-sat-chip" onclick="window.__setCoinOutline(75)">75% Forte</button>
+                                <button class="btn-sat-chip" onclick="window.__setCoinOutline(100)">100% Preta</button>
                             </div>
                         </div>
                     </div>
