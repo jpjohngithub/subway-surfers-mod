@@ -1358,7 +1358,30 @@
         } catch(e) { return false; }
     }
 
-    function restoreCoinNativeTexture(mesh, isNoCoin) {
+    function getHighContrastPropsTex(origTex) {
+        if (!origTex) return null;
+        if (window.__SW_PROPS_SHADOW_TEX__) return window.__SW_PROPS_SHADOW_TEX__;
+        try {
+            const res = origTex.baseTexture && origTex.baseTexture.resource;
+            const img = origTex.image || (res && (res.bitmap || res.source)) || (origTex.baseTexture && origTex.baseTexture.source);
+            const TexCls = origTex.constructor;
+            if (!img || !TexCls || typeof TexCls.from !== 'function') return origTex;
+            const w = img.naturalWidth || img.width || 512;
+            const h = img.naturalHeight || img.height || 512;
+            const cv = document.createElement('canvas');
+            cv.width = w; cv.height = h;
+            const ctx = cv.getContext('2d');
+            if (!ctx) return origTex;
+            ctx.filter = 'contrast(175%) brightness(92%)';
+            ctx.drawImage(img, 0, 0, w, h);
+            const tex = TexCls.from(cv);
+            try { tex.baseTexture.mipmap = origTex.baseTexture ? origTex.baseTexture.mipmap : 1; } catch(e) {}
+            window.__SW_PROPS_SHADOW_TEX__ = tex;
+            return tex;
+        } catch(e) { return origTex; }
+    }
+
+    function restoreCoinNativeTexture(mesh, isNoCoin, shadowContrast) {
         if (!mesh) return;
         const propsMap = (window.__lib && window.__lib.getMap && window.__lib.getMap('props-tex')) || null;
         const visit = obj => {
@@ -1371,15 +1394,16 @@
                     if (!m._origMap && (m.diffuseMap || m.map)) {
                         m._origMap = m.diffuseMap || m.map;
                     }
-                    const targetMap = m._origMap || propsMap;
+                    const baseMap = m._origMap || propsMap;
+                    const targetMap = (shadowContrast && baseMap) ? getHighContrastPropsTex(baseMap) : baseMap;
                     if (targetMap) {
                         m.diffuseMap = targetMap;
                         if ('map' in m) m.map = targetMap;
                     }
                     if (isNoCoin) {
-                        m.color = 0xff1e28;
-                        m.emissive = 0x380008;
-                        m.emissiveIntensity = 0.32;
+                        m.color = 0xff1c24;
+                        m.emissive = 0x000000;
+                        m.emissiveIntensity = 0;
                     } else {
                         m.color = 0xffffff;
                         m.emissive = 0x000000;
@@ -2218,12 +2242,10 @@
             if (coinStyle === '2') {
                 setEntityHexColor(coin.model, 0x020202);
             } else {
-                restoreCoinNativeTexture(coin.model, isNoCoin);
+                restoreCoinNativeTexture(coin.model, isNoCoin, coinStyle === '1');
             }
         }
-        if (coinStyle === '1' && coin.model) {
-            applyCoinCelOutline(coin.model, coin);
-        } else if (coin._strokeHull) {
+        if (coin._strokeHull) {
             coin._strokeHull.active = false;
             coin._strokeHull.visible = false;
             if (coin._strokeHull.scale) coin._strokeHull.scale.set(0, 0, 0);
@@ -2848,8 +2870,7 @@
                         if (coinStyle === '2') {
                             setEntityHexColor(mesh, 0x020202);
                         } else {
-                            restoreCoinNativeTexture(mesh, window.NO_COIN_MODE);
-                            if (coinStyle === '1') applyCoinCelOutline(mesh, mesh);
+                            restoreCoinNativeTexture(mesh, window.NO_COIN_MODE, coinStyle === '1');
                         }
                     }
                     bounds = energyCoin ? { depth: 9, width: 8, height: 11 } : { depth: 5, width: 4, height: 6 };
