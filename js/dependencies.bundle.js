@@ -39120,28 +39120,8 @@
         t.__swBaseScale || (t.__swBaseScale = { x: t.scale.x || 1, y: t.scale.y || 1, z: t.scale.z || 1 });
         t.scale.set(t.__swBaseScale.x, t.__swBaseScale.y, t.__swBaseScale.z);
         const isBlack = !!window.__SW_JAKE_BLACK__ || "stick" === e;
-        if (isBlack) {
-          const blk = r.a.library.getMap("stick-black-tex") || window.__SW_STICK_TEX__;
-          const paintBlack = obj => {
-            if (!obj) return;
-            const v = obj.view3d;
-            if (v && v.material) {
-              const mats = Array.isArray(v.material) ? v.material : [v.material];
-              mats.forEach(m => {
-                if (!m) return;
-                blk && (m.diffuseMap = blk);
-                m.color = 328965;
-                try { m.emissiveColor = 0, m.emissive = 0; } catch (err) {}
-              });
-            }
-            const ch = obj.children || (obj.container && obj.container.children);
-            if (ch) for (let k = 0; k < ch.length; k++) paintBlack(ch[k]);
-          };
-          paintBlack(t);
-          return;
-        }
-        const skinId = window.__SW_JAKE_SKIN_ID__ || "jake_classic";
-        const jakeTint = "number" == typeof window.__SW_JAKE_TINT__ ? window.__SW_JAKE_TINT__ : 16777215;
+        const skinId = isBlack ? "jake_stick" : (window.__SW_JAKE_SKIN_ID__ || "jake_classic");
+        const jakeTint = isBlack ? 1118486 : ("number" == typeof window.__SW_JAKE_TINT__ ? window.__SW_JAKE_TINT__ : 16777215);
         const customSkinTex = window.__SW_BUILD_SKIN_TEX__ && origTex ? window.__SW_BUILD_SKIN_TEX__(origTex, skinId) : null;
         const targetTex = customSkinTex || origTex;
         const blkRef = r.a.library.getMap("stick-black-tex") || window.__SW_STICK_TEX__;
@@ -39155,7 +39135,7 @@
               if (targetTex) { m.diffuseMap = targetTex; if ("map" in m) m.map = targetTex; }
               else if (origTex && (!m.diffuseMap || m.diffuseMap === blkRef)) { m.diffuseMap = origTex; if ("map" in m) m.map = origTex; }
               const isEye = m.name && /eye/i.test(m.name);
-              m.color = isEye ? 16777215 : (customSkinTex ? 16777215 : jakeTint);
+              m.color = isEye ? (isBlack ? 1118486 : 16777215) : (customSkinTex ? 16777215 : jakeTint);
               try { m.dirty = !0; } catch (err) {}
             });
           }

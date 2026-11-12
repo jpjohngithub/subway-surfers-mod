@@ -224,11 +224,11 @@
                         ls.ambientLight.color = 0xffffff;
                         ls.ambientLight.intensity = 0.5;
                     } else if (mode === 'ultra') {
-                        ls.ambientLight.color = 0x7ca2ea;
+                        ls.ambientLight.color = 0x9cb8f0;
                         ls.ambientLight.intensity = 0.36;
                     } else {
-                        ls.ambientLight.color = 0xc8ddff;
-                        ls.ambientLight.intensity = 0.46;
+                        ls.ambientLight.color = 0xdde8ff;
+                        ls.ambientLight.intensity = 0.48;
                     }
                     ls.ambientLight.dirty = true;
                     if (typeof ls.ambientLight.update === 'function') ls.ambientLight.update();
@@ -241,12 +241,12 @@
                             l.color = 0xffffff;
                             l.intensity = 1.0;
                         } else if (mode === 'ultra') {
-                            l.color = 0xffd79e;
-                            l.intensity = 1.56;
+                            l.color = 0xffe3b5;
+                            l.intensity = 1.34;
                             if (l.direction && l.direction.set) l.direction.set(0.54, -0.76, -0.34);
                         } else {
-                            l.color = 0xfff0d4;
-                            l.intensity = 1.24;
+                            l.color = 0xfff3de;
+                            l.intensity = 1.15;
                             if (l.direction && l.direction.set) l.direction.set(0.45, -0.84, -0.28);
                         }
                         if (typeof l.update === 'function') l.update();
@@ -343,7 +343,7 @@
         const ticker = (window.app && window.app.stage && window.app.stage.ticker) || window.__SW_TICKER_SYSTEM__ || window.__SW_TICKER_SHARED__ || (window.app && window.app.ticker);
         const sampleNow = () => {
             const now = performance.now();
-            if (typeof updateNoCoinObstacleEngine === 'function' && (!window.__swLastObsTick || now - window.__swLastObsTick >= 16)) {
+            if (typeof updateNoCoinObstacleEngine === 'function') {
                 window.__swLastObsTick = now;
                 try { updateNoCoinObstacleEngine(); } catch(e) {}
             }
@@ -535,31 +535,31 @@
                 'varying vec2 vUv;',
                 'void main(){',
                 '  if(uStrength <= 0.002){ gl_FragColor = vec4(0.0); return; }',
-                '  float hudMask = 1.0 - smoothstep(0.76, 0.90, vUv.y);',
-                '  vec2 dFocus = (vUv - vec2(0.5, 0.38)) * vec2(1.18, 0.95);',
-                '  float peripheral = smoothstep(0.20, 0.62, length(dFocus));',
+                '  float hudMask = 1.0 - smoothstep(0.90, 0.99, vUv.y);',
+                '  vec2 dFocus = (vUv - vec2(0.5, 0.42)) * vec2(1.12, 0.96);',
+                '  float peripheral = smoothstep(0.14, 0.52, length(dFocus));',
                 '  float zoneMask = hudMask * peripheral;',
                 '  if(zoneMask <= 0.01){ gl_FragColor = vec4(0.0); return; }',
-                '  vec2 radial = (vUv - uCenter) * vec2(1.12, 1.28);',
-                '  vec2 dir = radial * (uStrength * 1.95) + uVel * (uStrength * 1.15);',
-                '  dir *= (0.35 + 0.65 * peripheral);',
-                '  float maxLen = 0.175;',
+                '  vec2 radial = (vUv - uCenter) * vec2(1.14, 1.32);',
+                '  vec2 dir = radial * (uStrength * 2.45) + uVel * (uStrength * 1.45);',
+                '  dir *= (0.42 + 0.58 * peripheral);',
+                '  float maxLen = 0.25;',
                 '  float dLen = length(dir);',
                 '  if(dLen > maxLen) dir *= (maxLen / dLen);',
-                '  vec3 acc = texture2D(uTex, vUv).rgb * 0.8;',
-                '  float totalW = 0.8;',
-                '  const int TAPS = 6;',
+                '  vec3 acc = texture2D(uTex, vUv).rgb * 0.72;',
+                '  float totalW = 0.72;',
+                '  const int TAPS = 8;',
                 '  for(int i = 1; i <= TAPS; i++){',
                 '    float t = float(i) / float(TAPS);',
-                '    float w = (1.15 - t * 0.55);',
+                '    float w = (1.18 - t * 0.52);',
                 '    vec2 uvFwd = clamp(vUv + dir * t, vec2(0.002), vec2(0.998));',
-                '    vec2 uvBwd = clamp(vUv - dir * (t * 0.72), vec2(0.002), vec2(0.998));',
+                '    vec2 uvBwd = clamp(vUv - dir * (t * 0.76), vec2(0.002), vec2(0.998));',
                 '    acc += texture2D(uTex, uvFwd).rgb * w;',
-                '    acc += texture2D(uTex, uvBwd).rgb * (w * 0.82);',
-                '    totalW += w * 1.82;',
+                '    acc += texture2D(uTex, uvBwd).rgb * (w * 0.85);',
+                '    totalW += w * 1.85;',
                 '  }',
                 '  vec3 blurred = acc / totalW;',
-                '  float edgeAlpha = clamp(zoneMask * min(1.0, uStrength * 11.5), 0.0, 0.92);',
+                '  float edgeAlpha = clamp(zoneMask * min(1.0, uStrength * 13.5), 0.0, 0.96);',
                 '  gl_FragColor = vec4(blurred, edgeAlpha);',
                 '}'
             ].join('\n');
@@ -637,11 +637,11 @@
                         const dashBoost = (typeof window.__dashSpeedMult === 'number' && window.__dashSpeedMult > 1) ? (window.__dashSpeedMult - 1) * 0.9 : 0;
                         const vx = body && body.velocity ? (body.velocity.x || 0) : 0;
                         const vy = body && body.velocity ? (body.velocity.y || 0) : 0;
-                        const mult = mode === 'high' ? 0.135 : 0.072;
+                        const mult = mode === 'high' ? 0.28 : 0.14;
 
-                        targetStrength = mult * (0.70 + speedRatio * 1.10 + dashBoost + Math.min(0.85, Math.abs(vx) * 0.032));
-                        targetVx = Math.max(-1.6, Math.min(1.6, -vx * 0.042));
-                        targetVy = Math.max(-1.0, Math.min(1.0, -vy * 0.022));
+                        targetStrength = mult * (0.85 + speedRatio * 1.15 + dashBoost + Math.min(0.95, Math.abs(vx) * 0.04));
+                        targetVx = Math.max(-1.6, Math.min(1.6, -vx * 0.055));
+                        targetVy = Math.max(-1.0, Math.min(1.0, -vy * 0.03));
                     }
 
                     const lerpRate = Math.min(1, dt * (targetStrength > smoothStrength ? 16 : 22));
@@ -668,8 +668,8 @@
                     }
                     if (!cachedRect || cachedRect.width < 10 || cachedRect.height < 10) return;
 
-                    const bw = Math.max(64, (gameCanvas.width * 0.55) | 0);
-                    const bh = Math.max(64, (gameCanvas.height * 0.55) | 0);
+                    const bw = Math.max(64, (gameCanvas.width * 0.60) | 0);
+                    const bh = Math.max(64, (gameCanvas.height * 0.60) | 0);
                     if (blurCanvas.width !== bw || blurCanvas.height !== bh) {
                         blurCanvas.width = bw;
                         blurCanvas.height = bh;
@@ -2333,7 +2333,7 @@
                     if (!energyCoin) {
                         setEntityHexColor(mesh, window.NO_COIN_MODE ? 0xff1e1e : 0xffc928);
                     }
-                    bounds = energyCoin ? { depth: 7, width: 6, height: 8 } : { depth: 5, width: 4, height: 6 };
+                    bounds = energyCoin ? { depth: 9, width: 8, height: 11 } : { depth: 5, width: 4, height: 6 };
                 }
             }
 
@@ -2971,6 +2971,7 @@
     }
 
     let lastObstacleTickMs = 0;
+    let prevObstacleHeroZ = null;
 
     function updateNoCoinObstacleEngine() {
         const frameNow = Date.now();
@@ -2978,6 +2979,7 @@
         lastObstacleTickMs = frameNow;
         updateCoinShatterFragments(frameNow);
         if (!window.game || !window.game.hero || !window.game.hero.body) {
+            prevObstacleHeroZ = null;
             if (customObstacles.length) cleanupCustomObstacles();
             return;
         }
@@ -2985,6 +2987,8 @@
         const hero = window.game.hero;
         const heroBody = hero.body;
         let heroZ = heroBody.z;
+        const prevHeroZ = (prevObstacleHeroZ !== null && Math.abs(prevObstacleHeroZ - heroZ) < 120) ? prevObstacleHeroZ : heroZ;
+        prevObstacleHeroZ = heroZ;
         const heroX = heroBody.x;
         const heroY = heroBody.y !== undefined ? heroBody.y : (heroBody.bottom || 0);
 
@@ -3084,8 +3088,8 @@
             }
 
             // High-performance distance culling: skip heavy math for far obstacles
-            const dz = Math.abs(obs.z - heroZ);
-            if (dz > 180) continue;
+            const cullDz = Math.abs(obs.z - heroZ);
+            if (cullDz > 180) continue;
 
             // Oscillating dynamic horizontal movement across lanes
             if (obs.isOscillating && obs.mesh) {
@@ -3105,8 +3109,8 @@
 
             // Apply the native magnet pull to custom coin routes in normal mode.
             const magnet = hero.magnet;
-            const magnetMayCollect = obs.type === 'coin' && !window.NO_COIN_MODE;
-            if (magnetMayCollect && magnet && magnet.isOn && magnet.isOn() && dz < 110) {
+            const magnetMayCollect = (obs.type === 'coin' && !window.NO_COIN_MODE) || obs.type === 'energyCoin';
+            if (magnetMayCollect && magnet && magnet.isOn && magnet.isOn() && cullDz < 110) {
                 const targetY = heroBody.center && Number.isFinite(heroBody.center.y) ? heroBody.center.y : heroY + 2;
                 const targetZ = heroZ + ((heroBody.velocity && heroBody.velocity.z) || -8) * 0.7;
                 const mdx = heroX - obs.x;
@@ -3143,13 +3147,17 @@
                     }
                 }
             }
+            const zMin = Math.min(prevHeroZ, heroZ);
+            const zMax = Math.max(prevHeroZ, heroZ);
+            const dz = obs.z < zMin ? (zMin - obs.z) : (obs.z > zMax ? (obs.z - zMax) : 0);
             const dx = Math.abs(obs.x - heroX);
             const dy = Math.abs(obs.y - heroY);
 
             // Calibrated hitboxes per obstacle type
-            const hitDepth = (obs.bounds ? obs.bounds.depth / 2 : 5) + 3.0;
-            const hitWidth = (obs.bounds ? obs.bounds.width / 2 : 4) + 1.5;
-            const hitHeight = (obs.bounds ? obs.bounds.height : 6) + 2.0;
+            const isEnergy = obs.type === 'energyCoin';
+            const hitDepth = (obs.bounds ? obs.bounds.depth / 2 : 5) + (isEnergy ? 4.5 : 3.0);
+            const hitWidth = (obs.bounds ? obs.bounds.width / 2 : 4) + (isEnergy ? 3.5 : 1.5);
+            const hitHeight = (obs.bounds ? obs.bounds.height : 6) + (isEnergy ? 4.0 : 2.0);
 
             if (dz < hitDepth && dx < hitWidth && dy < hitHeight) {
                 if (isDashing) {
@@ -5162,10 +5170,10 @@
                 const luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
                 let nr, ng, nb;
                 if (skinId === 'jake_stick') {
-                    const f = Math.min(1, luma * 0.45);
-                    nr = 12 + cAcc[0] * f * 0.35;
-                    ng = 14 + cAcc[1] * f * 0.35;
-                    nb = 20 + cAcc[2] * f * 0.42;
+                    const f = Math.min(1, luma);
+                    nr = 4 + f * 14;
+                    ng = 4 + f * 14;
+                    nb = 6 + f * 18;
                 } else if (luma < 0.5) {
                     const p = luma * 2;
                     nr = cBase[0] * (0.22 + 0.78 * p) + cAcc[0] * p * 0.35;
