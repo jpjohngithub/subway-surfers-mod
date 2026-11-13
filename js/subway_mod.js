@@ -218,6 +218,50 @@
         } catch(e) { return null; }
     }
 
+    window.__applyLiveTimeOfDay = function(ls) {
+        if (!ls) return;
+        const tod = GFX_SETTINGS.timeOfDay || 'night';
+        const isSunset = (tod === 'sunset');
+        const isDay = (tod === 'day');
+
+        if (ls.ambientLight) {
+            if (isSunset) {
+                ls.ambientLight.color = 0xff7043;
+                ls.ambientLight.intensity = 0.85;
+            } else if (isDay) {
+                ls.ambientLight.color = 0xffffff;
+                ls.ambientLight.intensity = 1.05;
+            } else {
+                ls.ambientLight.color = (GFX_SETTINGS.shaders === 'off') ? 0xffffff : 0x9bbdff;
+                ls.ambientLight.intensity = (GFX_SETTINGS.shaders === 'off') ? 0.5 : 0.35;
+            }
+            ls.ambientLight.dirty = true;
+            if (typeof ls.ambientLight.update === 'function') ls.ambientLight.update();
+        }
+
+        if (Array.isArray(ls.lightEntities)) {
+            for (const le of ls.lightEntities) {
+                const l = le && le.light;
+                if (!l) continue;
+                if (isSunset) {
+                    l.color = 0xff8c42;
+                    l.intensity = 1.95;
+                    if (l.direction && l.direction.set) l.direction.set(0.65, -0.60, -0.45);
+                } else if (isDay) {
+                    l.color = 0xfffae6;
+                    l.intensity = 1.65;
+                    if (l.direction && l.direction.set) l.direction.set(0.35, -0.85, -0.40);
+                } else {
+                    l.color = (GFX_SETTINGS.shaders === 'off') ? 0xffffff : 0xd8b4fe;
+                    l.intensity = (GFX_SETTINGS.shaders === 'off') ? 1.0 : 1.35;
+                    if (l.direction && l.direction.set) l.direction.set(0.48, -0.80, -0.36);
+                }
+                l.dirty = true;
+                if (typeof l.render === 'function') l.render();
+            }
+        }
+    };
+
     function applyTimeOfDay(tod = 'night') {
         tod = (tod === 'sunset' || tod === 'day') ? tod : 'night';
         GFX_SETTINGS.timeOfDay = tod;
@@ -226,8 +270,8 @@
         try {
             const renderer = window.app && window.app.renderer;
             if (renderer) {
-                if (tod === 'sunset') renderer.backgroundColor = 0xc0392b;
-                else if (tod === 'day') renderer.backgroundColor = 0x2980b9;
+                if (tod === 'sunset') renderer.backgroundColor = 0xd35400;
+                else if (tod === 'day') renderer.backgroundColor = 0x1976d2;
                 else renderer.backgroundColor = 0x110826;
             }
         } catch(e) {}
@@ -235,9 +279,18 @@
         try {
             const cv = document.querySelector('canvas');
             if (cv) {
-                if (tod === 'sunset') cv.style.background = 'linear-gradient(180deg, #c0392b 0%, #d35400 45%, #f39c12 100%)';
-                else if (tod === 'day') cv.style.background = 'linear-gradient(180deg, #1565c0 0%, #1e88e5 45%, #64b5f6 100%)';
+                if (tod === 'sunset') cv.style.background = 'linear-gradient(180deg, #b91c1c 0%, #ea580c 45%, #f59e0b 100%)';
+                else if (tod === 'day') cv.style.background = 'linear-gradient(180deg, #0284c7 0%, #38bdf8 55%, #bae6fd 100%)';
                 else cv.style.background = 'linear-gradient(180deg, #090314 0%, #1a0b2e 60%, #2e1065 100%)';
+            }
+        } catch(e) {}
+
+        try {
+            const v3d = window.game && window.game.scene && window.game.scene.view3d;
+            if (v3d && v3d.fog) {
+                if (tod === 'sunset') { v3d.fog.color = 0xd35400; v3d.fog.density = 0.015; }
+                else if (tod === 'day') { v3d.fog.color = 0x64b5f6; v3d.fog.density = 0.008; }
+                else { v3d.fog.color = 0x110826; v3d.fog.density = 0.012; }
             }
         } catch(e) {}
 
@@ -246,41 +299,7 @@
             const gScene = window.game && window.game.scene && window.game.scene.view3d && window.game.scene.view3d.lights;
             if (gScene && !systems.includes(gScene)) systems.push(gScene);
             for (const ls of systems) {
-                if (!ls) continue;
-                if (ls.ambientLight) {
-                    if (tod === 'sunset') {
-                        ls.ambientLight.color = 0xff944d;
-                        ls.ambientLight.intensity = 0.65;
-                    } else if (tod === 'day') {
-                        ls.ambientLight.color = 0xffffff;
-                        ls.ambientLight.intensity = 0.90;
-                    } else { // night
-                        ls.ambientLight.color = (GFX_SETTINGS.shaders === 'off') ? 0xffffff : 0x9bbdff;
-                        ls.ambientLight.intensity = (GFX_SETTINGS.shaders === 'off') ? 0.5 : 0.35;
-                    }
-                    ls.ambientLight.dirty = true;
-                    if (typeof ls.ambientLight.update === 'function') ls.ambientLight.update();
-                }
-                if (Array.isArray(ls.lightEntities)) {
-                    for (const le of ls.lightEntities) {
-                        const l = le && le.light;
-                        if (!l) continue;
-                        if (tod === 'sunset') {
-                            l.color = 0xff7043;
-                            l.intensity = 1.85;
-                            if (l.direction && l.direction.set) l.direction.set(0.65, -0.60, -0.45);
-                        } else if (tod === 'day') {
-                            l.color = 0xfffae6;
-                            l.intensity = 1.55;
-                            if (l.direction && l.direction.set) l.direction.set(0.35, -0.85, -0.40);
-                        } else { // night
-                            l.color = (GFX_SETTINGS.shaders === 'off') ? 0xffffff : 0xd8b4fe;
-                            l.intensity = (GFX_SETTINGS.shaders === 'off') ? 1.0 : 1.25;
-                            if (l.direction && l.direction.set) l.direction.set(0.48, -0.80, -0.36);
-                        }
-                        if (typeof l.update === 'function') l.update();
-                    }
-                }
+                window.__applyLiveTimeOfDay(ls);
             }
         } catch(e) {}
     }
@@ -311,39 +330,13 @@
         const tex = ensureReformulatedShadowTexture();
         if (tex) window.__SW_SHADOW_TEX__ = tex;
 
-        // 1) Tune 3D Lights per mode (cool ambient fill vs warm sun key)
+        // Tune 3D Lights via live time of day
         try {
             const systems = (window.__SW_LIGHT_SYSTEMS__ || []).slice();
             const gScene = window.game && window.game.scene && window.game.scene.view3d && window.game.scene.view3d.lights;
             if (gScene && !systems.includes(gScene)) systems.push(gScene);
             for (const ls of systems) {
-                if (!ls) continue;
-                if (ls.ambientLight) {
-                    if (mode === 'off') {
-                        ls.ambientLight.color = 0xffffff;
-                        ls.ambientLight.intensity = 0.5;
-                    } else {
-                        ls.ambientLight.color = 0x9bbdff;
-                        ls.ambientLight.intensity = 0.34;
-                    }
-                    ls.ambientLight.dirty = true;
-                    if (typeof ls.ambientLight.update === 'function') ls.ambientLight.update();
-                }
-                if (Array.isArray(ls.lightEntities)) {
-                    for (const le of ls.lightEntities) {
-                        const l = le && le.light;
-                        if (!l) continue;
-                        if (mode === 'off') {
-                            l.color = 0xffffff;
-                            l.intensity = 1.0;
-                        } else {
-                            l.color = 0xffebd2;
-                            l.intensity = 1.58;
-                            if (l.direction && l.direction.set) l.direction.set(0.48, -0.80, -0.36);
-                        }
-                        if (typeof l.update === 'function') l.update();
-                    }
-                }
+                window.__applyLiveTimeOfDay(ls);
             }
         } catch(e) {}
 
@@ -2320,32 +2313,6 @@
             return;
         }
 
-        // Prevent coins from being bugged inside moving trains or half wagons
-        try {
-            if (window.game && window.game.physics && Array.isArray(window.game.physics.entities)) {
-                for (const ent of window.game.physics.entities) {
-                    const b = ent && ent.body;
-                    if (!b || b.deco || b.player) continue;
-                    const speed = (ent && ent.movable && ent.movable.speed) || (b.velocity && Math.abs(b.velocity.z)) || 0;
-                    if (speed && Math.abs(b.x - coinX) < 8.5 && Math.abs(b.z - coinZ) < ((b.depth || 58) / 2 + 10)) {
-                        const topY = Number.isFinite(b.top) ? b.top : ((b.bottom || 0) + (b.height || 29));
-                        const cBtm = coin.body ? (coin.body.bottom !== undefined ? coin.body.bottom : (coin.body.y || 0)) : 0;
-                        if (cBtm < 8) {
-                            coin.active = false;
-                            coin.visible = false;
-                            if (coin.body) { coin.body.width = 0; coin.body.height = 0; coin.body.depth = 0; }
-                            return;
-                        } else if (cBtm < topY) {
-                            if (coin.body) coin.body.bottom = topY + 5.5;
-                            if (coin.movable && typeof coin.movable.run === 'function' && ent.movable) {
-                                coin.movable.run(ent.movable.speed, ent.movable.target);
-                            }
-                        }
-                    }
-                }
-            }
-        } catch(e) {}
-
         // In No Coin Mode, clear adjacent coins right behind/ahead of a Dash item on the same lane
         if (isNoCoin && Math.abs(coinX - lastDashLaneX) < 5 && Math.abs(coinZ - lastDashZ) < 42) {
             coin.active = false;
@@ -2401,10 +2368,134 @@
         }
     };
 
+    let boostStartTime = 0;
+    let boostEndTime = 0;
+    window.__boostFovAdd = 0;
+    window.__dashSpeedMult = 1.0;
+
+    function updateBoostEngine() {
+        const now = Date.now();
+        if (boostEndTime > now) {
+            const elapsed = now - boostStartTime;
+            if (elapsed <= 7000) {
+                window.__dashSpeedMult = 1.45;
+                window.__boostFovAdd = 15;
+            } else {
+                const tDecel = (elapsed - 7000) / 3000;
+                const factor = Math.max(0, 1 - tDecel);
+                const eased = factor * factor;
+                window.__dashSpeedMult = 1.0 + 0.45 * eased;
+                window.__boostFovAdd = 15 * eased;
+            }
+        } else {
+            window.__dashSpeedMult = 1.0;
+            window.__boostFovAdd = 0;
+        }
+    }
+
+    let backpackBoardMesh = null;
+    let backpackSpineNode = null;
+
+    function updateBackpackHoverboard() {
+        const hero = window.game && window.game.hero;
+        if (!hero || !hero.gameScene) {
+            if (backpackBoardMesh && backpackBoardMesh.parent) {
+                backpackBoardMesh.parent.removeChild(backpackBoardMesh);
+            }
+            return;
+        }
+
+        const isReady = (typeof skateEnergy === 'number') && (skateEnergy >= ENERGY_MAX);
+        const isBoardActive = !!(hero.hoverboard && hero.hoverboard.isOn && hero.hoverboard.isOn());
+        const shouldShow = isReady && !isBoardActive && isRunActive && !deathFrozen;
+
+        if (!shouldShow) {
+            if (backpackBoardMesh && backpackBoardMesh.parent) {
+                backpackBoardMesh.parent.removeChild(backpackBoardMesh);
+            }
+            return;
+        }
+
+        if (!backpackSpineNode || !backpackSpineNode.parent) {
+            const findEntity = (root, name, maxDepth = 12) => {
+                if (!root || maxDepth <= 0) return null;
+                if (root.name === name) return root;
+                const ch = root.children || (root.container && root.container.children) || [];
+                for (let i = 0; i < ch.length; i++) {
+                    const f = findEntity(ch[i], name, maxDepth - 1);
+                    if (f) return f;
+                }
+                return null;
+            };
+            backpackSpineNode = findEntity(hero.gameScene, 'LowerSpine_jnt', 12) ||
+                                findEntity(hero.gameScene, 'Spine_jnt', 12) ||
+                                findEntity(hero.gameScene, 'Bip001 Spine', 12) ||
+                                hero.gameScene;
+        }
+
+        if (!backpackBoardMesh) {
+            const boardId = (window.app && window.app.user && window.app.user.board) || 'hoverboard';
+            let mesh = null;
+            try {
+                if (window.__lib && typeof window.__lib.getScene === 'function') {
+                    mesh = window.__lib.getScene('board-' + boardId, { map: 'board-' + boardId + '-tex' });
+                }
+            } catch(e) {}
+            if (!mesh) {
+                try {
+                    if (window.__lib && typeof window.__lib.getEntity === 'function') {
+                        mesh = window.__lib.getEntity('board-' + boardId);
+                    }
+                } catch(e) {}
+            }
+            if (!mesh) {
+                mesh = createCustom3DEntity('proc_back_hoverboard', () => {
+                    const b = createMeshBuilder();
+                    b.addBox(-3.2, -0.4, -9.0, 3.2, 0.4, 9.0, 0.05, 0.05, 0.95, 0.95);
+                    return b;
+                }, { minX: -3.2, minY: -0.4, minZ: -9.0, maxX: 3.2, maxY: 0.4, maxZ: 9.0 }, null, 0x00bcd4);
+            }
+            if (mesh) {
+                mesh.scale.set(0.009);
+                mesh.rx = 0.15;
+                mesh.ry = Math.PI;
+                mesh.rz = -0.55; // diagonal slant across back (matches user pictures)
+                mesh.x = 0.04;
+                mesh.y = 0.08;
+                mesh.z = -0.09;
+                backpackBoardMesh = mesh;
+            }
+        }
+
+        if (backpackBoardMesh && backpackSpineNode && backpackBoardMesh.parent !== backpackSpineNode) {
+            backpackSpineNode.addChild(backpackBoardMesh);
+        }
+    }
+
+    let ventLaunchActiveUntil = 0;
+    let ventTargetRoof = 0;
+
+    function playVentWindEffect(vent) {
+        try {
+            const burst = document.createElement('div');
+            burst.className = 'subway-vent-burst';
+            burst.innerHTML = `
+                <div class="vent-wind-column"></div>
+                <div class="vent-wind-ring"></div>
+            `;
+            document.body.appendChild(burst);
+            setTimeout(() => burst.remove(), 750);
+        } catch(e) {}
+    }
+
     // Called when player collects a Dash boost item on the map
     window.__onDashCollect = function(coin) {
-        dashInvulnUntil = Date.now() + 750;
-        window.__dashSpeedMult = Math.min((window.__dashSpeedMult || 1.0) + 0.14, 1.95);
+        const now = Date.now();
+        dashInvulnUntil = now + 750;
+        boostStartTime = now;
+        boostEndTime = now + 10000; // 7s velocidade total + 3s desaceleração suave
+        window.__dashSpeedMult = 1.45;
+        window.__boostFovAdd = 15;
         playCoinShatterEffect(coin, 0x16a34a, 1.35, 14, false, true);
 
         // Boost de tempo adicional (APENAS no modo online ativo)
@@ -3151,6 +3242,60 @@
         return b;
     }
 
+    function buildVentGrateMesh() {
+        const b = createMeshBuilder();
+        // Base plate between rails
+        b.addBox(-7.5, 0, -16.0, 7.5, 1.0, 16.0, 0, 0, 1, 1);
+        // Outer yellow hazard border rim
+        b.addBox(-7.8, 0.8, -16.2, -6.2, 1.35, 16.2, 0, 0, 0.15, 1);
+        b.addBox(6.2, 0.8, -16.2, 7.8, 1.35, 16.2, 0.85, 0, 1, 1);
+        b.addBox(-6.2, 0.8, -16.2, 6.2, 1.35, -14.8, 0.15, 0, 0.85, 0.15);
+        b.addBox(-6.2, 0.8, 14.8, 6.2, 1.35, 16.2, 0.15, 0.85, 0.85, 1);
+        // Inner recessed metallic ventilation grill
+        b.addBox(-6.2, 0.2, -14.8, 6.2, 1.15, 14.8, 0.2, 0.2, 0.8, 0.8);
+        // Transverse steel slats
+        for (let zc = -12; zc <= 12; zc += 3.2) {
+            b.addBox(-6.0, 1.05, zc - 0.4, 6.0, 1.30, zc + 0.4, 0.3, 0.3, 0.7, 0.7);
+        }
+        return b;
+    }
+
+    let ventGrateTexture = null;
+    function getVentGrateTexture() {
+        if (ventGrateTexture) return ventGrateTexture;
+        try {
+            const cv = document.createElement('canvas');
+            cv.width = 128; cv.height = 256;
+            const ctx = cv.getContext('2d');
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(0, 0, 128, 256);
+            ctx.fillStyle = '#1e293b';
+            for (let y = -30; y < 290; y += 24) {
+                ctx.beginPath();
+                ctx.moveTo(0, y); ctx.lineTo(16, y + 16); ctx.lineTo(16, y + 28); ctx.lineTo(0, y + 12); ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(112, y); ctx.lineTo(128, y + 16); ctx.lineTo(128, y + 28); ctx.lineTo(112, y + 12); ctx.fill();
+            }
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(16, 14, 96, 228);
+            ctx.fillStyle = '#334155';
+            for (let y = 20; y < 240; y += 12) {
+                ctx.fillRect(18, y, 92, 4);
+            }
+            for (let x = 24; x < 110; x += 16) {
+                ctx.fillRect(x, 16, 3, 224);
+            }
+            // Cyan updraft airflow glow accent
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+            ctx.fillRect(20, 20, 88, 216);
+            const TextureClass = (window.app && window.app.renderer && window.app.renderer.texture && window.app.renderer.texture.constructor) || (window.PIXI && window.PIXI.Texture);
+            if (TextureClass && typeof TextureClass.from === 'function') {
+                ventGrateTexture = TextureClass.from(cv);
+            }
+        } catch(e) {}
+        return ventGrateTexture;
+    }
+
     const custom3DGeomCache = {};
 
     function getCustom3DGeom(key, builderFn, boundsBox) {
@@ -3396,6 +3541,13 @@
                 if (containerEnt) {
                     mesh = containerEnt;
                     bounds = { depth: 56, width: 18, height: 28, isSuspendedContainer: true };
+                }
+            } else if (type === 'ventoinha' || type === 'air_vent') {
+                const targetH = options.targetHeight || 56;
+                const ventEnt = createCustom3DEntity('vent_grate_entity', () => buildVentGrateMesh(), { minX: -8, minY: 0, minZ: -18, maxX: 8, maxY: 1.5, maxZ: 18 }, getVentGrateTexture(), 0xf59e0b);
+                if (ventEnt) {
+                    mesh = ventEnt;
+                    bounds = { depth: 36, width: 16, height: 2, isVent: true, targetHeight: targetH };
                 }
             }
 
@@ -3768,10 +3920,47 @@
         return spawned;
     }
 
+    function isInsideTunnel(z) {
+        if (window.game && window.game.camera && window.game.camera.tunnel) return true;
+        try {
+            const chunks = window.game && window.game.world && window.game.world.chunks;
+            if (Array.isArray(chunks)) {
+                for (let i = 0; i < chunks.length; i++) {
+                    const ch = chunks[i];
+                    if (!ch || !ch.active) continue;
+                    const nm = (ch.name || ch.type || '').toLowerCase();
+                    if (nm.includes('tunnel') || nm.includes('tube') || nm.includes('station')) {
+                        const cz = ch.z !== undefined ? ch.z : (ch.body && ch.body.z);
+                        if (cz !== undefined && Math.abs(cz - z) < 140) return true;
+                    }
+                }
+            }
+        } catch(e) {}
+        return false;
+    }
+
     function spawnNoCoinObstaclePattern(centerZ) {
         const lanes = [-20, 0, 20];
         obstacleChunkCount++;
         const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 12));
+
+        if (isInsideTunnel(centerZ)) {
+            // NEVER spawn high containers, double trains or triple trains inside tunnels
+            if (freeGroundLanes.length > 0) {
+                const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+                const r = Math.random();
+                const obsType = r < 0.4 ? 'bush' : (r < 0.7 ? 'blocker_jump' : 'dumpster');
+                const o = createObstacle3D(obsType, lane, 0, centerZ);
+                if (o) customObstacles.push(o);
+                [-20, 0, 20].forEach(lx => {
+                    if (lx !== lane && Math.random() < 0.5) {
+                        const c = createObstacle3D('coin', lx, 6, centerZ);
+                        if (c) customObstacles.push(c);
+                    }
+                });
+            }
+            return;
+        }
 
         // Put blue energy coins and the spring into a predictable rotation so
         // players can actually encounter both during an ordinary run.
@@ -4033,19 +4222,19 @@
                 }
             });
         } else if (pattern === 18) {
-            // 18. Triple Train (3 vagões de altura, y=84) + Escada perfeitamente alinhada no 2º andar
+            // 18. Salto Aéreo por Ventoinha para Vagão Triplo (y=84)
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const triple = createObstacle3D('triple_train', lane, 0, centerZ - 20);
             if (triple) customObstacles.push(triple);
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, (centerZ - 20) + 56, { targetHeight: 56 });
-            if (stairs) customObstacles.push(stairs);
-            [centerZ + 36, centerZ + 15, centerZ - 5, centerZ - 25, centerZ - 45].forEach((z, idx) => {
-                const y = idx < 2 ? 20 + idx * 18 : 88;
+            const vent = createObstacle3D('ventoinha', lane, 0, centerZ + 40, { targetHeight: 84 });
+            if (vent) customObstacles.push(vent);
+            [centerZ + 40, centerZ + 15, centerZ - 5, centerZ - 25, centerZ - 45].forEach((z, idx) => {
+                const y = idx === 0 ? 35 : 92;
                 const c = createObstacle3D('coin', lane, y, z);
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 19) {
-            // 19. Container Suspenso (y=28, teto=56) + Escada de tábuas perfeitamente alinhada com o teto
+            // 19. Container Suspenso (y=28, teto=56) + Escada de tábuas perfeitamente alinhada (passagem livre por baixo)
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const container = createObstacle3D('suspended_container', lane, 28, centerZ - 20);
             if (container) customObstacles.push(container);
@@ -4057,16 +4246,16 @@
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 20) {
-            // 20. Parkour Aéreo: 2 Containers Suspensos em pistas vizinhas com escada alinhada
+            // 20. Parkour Aéreo Duplo: Ventoinha na Pista A -> Salto para Container na Pista B
             const lane1 = freeGroundLanes[0];
             const lane2 = freeGroundLanes.length > 1 ? freeGroundLanes[1] : 0;
-            const c1 = createObstacle3D('suspended_container', lane1, 28, centerZ + 20);
+            const vent = createObstacle3D('ventoinha', lane1, 0, centerZ + 60, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
+            const c1 = createObstacle3D('suspended_container', lane1, 28, centerZ + 15);
             if (c1) customObstacles.push(c1);
-            const c2 = createObstacle3D('suspended_container', lane2, 28, centerZ - 40);
+            const c2 = createObstacle3D('suspended_container', lane2, 28, centerZ - 45);
             if (c2) customObstacles.push(c2);
-            const stairs = createObstacle3D('wooden_stairs', lane1, 0, (centerZ + 20) + 56, { targetHeight: 56 });
-            if (stairs) customObstacles.push(stairs);
-            [ { x: lane1, y: 60, z: centerZ + 20 }, { x: (lane1 + lane2) / 2, y: 60, z: centerZ - 10 }, { x: lane2, y: 60, z: centerZ - 40 } ].forEach(pt => {
+            [ { x: lane1, y: 60, z: centerZ + 15 }, { x: (lane1 + lane2) / 2, y: 62, z: centerZ - 15 }, { x: lane2, y: 60, z: centerZ - 45 } ].forEach(pt => {
                 const coin = createObstacle3D('coin', pt.x, pt.y, pt.z);
                 if (coin) customObstacles.push(coin);
             });
@@ -4085,22 +4274,22 @@
                 if (coin) customObstacles.push(coin);
             });
         } else if (pattern === 22) {
-            // 22. Desvio Aéreo por Container Suspenso com escada alinhada
+            // 22. Desvio Aéreo por Ventoinha + Container Suspenso (chão 100% livre)
             const centerLane = 0;
             const container = createObstacle3D('suspended_container', centerLane, 28, centerZ);
             if (container) customObstacles.push(container);
-            const stairs = createObstacle3D('wooden_stairs', centerLane, 0, centerZ + 56, { targetHeight: 56 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', centerLane, 0, centerZ + 42, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
             [-20, 20].forEach(lx => {
                 const obs = createObstacle3D(lx < 0 ? 'bush' : 'dumpster', lx, 0, centerZ);
                 if (obs) customObstacles.push(obs);
             });
             [centerZ + 20, centerZ, centerZ - 20].forEach(z => {
-                const coin = createObstacle3D('coin', centerLane, 56, z);
+                const coin = createObstacle3D('coin', centerLane, 60, z);
                 if (coin) customObstacles.push(coin);
             });
         } else if (pattern === 23) {
-            // 23. Trampolim para Container Suspenso no Alto (Cama elástica lança direto no teto do container)
+            // 23. Trampolim para Container Suspenso no Alto
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const tramp = createObstacle3D('trampoline', lane, 0, centerZ + 60);
             if (tramp) customObstacles.push(tramp);
@@ -4112,18 +4301,18 @@
                 if (coin) customObstacles.push(coin);
             });
         } else if (pattern === 24) {
-            // 24. Duplo Vagão de 2 Alturas (Double Train) ladeado por Containers Suspensos
+            // 24. Duplo Vagão de 2 Alturas (Double Train) com Ventoinha Frontal
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const doubleTrain = createObstacle3D('double_train', lane, 0, centerZ);
             if (doubleTrain) customObstacles.push(doubleTrain);
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 56, { targetHeight: 56 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', lane, 0, centerZ + 42, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
             [centerZ + 50, centerZ + 25, centerZ, centerZ - 25].forEach((z, i) => {
                 const coin = createObstacle3D('coin', lane, 62, z);
                 if (coin) customObstacles.push(coin);
             });
         } else if (pattern === 25) {
-            // 25. Trilha Aérea de 3 Containers Suspensos
+            // 25. Trilha Aérea de 3 Containers Suspensos com Ventoinha
             [-20, 0, 20].forEach((lx, i) => {
                 const z = centerZ - (i * 35) + 35;
                 const cont = createObstacle3D('suspended_container', lx, 28, z);
@@ -4131,8 +4320,8 @@
                 const coin = createObstacle3D('coin', lx, 60, z);
                 if (coin) customObstacles.push(coin);
             });
-            const stairs = createObstacle3D('wooden_stairs', -20, 0, (centerZ + 35) + 56, { targetHeight: 56 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', -20, 0, centerZ + 75, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
         } else if (pattern === 26) {
             // 26. Escadaria de Madeira Dupla Paralela com Moedas Cruzadas
             const laneA = freeGroundLanes[0];
@@ -4147,13 +4336,13 @@
                 if (coin) customObstacles.push(coin);
             });
         } else if (pattern === 27) {
-            // 27. Vagão Triplo (3 andares) com Container Suspenso ao Lado e Moedas Flutuantes
+            // 27. Vagão Triplo (3 andares) com Ventoinha Frontal + Container Suspenso ao Lado
             const mainLane = freeGroundLanes[0];
             const sideLane = freeGroundLanes.length > 1 ? freeGroundLanes[1] : (mainLane === 0 ? 20 : 0);
             const triple = createObstacle3D('triple_train', mainLane, 0, centerZ);
             if (triple) customObstacles.push(triple);
-            const stairs = createObstacle3D('wooden_stairs', mainLane, 0, centerZ + 56, { targetHeight: 84 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', mainLane, 0, centerZ + 45, { targetHeight: 84 });
+            if (vent) customObstacles.push(vent);
             const cont = createObstacle3D('suspended_container', sideLane, 28, centerZ - 20);
             if (cont) customObstacles.push(cont);
             [centerZ + 40, centerZ + 10, centerZ - 20].forEach((z, i) => {
@@ -4172,12 +4361,12 @@
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 29) {
-            // 29. Super Container Suspenso + Moeda de Energia no Teto
+            // 29. Super Container Suspenso com Ventoinha Frontal + Moeda de Energia no Teto
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const cont = createObstacle3D('suspended_container', lane, 28, centerZ);
             if (cont) customObstacles.push(cont);
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 56, { targetHeight: 56 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', lane, 0, centerZ + 42, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
             const energyCoin = createObstacle3D('energyCoin', lane, 62, centerZ);
             if (energyCoin) customObstacles.push(energyCoin);
             const c1 = createObstacle3D('coin', lane, 62, centerZ + 20);
@@ -4185,7 +4374,7 @@
             const c2 = createObstacle3D('coin', lane, 62, centerZ - 20);
             if (c2) customObstacles.push(c2);
         } else if (pattern === 30) {
-            // 30. Parkour de Containers Suspensos
+            // 30. Parkour de Containers Suspensos com Escada
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const cont = createObstacle3D('suspended_container', lane, 28, centerZ - 20);
             if (cont) customObstacles.push(cont);
@@ -4196,15 +4385,15 @@
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 31) {
-            // 31. Desfiladeiro de Trens Duplos com Ponte de Container Suspenso no Meio
+            // 31. Desfiladeiro de Trens Duplos com Ponte de Container Suspenso no Meio e Ventoinha
             const leftTrain = createObstacle3D('double_train', -20, 0, centerZ);
             if (leftTrain) customObstacles.push(leftTrain);
             const rightTrain = createObstacle3D('double_train', 20, 0, centerZ);
             if (rightTrain) customObstacles.push(rightTrain);
             const midCont = createObstacle3D('suspended_container', 0, 28, centerZ);
             if (midCont) customObstacles.push(midCont);
-            const stairs = createObstacle3D('wooden_stairs', 0, 0, centerZ + 56, { targetHeight: 56 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', 0, 0, centerZ + 42, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
             [centerZ + 20, centerZ, centerZ - 20].forEach(z => {
                 const c = createObstacle3D('coin', 0, 62, z);
                 if (c) customObstacles.push(c);
@@ -4232,29 +4421,29 @@
                 phase: 0
             });
             if (oscCoin) customObstacles.push(oscCoin);
-            const stairs = createObstacle3D('wooden_stairs', -20, 0, centerZ + 56, { targetHeight: 56 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', -20, 0, centerZ + 42, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
         } else if (pattern === 34) {
-            // 34. Vagão Triplo Central com Escada de Tábuas Frontal e Pistas Laterais Livres
+            // 34. Vagão Triplo Central com Ventoinha de Alto Impulso Frontal
             const triple = createObstacle3D('triple_train', 0, 0, centerZ - 15);
             if (triple) customObstacles.push(triple);
-            const stairs = createObstacle3D('wooden_stairs', 0, 0, (centerZ - 15) + 56, { targetHeight: 84 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', 0, 0, centerZ + 35, { targetHeight: 84 });
+            if (vent) customObstacles.push(vent);
             [centerZ + 30, centerZ + 5, centerZ - 20, centerZ - 45].forEach(z => {
                 const c = createObstacle3D('coin', 0, 92, z);
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 35) {
-            // 35. Parkour de 3 Níveis: Chão -> Escada -> Container Suspenso -> Teto do Trem
+            // 35. Parkour de 3 Níveis: Ventoinha -> Container Suspenso -> Teto do Trem
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const cont = createObstacle3D('suspended_container', lane, 28, centerZ + 20);
             if (cont) customObstacles.push(cont);
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, (centerZ + 20) + 56, { targetHeight: 56 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', lane, 0, (centerZ + 20) + 42, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
             const dTrain = createObstacle3D('double_train', lane, 0, centerZ - 36);
             if (dTrain) customObstacles.push(dTrain);
-            [centerZ + 75, centerZ + 45, centerZ + 20, centerZ - 10, centerZ - 35].forEach((z, i) => {
-                const y = [14, 32, 60, 60, 62][i];
+            [centerZ + 60, centerZ + 35, centerZ + 20, centerZ - 10, centerZ - 35].forEach((z, i) => {
+                const y = [35, 60, 60, 60, 62][i];
                 const c = createObstacle3D('coin', lane, y, z);
                 if (c) customObstacles.push(c);
             });
@@ -4273,13 +4462,13 @@
                 if (c) customObstacles.push(c);
             }
         } else if (pattern === 37) {
-            // 37. Grande Desafio Vertical: Escada para Vagão Duplo + Container Suspenso com 4 Cabos + Vagão Triplo
+            // 37. Grande Desafio Vertical: Ventoinha para Vagão Duplo + Container Suspenso + Vagão Triplo
             const laneA = freeGroundLanes[0];
             const laneB = freeGroundLanes.length > 1 ? freeGroundLanes[1] : 0;
             const dTrain = createObstacle3D('double_train', laneA, 0, centerZ + 15);
             if (dTrain) customObstacles.push(dTrain);
-            const stairs = createObstacle3D('wooden_stairs', laneA, 0, (centerZ + 15) + 56, { targetHeight: 56 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', laneA, 0, (centerZ + 15) + 42, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
             const cont = createObstacle3D('suspended_container', laneB, 28, centerZ);
             if (cont) customObstacles.push(cont);
             const tTrain = createObstacle3D('triple_train', laneA, 0, centerZ - 45);
@@ -4368,28 +4557,58 @@
         const now = frameNow;
         const isDashing = now < dashInvulnUntil;
 
+        updateBoostEngine();
+        updateBackpackHoverboard();
+
+        // Dip camera smoothly when passing under suspended containers (just like native tunnels)
+        let isUnderSuspendedContainer = false;
+        for (const obs of customObstacles) {
+            if (!obs || obs.destroyed) continue;
+            if (obs.type === 'suspended_container') {
+                const hd = 28 + 4;
+                const hw = 9 + 3;
+                if (Math.abs(obs.x - heroX) <= hw && Math.abs(obs.z - heroZ) <= hd && heroY <= 16) {
+                    isUnderSuspendedContainer = true;
+                    break;
+                }
+            }
+        }
+        if (hero.player) {
+            if (isUnderSuspendedContainer) {
+                hero.player.cameraLow = -16;
+                if (window.game && window.game.enterTunnel) {
+                    try { window.game.enterTunnel(); } catch(e) {}
+                }
+            } else if (hero.player.cameraLow < 0 && !hero.player.tunnel) {
+                if (typeof hero.player.exitCameraLow === 'function') hero.player.exitCameraLow();
+                else hero.player.cameraLow = 0;
+            }
+        }
+
         // Elevate runner physics & smooth camera following over roofs and ramps
         let maxElevatedGround = 0;
         for (const obs of customObstacles) {
             if (!obs || obs.destroyed) continue;
-            if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
-                const hd = (obs.bounds && obs.bounds.depth ? obs.bounds.depth / 2 : 28) + 2;
-                const hw = (obs.bounds && obs.bounds.width ? obs.bounds.width / 2 : 9) + 2;
-                if (Math.abs(obs.x - heroX) <= hw && Math.abs(obs.z - heroZ) <= hd) {
-                    const topRoof = obs.type === 'triple_train' ? 84 : (obs.type === 'double_train' ? 56 : (obs.y || 28) + 28);
-                    if (heroY >= topRoof - 10) {
-                        maxElevatedGround = Math.max(maxElevatedGround, topRoof);
-                    }
-                }
-            } else if (obs.type === 'wooden_ramp' || obs.type === 'wooden_stairs') {
+            if (obs.type === 'wooden_ramp' || obs.type === 'wooden_stairs') {
                 const hd = (obs.bounds && obs.bounds.depth ? obs.bounds.depth / 2 : 28) + 2;
                 const hw = (obs.bounds && obs.bounds.width ? obs.bounds.width / 2 : 9) + 2;
                 if (Math.abs(obs.x - heroX) <= hw && Math.abs(obs.z - heroZ) <= hd) {
                     const targetH = (obs.bounds && obs.bounds.targetHeight) || 28;
                     const progress = Math.max(0, Math.min(1, ((obs.z + 28) - heroZ) / 56));
                     const rampY = progress * targetH;
-                    if (heroY >= rampY - 10) {
+                    if (heroY >= rampY - 8) {
                         maxElevatedGround = Math.max(maxElevatedGround, rampY);
+                    }
+                }
+            } else if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
+                const hd = (obs.bounds && obs.bounds.depth ? obs.bounds.depth / 2 : 28) + 2;
+                const hw = (obs.bounds && obs.bounds.width ? obs.bounds.width / 2 : 9) + 2;
+                if (Math.abs(obs.x - heroX) <= hw && Math.abs(obs.z - heroZ) <= hd) {
+                    const topRoof = obs.type === 'triple_train' ? 84 : (obs.type === 'double_train' ? 56 : (obs.y || 28) + 28);
+                    const isAlreadyOnRoof = (heroBody.ground && heroBody.ground >= topRoof - 4) || (heroY >= topRoof - 2);
+                    const isVentLanding = (now < ventLaunchActiveUntil);
+                    if (isAlreadyOnRoof || isVentLanding) {
+                        maxElevatedGround = Math.max(maxElevatedGround, topRoof);
                     }
                 }
             }
@@ -4599,9 +4818,13 @@
                         const rampY = progress * targetH;
                         if (heroY >= rampY - 8) {
                             heroBody.ground = Math.max(heroBody.ground || 0, rampY);
-                            heroBody.bottom = Math.max(heroBody.bottom || 0, rampY);
-                            heroBody.y = Math.max(heroBody.y || 0, rampY);
-                            heroBody.landed = true;
+                            // ALLOW JUMPING: don't lock y/bottom if jumping upward!
+                            const isJumpingUp = heroBody.velocity && heroBody.velocity.y > 0.5;
+                            if (!isJumpingUp && heroY <= rampY + 2.0) {
+                                heroBody.bottom = rampY;
+                                heroBody.y = rampY;
+                                heroBody.landed = true;
+                            }
                             if (hero.player) {
                                 hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, rampY);
                                 hero.player.cameraY = hero.player.cameraY * 0.80 + hero.player.cameraTargetY * 0.20;
@@ -4609,76 +4832,77 @@
                             continue;
                         }
                     }
-                    if (obs.type === 'double_train') {
-                        if (heroY >= 48) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, 56);
-                            heroBody.bottom = Math.max(heroBody.bottom || 0, 56);
-                            heroBody.y = Math.max(heroBody.y || 0, 56);
-                            heroBody.landed = true;
+                    if (obs.type === 'ventoinha' || obs.type === 'air_vent') {
+                        if (!obs.used && (!obs.usedTime || now - obs.usedTime > 1200)) {
+                            obs.usedTime = now;
+                            const targetRoof = (obs.bounds && obs.bounds.targetHeight) || 56;
+                            try {
+                                if (window.game && window.game.sfx && window.game.sfx.play) {
+                                    window.game.sfx.play('super-sneakers-jump');
+                                }
+                            } catch(e) {}
+                            playVentWindEffect(obs);
+                            heroBody.velocity.y = targetRoof >= 84 ? 92 : 78;
+                            heroBody.y = Math.max(heroBody.y || 0, 8);
+                            heroBody.landed = false;
+                            ventLaunchActiveUntil = now + 950;
+                            ventTargetRoof = targetRoof;
                             if (hero.player) {
-                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, 56);
-                                hero.player.cameraY = hero.player.cameraY * 0.85 + hero.player.cameraTargetY * 0.15;
+                                hero.player.cameraTargetY = targetRoof;
                             }
-                            continue;
-                        } else if (heroY >= 22) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, 28);
-                            heroBody.bottom = Math.max(heroBody.bottom || 0, 28);
-                            heroBody.y = Math.max(heroBody.y || 0, 28);
-                            heroBody.landed = true;
+                        }
+                        continue;
+                    }
+                    if (obs.type === 'double_train') {
+                        if (heroY >= 54 || (now < ventLaunchActiveUntil)) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, 56);
+                            const isJumpingUp = heroBody.velocity && heroBody.velocity.y > 0.5;
+                            if (!isJumpingUp && heroY <= 57.5) {
+                                heroBody.bottom = 56;
+                                heroBody.y = 56;
+                                heroBody.landed = true;
+                            }
                             if (hero.player) {
-                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, 28);
-                                hero.player.cameraY = hero.player.cameraY * 0.85 + hero.player.cameraTargetY * 0.15;
+                                hero.player.cameraTargetY = 56;
+                                hero.player.cameraY = hero.player.cameraY * 0.85 + 56 * 0.15;
                             }
                             continue;
                         }
                     }
                     if (obs.type === 'triple_train') {
-                        if (heroY >= 74) {
+                        if (heroY >= 82 || (now < ventLaunchActiveUntil)) {
                             heroBody.ground = Math.max(heroBody.ground || 0, 84);
-                            heroBody.bottom = Math.max(heroBody.bottom || 0, 84);
-                            heroBody.y = Math.max(heroBody.y || 0, 84);
-                            heroBody.landed = true;
-                            if (hero.player) {
-                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, 84);
-                                hero.player.cameraY = hero.player.cameraY * 0.85 + hero.player.cameraTargetY * 0.15;
+                            const isJumpingUp = heroBody.velocity && heroBody.velocity.y > 0.5;
+                            if (!isJumpingUp && heroY <= 85.5) {
+                                heroBody.bottom = 84;
+                                heroBody.y = 84;
+                                heroBody.landed = true;
                             }
-                            continue;
-                        } else if (heroY >= 48) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, 56);
-                            heroBody.bottom = Math.max(heroBody.bottom || 0, 56);
-                            heroBody.y = Math.max(heroBody.y || 0, 56);
-                            heroBody.landed = true;
                             if (hero.player) {
-                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, 56);
-                                hero.player.cameraY = hero.player.cameraY * 0.85 + hero.player.cameraTargetY * 0.15;
-                            }
-                            continue;
-                        } else if (heroY >= 22) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, 28);
-                            heroBody.bottom = Math.max(heroBody.bottom || 0, 28);
-                            heroBody.y = Math.max(heroBody.y || 0, 28);
-                            heroBody.landed = true;
-                            if (hero.player) {
-                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, 28);
-                                hero.player.cameraY = hero.player.cameraY * 0.85 + hero.player.cameraTargetY * 0.15;
+                                hero.player.cameraTargetY = 84;
+                                hero.player.cameraY = hero.player.cameraY * 0.85 + 84 * 0.15;
                             }
                             continue;
                         }
                     }
                     if (obs.type === 'suspended_container') {
                         const topY = (obs.y || 28) + 28;
-                        const botY = obs.y || 28;
-                        if (heroY <= botY - 12) {
-                            continue; // runner passes safely under suspended container
+                        // Safe clearance underneath: ONLY when on ground (heroY <= 15)
+                        if (heroY <= 15) {
+                            continue;
                         }
-                        if (heroY >= topY - 8) {
+                        // Running on top of roof:
+                        if (heroY >= topY - 2 || (now < ventLaunchActiveUntil)) {
                             heroBody.ground = Math.max(heroBody.ground || 0, topY);
-                            heroBody.bottom = Math.max(heroBody.bottom || 0, topY);
-                            heroBody.y = Math.max(heroBody.y || 0, topY);
-                            heroBody.landed = true;
+                            const isJumpingUp = heroBody.velocity && heroBody.velocity.y > 0.5;
+                            if (!isJumpingUp && heroY <= topY + 1.5) {
+                                heroBody.bottom = topY;
+                                heroBody.y = topY;
+                                heroBody.landed = true;
+                            }
                             if (hero.player) {
-                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, topY);
-                                hero.player.cameraY = hero.player.cameraY * 0.85 + hero.player.cameraTargetY * 0.15;
+                                hero.player.cameraTargetY = topY;
+                                hero.player.cameraY = hero.player.cameraY * 0.85 + topY * 0.15;
                             }
                             continue;
                         }
@@ -9078,6 +9302,31 @@
                 z-index: 99996;
                 pointer-events: none;
                 animation: dashBurstAnim 0.45s ease-out forwards;
+            }
+            .subway-vent-burst {
+                position: fixed; inset: 0; z-index: 99997; pointer-events: none;
+                display: flex; align-items: center; justify-content: center;
+            }
+            .vent-wind-column {
+                position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+                width: 220px; height: 100vh;
+                background: linear-gradient(to top, rgba(255,255,255,0.45) 0%, rgba(200,240,255,0.2) 60%, transparent 100%);
+                filter: blur(12px); animation: ventColumnAnim 0.6s ease-out forwards;
+            }
+            .vent-wind-ring {
+                position: absolute; bottom: 15%; left: 50%;
+                width: 80px; height: 30px; border-radius: 50%;
+                border: 4px solid rgba(255,255,255,0.85); box-shadow: 0 0 25px rgba(100,220,255,0.9);
+                transform: translateX(-50%) scale(0.6); animation: ventRingAnim 0.6s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+            }
+            @keyframes ventColumnAnim {
+                0% { opacity: 0; transform: translateX(-50%) scaleY(0.2); }
+                30% { opacity: 1; }
+                100% { opacity: 0; transform: translateX(-50%) scaleY(1.3); }
+            }
+            @keyframes ventRingAnim {
+                0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(0.6); }
+                100% { opacity: 0; transform: translateX(-50%) translateY(-350px) scale(2.8); }
             }
             .subway-energy-star-burst {
                 position: fixed; inset: 0; z-index: 100001; overflow: hidden;
