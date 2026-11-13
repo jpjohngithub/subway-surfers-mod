@@ -2911,6 +2911,245 @@
         } catch(e) { return null; }
     }
 
+    function getContainerTexture(colorHex = 0xc0392b) {
+        window.__SW_CONT_TEX__ = window.__SW_CONT_TEX__ || {};
+        if (window.__SW_CONT_TEX__[colorHex]) return window.__SW_CONT_TEX__[colorHex];
+        try {
+            const originalMap = window.__lib && window.__lib.getMap && window.__lib.getMap('halo');
+            const TextureClass = originalMap && originalMap.constructor;
+            if (!TextureClass || typeof TextureClass.from !== 'function') return null;
+            const cv = document.createElement('canvas');
+            cv.width = 512; cv.height = 512;
+            const ctx = cv.getContext('2d');
+            if (!ctx) return null;
+
+            const hexStr = '#' + (colorHex.toString(16).padStart(6, '0'));
+            ctx.fillStyle = hexStr;
+            ctx.fillRect(0, 0, 512, 512);
+
+            const ribWidth = 16;
+            for (let x = 0; x < 512; x += ribWidth * 2) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+                ctx.fillRect(x, 0, ribWidth, 512);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+                ctx.fillRect(x + ribWidth, 0, ribWidth, 512);
+            }
+
+            const stripeH = 32;
+            ctx.fillStyle = '#f39c12';
+            ctx.fillRect(0, 0, 512, stripeH);
+            ctx.fillRect(0, 512 - stripeH, 512, stripeH);
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.lineWidth = 12;
+            for (let x = -64; x < 576; x += 32) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + stripeH, stripeH); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x, 512 - stripeH); ctx.lineTo(x + stripeH, 512); ctx.stroke();
+            }
+
+            ctx.fillStyle = '#4a5568';
+            ctx.fillRect(0, 0, 48, 48); ctx.fillRect(512 - 48, 0, 48, 48);
+            ctx.fillRect(0, 512 - 48, 48, 48); ctx.fillRect(512 - 48, 512 - 48, 48, 48);
+
+            const tex = TextureClass.from(cv);
+            window.__SW_CONT_TEX__[colorHex] = tex;
+            return tex;
+        } catch(e) { return null; }
+    }
+
+    function createMeshBuilder() {
+        const pos = [], norm = [], uv = [], idx = [];
+        const pushV = (x, y, z, nx, ny, nz, u, v) => {
+            const i = pos.length / 3;
+            pos.push(x, y, z);
+            norm.push(nx, ny, nz);
+            uv.push(u, v);
+            return i;
+        };
+        const addQuad = (a, b, c, d, nrm, u0, v0, u1, v1) => {
+            u0 = u0 !== undefined ? u0 : 0; v0 = v0 !== undefined ? v0 : 0;
+            u1 = u1 !== undefined ? u1 : 1; v1 = v1 !== undefined ? v1 : 1;
+            const i0 = pushV(a[0], a[1], a[2], nrm[0], nrm[1], nrm[2], u0, v0);
+            const i1 = pushV(b[0], b[1], b[2], nrm[0], nrm[1], nrm[2], u1, v0);
+            const i2 = pushV(c[0], c[1], c[2], nrm[0], nrm[1], nrm[2], u1, v1);
+            const i3 = pushV(d[0], d[1], d[2], nrm[0], nrm[1], nrm[2], u0, v1);
+            idx.push(i0, i1, i2, i0, i2, i3);
+        };
+        const addBox = (minX, minY, minZ, maxX, maxY, maxZ, uMin, vMin, uMax, vMax) => {
+            uMin = uMin || 0; vMin = vMin || 0; uMax = uMax || 1; vMax = vMax || 1;
+            addQuad([minX, maxY, minZ], [maxX, maxY, minZ], [maxX, maxY, maxZ], [minX, maxY, maxZ], [0, 1, 0], uMin, vMin, uMax, vMax);
+            addQuad([minX, minY, maxZ], [maxX, minY, maxZ], [maxX, minY, minZ], [minX, minY, minZ], [0, -1, 0], uMin, vMin, uMax, vMax);
+            addQuad([minX, minY, maxZ], [maxX, minY, maxZ], [maxX, maxY, maxZ], [minX, maxY, maxZ], [0, 0, 1], uMin, vMin, uMax, vMax);
+            addQuad([maxX, minY, minZ], [minX, minY, minZ], [minX, maxY, minZ], [maxX, maxY, minZ], [0, 0, -1], uMin, vMin, uMax, vMax);
+            addQuad([minX, minY, minZ], [minX, minY, maxZ], [minX, maxY, maxZ], [minX, maxY, minZ], [-1, 0, 0], uMin, vMin, uMax, vMax);
+            addQuad([maxX, minY, maxZ], [maxX, minY, minZ], [maxX, maxY, minZ], [maxX, maxY, maxZ], [1, 0, 0], uMin, vMin, uMax, vMax);
+        };
+        return { pos, norm, uv, idx, pushV, addQuad, addBox };
+    }
+
+    function build3PlankWoodenRamp(targetH = 29) {
+        const b = createMeshBuilder();
+        const zStart = 28, zEnd = -28;
+        const dy = targetH, dz = zEnd - zStart;
+        const len = Math.hypot(dy, dz);
+        const ny = -dz / len, nz = dy / len;
+        const th = 1.4;
+
+        const planks = [
+            { x0: -8.6, x1: -3.1, u0: 0.03, u1: 0.33 },
+            { x0: -2.6, x1: 2.6,  u0: 0.36, u1: 0.66 },
+            { x0: 3.1,  x1: 8.6,  u0: 0.70, u1: 1.00 }
+        ];
+
+        for (const p of planks) {
+            const { x0, x1, u0, u1 } = p;
+            const t0 = [x0, 0, zStart];
+            const t1 = [x1, 0, zStart];
+            const t2 = [x1, targetH, zEnd];
+            const t3 = [x0, targetH, zEnd];
+
+            const b0 = [x0, -th, zStart];
+            const b1 = [x1, -th, zStart];
+            const b2 = [x1, targetH - th, zEnd];
+            const b3 = [x0, targetH - th, zEnd];
+
+            b.addQuad(t0, t1, t2, t3, [0, ny, nz], u0, 0.05, u1, 0.95);
+            b.addQuad(b1, b0, b3, b2, [0, -ny, -nz], u0, 0.05, u1, 0.95);
+            b.addQuad(b0, t0, t3, b3, [-1, 0, 0], 0.05, 0.05, 0.2, 0.95);
+            b.addQuad(t1, b1, b2, t2, [1, 0, 0], 0.8, 0.05, 0.95, 0.95);
+            b.addQuad(b0, b1, t1, t0, [0, 0, 1], u0, 0, u1, 0.1);
+            b.addQuad(t3, t2, b2, b3, [0, 0, -1], u0, 0.9, u1, 1.0);
+        }
+
+        const zCross = [16, 0, -16];
+        for (const zc of zCross) {
+            const tFrac = (zStart - zc) / (zStart - zEnd);
+            const yTop = tFrac * targetH - th;
+            b.addBox(-8.8, yTop - 2.0, zc - 1.2, 8.8, yTop, zc + 1.2, 0.1, 0.8, 0.9, 0.98);
+        }
+
+        const legZ = -16;
+        const legT = (zStart - legZ) / (zStart - zEnd);
+        const legY = legT * targetH - th - 2.0;
+        b.addBox(-8.2, 0, legZ - 1.2, -6.2, legY, legZ + 1.2, 0.1, 0.1, 0.3, 0.8);
+        b.addBox(6.2, 0, legZ - 1.2, 8.2, legY, legZ + 1.2, 0.7, 0.1, 0.9, 0.8);
+
+        return b;
+    }
+
+    function buildShippingContainer(hasCables = true) {
+        const b = createMeshBuilder();
+        const x0 = -9, x1 = 9;
+        const y0 = 0, y1 = 28;
+        const z0 = -28, z1 = 28;
+
+        b.addBox(x0, y0, z0, x1, y1, z1, 0.05, 0.05, 0.95, 0.95);
+
+        const cW = 0.9;
+        b.addBox(x0 - 0.2, y0, z0 - 0.2, x0 + cW, y1 + 0.2, z0 + cW, 0, 0, 0.1, 1);
+        b.addBox(x1 - cW, y0, z0 - 0.2, x1 + 0.2, y1 + 0.2, z0 + cW, 0.9, 0, 1, 1);
+        b.addBox(x0 - 0.2, y0, z1 - cW, x0 + cW, y1 + 0.2, z1 + 0.2, 0, 0, 0.1, 1);
+        b.addBox(x1 - cW, y0, z1 - cW, x1 + 0.2, y1 + 0.2, z1 + 0.2, 0.9, 0, 1, 1);
+
+        b.addBox(x0 - 0.15, y1 - 0.5, z0 - 0.15, x1 + 0.15, y1 + 0.4, z1 + 0.15, 0.05, 0.9, 0.95, 1.0);
+        b.addBox(x0 - 0.15, y0 - 0.2, z0 - 0.15, x1 + 0.15, y0 + 0.5, z1 + 0.15, 0.05, 0, 0.95, 0.1);
+
+        const corners = [
+            { cx: x0 + cW/2, cz: z0 + cW/2 },
+            { cx: x1 - cW/2, cz: z0 + cW/2 },
+            { cx: x0 + cW/2, cz: z1 - cW/2 },
+            { cx: x1 - cW/2, cz: z1 - cW/2 }
+        ];
+        for (const c of corners) {
+            b.addBox(c.cx - 0.8, y1, c.cz - 0.8, c.cx + 0.8, y1 + 1.2, c.cz + 0.8, 0.4, 0.4, 0.6, 0.6);
+        }
+
+        if (hasCables) {
+            const cableR = 0.22;
+            const cableTopY = 160;
+            for (const c of corners) {
+                b.addBox(c.cx - cableR, y1 + 1.0, c.cz - cableR, c.cx + cableR, cableTopY, c.cz + cableR, 0.45, 0.45, 0.55, 0.55);
+            }
+        }
+        return b;
+    }
+
+    const custom3DGeomCache = {};
+
+    function getCustom3DGeom(key, builderFn, boundsBox) {
+        if (custom3DGeomCache[key]) return custom3DGeomCache[key];
+        let proto = null;
+        try { proto = window.__lib.getEntity('currency_coin') || window.__lib.getEntity('blocker_standard'); } catch(e) {}
+        if (!proto) return null;
+        let protoView = null;
+        const q = [proto];
+        while (q.length) {
+            const cur = q.shift();
+            if (cur && cur.view3d && cur.view3d.geometry) { protoView = cur.view3d; break; }
+            const ch = cur && (cur.children || (cur.container && cur.container.children));
+            if (ch) for (let i = 0; i < ch.length; i++) q.push(ch[i]);
+        }
+        if (!protoView || !protoView.geometry) return null;
+        const GeomCls = protoView.geometry.constructor;
+        const posBuf = protoView.geometry.getBuffer('aPosition');
+        const BufCls = posBuf ? posBuf.constructor : null;
+        if (!GeomCls || !BufCls) return null;
+        const BoxCls = protoView.geometry.boundingBox && protoView.geometry.boundingBox.constructor;
+        const VecCls = protoView.geometry.boundingBox && protoView.geometry.boundingBox.min && protoView.geometry.boundingBox.min.constructor;
+        const SphereCls = protoView.geometry.boundingSphere && protoView.geometry.boundingSphere.constructor;
+
+        const builder = builderFn();
+        const geom = new GeomCls();
+        geom.addAttribute('aPosition', new BufCls(new Float32Array(builder.pos)), 3);
+        geom.addAttribute('aNormal', new BufCls(new Float32Array(builder.norm)), 3);
+        geom.addAttribute('aUv', new BufCls(new Float32Array(builder.uv)), 2);
+        geom.addIndex(new BufCls(new Uint16Array(builder.idx)));
+        if (BoxCls && VecCls && boundsBox) {
+            geom.boundingBox = new BoxCls(
+                new VecCls(boundsBox.minX, boundsBox.minY, boundsBox.minZ),
+                new VecCls(boundsBox.maxX, boundsBox.maxY, boundsBox.maxZ)
+            );
+            if (SphereCls) geom.boundingSphere = geom.boundingBox.getBoundingSphere(new SphereCls());
+        }
+        geom.castToBaseGeometry = function() { return geom; };
+        custom3DGeomCache[key] = geom;
+        return geom;
+    }
+
+    function createCustom3DEntity(key, builderFn, boundsBox, texture, tintColor) {
+        if (!window.__lib || !window.__lib.getEntity) return null;
+        const geom = getCustom3DGeom(key, builderFn, boundsBox);
+        if (!geom) return null;
+        let ent = null;
+        try { ent = window.__lib.getEntity('currency_coin'); } catch(e) {}
+        if (!ent) return null;
+        ent.rx = 0; ent.ry = 0; ent.rz = 0;
+        if (ent.scale) ent.scale.set(1, 1, 1);
+        setFirstViewGeometry(ent, geom);
+
+        const visit = obj => {
+            if (!obj) return;
+            const v = obj.view3d;
+            if (v && v.material) {
+                const mats = Array.isArray(v.material) ? v.material : [v.material];
+                mats.forEach(m => {
+                    if (!m) return;
+                    if (texture) {
+                        m.diffuseMap = texture;
+                        if ('map' in m) m.map = texture;
+                    }
+                    if (tintColor !== undefined) {
+                        m.color = tintColor;
+                        if (m.uniforms && m.uniforms.uColor) m.uniforms.uColor = tintColor;
+                    }
+                });
+            }
+            const ch = obj.children || (obj.container && obj.container.children);
+            if (ch) for (let i = 0; i < ch.length; i++) visit(ch[i]);
+        };
+        visit(ent);
+        return ent;
+    }
+
     function getCargoWagon() {
         try {
             if (window.__lib && window.__lib.hasGeometry) {
@@ -3030,107 +3269,52 @@
                     bounds = { depth: 17.5, width: 17.5, height: 8, isTrampoline: true };
                 }
             } else if (type === 'double_train') {
-                const bottomWagon = getCargoWagon();
-                const topWagon = getCargoWagon();
-                if (bottomWagon) {
-                    bottomWagon.rx = 0; bottomWagon.rz = 0; bottomWagon.ry = Math.PI;
-                    mesh = bottomWagon;
-                    if (topWagon) {
-                        topWagon.rx = 0; topWagon.rz = 0; topWagon.ry = Math.PI;
-                        topWagon._xOffset = 0;
-                        topWagon._yOffset = 29;
-                        topWagon._zOffset = 0;
-                        try { setEntityHexColor(topWagon, 0xd35400); } catch(e) {}
-                        mesh._doubleTrainParts = [topWagon];
+                const bottomCont = createCustom3DEntity('container_nocable_d35400', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xd35400), 0xd35400);
+                const topCont = createCustom3DEntity('container_nocable_c0392b', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xc0392b), 0xc0392b);
+                if (bottomCont) {
+                    mesh = bottomCont;
+                    if (topCont) {
+                        topCont._xOffset = 0;
+                        topCont._yOffset = 28;
+                        topCont._zOffset = 0;
+                        mesh._doubleTrainParts = [topCont];
                     }
-                    bounds = { depth: 60, width: 18, height: 58, isDoubleTrain: true };
+                    bounds = { depth: 56, width: 18, height: 56, isDoubleTrain: true };
                 }
             } else if (type === 'triple_train') {
-                const bottomWagon = getCargoWagon();
-                const midWagon = getCargoWagon();
-                const topWagon = getCargoWagon();
-                if (bottomWagon) {
-                    bottomWagon.rx = 0; bottomWagon.rz = 0; bottomWagon.ry = Math.PI;
-                    mesh = bottomWagon;
+                const bottomCont = createCustom3DEntity('container_nocable_2980b9', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0x2980b9), 0x2980b9);
+                const midCont = createCustom3DEntity('container_nocable_d35400', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xd35400), 0xd35400);
+                const topCont = createCustom3DEntity('container_nocable_c0392b', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xc0392b), 0xc0392b);
+                if (bottomCont) {
+                    mesh = bottomCont;
                     const trainParts = [];
-                    if (midWagon) {
-                        midWagon.rx = 0; midWagon.rz = 0; midWagon.ry = Math.PI;
-                        midWagon._xOffset = 0; midWagon._yOffset = 29; midWagon._zOffset = 0;
-                        try { setEntityHexColor(midWagon, 0x2980b9); } catch(e) {}
-                        trainParts.push(midWagon);
+                    if (midCont) {
+                        midCont._xOffset = 0; midCont._yOffset = 28; midCont._zOffset = 0;
+                        trainParts.push(midCont);
                     }
-                    if (topWagon) {
-                        topWagon.rx = 0; topWagon.rz = 0; topWagon.ry = Math.PI;
-                        topWagon._xOffset = 0; topWagon._yOffset = 58; topWagon._zOffset = 0;
-                        try { setEntityHexColor(topWagon, 0xc0392b); } catch(e) {}
-                        trainParts.push(topWagon);
+                    if (topCont) {
+                        topCont._xOffset = 0; topCont._yOffset = 56; topCont._zOffset = 0;
+                        trainParts.push(topCont);
                     }
                     mesh._tripleTrainParts = trainParts;
-                    bounds = { depth: 60, width: 18, height: 87, isTripleTrain: true };
+                    bounds = { depth: 56, width: 18, height: 84, isTripleTrain: true };
                 }
             } else if (type === 'wooden_stairs' || type === 'wooden_ramp') {
-                const ramp = getRampWagon();
-                if (ramp) {
-                    ramp.rx = 0; ramp.rz = 0; ramp.ry = Math.PI;
-                    const targetH = options.targetHeight || 29;
-                    if (ramp.scale) ramp.scale.set(1.0, targetH / 29, 1.0);
-                    try {
-                        const woodTex = get3WoodPlanksTexture();
-                        if (woodTex) {
-                            const visit = obj => {
-                                if (!obj) return;
-                                const v = obj.view3d;
-                                if (v && v.material) {
-                                    const mats = Array.isArray(v.material) ? v.material : [v.material];
-                                    mats.forEach(m => {
-                                        if (m) {
-                                            m.diffuseMap = woodTex;
-                                            if ('map' in m) m.map = woodTex;
-                                            m.color = 0x6e4720;
-                                        }
-                                    });
-                                }
-                                const ch = obj.children || (obj.container && obj.container.children);
-                                if (ch) for (let i = 0; i < ch.length; i++) visit(ch[i]);
-                            };
-                            visit(ramp);
-                        }
-                    } catch(e) {}
-                    mesh = ramp;
-                    bounds = { depth: 70, width: 18, height: targetH, isWoodenRamp: true, isWoodenStairs: true, targetHeight: targetH };
+                const targetH = options.targetHeight || 29;
+                const key = 'wooden_ramp_' + Math.round(targetH);
+                const rampEnt = createCustom3DEntity(key, () => build3PlankWoodenRamp(targetH), { minX: -9, minY: -2, minZ: -28, maxX: 9, maxY: targetH, maxZ: 28 }, get3WoodPlanksTexture(), 0x6e4720);
+                if (rampEnt) {
+                    mesh = rampEnt;
+                    bounds = { depth: 56, width: 17.5, height: targetH, isWoodenRamp: true, isWoodenStairs: true, targetHeight: targetH };
                 }
             } else if (type === 'suspended_container') {
-                const container = getCargoWagon();
-                if (container) {
-                    container.rx = 0; container.rz = 0; container.ry = Math.PI;
-                    const colors = [0xd35400, 0xc0392b, 0x27ae60, 0x2980b9];
-                    const chosenColor = options.color || colors[Math.floor(Math.random() * colors.length)];
-                    try { setEntityHexColor(container, chosenColor); } catch(e) {}
-                    mesh = container;
-
-                    // 4 cabos finos de aco para o ceu
-                    const cableParts = [];
-                    const corners = [
-                        { ox: -7.5, oz: -26 },
-                        { ox: 7.5, oz: -26 },
-                        { ox: -7.5, oz: 26 },
-                        { ox: 7.5, oz: 26 }
-                    ];
-                    corners.forEach(c => {
-                        let cable = null;
-                        try { cable = window.__lib.getEntity('currency_coin'); } catch(e) {}
-                        if (cable) {
-                            cable.rx = 0; cable.rz = 0; cable.ry = 0;
-                            if (cable.scale) cable.scale.set(0.04, 18.0, 0.04);
-                            setEntityHexColor(cable, 0x95a5a6);
-                            cable._xOffset = c.ox;
-                            cable._yOffset = 28;
-                            cable._zOffset = c.oz;
-                            cableParts.push(cable);
-                        }
-                    });
-                    mesh._suspendedContainerParts = cableParts;
-                    bounds = { depth: 58, width: 18, height: 29, isSuspendedContainer: true };
+                const colors = [0xd35400, 0xc0392b, 0x27ae60, 0x2980b9];
+                const chosenColor = options.color || colors[Math.floor(Math.random() * colors.length)];
+                const key = 'container_cables_' + chosenColor.toString(16);
+                const containerEnt = createCustom3DEntity(key, () => buildShippingContainer(true), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 160, maxZ: 28 }, getContainerTexture(chosenColor), chosenColor);
+                if (containerEnt) {
+                    mesh = containerEnt;
+                    bounds = { depth: 56, width: 18, height: 28, isSuspendedContainer: true };
                 }
             }
 
@@ -3145,11 +3329,11 @@
                 part.z = z + (part._zOffset || part._energyCoinDepthOffset || 0);
             }
 
-            // Reformulated dynamic ground/platform contact shadow for Shaders mode
+            // Reformulated dynamic ground/platform contact shadow for Shaders mode (coins only)
             let shadowPart = null;
             try {
                 const shadTex = ensureReformulatedShadowTexture();
-                if (energyCoinGeoCache && energyCoinGeoCache.shadowGeom && shadTex && window.__lib && window.__lib.getEntity) {
+                if ((type === 'coin' || type === 'energyCoin') && energyCoinGeoCache && energyCoinGeoCache.shadowGeom && shadTex && window.__lib && window.__lib.getEntity) {
                     shadowPart = window.__lib.getEntity('currency_coin');
                     if (shadowPart) {
                         setFirstViewGeometry(shadowPart, energyCoinGeoCache.shadowGeom);
@@ -3920,16 +4104,16 @@
             const c2 = createObstacle3D('coin', lane, 56, centerZ - 20);
             if (c2) customObstacles.push(c2);
         } else if (pattern === 30) {
-            // 30. Trilha de Altura para Jetpack ou Pulos Extremos (y=35 a y=90)
+            // 30. Parkour de Containers Suspensos com Cabos no Céu
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const heights = [35, 50, 68, 88, 70, 52];
-            heights.forEach((h, i) => {
-                const z = centerZ - i * 20;
-                const coin = createObstacle3D('coin', lane, h, z);
-                if (coin) customObstacles.push(coin);
-            });
-            const cont = createObstacle3D('suspended_container', lane, 38, centerZ - 60);
+            const cont = createObstacle3D('suspended_container', lane, 29, centerZ - 20);
             if (cont) customObstacles.push(cont);
+            const ramp = createObstacle3D('wooden_stairs', lane, 0, centerZ + 40, { targetHeight: 29 });
+            if (ramp) customObstacles.push(ramp);
+            [centerZ, centerZ - 20, centerZ - 40].forEach(z => {
+                const c = createObstacle3D('coin', lane, 60, z);
+                if (c) customObstacles.push(c);
+            });
         } else if (pattern === 31) {
             // 31. Desfiladeiro de Trens Duplos com Ponte de Container Suspenso no Meio
             const leftTrain = createObstacle3D('double_train', -20, 0, centerZ);
@@ -4055,6 +4239,19 @@
         }
 
         const hero = window.game.hero;
+        if (hero && hero.jetpack) {
+            hero.jetpack.turnOn = function() {};
+            hero.jetpack.isOn = function() { return false; };
+            hero.jetpack.active = false;
+        }
+        if (window.game && window.game.route && !window.game.route.__noJetpackPatched) {
+            window.game.route.__noJetpackPatched = true;
+            const origCanSpawn = window.game.route.canSpawn;
+            window.game.route.canSpawn = function(t) {
+                if (t === 'jetpack') return false;
+                return origCanSpawn ? origCanSpawn.apply(this, arguments) : true;
+            };
+        }
         const heroBody = hero.body;
         let heroZ = heroBody.z;
         const prevHeroZ = (prevObstacleHeroZ !== null && Math.abs(prevObstacleHeroZ - heroZ) < 120) ? prevObstacleHeroZ : heroZ;
@@ -6821,26 +7018,6 @@
                                 <button class="btn-sat-chip" onclick="window.__setSaturation(160)">160% Vívido</button>
                                 <button class="btn-sat-chip" onclick="window.__setSaturation(220)">220% Forte</button>
                                 <button class="btn-sat-chip" onclick="window.__setSaturation(300)">300% Máximo</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Contrast Slider Card -->
-                    <div class="subway-setting-card">
-                        <div class="setting-row-top">
-                            <div class="setting-text-col">
-                                <span class="setting-title">Contraste da Imagem</span>
-                                <span class="setting-desc">Acentuação de luz e sombras (até 300%)</span>
-                            </div>
-                            <span class="setting-pill" id="val-gfx-contrast">${GFX_SETTINGS.contrast}%</span>
-                        </div>
-                        <div class="sat-slider-wrap">
-                            <input type="range" id="slider-contrast" min="50" max="300" step="5" value="${GFX_SETTINGS.contrast}" oninput="window.__setContrast(this.value)" />
-                            <div class="sat-presets-row">
-                                <button class="btn-sat-chip" onclick="window.__setContrast(85)">85% Suave</button>
-                                <button class="btn-sat-chip" onclick="window.__setContrast(100)">100% Padrão</button>
-                                <button class="btn-sat-chip" onclick="window.__setContrast(150)">150% Alto</button>
-                                <button class="btn-sat-chip" onclick="window.__setContrast(220)">220% Forte</button>
                             </div>
                         </div>
                     </div>

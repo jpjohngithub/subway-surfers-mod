@@ -16930,15 +16930,15 @@
         l = _[e];
       }
       if (o.a.forcePickup && _[o.a.forcePickup] && (l = _[o.a.forcePickup]), !l) return;
-      if (l === Pickup_PickupJetpack && !t.game.route.canSpawn("jetpack", u)) return;
+      if (l === Pickup_PickupJetpack) return;
       if (l === Pickup_PickupMysteryBox) return;
       const f = t.game.pool.get(l),
         m = e.components.Transform.position.x,
         g = e.components.Transform.position.y;
-      f.body.z = u, f.body.x = null !== i.offsetX ? i.offsetX : m, f.body.y = g, f.removableOnCrash = g > 2, i.flip && (f.body.x *= -1), f.awake(), t._collectibles && t._collectibles.push(f), t.game.addChild(f), t.game.route.setSpawn("pickup", u - 2600), l === Pickup_PickupJetpack && t.game.route.setSpawn("jetpack", u - 3200);
+      f.body.z = u, f.body.x = null !== i.offsetX ? i.offsetX : m, f.body.y = g, f.removableOnCrash = g > 2, i.flip && (f.body.x *= -1), f.awake(), t._collectibles && t._collectibles.push(f), t.game.addChild(f), t.game.route.setSpawn("pickup", u - 2600);
     }
     static spawnRandomType(t, e) {
-      const i = e || Object.keys(_),
+      const i = (e || Object.keys(_)).filter(k => k !== "jetpack"),
         n = s.a.pick(...i),
         r = _[n],
         o = t.pool.get(r, {});
