@@ -50988,6 +50988,7 @@
       this.addAttribute("aPosition", r, 3).addAttribute("aNormal", a, 3).addAttribute("aUv", o, 2).addIndex(s);
     }
   }
+  window.PlaneGeometry = PlaneGeometry;
 }, function (t, e, i) {
   "use strict";
 
@@ -51233,6 +51234,7 @@
       c("z", "y", "x", -1, -1, i, e, t, o, r), c("z", "y", "x", 1, -1, i, e, -t, o, r), c("x", "z", "y", 1, 1, t, i, e, n, o), c("x", "z", "y", 1, -1, t, i, -e, n, o), c("x", "y", "z", 1, -1, t, e, i, n, r), c("x", "y", "z", -1, -1, t, e, -i, n, r), this.addAttribute("aUv", l, 2).addAttribute("aPosition", s, 3).addAttribute("aNormal", h, 3).addIndex(new Uint16Array(a));
     }
   }
+  window.BoxGeometry = BoxGeometry;
 }, function (t, e, i) {
   "use strict";
 
