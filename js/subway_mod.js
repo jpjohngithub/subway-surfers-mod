@@ -139,7 +139,7 @@
         })(), // 0 - 100 (100 = moeda totalmente preta)
         volume: _swSavedVol !== null ? Math.max(0, Math.min(100, parseInt(_swSavedVol, 10) || 0)) : 30, // 0 - 100 (padrão 30%)
         motionBlur: localStorage.getItem('sw_motion_blur') || 'soft', // 'off' | 'soft' | 'high'
-        shaders: (localStorage.getItem('sw_shaders') === 'off') ? 'off' : 'medium', // 'off' | 'medium' (Ativado)
+        shaders: localStorage.getItem('sw_shaders') === 'medium' ? 'medium' : 'off', // 'off' (padrão) | 'medium' (BETA)
         noRevive: localStorage.getItem('sw_no_revive') !== '0', // true by default
     };
     window.__SW_VOLUME_OVERRIDE__ = GFX_SETTINGS.volume / 100;
@@ -2496,9 +2496,6 @@
     // Called when player touches a coin in No Coin Mode
     window.__onNoCoinCollect = function(coin) {
         if (!window.NO_COIN_MODE) return;
-        const hero = window.game && window.game.hero;
-        const isJetpack = hero && hero.jetpack && ((hero.jetpack.isOn && hero.jetpack.isOn()) || hero.jetpack.active);
-        if (isJetpack) return;
         if (Date.now() < dashInvulnUntil) {
             playCoinShatterEffect(coin, 0xff2844, 1.35, 14, true, false);
             return;
@@ -2519,6 +2516,10 @@
         setTimeout(() => flash.remove(), 350);
 
         try {
+            if (g.hero && g.hero.jetpack) {
+                if (typeof g.hero.jetpack.turnOff === 'function') g.hero.jetpack.turnOff();
+                g.hero.jetpack.active = false;
+            }
             if (g.hero && g.hero.hoverboard && g.hero.hoverboard.isOn && g.hero.hoverboard.isOn()) {
                 g.hero.hoverboard.turnOff();
             }
@@ -2974,6 +2975,128 @@
                     }
                     bounds = { depth: 60, width: 18, height: 58, isDoubleTrain: true };
                 }
+            } else if (type === 'triple_train') {
+                const getWagon = () => {
+                    try {
+                        if (window.__lib && window.__lib.hasGeometry && window.__lib.hasGeometry('train_standard')) return window.__lib.getEntity('train_standard');
+                    } catch(e) {}
+                    try {
+                        if (window.__lib && window.__lib.hasGeometry && window.__lib.hasGeometry('train_sub')) return window.__lib.getEntity('train_sub');
+                    } catch(e) {}
+                    try {
+                        return window.__lib.getEntity('train_start');
+                    } catch(e) {}
+                    return null;
+                };
+                const bottomWagon = getWagon();
+                const midWagon = getWagon();
+                const topWagon = getWagon();
+                if (bottomWagon) {
+                    bottomWagon.rx = 0; bottomWagon.rz = 0; bottomWagon.ry = Math.PI;
+                    mesh = bottomWagon;
+                    const trainParts = [];
+                    if (midWagon) {
+                        midWagon.rx = 0; midWagon.rz = 0; midWagon.ry = Math.PI;
+                        midWagon._yOffset = 29; midWagon._xOffset = 0; midWagon._zOffset = 0;
+                        try { setEntityHexColor(midWagon, 0x1f3c88); } catch(e) {}
+                        trainParts.push(midWagon);
+                    }
+                    if (topWagon) {
+                        topWagon.rx = 0; topWagon.rz = 0; topWagon.ry = Math.PI;
+                        topWagon._yOffset = 58; topWagon._xOffset = 0; topWagon._zOffset = 0;
+                        try { setEntityHexColor(topWagon, 0x581845); } catch(e) {}
+                        trainParts.push(topWagon);
+                    }
+                    mesh._tripleTrainParts = trainParts;
+                    bounds = { depth: 60, width: 18, height: 87, isTripleTrain: true };
+                }
+            } else if (type === 'wooden_stairs') {
+                const targetH = options.targetHeight || 29;
+                const getStep = (h, stepIdx) => {
+                    let plank = null;
+                    try {
+                        if (window.__lib && window.__lib.hasGeometry && window.__lib.hasGeometry('blocker_jump')) {
+                            plank = window.__lib.getEntity('blocker_jump');
+                        }
+                    } catch(e) {}
+                    if (!plank) {
+                        try { plank = window.__lib.getEntity('currency_coin'); } catch(e) {}
+                    }
+                    if (plank) {
+                        plank.rx = 0; plank.rz = 0; plank.ry = Math.PI;
+                        setEntityHexColor(plank, 0x6e4720); // Solido marrom madeira
+                        if (plank.scale) plank.scale.set(1.15, Math.max(0.6, (h / 24)), 1.35);
+                    }
+                    return plank;
+                };
+                const step1 = getStep(targetH * 0.33, 1);
+                const step2 = getStep(targetH * 0.66, 2);
+                const step3 = getStep(targetH * 0.98, 3);
+                if (step1) {
+                    mesh = step1;
+                    mesh._yOffset = 0;
+                    const stairsParts = [];
+                    if (step2) {
+                        step2._xOffset = 0;
+                        step2._yOffset = targetH * 0.33;
+                        step2._zOffset = -18;
+                        stairsParts.push(step2);
+                    }
+                    if (step3) {
+                        step3._xOffset = 0;
+                        step3._yOffset = targetH * 0.66;
+                        step3._zOffset = -36;
+                        stairsParts.push(step3);
+                    }
+                    mesh._woodenStairsParts = stairsParts;
+                    mesh.targetHeight = targetH;
+                    bounds = { depth: 64, width: 16, height: targetH, isWoodenStairs: true, targetHeight: targetH };
+                }
+            } else if (type === 'suspended_container') {
+                const getWagon = () => {
+                    try {
+                        if (window.__lib && window.__lib.hasGeometry && window.__lib.hasGeometry('train_standard')) return window.__lib.getEntity('train_standard');
+                    } catch(e) {}
+                    try {
+                        if (window.__lib && window.__lib.hasGeometry && window.__lib.hasGeometry('train_sub')) return window.__lib.getEntity('train_sub');
+                    } catch(e) {}
+                    try {
+                        return window.__lib.getEntity('train_start');
+                    } catch(e) {}
+                    return null;
+                };
+                const cont = getWagon();
+                if (cont) {
+                    cont.rx = 0; cont.rz = 0; cont.ry = Math.PI;
+                    const colors = [0xd35400, 0x2980b9, 0x27ae60, 0x8e44ad];
+                    const chosenColor = options.color || colors[Math.floor(Math.random() * colors.length)];
+                    try { setEntityHexColor(cont, chosenColor); } catch(e) {}
+                    mesh = cont;
+
+                    // 4 cabos solidos cinzas para o ceu nas 4 pontas
+                    const cableParts = [];
+                    const corners = [
+                        { ox: -7.5, oz: -24 },
+                        { ox: 7.5, oz: -24 },
+                        { ox: -7.5, oz: 24 },
+                        { ox: 7.5, oz: 24 }
+                    ];
+                    corners.forEach(c => {
+                        let cable = null;
+                        try { cable = window.__lib.getEntity('currency_coin'); } catch(e) {}
+                        if (cable) {
+                            cable.rx = 0; cable.rz = 0; cable.ry = 0;
+                            if (cable.scale) cable.scale.set(0.18, 32.0, 0.18);
+                            setEntityHexColor(cable, 0xb0bec5); // Risco solido cinza para o ceu
+                            cable._xOffset = c.ox;
+                            cable._yOffset = 32;
+                            cable._zOffset = c.oz;
+                            cableParts.push(cable);
+                        }
+                    });
+                    mesh._suspendedContainerParts = cableParts;
+                    bounds = { depth: 58, width: 18, height: 26, isSuspendedContainer: true };
+                }
             } else if (type === 'wooden_ramp') {
                 let rampMesh = null;
                 try {
@@ -2993,7 +3116,7 @@
             mesh.x = x;
             mesh.y = y;
             mesh.z = z;
-            const parts = (mesh._energyCoinParts || mesh._trampolineTargetParts || mesh._doubleTrainParts || mesh._woodenRampParts || []).slice();
+            const parts = (mesh._energyCoinParts || mesh._trampolineTargetParts || mesh._doubleTrainParts || mesh._woodenRampParts || mesh._tripleTrainParts || mesh._woodenStairsParts || mesh._suspendedContainerParts || []).slice();
             for (const part of parts) {
                 part.x = x + (part._xOffset || 0);
                 part.y = y + (part._yOffset || 0);
@@ -3442,9 +3565,9 @@
         // 13: trampoline; the only new solid obstacle
         // 14: familiar native obstacle
         // 15–17: new coin formations (diamond, fork merge and triple wave)
-        const pattern = Math.random() < 0.20
+        const pattern = Math.random() < 0.15
             ? [0, 6, 7][Math.floor(Math.random() * 3)]
-            : Math.floor(Math.random() * 18);
+            : Math.floor(Math.random() * 38);
 
         if (pattern === 0) {
             // 1. MOEDA MÓVEL OSCILANTE: Desliza de -20 a +20 através das 3 pistas
@@ -3621,6 +3744,263 @@
                     const coin = createObstacle3D('coin', coinLane, heights[i], z);
                     if (coin) customObstacles.push(coin);
                 }
+            });
+        } else if (pattern === 18) {
+            // 18. Triple Train (3 vagões de altura, y=87) + Escada de tábuas de madeira na frente + Moedas no teto alto
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 40, { targetHeight: 58 });
+            if (stairs) customObstacles.push(stairs);
+            const triple = createObstacle3D('triple_train', lane, 0, centerZ - 20);
+            if (triple) customObstacles.push(triple);
+            [centerZ + 45, centerZ + 25, centerZ + 5, centerZ - 15, centerZ - 35].forEach((z, idx) => {
+                const y = idx < 2 ? 18 + idx * 16 : 92;
+                const c = createObstacle3D('coin', lane, y, z);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 19) {
+            // 19. Container Suspenso no ar com 4 cabos cinzas para o céu + Escada de tábuas para subir
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 45, { targetHeight: 29 });
+            if (stairs) customObstacles.push(stairs);
+            const container = createObstacle3D('suspended_container', lane, 25, centerZ - 15);
+            if (container) customObstacles.push(container);
+            [centerZ + 50, centerZ + 30, centerZ + 10, centerZ - 10, centerZ - 30].forEach((z, idx) => {
+                const y = idx < 2 ? 10 + idx * 10 : 56;
+                const c = createObstacle3D('coin', lane, y, z);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 20) {
+            // 20. Parkour Aéreo: 2 Containers Suspensos com cabos cinzas em pistas vizinhas + Moedas guiando o pulo
+            const lane1 = freeGroundLanes[0];
+            const lane2 = freeGroundLanes.length > 1 ? freeGroundLanes[1] : 0;
+            const c1 = createObstacle3D('suspended_container', lane1, 24, centerZ + 25);
+            if (c1) customObstacles.push(c1);
+            const c2 = createObstacle3D('suspended_container', lane2, 32, centerZ - 35);
+            if (c2) customObstacles.push(c2);
+            const stairs = createObstacle3D('wooden_stairs', lane1, 0, centerZ + 80, { targetHeight: 29 });
+            if (stairs) customObstacles.push(stairs);
+            [ { x: lane1, y: 54, z: centerZ + 25 }, { x: (lane1 + lane2) / 2, y: 58, z: centerZ - 5 }, { x: lane2, y: 62, z: centerZ - 35 } ].forEach(pt => {
+                const coin = createObstacle3D('coin', pt.x, pt.y, pt.z);
+                if (coin) customObstacles.push(coin);
+            });
+        } else if (pattern === 21) {
+            // 21. Escadaria de Trens Progressiva: Vagão Normal (y=29) -> Vagão Duplo (y=58) -> Vagão Triplo (y=87)
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 90, { targetHeight: 29 });
+            if (stairs) customObstacles.push(stairs);
+            const dTrain = createObstacle3D('double_train', lane, 0, centerZ + 30);
+            if (dTrain) customObstacles.push(dTrain);
+            const tTrain = createObstacle3D('triple_train', lane, 0, centerZ - 40);
+            if (tTrain) customObstacles.push(tTrain);
+            [centerZ + 90, centerZ + 60, centerZ + 30, centerZ, centerZ - 35].forEach((z, i) => {
+                const y = [14, 34, 62, 75, 92][i];
+                const coin = createObstacle3D('coin', lane, y, z);
+                if (coin) customObstacles.push(coin);
+            });
+        } else if (pattern === 22) {
+            // 22. Desvio Aéreo por Container Suspenso com 4 Cabos sobre Chão Bloqueado (Mato + Caçamba)
+            const centerLane = 0;
+            const container = createObstacle3D('suspended_container', centerLane, 26, centerZ);
+            if (container) customObstacles.push(container);
+            const stairs = createObstacle3D('wooden_stairs', centerLane, 0, centerZ + 55, { targetHeight: 29 });
+            if (stairs) customObstacles.push(stairs);
+            [-20, 20].forEach(lx => {
+                const obs = createObstacle3D(lx < 0 ? 'bush' : 'dumpster', lx, 0, centerZ);
+                if (obs) customObstacles.push(obs);
+            });
+            [centerZ + 20, centerZ, centerZ - 20].forEach(z => {
+                const coin = createObstacle3D('coin', centerLane, 56, z);
+                if (coin) customObstacles.push(coin);
+            });
+        } else if (pattern === 23) {
+            // 23. Trampolim para Container Suspenso no Alto (Cama elástica lança direto no teto do container)
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const tramp = createObstacle3D('trampoline', lane, 0, centerZ + 60);
+            if (tramp) customObstacles.push(tramp);
+            const container = createObstacle3D('suspended_container', lane, 28, centerZ - 10);
+            if (container) customObstacles.push(container);
+            [centerZ + 40, centerZ + 15, centerZ - 10, centerZ - 35].forEach((z, i) => {
+                const y = [35, 48, 58, 58][i];
+                const coin = createObstacle3D('coin', lane, y, z);
+                if (coin) customObstacles.push(coin);
+            });
+        } else if (pattern === 24) {
+            // 24. Duplo Vagão de 2 Alturas (Double Train) ladeado por Containers Suspensos
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const doubleTrain = createObstacle3D('double_train', lane, 0, centerZ);
+            if (doubleTrain) customObstacles.push(doubleTrain);
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 55, { targetHeight: 58 });
+            if (stairs) customObstacles.push(stairs);
+            [centerZ + 50, centerZ + 25, centerZ, centerZ - 25].forEach((z, i) => {
+                const coin = createObstacle3D('coin', lane, 62, z);
+                if (coin) customObstacles.push(coin);
+            });
+        } else if (pattern === 25) {
+            // 25. Trilha Aérea de 3 Containers Suspensos Segurados por Cabos
+            [-20, 0, 20].forEach((lx, i) => {
+                const z = centerZ - (i * 35) + 35;
+                const cont = createObstacle3D('suspended_container', lx, 25, z);
+                if (cont) customObstacles.push(cont);
+                const coin = createObstacle3D('coin', lx, 55, z);
+                if (coin) customObstacles.push(coin);
+            });
+            const stairs = createObstacle3D('wooden_stairs', -20, 0, centerZ + 85, { targetHeight: 29 });
+            if (stairs) customObstacles.push(stairs);
+        } else if (pattern === 26) {
+            // 26. Escadaria de Madeira Dupla Paralela com Moedas Cruzadas
+            const laneA = freeGroundLanes[0];
+            const laneB = freeGroundLanes[freeGroundLanes.length - 1];
+            const s1 = createObstacle3D('wooden_stairs', laneA, 0, centerZ + 30, { targetHeight: 29 });
+            if (s1) customObstacles.push(s1);
+            const s2 = createObstacle3D('wooden_stairs', laneB, 0, centerZ - 20, { targetHeight: 29 });
+            if (s2) customObstacles.push(s2);
+            [centerZ + 30, centerZ + 10, centerZ - 10, centerZ - 30].forEach((z, i) => {
+                const lx = i % 2 === 0 ? laneA : laneB;
+                const coin = createObstacle3D('coin', lx, 18, z);
+                if (coin) customObstacles.push(coin);
+            });
+        } else if (pattern === 27) {
+            // 27. Vagão Triplo (3 andares) com Container Suspenso ao Lado e Moedas Flutuantes
+            const mainLane = freeGroundLanes[0];
+            const sideLane = freeGroundLanes.length > 1 ? freeGroundLanes[1] : (mainLane === 0 ? 20 : 0);
+            const triple = createObstacle3D('triple_train', mainLane, 0, centerZ);
+            if (triple) customObstacles.push(triple);
+            const stairs = createObstacle3D('wooden_stairs', mainLane, 0, centerZ + 60, { targetHeight: 87 });
+            if (stairs) customObstacles.push(stairs);
+            const cont = createObstacle3D('suspended_container', sideLane, 35, centerZ - 20);
+            if (cont) customObstacles.push(cont);
+            [centerZ + 40, centerZ + 10, centerZ - 20].forEach((z, i) => {
+                const coin = createObstacle3D('coin', mainLane, 92, z);
+                if (coin) customObstacles.push(coin);
+            });
+        } else if (pattern === 28) {
+            // 28. Parkour Zig-Zag em Tábuas de Madeira e Tetos de Trem
+            const stairs1 = createObstacle3D('wooden_stairs', -20, 0, centerZ + 40, { targetHeight: 29 });
+            if (stairs1) customObstacles.push(stairs1);
+            const stairs2 = createObstacle3D('wooden_stairs', 20, 0, centerZ - 20, { targetHeight: 29 });
+            if (stairs2) customObstacles.push(stairs2);
+            [-20, 0, 20].forEach((lx, i) => {
+                const z = centerZ - (i * 25) + 25;
+                const c = createObstacle3D('coin', lx, 32, z);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 29) {
+            // 29. Super Container Suspenso com 4 Cabos + Moeda de Energia no Teto
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 50, { targetHeight: 29 });
+            if (stairs) customObstacles.push(stairs);
+            const cont = createObstacle3D('suspended_container', lane, 26, centerZ);
+            if (cont) customObstacles.push(cont);
+            const energyCoin = createObstacle3D('energyCoin', lane, 56, centerZ);
+            if (energyCoin) customObstacles.push(energyCoin);
+            const c1 = createObstacle3D('coin', lane, 56, centerZ + 20);
+            if (c1) customObstacles.push(c1);
+            const c2 = createObstacle3D('coin', lane, 56, centerZ - 20);
+            if (c2) customObstacles.push(c2);
+        } else if (pattern === 30) {
+            // 30. Trilha de Altura para Jetpack ou Pulos Extremos (y=35 a y=90)
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const heights = [35, 50, 68, 88, 70, 52];
+            heights.forEach((h, i) => {
+                const z = centerZ - i * 20;
+                const coin = createObstacle3D('coin', lane, h, z);
+                if (coin) customObstacles.push(coin);
+            });
+            const cont = createObstacle3D('suspended_container', lane, 38, centerZ - 60);
+            if (cont) customObstacles.push(cont);
+        } else if (pattern === 31) {
+            // 31. Desfiladeiro de Trens Duplos com Ponte de Container Suspenso no Meio
+            const leftTrain = createObstacle3D('double_train', -20, 0, centerZ);
+            if (leftTrain) customObstacles.push(leftTrain);
+            const rightTrain = createObstacle3D('double_train', 20, 0, centerZ);
+            if (rightTrain) customObstacles.push(rightTrain);
+            const midCont = createObstacle3D('suspended_container', 0, 32, centerZ);
+            if (midCont) customObstacles.push(midCont);
+            const stairs = createObstacle3D('wooden_stairs', 0, 0, centerZ + 50, { targetHeight: 29 });
+            if (stairs) customObstacles.push(stairs);
+            [centerZ + 20, centerZ, centerZ - 20].forEach(z => {
+                const c = createObstacle3D('coin', 0, 62, z);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 32) {
+            // 32. Escadaria de Madeira Alta para Vagão Duplo (y=58) com Moedas Curvadas
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 45, { targetHeight: 58 });
+            if (stairs) customObstacles.push(stairs);
+            const train = createObstacle3D('double_train', lane, 0, centerZ - 15);
+            if (train) customObstacles.push(train);
+            [centerZ + 50, centerZ + 25, centerZ, centerZ - 25].forEach((z, i) => {
+                const c = createObstacle3D('coin', lane, 20 + i * 14, z);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 33) {
+            // 33. Containers Suspensos Gêmeos com Moeda Oscilante entre Cabos
+            const c1 = createObstacle3D('suspended_container', -20, 26, centerZ);
+            if (c1) customObstacles.push(c1);
+            const c2 = createObstacle3D('suspended_container', 20, 26, centerZ);
+            if (c2) customObstacles.push(c2);
+            const oscCoin = createObstacle3D('coin', 0, 56, centerZ, {
+                isOscillating: true,
+                speed: 2.5,
+                phase: 0
+            });
+            if (oscCoin) customObstacles.push(oscCoin);
+            const stairs = createObstacle3D('wooden_stairs', 0, 0, centerZ + 45, { targetHeight: 29 });
+            if (stairs) customObstacles.push(stairs);
+        } else if (pattern === 34) {
+            // 34. Vagão Triplo Central com Escada de Tábuas Frontal e Pistas Laterais Livres
+            const stairs = createObstacle3D('wooden_stairs', 0, 0, centerZ + 45, { targetHeight: 58 });
+            if (stairs) customObstacles.push(stairs);
+            const triple = createObstacle3D('triple_train', 0, 0, centerZ - 15);
+            if (triple) customObstacles.push(triple);
+            [centerZ + 30, centerZ + 5, centerZ - 20, centerZ - 45].forEach(z => {
+                const c = createObstacle3D('coin', 0, 92, z);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 35) {
+            // 35. Parkour de 3 Níveis: Chão -> Escada -> Container Suspenso -> Teto do Trem
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 75, { targetHeight: 29 });
+            if (stairs) customObstacles.push(stairs);
+            const cont = createObstacle3D('suspended_container', lane, 26, centerZ + 20);
+            if (cont) customObstacles.push(cont);
+            const dTrain = createObstacle3D('double_train', lane, 0, centerZ - 35);
+            if (dTrain) customObstacles.push(dTrain);
+            [centerZ + 75, centerZ + 45, centerZ + 20, centerZ - 10, centerZ - 35].forEach((z, i) => {
+                const y = [14, 32, 56, 58, 62][i];
+                const c = createObstacle3D('coin', lane, y, z);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 36) {
+            // 36. Ondulação Aérea de Moedas por cima de 2 Containers Suspensos
+            [-20, 20].forEach((lx, i) => {
+                const cont = createObstacle3D('suspended_container', lx, 25, centerZ);
+                if (cont) customObstacles.push(cont);
+                const stairs = createObstacle3D('wooden_stairs', lx, 0, centerZ + 45, { targetHeight: 29 });
+                if (stairs) customObstacles.push(stairs);
+            });
+            for (let i = 0; i < 5; i++) {
+                const z = centerZ + 40 - i * 20;
+                const y = 30 + Math.sin(i * 0.8) * 25;
+                const c = createObstacle3D('coin', 0, y, z);
+                if (c) customObstacles.push(c);
+            }
+        } else if (pattern === 37) {
+            // 37. Grande Desafio Vertical: Escada para Vagão Duplo + Container Suspenso com 4 Cabos + Vagão Triplo
+            const laneA = freeGroundLanes[0];
+            const laneB = freeGroundLanes.length > 1 ? freeGroundLanes[1] : 0;
+            const stairs = createObstacle3D('wooden_stairs', laneA, 0, centerZ + 70, { targetHeight: 58 });
+            if (stairs) customObstacles.push(stairs);
+            const dTrain = createObstacle3D('double_train', laneA, 0, centerZ + 15);
+            if (dTrain) customObstacles.push(dTrain);
+            const cont = createObstacle3D('suspended_container', laneB, 30, centerZ);
+            if (cont) customObstacles.push(cont);
+            const tTrain = createObstacle3D('triple_train', laneA, 0, centerZ - 45);
+            if (tTrain) customObstacles.push(tTrain);
+            [centerZ + 60, centerZ + 25, centerZ - 10, centerZ - 45].forEach((z, i) => {
+                const y = [35, 62, 75, 92][i];
+                const c = createObstacle3D('coin', laneA, y, z);
+                if (c) customObstacles.push(c);
             });
         } else {
             // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
@@ -3897,6 +4277,43 @@
                         } else if (heroY >= 20) {
                             heroBody.ground = Math.max(heroBody.ground || 0, 29);
                             heroBody.bottom = Math.max(heroBody.bottom || 0, 29);
+                            heroBody.landed = true;
+                        }
+                        continue;
+                    }
+                    if (obs.type === 'triple_train') {
+                        if (heroY >= 72) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, 87);
+                            heroBody.bottom = Math.max(heroBody.bottom || 0, 87);
+                            heroBody.landed = true;
+                        } else if (heroY >= 45) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, 58);
+                            heroBody.bottom = Math.max(heroBody.bottom || 0, 58);
+                            heroBody.landed = true;
+                        } else if (heroY >= 18) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, 29);
+                            heroBody.bottom = Math.max(heroBody.bottom || 0, 29);
+                            heroBody.landed = true;
+                        }
+                        continue;
+                    }
+                    if (obs.type === 'wooden_stairs') {
+                        const targetH = obs.bounds ? (obs.bounds.targetHeight || 29) : 29;
+                        const progress = Math.max(0, Math.min(1, ((obs.z + 18) - heroZ) / 54));
+                        const stepLevel = Math.max(1, Math.min(3, Math.ceil(progress * 3)));
+                        const stairY = (stepLevel / 3) * targetH;
+                        if (heroY >= stairY - 14) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, stairY);
+                            heroBody.bottom = Math.max(heroBody.bottom || 0, stairY);
+                            heroBody.landed = true;
+                        }
+                        continue;
+                    }
+                    if (obs.type === 'suspended_container') {
+                        const topY = (obs.y || 25) + 26;
+                        if (heroY >= topY - 14) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, topY);
+                            heroBody.bottom = Math.max(heroBody.bottom || 0, topY);
                             heroBody.landed = true;
                         }
                         continue;
@@ -4414,8 +4831,9 @@
             try {
                 const outPoint = { x: 0, y: 0 };
                 window.game.camera.map2dFrom3d(outPoint, { x: worldX, y: worldY + 16, z: worldZ });
-                const camZ = (window.game.camera.rig && typeof window.game.camera.rig.mainZ === 'number')
-                    ? window.game.camera.rig.mainZ
+                const camObj = window.game.camera.camera;
+                const camZ = (camObj && camObj.position && typeof camObj.position.z === 'number')
+                    ? camObj.position.z
                     : (heroZ + 58);
                 const relZ = worldZ - camZ;
                 if (relZ >= -4) return null; // Behind camera
@@ -4504,87 +4922,59 @@
             const hero = window.game && window.game.hero;
             if (!hero || !hero.parent) return null;
 
-            let charEntity = null;
+            let charScene = null;
+            const charName = (tm.charId && tm.charId !== 'stick' ? tm.charId : 'jake');
 
-            // 1. Primary: Instantiate real 3D Character (Jake or selected runner)
-            if (typeof window.Character_Character === 'function') {
+            // 1. Primary: load 3D character scene directly from game library
+            if (window.__lib && typeof window.__lib.getScene === 'function') {
                 try {
-                    charEntity = new window.Character_Character();
-                    if (charEntity) {
-                        if (charEntity.idleScene) {
-                            charEntity.idleScene.active = false;
-                            charEntity.idleScene.visible = false;
+                    const sceneName = `${charName}-game`;
+                    const texName = `${charName}-tex`;
+                    if (window.__lib.hasScene && window.__lib.hasScene(sceneName)) {
+                        charScene = window.__lib.getScene(sceneName, { map: texName });
+                    } else if (window.__lib.hasScene && window.__lib.hasScene('jake-game')) {
+                        charScene = window.__lib.getScene('jake-game', { map: 'jake-tex' });
+                    } else {
+                        charScene = window.__lib.getScene('jake-game');
+                    }
+                    if (charScene && charScene.components) {
+                        for (const k in charScene.components) {
+                            const c = charScene.components[k];
+                            if (c && typeof c === 'object' && 'autoUpdate' in c) c.autoUpdate = true;
                         }
-                        if (charEntity.sprayCan) {
-                            charEntity.sprayCan.active = false;
-                            charEntity.sprayCan.visible = false;
-                        }
-                        if (charEntity.gameScene) {
-                            charEntity.gameScene.active = true;
-                            charEntity.gameScene.visible = true;
-                        }
-                        if (charEntity.anim) {
-                            if (charEntity.gameScene) charEntity.anim.currentScene = charEntity.gameScene;
-                            if (charEntity.anim.updateCurrentAnimation) charEntity.anim.updateCurrentAnimation();
-                            try { charEntity.anim.play('run3', { loop: true }); } catch(e) {}
-                        }
-                        if (charEntity.body) {
-                            charEntity.body.active = false;
-                            charEntity.body.ghost = true;
-                            charEntity.body.sensor = true;
-                            charEntity.body.movable = false;
-                            if (window.game && window.game.physics && Array.isArray(window.game.physics.entities)) {
-                                const idx = window.game.physics.entities.indexOf(charEntity.body);
-                                if (idx >= 0) window.game.physics.entities.splice(idx, 1);
-                            }
-                        }
-                        if (charEntity.player) {
-                            charEntity.player.die = () => {};
-                            charEntity.player.active = false;
-                        }
-                        hero.parent.addChild(charEntity);
-                        charEntity.x = tm.currentX;
-                        charEntity.y = tm.currentY;
-                        charEntity.z = tm.currentZ;
-                        charEntity.ry = Math.PI;
-                        setGhostOpacity(charEntity, 0.55);
-                        return charEntity;
                     }
                 } catch(e) {
-                    console.warn('[Co-op] Character_Character error:', e);
+                    console.warn('[Co-op] Library scene load error:', e);
                 }
             }
 
-            // 2. Direct Library Scene fallback: load jake-game directly from library
-            if (!charEntity && window.__lib && typeof window.__lib.getScene === 'function') {
+            // 2. Fallback: assemble robust 3D humanoid runner mesh from primitives
+            if (!charScene && window.__lib && typeof window.__lib.getEntity === 'function') {
                 try {
-                    const scene = window.__lib.getScene('jake-game', { map: 'jake-tex' });
-                    if (scene) {
-                        hero.parent.addChild(scene);
-                        scene.x = tm.currentX;
-                        scene.y = tm.currentY;
-                        scene.z = tm.currentZ;
-                        scene.ry = Math.PI;
-                        setGhostOpacity(scene, 0.55);
-                        return scene;
+                    const body = window.__lib.getEntity('blocker_jump') || window.__lib.getEntity('currency_coin');
+                    if (body) {
+                        charScene = body;
+                        if (charScene.scale) charScene.scale.set(0.65, 1.45, 0.65);
+                        setEntityHexColor(charScene, 0x00e5ff);
+                        const head = window.__lib.getEntity('currency_coin');
+                        if (head) {
+                            head.y = 8;
+                            if (head.scale) head.scale.set(0.85, 0.85, 0.85);
+                            setEntityHexColor(head, 0xffd166);
+                            try { charScene.addChild(head); } catch(e) {}
+                        }
                     }
-                } catch(e) {
-                    console.warn('[Co-op] Library scene fallback error:', e);
-                }
+                } catch(e) {}
             }
 
-            // 3. Ultra-safe 3D entity fallback from library
-            if (!charEntity && window.__lib && typeof window.__lib.getEntity === 'function') {
-                const fallback = window.__lib.getEntity('sprayCan') || window.__lib.getEntity('currency_coin');
-                if (fallback) {
-                    if (fallback.scale) fallback.scale.set(1.5, 1.5, 1.5);
-                    if (typeof setEntityHexColor === 'function') setEntityHexColor(fallback, 0x00f0ff);
-                    hero.parent.addChild(fallback);
-                    fallback.x = tm.currentX;
-                    fallback.y = tm.currentY;
-                    fallback.z = tm.currentZ;
-                    return fallback;
-                }
+            if (charScene) {
+                hero.parent.addChild(charScene);
+                charScene.x = tm.currentX;
+                charScene.y = tm.currentY;
+                charScene.z = tm.currentZ;
+                charScene.ry = Math.PI;
+                setGhostOpacity(charScene, 0.52);
+                return charScene;
             }
         } catch(e) {}
         return null;
@@ -5134,24 +5524,30 @@
                     MPX.lastTick[id] = Date.now();
                     sendRoomMessage({ type: 'tick', sender, t, round: MPX.round });
 
-                    // Simulate bot 3D position for real-time co-op viewing
-                    const botSpeedZ = 75;
-                    const botZ = -(t / 1000) * botSpeedZ;
-                    const botLaneIdx = Math.floor((t + (id.charCodeAt(id.length - 1) * 700)) / 3000) % 3;
+                    // Simulate bot 3D position synchronized alongside player
+                    const hero = window.game && window.game.hero;
+                    const heroBody = hero && hero.body;
+                    const heroZ = heroBody ? heroBody.z : -(t / 1000) * 115;
+                    const charCode = id.charCodeAt(id.length - 1);
+                    const botOffset = ((charCode % 5) - 2) * 12;
+                    const botZ = heroZ + botOffset;
+                    const botLaneIdx = Math.floor((t + (charCode * 700)) / 2400) % 3;
                     const botX = [-20, 0, 20][botLaneIdx];
-                    handleCoopPos({
+                    const botPacket = {
                         type: 'coop_pos',
                         seq: Math.floor(t / 100),
                         sender: sender,
                         x: botX,
-                        y: 0,
+                        y: (heroBody && heroBody.y > 10 && (t % 4000 < 900)) ? heroBody.y : 0,
                         z: botZ,
                         anim: 'run3',
                         alive: true,
                         charId: 'jake',
                         t: t,
                         round: MPX.round
-                    });
+                    };
+                    handleCoopPos(botPacket);
+                    sendRoomMessage(botPacket);
                 }
             });
             renderTimeline();
@@ -6361,10 +6757,10 @@
                             <span class="setting-pill" id="val-gfx-showfps">${GFX_SETTINGS.showFps ? 'Ativado' : 'Desativado'}</span>
                         </div>
 
-                        <!-- Shaders & Reformulated Shadows Setting -->
+                        <!-- Shaders & Reformulated Shadows Setting (BETA) -->
                         <div class="subway-setting-row" onclick="window.__cycleShaders()" title="Toque para alternar Shaders e Sombras 3D">
                             <div class="setting-text-col">
-                                <span class="setting-title">Shaders & Sombras 3D</span>
+                                <span class="setting-title">Shaders & Sombras 3D <span style="display:inline-block;padding:1px 6px;margin-left:6px;font-size:9px;font-weight:900;border-radius:4px;background:#ff9800;color:#000;letter-spacing:0.5px;vertical-align:middle;">BETA</span></span>
                                 <span class="setting-desc">Iluminação direcional e sombras em tempo real</span>
                             </div>
                             <span class="setting-pill" id="val-gfx-shaders">${getShaderLabel(GFX_SETTINGS.shaders)}</span>

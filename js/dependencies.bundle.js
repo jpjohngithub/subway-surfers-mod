@@ -16680,7 +16680,7 @@
         return;
       }
       const isJet = this.game && this.game.hero && this.game.hero.jetpack && ((this.game.hero.jetpack.isOn && this.game.hero.jetpack.isOn()) || this.game.hero.jetpack.active);
-      if (window.NO_COIN_MODE && !isJet) {
+      if (window.NO_COIN_MODE) {
         if (window.__onNoCoinCollect) window.__onNoCoinCollect(this);
         return;
       }
