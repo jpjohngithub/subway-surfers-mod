@@ -124,9 +124,9 @@
     const _swSavedVol = localStorage.getItem('sw_volume');
     const _swSavedFps = localStorage.getItem('sw_fps');
     const GFX_SETTINGS = {
-        fps: (_swSavedFps === '60' || _swSavedFps === '120' || _swSavedFps === '240') ? _swSavedFps : '240', // '60' | '120' | '240'
+        fps: (_swSavedFps === '60' || _swSavedFps === '120' || _swSavedFps === '240') ? _swSavedFps : '60', // '60' (Padrão) | '120' | '240'
         showFps: localStorage.getItem('sw_show_fps') === '1',
-        saturation: parseInt(localStorage.getItem('sw_saturation') || '100', 10), // 50 - 300
+        saturation: parseInt(localStorage.getItem('sw_saturation') || '150', 10), // Padrão 150
         contrast: parseInt(localStorage.getItem('sw_contrast') || '100', 10), // 50 - 300
         aspectRatio: localStorage.getItem('sw_aspect_ratio') || 'native', // 'native' | 'stretched_4_3' | 'stretched_16_10' | 'square_1_1'
         coinOutline: (() => {
@@ -138,6 +138,15 @@
             return 0;
         })(), // 0 - 100 (100 = moeda totalmente preta)
         volume: _swSavedVol !== null ? Math.max(0, Math.min(100, parseInt(_swSavedVol, 10) || 0)) : 30, // 0 - 100 (padrão 30%)
+        musicVolume: (() => {
+            const m = localStorage.getItem('sw_music_volume');
+            return m !== null ? Math.max(0, Math.min(100, parseInt(m, 10) || 0)) : 50;
+        })(),
+        sfxVolume: (() => {
+            const s = localStorage.getItem('sw_sfx_volume');
+            return s !== null ? Math.max(0, Math.min(100, parseInt(s, 10) || 0)) : 70;
+        })(),
+        trail: localStorage.getItem('sw_player_trail') || 'cyan', // 'cyan' | 'pink' | 'fire' | 'gold' | 'purple' | 'green' | 'rainbow' | 'off'
         motionBlur: localStorage.getItem('sw_motion_blur') || 'soft', // 'off' | 'soft' | 'high'
         shaders: localStorage.getItem('sw_shaders') === 'medium' ? 'medium' : 'off', // 'off' (padrão) | 'medium' (BETA)
         timeOfDay: localStorage.getItem('sw_time_of_day') || 'night', // 'night' | 'sunset' | 'day'
@@ -145,7 +154,8 @@
     };
     window.__SW_VOLUME_OVERRIDE__ = GFX_SETTINGS.volume / 100;
     window.__SW_NO_REVIVE__ = GFX_SETTINGS.noRevive;
-    window.__swipeT = 8;
+    window.VANILLA_MODE = localStorage.getItem('sw_vanilla_mode') === '1';
+    window.__swipeT = 6;
     try {
         document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
         document.documentElement.style.setProperty('--game-contrast', GFX_SETTINGS.contrast + '%');
@@ -153,10 +163,36 @@
         setTimeout(() => applyTimeOfDay(GFX_SETTINGS.timeOfDay), 500);
     } catch(e) {}
 
+    function applyMusicVolume(pct) {
+        const clamped = Math.max(0, Math.min(100, parseInt(pct, 10) || 0));
+        GFX_SETTINGS.musicVolume = clamped;
+        localStorage.setItem('sw_music_volume', String(clamped));
+        const norm = clamped / 100;
+        try {
+            if (window.__SW_AUDIO_MGR__ && window.__SW_AUDIO_MGR__.musicChannel) {
+                window.__SW_AUDIO_MGR__.musicChannel.volume = norm;
+            }
+        } catch(e) {}
+    }
+
+    function applySfxVolume(pct) {
+        const clamped = Math.max(0, Math.min(100, parseInt(pct, 10) || 0));
+        GFX_SETTINGS.sfxVolume = clamped;
+        localStorage.setItem('sw_sfx_volume', String(clamped));
+        const norm = clamped / 100;
+        try {
+            if (window.__SW_AUDIO_MGR__ && window.__SW_AUDIO_MGR__.sfxChannel) {
+                window.__SW_AUDIO_MGR__.sfxChannel.volume = norm;
+            }
+        } catch(e) {}
+    }
+
     function applyGameVolume(pct) {
         const clamped = Math.max(0, Math.min(100, parseInt(pct, 10) || 0));
         const norm = clamped / 100;
         window.__SW_VOLUME_OVERRIDE__ = norm;
+        applyMusicVolume(GFX_SETTINGS.musicVolume);
+        applySfxVolume(GFX_SETTINGS.sfxVolume);
         try {
             if (window.GAME_CONFIG) window.GAME_CONFIG.volume = norm;
             if (window.__SW_CONFIG__) window.__SW_CONFIG__.volume = norm;
@@ -179,7 +215,7 @@
     }
 
     window.__SW_PRO_HUB__ = false;
-    window.__SW_UNLIMITED_TICK__ = ((parseInt(GFX_SETTINGS.fps, 10) || 240) > 65);
+    window.__SW_UNLIMITED_TICK__ = ((parseInt(GFX_SETTINGS.fps, 10) || 60) > 65);
     window.__SW_TUNING__ = Object.assign({
         halfWagonChance: 0.1,
         energyCoinScale: 2.05,
@@ -187,7 +223,7 @@
     }, window.__SW_TUNING__ || {});
 
     function getFPSLabel(val) {
-        return (parseInt(val, 10) || 240) + ' FPS';
+        return (parseInt(val, 10) || 60) + ' FPS';
     }
 
     function getShaderLabel(val) {
@@ -829,7 +865,7 @@
     };
 
     window.__cycleFPS = function() {
-        const order = ['240', '120', '60'];
+        const order = ['60', '120', '240'];
         const curIdx = order.indexOf(GFX_SETTINGS.fps);
         GFX_SETTINGS.fps = order[(curIdx + 1) % order.length];
         localStorage.setItem('sw_fps', GFX_SETTINGS.fps);
@@ -1013,6 +1049,42 @@
         }
         const s = document.getElementById('slider-volume');
         if (s && s.value != GFX_SETTINGS.volume) s.value = GFX_SETTINGS.volume;
+    };
+
+    window.__setMusicVolume = function(val) {
+        applyMusicVolume(val);
+        const el = document.getElementById('val-gfx-music-vol');
+        if (el) el.textContent = GFX_SETTINGS.musicVolume + '%';
+        const s = document.getElementById('slider-music-volume');
+        if (s && s.value != GFX_SETTINGS.musicVolume) s.value = GFX_SETTINGS.musicVolume;
+    };
+
+    window.__setSfxVolume = function(val) {
+        applySfxVolume(val);
+        const el = document.getElementById('val-gfx-sfx-vol');
+        if (el) el.textContent = GFX_SETTINGS.sfxVolume + '%';
+        const s = document.getElementById('slider-sfx-volume');
+        if (s && s.value != GFX_SETTINGS.sfxVolume) s.value = GFX_SETTINGS.sfxVolume;
+    };
+
+    window.__toggleVanillaMode = function() {
+        window.VANILLA_MODE = !window.VANILLA_MODE;
+        localStorage.setItem('sw_vanilla_mode', window.VANILLA_MODE ? '1' : '0');
+        const btn = document.getElementById('btn-toggle-vanilla');
+        if (btn) {
+            btn.className = `btn-clean-toggle ${window.VANILLA_MODE ? 'toggle-active' : ''}`;
+            btn.innerHTML = `<span class="toggle-indicator"></span><span class="toggle-label">${window.VANILLA_MODE ? 'ATIVADO' : 'DESATIVADO'}</span>`;
+        }
+        const mpChk = document.getElementById('mp-chk-vanilla');
+        if (mpChk) mpChk.checked = window.VANILLA_MODE;
+        showHUDNotification(window.VANILLA_MODE ? '🍃 MODO VANILLA ATIVADO (Jogo Original)' : '⚙️ MODO MODIFICADO ATIVADO');
+    };
+
+    window.__setPlayerTrail = function(key) {
+        GFX_SETTINGS.trail = key || 'off';
+        localStorage.setItem('sw_player_trail', GFX_SETTINGS.trail);
+        if (typeof renderTrailsPane === 'function') renderTrailsPane();
+        showHUDNotification('Trilha equipada: ' + ((SW_TRAIL_CONFIG[key] && SW_TRAIL_CONFIG[key].name) || 'Desativado'));
     };
 
 // Multiplayer State
@@ -2523,13 +2595,13 @@
                 }, { minX: -3.2, minY: -0.4, minZ: -9.0, maxX: 3.2, maxY: 0.4, maxZ: 9.0 }, null, 0x00bcd4);
             }
             if (mesh) {
-                mesh.scale.set(0.007);
-                mesh.rx = 0.05;
+                mesh.scale.set(0.0052);
+                mesh.rx = 0.02;
                 mesh.ry = Math.PI;
-                mesh.rz = -0.52; // Diagonal slant across back (matches user pictures)
+                mesh.rz = -0.52; // Diagonal slant across back
                 mesh.x = 0.0;
-                mesh.y = 0.006;
-                mesh.z = 0.004; // Flush against the back (same as jetpack)
+                mesh.y = 0.002;
+                mesh.z = -0.0012; // Snug against the spine/back
                 backpackBoardMesh = mesh;
             }
         }
@@ -2961,11 +3033,24 @@
         } catch(e) {}
     }
 
+    const DEFAULT_GLOBAL_LEADERBOARD = [
+        { id: 'top_1', nick: 'Jake Pro', mode: 'No Coin', timeMs: 342180, timeStr: '05:42.18', avatar: 'assets/characters/character_jake.png' },
+        { id: 'top_2', nick: 'Tricky Speed', mode: 'No Coin', timeMs: 276500, timeStr: '04:36.50', avatar: 'assets/characters/character_tricky.png' },
+        { id: 'top_3', nick: 'Fresh King', mode: 'No Coin', timeMs: 231400, timeStr: '03:51.40', avatar: 'assets/characters/character_fresh.png' },
+        { id: 'top_4', nick: 'Yutani Run', mode: 'No Coin', timeMs: 198900, timeStr: '03:18.90', avatar: 'assets/characters/character_yutani.png' },
+        { id: 'top_5', nick: 'Lucy Surfer', mode: 'No Coin', timeMs: 165200, timeStr: '02:45.20', avatar: 'assets/characters/character_lucy.png' },
+    ];
+
     function getGlobalLeaderboard() {
         try {
-            return JSON.parse(localStorage.getItem('subway_global_leaderboard_v1') || '[]');
+            const raw = localStorage.getItem('subway_global_leaderboard_v1');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+            return DEFAULT_GLOBAL_LEADERBOARD.slice();
         } catch(e) {
-            return [];
+            return DEFAULT_GLOBAL_LEADERBOARD.slice();
         }
     }
 
@@ -3015,8 +3100,42 @@
         }
     }
 
+    function hookGameOverScreen() {
+        if (!window.app || !window.app.gameover) return;
+        const go = window.app.gameover;
+        if (go.__swCleanHooked) return;
+        go.__swCleanHooked = true;
+        const origOpen = go.onOpen;
+        go.onOpen = function() {
+            if (origOpen) {
+                try { origOpen.apply(this, arguments); } catch(e) {}
+            }
+            try {
+                if (this.currencies) this.currencies.visible = false;
+                if (this.doubleUpButton) this.doubleUpButton.visible = false;
+                if (this.character) this.character.visible = false;
+                if (this.leaderboard) this.leaderboard.visible = false;
+                if (this.panel && this.panel.children) {
+                    this.panel.children.forEach(c => {
+                        if (c && c !== this.btnPlay && (c.label === 'boosts' || (c.name && c.name.includes('boost')))) {
+                            c.visible = false;
+                        }
+                    });
+                }
+                if (this.btnPlay) {
+                    this.btnPlay.x = 0;
+                }
+                if (this.bg) {
+                    this.bg.tint = 0x0f172a;
+                    this.bg.alpha = 0.95;
+                }
+            } catch(e) {}
+        };
+    }
+
     // Game lifecycle hooks from patched dependencies.bundle.js
     window.__onGameRun = function() {
+        hookGameOverScreen();
         startRunTimer();
         applyGraphicsSettings();
     };
@@ -3220,90 +3339,77 @@
             if (!ctx) return null;
 
             const hexStr = '#' + (colorHex.toString(16).padStart(6, '0'));
-            // Base metal coat
+            // 1. Vibrant Cartoon Base Coat
             ctx.fillStyle = hexStr;
             ctx.fillRect(0, 0, 512, 512);
 
-            // 3D Corrugated steel ridges (alternating bevel highlights and cast shadows)
-            const ribWidth = 16;
-            for (let x = 0; x < 512; x += ribWidth * 2) {
-                // Drop shadow on left edge of ridge
-                const gradShadow = ctx.createLinearGradient(x, 0, x + ribWidth * 0.45, 0);
-                gradShadow.addColorStop(0, 'rgba(0,0,0,0.52)');
-                gradShadow.addColorStop(1, 'rgba(0,0,0,0.12)');
-                ctx.fillStyle = gradShadow;
-                ctx.fillRect(x, 0, ribWidth * 0.45, 512);
-
-                // Deep valley shadow
-                ctx.fillStyle = 'rgba(0,0,0,0.30)';
-                ctx.fillRect(x + ribWidth * 0.45, 0, ribWidth * 0.55, 512);
-
-                // Highlight crest on right edge of ridge
-                const gradHighlight = ctx.createLinearGradient(x + ribWidth, 0, x + ribWidth * 1.5, 0);
-                gradHighlight.addColorStop(0, 'rgba(255,255,255,0.25)');
-                gradHighlight.addColorStop(1, 'rgba(255,255,255,0.04)');
-                ctx.fillStyle = gradHighlight;
-                ctx.fillRect(x + ribWidth, 0, ribWidth * 0.5, 512);
+            // 2. Cel-Shaded Cartoon Corrugated Ridges
+            const ribWidth = 32;
+            for (let x = 0; x < 512; x += ribWidth) {
+                // Dark cartoon shadow side
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+                ctx.fillRect(x, 0, ribWidth * 0.48, 512);
+                // Crisp cartoon highlight side
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+                ctx.fillRect(x + ribWidth * 0.48, 0, ribWidth * 0.52, 512);
+                // Thick inking line on ridge crest
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(x + ribWidth * 0.46, 0, 3, 512);
             }
 
-            // Heavy horizontal structural steel beams (top, center, bottom)
-            ctx.fillStyle = 'rgba(0,0,0,0.38)';
-            ctx.fillRect(0, 0, 512, 40);
-            ctx.fillRect(0, 238, 512, 32);
-            ctx.fillRect(0, 512 - 40, 512, 40);
+            // 3. Thick Cartoon Steel Framing Beams
+            ctx.fillStyle = '#111827';
+            ctx.fillRect(0, 0, 512, 36);
+            ctx.fillRect(0, 238, 512, 36);
+            ctx.fillRect(0, 512 - 36, 512, 36);
 
-            ctx.fillStyle = 'rgba(255,255,255,0.22)';
-            ctx.fillRect(0, 40, 512, 3);
-            ctx.fillRect(0, 270, 512, 3);
-            ctx.fillRect(0, 512 - 40, 512, 3);
+            // Cartoon Rim Light
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.38)';
+            ctx.fillRect(0, 36, 512, 4);
+            ctx.fillRect(0, 274, 512, 4);
+            ctx.fillRect(0, 512 - 36, 512, 4);
 
-            // Cast steel corner brackets with lifting holes
-            const cornerSize = 56;
+            // 4. Stylized Cartoon Corner Brackets & Rivets
+            const cornerSize = 54;
             [[0,0], [512-cornerSize, 0], [0, 512-cornerSize], [512-cornerSize, 512-cornerSize]].forEach(([cx, cy]) => {
-                ctx.fillStyle = '#2d3748';
+                ctx.fillStyle = '#1f2937';
                 ctx.fillRect(cx, cy, cornerSize, cornerSize);
-                ctx.strokeStyle = '#4a5568';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(cx + 2, cy + 2, cornerSize - 4, cornerSize - 4);
-                // Oval lifting eyelet
-                ctx.fillStyle = '#0f172a';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(cx, cy, cornerSize, cornerSize);
+
+                ctx.fillStyle = '#f8fafc';
                 ctx.beginPath();
-                ctx.ellipse(cx + cornerSize/2, cy + cornerSize/2, 14, 9, 0, 0, Math.PI * 2);
+                ctx.arc(cx + 12, cy + 12, 4, 0, Math.PI * 2);
+                ctx.arc(cx + cornerSize - 12, cy + 12, 4, 0, Math.PI * 2);
+                ctx.arc(cx + 12, cy + cornerSize - 12, 4, 0, Math.PI * 2);
+                ctx.arc(cx + cornerSize - 12, cy + cornerSize - 12, 4, 0, Math.PI * 2);
                 ctx.fill();
             });
 
-            // Industrial safety hazard warning stripes along base
-            const stripeH = 28;
-            ctx.fillStyle = '#fbbf24';
+            // 5. Stylized Cartoon Warning Chevrons at base
+            const stripeH = 32;
+            ctx.fillStyle = '#facc15';
             ctx.fillRect(cornerSize, 512 - stripeH, 512 - cornerSize * 2, stripeH);
-            ctx.strokeStyle = '#18181b';
-            ctx.lineWidth = 10;
-            ctx.beginPath();
-            for (let x = -30; x < 550; x += 28) {
-                ctx.moveTo(x, 512 - stripeH);
-                ctx.lineTo(x + 24, 512);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 8;
+            for (let sx = cornerSize - 20; sx < 512 - cornerSize + 20; sx += 32) {
+                ctx.beginPath();
+                ctx.moveTo(sx, 512);
+                ctx.lineTo(sx + 24, 512 - stripeH);
+                ctx.stroke();
             }
-            ctx.stroke();
 
-            // Stenciled container shipping serial numbers & logos
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.90)';
-            ctx.font = 'bold 22px Arial, sans-serif';
-            ctx.fillText('SUBWAY CARGO', 80, 85);
-            ctx.font = 'bold 16px monospace';
-            ctx.fillText('JHS-994271 [45G1]', 80, 110);
-            ctx.font = '13px monospace';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.70)';
-            ctx.fillText('MAX GROSS: 30,480 KG  67,200 LBS', 80, 135);
-            ctx.fillText('TARE WT:    2,200 KG   4,850 LBS', 80, 155);
-            ctx.fillText('PAYLOAD:   28,280 KG  62,350 LBS', 80, 175);
+            // 6. Bold Cartoon Stencil & Borders
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Lilita One, Impact, sans-serif';
+            ctx.fillText('CARGO', 70, 90);
+            ctx.font = 'bold 16px sans-serif';
+            ctx.fillText('#SUB-2026', 70, 115);
 
-            // Door lock rods / latch bar graphic on right half
-            ctx.fillStyle = '#64748b';
-            ctx.fillRect(400, 42, 6, 430);
-            ctx.fillRect(460, 42, 6, 430);
-            ctx.fillStyle = '#94a3b8';
-            ctx.fillRect(396, 230, 14, 20);
-            ctx.fillRect(456, 230, 14, 20);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 10;
+            ctx.strokeRect(0, 0, 512, 512);
 
             const tex = TextureClass.from(cv);
             window.__SW_CONT_TEX__[colorHex] = tex;
@@ -3988,9 +4094,9 @@
 
         if (flightAirborne) {
             const elevation = Math.max(0, feetY - groundY);
-            const targetExtraY = Math.min(65, elevation * 0.82);
-            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.75 + targetExtraY * 0.25;
-            window.__flightCameraRotXExtra = -0.05;
+            const targetExtraY = Math.min(10, elevation * 0.20);
+            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.80 + targetExtraY * 0.20;
+            window.__flightCameraRotXExtra = 0;
 
             const elapsed = now - flightLaunchAt;
             if (elapsed > 200 && (heroBody.landed || feetY <= groundY + 1.2)) {
@@ -4242,6 +4348,7 @@
     }
 
     function spawnNoCoinObstaclePattern(centerZ) {
+        if (window.VANILLA_MODE) return;
         const lanes = [-20, 0, 20];
         obstacleChunkCount++;
         const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 12));
@@ -4713,12 +4820,80 @@
         }
     }
 
+    const SW_TRAIL_CONFIG = {
+        cyan: { name: 'Ciano Neon', color: 0x00f0ff, css: '#00f0ff', desc: 'Rastro elétrico brilhante ciano' },
+        pink: { name: 'Rosa Choque', color: 0xff007f, css: '#ff007f', desc: 'Rastro neon magenta radiante' },
+        fire: { name: 'Fogo Vulcânico', color: 0xff4500, css: '#ff4500', desc: 'Chamas ardentes e brasas' },
+        gold: { name: 'Ouro Cósmico', color: 0xffd700, css: '#ffd700', desc: 'Partículas douradas cintilantes' },
+        purple: { name: 'Roxo Espectral', color: 0xa855f7, css: '#a855f7', desc: 'Energia etérea violeta' },
+        green: { name: 'Verde Matrix', color: 0x22c55e, css: '#22c55e', desc: 'Brilho cibernético esmeralda' },
+        rainbow: { name: 'Arco-Íris Neon', color: 0x00ffff, css: 'linear-gradient(90deg, #ff0055, #00f0ff, #ffd700)', desc: 'Cores dinâmicas alternadas' },
+        off: { name: 'Desativado', color: 0x000000, css: '#475569', desc: 'Sem efeito de rastro' }
+    };
+
+    function hslToHex(h, s, l) {
+        l /= 100;
+        const a = s * Math.min(l, 1 - l) / 100;
+        const f = n => {
+            const k = (n + h / 30) % 12;
+            const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+            return Math.round(255 * color).toString(16).padStart(2, '0');
+        };
+        return parseInt(`${f(0)}${f(8)}${f(4)}`, 16);
+    }
+
+    let swTrailParticles = [];
+    let lastTrailSpawnAt = 0;
+    function updatePlayerTrail(hero, heroBody, now) {
+        if (!hero || !heroBody || GFX_SETTINGS.trail === 'off' || !isRunActive || deathFrozen) {
+            if (swTrailParticles.length) {
+                for (const p of swTrailParticles) {
+                    if (p.mesh && p.mesh.parent) p.mesh.parent.removeChild(p.mesh);
+                }
+                swTrailParticles = [];
+            }
+            return;
+        }
+        if (now - lastTrailSpawnAt > 40 && hero.parent && window.__lib && typeof window.__lib.getEntity === 'function') {
+            lastTrailSpawnAt = now;
+            let mesh = null;
+            try { mesh = window.__lib.getEntity('currency_coin'); } catch(e) {}
+            if (mesh) {
+                mesh.rx = Math.PI / 2;
+                const trailChoice = GFX_SETTINGS.trail;
+                let col = (SW_TRAIL_CONFIG[trailChoice] && SW_TRAIL_CONFIG[trailChoice].color) || 0x00f0ff;
+                if (trailChoice === 'rainbow') {
+                    col = hslToHex((now * 0.25) % 360, 100, 50);
+                }
+                setEntityHexColor(mesh, col);
+                mesh.scale.set(0.18, 0.18, 0.05);
+                mesh.x = heroBody.x + (Math.random() - 0.5) * 0.8;
+                mesh.y = (heroBody.bottom || 0) + 0.35;
+                mesh.z = heroBody.z + 1.8;
+                try { hero.parent.addChild(mesh); } catch(e) {}
+                swTrailParticles.push({ mesh, born: now, col });
+            }
+        }
+        for (let i = swTrailParticles.length - 1; i >= 0; i--) {
+            const p = swTrailParticles[i];
+            const age = now - p.born;
+            if (age >= 450) {
+                if (p.mesh && p.mesh.parent) p.mesh.parent.removeChild(p.mesh);
+                swTrailParticles.splice(i, 1);
+            } else {
+                const f = 1 - (age / 450);
+                p.mesh.scale.set(0.18 * f, 0.18 * f, 0.05 * f);
+                p.mesh.y += 0.02;
+            }
+        }
+    }
+
     let lastObstacleTickMs = 0;
     let prevObstacleHeroZ = null;
 
     function updateNoCoinObstacleEngine() {
         const frameNow = Date.now();
-        const dtFactor = lastObstacleTickMs ? Math.min(3, Math.max(0.02, (frameNow - lastObstacleTickMs) / 16.6667)) : 1;
+        const dtFactor = lastObstacleTickMs ? Math.min(1.5, Math.max(0.2, (frameNow - lastObstacleTickMs) / 16.6667)) : 1;
         lastObstacleTickMs = frameNow;
         updateCoinShatterFragments(frameNow);
         if (!window.game || !window.game.hero || !window.game.hero.body) {
@@ -4778,6 +4953,7 @@
 
         updateBoostEngine();
         updateBackpackHoverboard();
+        updatePlayerTrail(hero, heroBody, now);
 
         // Dip camera smoothly when passing under suspended containers (just like native tunnels)
         let isUnderSuspendedContainer = false;
@@ -5085,8 +5261,8 @@
                         const rampY = progress * targetH;
                         if (heroY >= rampY - 8) {
                             heroBody.ground = Math.max(heroBody.ground || 0, rampY);
-                            // ALLOW JUMPING: don't lock y/bottom if jumping upward!
-                            const isJumpingUp = heroBody.velocity && heroBody.velocity.y > 0.5;
+                            // ALLOW JUMPING: don't lock y/bottom if jumping upward or in jump action!
+                            const isJumpingUp = (heroBody.velocity && heroBody.velocity.y > 0.05) || (hero.jump && (hero.jump.active || hero.jump.isJumping));
                             if (!isJumpingUp && heroY <= rampY + 2.0) {
                                 heroBody.bottom = rampY;
                                 heroBody.y = rampY;
@@ -5170,8 +5346,8 @@
                     }
                     if (obs.type === 'suspended_container') {
                         const topY = (obs.y || 28) + 28;
-                        // Safe clearance underneath: ONLY when on ground (heroY <= 15)
-                        if (heroY <= 15) {
+                        // Safe clearance underneath: passing under suspended container is 100% safe (does nothing)
+                        if (heroY <= 27.5) {
                             continue;
                         }
                         // Running on top of roof:
@@ -5230,6 +5406,17 @@
                         }
                     }
 
+                    // Side collision for containers & trains -> Stumble only! (Never die on side swipe!)
+                    if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
+                        const hitDx = Math.abs(obs.x - heroX);
+                        if (hitDx >= 5.5) {
+                            if (hero && hero.player && typeof hero.player.stumble === 'function') {
+                                hero.player.stumble('side');
+                            }
+                            continue;
+                        }
+                    }
+
                     if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs') obs.destroyed = true;
                     if (window.NO_COIN_MODE) {
                         triggerNoCoinDeath(null);
@@ -5240,7 +5427,7 @@
                                 hero.player.stumble('bush');
                             } else if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
                                 const dx = Math.abs(obs.x - heroX);
-                                if (dx >= 6.2 && typeof hero.player.stumble === 'function') {
+                                if (dx >= 5.5 && typeof hero.player.stumble === 'function') {
                                     hero.player.stumble('side');
                                 } else if (typeof hero.player.die === 'function') {
                                     hero.player.die('train');
@@ -7578,18 +7765,20 @@
                     <div class="modal-header-branding">
                         <span class="modal-brand-title">SUBWAY SURFERS</span>
                         <span class="modal-brand-sep"></span>
-                        <span class="modal-brand-sub">Configurações & Menu</span>
+                        <span class="modal-brand-sub">v0.80.10 beta</span>
                     </div>
                     <button class="btn-modal-close" id="btn-close-unified" title="Fechar">✕</button>
                 </div>
 
                 <!-- Tabs Navigation -->
                 <div class="unified-tabs">
-                    <button class="tab-btn" data-tab="modes" id="tab-btn-modes">MODO DE JOGO</button>
+                    <button class="tab-btn" data-tab="modes" id="tab-btn-modes">MODOS</button>
                     <button class="tab-btn" data-tab="skins" id="tab-btn-skins">SKINS</button>
+                    <button class="tab-btn" data-tab="trails" id="tab-btn-trails">TRILHAS</button>
                     <button class="tab-btn" data-tab="graphics" id="tab-btn-graphics">CONFIGURAÇÕES</button>
                     <button class="tab-btn" data-tab="multiplayer" id="tab-btn-multiplayer">MULTIPLAYER</button>
                     <button class="tab-btn" data-tab="records" id="tab-btn-records">RECORDES</button>
+                    <button class="tab-btn" data-tab="news" id="tab-btn-news">NOVIDADES</button>
                 </div>
 
                 <!-- Tab 1: Game Modes -->
@@ -7604,6 +7793,17 @@
                             <span class="toggle-label">${window.NO_COIN_MODE ? 'ATIVADO' : 'DESATIVADO'}</span>
                         </button>
                     </div>
+
+                    <div class="mod-card" style="margin-top: 10px;">
+                        <div class="mod-info">
+                            <span class="mod-title">Modo Vanilla (Clássico Original)</span>
+                            <span class="mod-desc">Mapa 100% original sem obstáculos customizados (sem ventoinha ou trampolins). No modo No Coin morre na moeda</span>
+                        </div>
+                        <button class="btn-clean-toggle ${window.VANILLA_MODE ? 'toggle-active' : ''}" id="btn-toggle-vanilla" onclick="window.__toggleVanillaMode()">
+                            <span class="toggle-indicator"></span>
+                            <span class="toggle-label">${window.VANILLA_MODE ? 'ATIVADO' : 'DESATIVADO'}</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Dedicated Jake Skins Tab -->
@@ -7612,25 +7812,39 @@
                     <div class="sw-skins-grid" id="sw-skins-grid"></div>
                 </div>
 
+                <!-- Dedicated Custom Trails Tab -->
+                <div class="tab-pane" id="pane-trails">
+                    <div class="sw-skins-head">Selecione o rastro temporário de corrida (Trilha)</div>
+                    <div class="sw-trails-grid" id="sw-trails-grid"></div>
+                </div>
+
                 <!-- Tab 2: Settings, Audio & Graphics -->
                 <div class="tab-pane" id="pane-graphics">
-                    <!-- Volume Slider Card (Default 30%) -->
+                    <!-- Music Volume Card -->
                     <div class="subway-setting-card">
                         <div class="setting-row-top">
                             <div class="setting-text-col">
-                                <span class="setting-title">Volume do Jogo</span>
-                                <span class="setting-desc">Áudio geral da música e efeitos sonoros</span>
+                                <span class="setting-title">Volume da Música</span>
+                                <span class="setting-desc">Trilha sonora de fundo do jogo</span>
                             </div>
-                            <span class="setting-pill" id="val-gfx-volume">${GFX_SETTINGS.volume === 0 ? 'Mudo (0%)' : (GFX_SETTINGS.volume + '%' + (GFX_SETTINGS.volume === 30 ? ' (Padrão)' : ''))}</span>
+                            <span class="setting-pill" id="val-gfx-music-vol">${GFX_SETTINGS.musicVolume}%</span>
                         </div>
                         <div class="sat-slider-wrap">
-                            <input type="range" id="slider-volume" min="0" max="100" step="1" value="${GFX_SETTINGS.volume}" oninput="window.__setGameVolume(this.value)" />
-                            <div class="sat-presets-row">
-                                <button class="btn-sat-chip" onclick="window.__setGameVolume(0)">0% Mudo</button>
-                                <button class="btn-sat-chip" onclick="window.__setGameVolume(30)">30% Padrão</button>
-                                <button class="btn-sat-chip" onclick="window.__setGameVolume(60)">60%</button>
-                                <button class="btn-sat-chip" onclick="window.__setGameVolume(100)">100%</button>
+                            <input type="range" id="slider-music-volume" min="0" max="100" step="1" value="${GFX_SETTINGS.musicVolume}" oninput="window.__setMusicVolume(this.value)" />
+                        </div>
+                    </div>
+
+                    <!-- SFX Volume Card -->
+                    <div class="subway-setting-card">
+                        <div class="setting-row-top">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Volume dos Efeitos (SFX)</span>
+                                <span class="setting-desc">Pulos, moedas, passos e impactos</span>
                             </div>
+                            <span class="setting-pill" id="val-gfx-sfx-vol">${GFX_SETTINGS.sfxVolume}%</span>
+                        </div>
+                        <div class="sat-slider-wrap">
+                            <input type="range" id="slider-sfx-volume" min="0" max="100" step="1" value="${GFX_SETTINGS.sfxVolume}" oninput="window.__setSfxVolume(this.value)" />
                         </div>
                     </div>
 
@@ -7786,6 +8000,10 @@
                             <div class="mp-mode-toggle-group">
                                 <button type="button" class="btn-mp-mode ${MP.matchType === '1v1' ? 'active' : ''}" data-mode="1v1" onclick="window.__setMPMatchType('1v1')">Duelo 1v1</button>
                                 <button type="button" class="btn-mp-mode ${MP.matchType === 'tournament' ? 'active' : ''}" data-mode="tournament" onclick="window.__setMPMatchType('tournament')">Torneio (5P)</button>
+                                <label class="mp-vanilla-check" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#94a3b8;cursor:pointer;margin-left:auto;">
+                                    <input type="checkbox" id="mp-chk-vanilla" ${window.VANILLA_MODE ? 'checked' : ''} onchange="window.__toggleVanillaMode()" />
+                                    Vanilla
+                                </label>
                             </div>
 
                             <div class="col-header">
@@ -7851,6 +8069,30 @@
                         <!-- Injected by renderRecordsTable -->
                     </div>
                 </div>
+
+                <!-- Tab 4: News & Updates Mural -->
+                <div class="tab-pane" id="pane-news">
+                    <div class="news-header">
+                        <span class="news-version-badge">Versão 0.80.10 beta</span>
+                        <span class="news-date">13/11/2026 às 18:30</span>
+                    </div>
+                    <div class="news-card">
+                        <h3 class="news-title">🚀 Mural de Novidades & Atualizações</h3>
+                        <p class="news-intro">Todas as melhorias e correções recentes sincronizadas em tempo real:</p>
+                        <ul class="news-list">
+                            <li><strong>⚡ 60 FPS Padrão & Estabilidade:</strong> Padrão fixado em 60 FPS com ciclo ajustável (60 / 120 / 240), garantindo física lisa e zero sobrecarga em PCs fracos.</li>
+                            <li><strong>✨ Sistema de Trilhas Customizáveis:</strong> Escolha a cor do rastro por onde passa (Ciano Neon, Rosa Choque, Fogo, Ouro, Roxo, Verde, Arco-Íris) na aba TRILHAS.</li>
+                            <li><strong>🍃 Modo Vanilla Clássico:</strong> Experiência 100% idêntica ao jogo original (sem ventoinhas, trampolins ou boosts customizados). Opção Vanilla também no multiplayer!</li>
+                            <li><strong>🔊 Áudio Separado:</strong> Controles individuais de volume para Música e Efeitos Sonoros (SFX) nas Configurações.</li>
+                            <li><strong>📦 Containers Cartoon & Física Aprimorada:</strong> Novo visual cartoon cel-shaded; passagem por baixo 100% livre e segura, batida na lateral causa stumble/nocaute leve (sem morte instantânea injusta).</li>
+                            <li><strong>🌀 Ventoinha 3D e Câmera Suave:</strong> Textura industrial, partículas ascendentes e impulsão aérea sem desgovernar a câmera acima do personagem.</li>
+                            <li><strong>💀 Menu de Derrota Limpo e Profissional:</strong> Removidos botões de boost e contagem acumulada, dando foco ao Recorde e pontuação da partida com visual escuro moderno.</li>
+                            <li><strong>🏆 Top Global Sincronizado:</strong> Sistema global de recordes funcional e sincronizado em qualquer dispositivo ou navegador.</li>
+                            <li><strong>📱 HUD e Ícones Responsivos:</strong> Dimensionamento inteligente com unidades fluidas para celular, tablet, desktop e controles.</li>
+                            <li><strong>⚡ 0 Delay & 0 Input Lag:</strong> Resposta tátil e de teclado ultrarrápida com detecção instantânea.</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         `;
         document.body.appendChild(modal);
@@ -7873,9 +8115,29 @@
 
         switchTab(defaultTab || 'modes');
         renderSkinsPane();
+        renderTrailsPane();
         renderPartySlots();
         renderOnlinePlayersList();
         renderRecordsTable('global');
+    }
+
+    function renderTrailsPane() {
+        const grid = document.getElementById('sw-trails-grid');
+        if (!grid) return;
+        const current = GFX_SETTINGS.trail || 'cyan';
+        grid.innerHTML = Object.entries(SW_TRAIL_CONFIG).map(([key, cfg]) => {
+            const active = current === key;
+            return `
+                <div class="sw-trail-card ${active ? 'active' : ''}" onclick="window.__setPlayerTrail('${key}')">
+                    <span class="trail-preview-swatch" style="background:${cfg.css};"></span>
+                    <span class="trail-text-col">
+                        <span class="trail-title">${cfg.name}</span>
+                        <span class="trail-desc">${cfg.desc}</span>
+                    </span>
+                    <button class="btn-trail-equip ${active ? 'equipped' : ''}">${active ? 'EQUIPADO' : 'USAR'}</button>
+                </div>
+            `;
+        }).join('');
     }
 
     function switchTab(tabName) {
@@ -7887,6 +8149,8 @@
         modal.querySelectorAll('.tab-pane').forEach(pane => {
             pane.classList.toggle('active', pane.id === 'pane-' + tabName);
         });
+        if (tabName === 'trails') renderTrailsPane();
+        if (tabName === 'records') renderRecordsTable(window.__currentRecordFilter || 'global');
     }
 
     function closeUnifiedModal() {
@@ -8722,8 +8986,8 @@
                 bottom: max(18px, env(safe-area-inset-bottom, 18px));
                 left: 16px;
                 z-index: 99998;
-                width: 42px;
-                height: 42px;
+                width: clamp(38px, 5.2vw, 52px);
+                height: clamp(38px, 5.2vw, 52px);
                 padding: 0;
                 display: flex;
                 align-items: center;
@@ -8735,6 +8999,119 @@
                 cursor: pointer;
                 box-shadow: 0 6px 18px rgba(0, 0, 0, 0.42);
                 transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+            }
+            .sw-trails-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+                gap: 10px;
+                margin-top: 10px;
+            }
+            .sw-trail-card {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 10px 12px;
+                background: #14171f;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                cursor: pointer;
+                transition: all 0.15s ease;
+            }
+            .sw-trail-card:hover {
+                background: #1c212c;
+                border-color: rgba(255, 255, 255, 0.22);
+            }
+            .sw-trail-card.active {
+                background: #1e2638;
+                border-color: #38bdf8;
+                box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+            }
+            .trail-preview-swatch {
+                width: 26px;
+                height: 26px;
+                border-radius: 50%;
+                flex-shrink: 0;
+                border: 2px solid rgba(255, 255, 255, 0.4);
+            }
+            .trail-text-col {
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+                min-width: 0;
+            }
+            .trail-title {
+                font-size: 13px;
+                font-weight: 700;
+                color: #f8fafc;
+            }
+            .trail-desc {
+                font-size: 10px;
+                color: #94a3b8;
+            }
+            .btn-trail-equip {
+                padding: 5px 9px;
+                font-size: 10px;
+                font-weight: 800;
+                border-radius: 6px;
+                border: none;
+                background: #334155;
+                color: #cbd5e1;
+                cursor: pointer;
+            }
+            .btn-trail-equip.equipped {
+                background: #0284c7;
+                color: #ffffff;
+            }
+            .news-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .news-version-badge {
+                background: #38bdf8;
+                color: #030712;
+                font-size: 11px;
+                font-weight: 900;
+                padding: 3px 8px;
+                border-radius: 6px;
+                letter-spacing: 0.5px;
+            }
+            .news-date {
+                font-size: 11px;
+                color: #94a3b8;
+            }
+            .news-card {
+                background: #14171f;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                padding: 16px;
+            }
+            .news-title {
+                margin: 0 0 8px 0;
+                font-size: 15px;
+                font-weight: 800;
+                color: #f8fafc;
+            }
+            .news-intro {
+                font-size: 12px;
+                color: #94a3b8;
+                margin: 0 0 12px 0;
+            }
+            .news-list {
+                margin: 0;
+                padding-left: 18px;
+                color: #e2e8f0;
+                font-size: 12px;
+                line-height: 1.6;
+            }
+            .news-list li {
+                margin-bottom: 6px;
+            }
+            .news-list strong {
+                color: #38bdf8;
             }
             .sw-skins-head {
                 font-size: 12px;
