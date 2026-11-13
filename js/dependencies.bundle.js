@@ -34617,8 +34617,8 @@
           this.rig.idleX = 0, this.rig.idleY = 0, this.rig.idleZ = 0, this.rig.idleRotX = 0, this.rig.idleRotY = 0;
           const e = this.game.stats.x * r.a.cameraModX;
           this.rig.mainX = o.a.lerp(this.rig.mainX, e, .3 * t);
-          const i = this.game.hero.player.cameraY + r.a.cameraPosY;
-          this.rig.mainY = o.a.lerp(this.rig.mainY, i, .3 * t), this.rig.mainZ = this.game.stats.z + r.a.cameraPosZ, this.rig.mainRotX = o.a.lerp(this.rig.mainRotX, r.a.cameraRotX, .1 * t), this.rig.mainRotY = 0, this.rig.fov = r.a.cameraFov + (window.__boostFovAdd || 0);
+          const i = this.game.hero.player.cameraY + r.a.cameraPosY + (window.__flightCameraYExtra || 0);
+          this.rig.mainY = o.a.lerp(this.rig.mainY, i, .3 * t), this.rig.mainZ = this.game.stats.z + r.a.cameraPosZ, this.rig.mainRotX = o.a.lerp(this.rig.mainRotX, r.a.cameraRotX + (window.__flightCameraRotXExtra || 0), .1 * t), this.rig.mainRotY = 0, this.rig.fov = r.a.cameraFov + (window.__boostFovAdd || 0);
         }
         this.updateTunnel(t), this.updateShake(t);
       }
@@ -35429,6 +35429,7 @@
             !o && t >= 0 && (e.body.colliding.splice(t, 1), e.body.triggerExit(i.body)), o && t < 0 && (e.body.colliding.push(i.body), e.body.triggerEnter(i.body));
           }
         }
+        if (typeof window.__swPhysicsPostStep === 'function') window.__swPhysicsPostStep(this, e);
       }
       e.body.ground < e.body.groundBefore && (e.body.groundChangeTolerance = 8), this._hasReset = !1;
     }
