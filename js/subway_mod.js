@@ -2854,7 +2854,7 @@
         return false;
     }
 
-    function getWoodPlankTexture() {
+    function get3WoodPlanksTexture() {
         if (window.__SW_WOOD_TEX__) return window.__SW_WOOD_TEX__;
         try {
             const originalMap = window.__lib && window.__lib.getMap && window.__lib.getMap('halo');
@@ -2865,206 +2865,75 @@
             const ctx = cv.getContext('2d');
             if (!ctx) return null;
 
-            ctx.fillStyle = '#42240c';
+            // Rich wood background
+            ctx.fillStyle = '#3a200e';
             ctx.fillRect(0, 0, 256, 256);
 
-            const plankW = 256 / 3;
-            for (let p = 0; p < 3; p++) {
-                const px = p * plankW;
-                const tone = (p === 1) ? '#5a3416' : (p === 0 ? '#4e2c12' : '#523014');
-                ctx.fillStyle = tone;
-                ctx.fillRect(px + 2, 0, plankW - 4, 256);
+            // 3 broad wooden planks side by side matching user drawing
+            const plankW = 78;
+            const gap = 8;
+            const margin = (256 - (plankW * 3 + gap * 2)) / 2;
+            const tones = ['#633918', '#6d3f1b', '#5c3415'];
 
-                ctx.strokeStyle = 'rgba(28, 14, 5, 0.42)';
+            for (let p = 0; p < 3; p++) {
+                const px = margin + p * (plankW + gap);
+                ctx.fillStyle = tones[p];
+                ctx.fillRect(px, 0, plankW, 256);
+
+                ctx.strokeStyle = 'rgba(25, 12, 4, 0.35)';
                 ctx.lineWidth = 1.6;
-                for (let i = 0; i < 14; i++) {
+                for (let i = 0; i < 12; i++) {
                     ctx.beginPath();
-                    const gx = px + 6 + (i * 5.2);
+                    const gx = px + 6 + (i * 6);
                     ctx.moveTo(gx, 0);
-                    ctx.bezierCurveTo(gx + 3, 80, gx - 3, 160, gx + 1, 256);
+                    ctx.bezierCurveTo(gx + 3, 85, gx - 3, 170, gx + 1, 256);
                     ctx.stroke();
                 }
 
-                ctx.fillStyle = 'rgba(20, 10, 3, 0.55)';
+                ctx.fillStyle = 'rgba(20, 10, 3, 0.45)';
                 ctx.beginPath();
-                ctx.ellipse(px + 36, 75 + p * 55, 6, 14, 0.08, 0, Math.PI * 2);
+                ctx.ellipse(px + 38, 70 + p * 60, 5, 12, 0.05, 0, Math.PI * 2);
                 ctx.fill();
 
-                ctx.fillStyle = '#221913';
-                ctx.fillRect(px + 6, 8, plankW - 12, 6);
-                ctx.fillRect(px + 6, 242, plankW - 12, 6);
-                ctx.fillStyle = '#f1c40f';
-                ctx.beginPath(); ctx.arc(px + 12, 11, 2.5, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(px + plankW - 12, 11, 2.5, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(px + 12, 245, 2.5, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(px + plankW - 12, 245, 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#d4af37';
+                ctx.beginPath(); ctx.arc(px + 12, 12, 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(px + plankW - 12, 12, 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(px + 12, 244, 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(px + plankW - 12, 244, 2.5, 0, Math.PI * 2); ctx.fill();
             }
 
-            ctx.fillStyle = '#140a04';
-            ctx.fillRect(plankW - 2, 0, 4, 256);
-            ctx.fillRect(plankW * 2 - 2, 0, 4, 256);
+            ctx.fillStyle = '#1c0f06';
+            ctx.fillRect(margin + plankW, 0, gap, 256);
+            ctx.fillRect(margin + plankW * 2 + gap, 0, gap, 256);
 
             window.__SW_WOOD_TEX__ = TextureClass.from(cv);
             return window.__SW_WOOD_TEX__;
         } catch(e) { return null; }
     }
 
-    function getContainerTexture(baseColor = '#9e4a13') {
-        window.__SW_CONT_TEX_CACHE__ = window.__SW_CONT_TEX_CACHE__ || {};
-        if (window.__SW_CONT_TEX_CACHE__[baseColor]) return window.__SW_CONT_TEX_CACHE__[baseColor];
+    function getCargoWagon() {
         try {
-            const originalMap = window.__lib && window.__lib.getMap && window.__lib.getMap('halo');
-            const TextureClass = originalMap && originalMap.constructor;
-            if (!TextureClass || typeof TextureClass.from !== 'function') return null;
-            const cv = document.createElement('canvas');
-            cv.width = 256; cv.height = 256;
-            const ctx = cv.getContext('2d');
-            if (!ctx) return null;
-
-            ctx.fillStyle = baseColor;
-            ctx.fillRect(0, 0, 256, 256);
-
-            const ribCount = 18;
-            const ribW = 256 / ribCount;
-            for (let i = 0; i < ribCount; i++) {
-                const rx = i * ribW;
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
-                ctx.fillRect(rx, 10, ribW * 0.45, 236);
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.38)';
-                ctx.fillRect(rx + ribW * 0.45, 10, ribW * 0.55, 236);
-            }
-
-            ctx.fillStyle = '#181b1f';
-            ctx.fillRect(0, 0, 256, 12);
-            ctx.fillRect(0, 244, 256, 12);
-            ctx.fillRect(0, 0, 10, 256);
-            ctx.fillRect(246, 0, 10, 256);
-
-            ctx.fillStyle = '#28313b';
-            ctx.fillRect(0, 0, 22, 22);
-            ctx.fillRect(234, 0, 22, 22);
-            ctx.fillRect(0, 234, 22, 22);
-            ctx.fillRect(234, 234, 22, 22);
-
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
-            ctx.font = 'bold 13px monospace';
-            ctx.fillText('SUBW 784201', 26, 36);
-            ctx.font = '10px monospace';
-            ctx.fillText('MAX WT 32,500 KG', 26, 50);
-
-            const tex = TextureClass.from(cv);
-            window.__SW_CONT_TEX_CACHE__[baseColor] = tex;
-            return tex;
-        } catch(e) { return null; }
-    }
-
-    function getHazardSpreaderTexture() {
-        if (window.__SW_HAZARD_TEX__) return window.__SW_HAZARD_TEX__;
-        try {
-            const originalMap = window.__lib && window.__lib.getMap && window.__lib.getMap('halo');
-            const TextureClass = originalMap && originalMap.constructor;
-            if (!TextureClass || typeof TextureClass.from !== 'function') return null;
-            const cv = document.createElement('canvas');
-            cv.width = 256; cv.height = 64;
-            const ctx = cv.getContext('2d');
-            if (!ctx) return null;
-
-            ctx.fillStyle = '#f1c40f';
-            ctx.fillRect(0, 0, 256, 64);
-
-            ctx.fillStyle = '#141414';
-            const stripeW = 24;
-            for (let x = -64; x < 320; x += stripeW * 2) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x + stripeW, 0);
-                ctx.lineTo(x + stripeW + 64, 64);
-                ctx.lineTo(x + 64, 64);
-                ctx.closePath();
-                ctx.fill();
-            }
-
-            ctx.fillStyle = '#22262a';
-            ctx.fillRect(0, 0, 256, 3);
-            ctx.fillRect(0, 61, 256, 3);
-
-            window.__SW_HAZARD_TEX__ = TextureClass.from(cv);
-            return window.__SW_HAZARD_TEX__;
-        } catch(e) { return null; }
-    }
-
-    function getChevronBumperTexture() {
-        if (window.__SW_CHEVRON_TEX__) return window.__SW_CHEVRON_TEX__;
-        try {
-            const originalMap = window.__lib && window.__lib.getMap && window.__lib.getMap('halo');
-            const TextureClass = originalMap && originalMap.constructor;
-            if (!TextureClass || typeof TextureClass.from !== 'function') return null;
-            const cv = document.createElement('canvas');
-            cv.width = 256; cv.height = 64;
-            const ctx = cv.getContext('2d');
-            if (!ctx) return null;
-
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 256, 64);
-
-            ctx.fillStyle = '#d32f2f';
-            const w = 32;
-            for (let x = 0; x < 256; x += w) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x + w * 0.5, 32);
-                ctx.lineTo(x, 64);
-                ctx.lineTo(x + w * 0.5, 64);
-                ctx.lineTo(x + w, 32);
-                ctx.lineTo(x + w * 0.5, 0);
-                ctx.closePath();
-                ctx.fill();
-            }
-
-            window.__SW_CHEVRON_TEX__ = TextureClass.from(cv);
-            return window.__SW_CHEVRON_TEX__;
-        } catch(e) { return null; }
-    }
-
-    function createCustomBoxPart(w, h, d, texture, hexColor = 0xffffff) {
-        let mesh = null;
-        try {
-            if (window.__lib && typeof window.__lib.getEntity === 'function') {
-                mesh = window.__lib.getEntity('currency_coin') || window.__lib.getEntity('blocker_standard');
+            if (window.__lib && window.__lib.hasGeometry) {
+                if (window.__lib.hasGeometry('FreightTrain_Cargo')) return window.__lib.getEntity('FreightTrain_Cargo');
+                if (window.__lib.hasGeometry('train_cargo')) return window.__lib.getEntity('train_cargo');
+                if (window.__lib.hasGeometry('train_cargo_low')) return window.__lib.getEntity('train_cargo_low');
+                if (window.__lib.hasGeometry('train_standard')) return window.__lib.getEntity('train_standard');
+                if (window.__lib.hasGeometry('train_sub')) return window.__lib.getEntity('train_sub');
             }
         } catch(e) {}
-        if (!mesh) return null;
-        if (window.BoxGeometry) {
-            try {
-                const geom = new window.BoxGeometry(w, h, d);
-                setFirstViewGeometry(mesh, geom);
-            } catch(e) {
-                if (mesh.scale) mesh.scale.set(w / 6, h / 6, d / 6);
+        try { return window.__lib.getEntity('train_start'); } catch(e) {}
+        return null;
+    }
+
+    function getRampWagon() {
+        try {
+            if (window.__lib && window.__lib.hasGeometry) {
+                if (window.__lib.hasGeometry('train_ramp')) return window.__lib.getEntity('train_ramp');
+                if (window.__lib.hasGeometry('train_ramp_low')) return window.__lib.getEntity('train_ramp_low');
             }
-        } else if (mesh.scale) {
-            mesh.scale.set(w / 6, h / 6, d / 6);
-        }
-        const applyMat = obj => {
-            if (!obj) return;
-            const v = obj.view3d;
-            if (v && v.material) {
-                const mats = Array.isArray(v.material) ? v.material : [v.material];
-                mats.forEach(m => {
-                    if (!m) return;
-                    if (texture) {
-                        m.diffuseMap = texture;
-                        if ('map' in m) m.map = texture;
-                    }
-                    if (hexColor !== undefined) m.color = hexColor;
-                    m.alpha = 1.0;
-                    m.transparent = false;
-                });
-            }
-            const ch = obj.children || (obj.container && obj.container.children);
-            if (ch) for (let i = 0; i < ch.length; i++) applyMat(ch[i]);
-        };
-        applyMat(mesh);
-        return mesh;
+        } catch(e) {}
+        try { return window.__lib.getEntity('blocker_standard'); } catch(e) {}
+        return null;
     }
 
     function createObstacle3D(type, x, y, z, options = {}) {
@@ -3161,185 +3030,52 @@
                     bounds = { depth: 17.5, width: 17.5, height: 8, isTrampoline: true };
                 }
             } else if (type === 'double_train') {
-                const getWagon = () => {
-                    try {
-                        if (window.__lib && window.__lib.hasGeometry && window.__lib.hasGeometry('train_cargo')) return window.__lib.getEntity('train_cargo');
-                    } catch(e) {}
-                    try {
-                        if (window.__lib && window.__lib.hasGeometry && window.__lib.hasGeometry('train_standard')) return window.__lib.getEntity('train_standard');
-                    } catch(e) {}
-                    try {
-                        return window.__lib.getEntity('train_start');
-                    } catch(e) {}
-                    return null;
-                };
-                const bottomWagon = getWagon();
+                const bottomWagon = getCargoWagon();
+                const topWagon = getCargoWagon();
                 if (bottomWagon) {
                     bottomWagon.rx = 0; bottomWagon.rz = 0; bottomWagon.ry = Math.PI;
                     mesh = bottomWagon;
-                    const upperTier = createCustomBoxPart(17.2, 28, 58, getContainerTexture('#8e44ad'), 0xffffff);
-                    const upperBumper = createCustomBoxPart(17.5, 2.4, 2.0, getChevronBumperTexture(), 0xffffff);
-                    const trainParts = [];
-                    if (upperTier) {
-                        upperTier._xOffset = 0; upperTier._yOffset = 43; upperTier._zOffset = 0;
-                        trainParts.push(upperTier);
+                    if (topWagon) {
+                        topWagon.rx = 0; topWagon.rz = 0; topWagon.ry = Math.PI;
+                        topWagon._xOffset = 0;
+                        topWagon._yOffset = 29;
+                        topWagon._zOffset = 0;
+                        try { setEntityHexColor(topWagon, 0xd35400); } catch(e) {}
+                        mesh._doubleTrainParts = [topWagon];
                     }
-                    if (upperBumper) {
-                        upperBumper._xOffset = 0; upperBumper._yOffset = 31; upperBumper._zOffset = -29;
-                        trainParts.push(upperBumper);
-                    }
-                    mesh._doubleTrainParts = trainParts;
                     bounds = { depth: 60, width: 18, height: 58, isDoubleTrain: true };
                 }
             } else if (type === 'triple_train') {
-                const getWagon = () => {
-                    try {
-                        if (window.__lib && window.__lib.hasGeometry && window.__lib.hasGeometry('train_cargo')) return window.__lib.getEntity('train_cargo');
-                    } catch(e) {}
-                    try {
-                        if (window.__lib && window.__lib.hasGeometry && window.__lib.hasGeometry('train_standard')) return window.__lib.getEntity('train_standard');
-                    } catch(e) {}
-                    try {
-                        return window.__lib.getEntity('train_start');
-                    } catch(e) {}
-                    return null;
-                };
-                const bottomWagon = getWagon();
+                const bottomWagon = getCargoWagon();
+                const midWagon = getCargoWagon();
+                const topWagon = getCargoWagon();
                 if (bottomWagon) {
                     bottomWagon.rx = 0; bottomWagon.rz = 0; bottomWagon.ry = Math.PI;
                     mesh = bottomWagon;
-                    const midTier = createCustomBoxPart(17.2, 28, 58, getContainerTexture('#2c3e50'), 0xffffff);
-                    const topTier = createCustomBoxPart(17.2, 28, 58, getContainerTexture('#c0392b'), 0xffffff);
-                    const midBumper = createCustomBoxPart(17.5, 2.4, 2.0, getChevronBumperTexture(), 0xffffff);
-                    const topBumper = createCustomBoxPart(17.5, 2.4, 2.0, getChevronBumperTexture(), 0xffffff);
                     const trainParts = [];
-                    if (midTier) { midTier._xOffset = 0; midTier._yOffset = 43; midTier._zOffset = 0; trainParts.push(midTier); }
-                    if (topTier) { topTier._xOffset = 0; topTier._yOffset = 72; topTier._zOffset = 0; trainParts.push(topTier); }
-                    if (midBumper) { midBumper._xOffset = 0; midBumper._yOffset = 31; midBumper._zOffset = -29; trainParts.push(midBumper); }
-                    if (topBumper) { topBumper._xOffset = 0; topBumper._yOffset = 60; topBumper._zOffset = -29; trainParts.push(topBumper); }
+                    if (midWagon) {
+                        midWagon.rx = 0; midWagon.rz = 0; midWagon.ry = Math.PI;
+                        midWagon._xOffset = 0; midWagon._yOffset = 29; midWagon._zOffset = 0;
+                        try { setEntityHexColor(midWagon, 0x2980b9); } catch(e) {}
+                        trainParts.push(midWagon);
+                    }
+                    if (topWagon) {
+                        topWagon.rx = 0; topWagon.rz = 0; topWagon.ry = Math.PI;
+                        topWagon._xOffset = 0; topWagon._yOffset = 58; topWagon._zOffset = 0;
+                        try { setEntityHexColor(topWagon, 0xc0392b); } catch(e) {}
+                        trainParts.push(topWagon);
+                    }
                     mesh._tripleTrainParts = trainParts;
                     bounds = { depth: 60, width: 18, height: 87, isTripleTrain: true };
                 }
-            } else if (type === 'wooden_stairs') {
-                const targetH = options.targetHeight || 29;
-                const stepDepth = 18;
-                const stepWidth = 16.5;
-                const h1 = targetH * 0.33;
-                const h2 = targetH * 0.66;
-                const h3 = targetH * 0.98;
-
-                const step1 = createCustomBoxPart(stepWidth, h1, stepDepth, getWoodPlankTexture(), 0x5c3818);
-                const step2 = createCustomBoxPart(stepWidth, h2, stepDepth, getWoodPlankTexture(), 0x5c3818);
-                const step3 = createCustomBoxPart(stepWidth, h3, stepDepth, getWoodPlankTexture(), 0x5c3818);
-
-                if (step1) {
-                    mesh = step1;
-                    mesh._xOffset = 0;
-                    mesh._yOffset = h1 * 0.5;
-                    mesh._zOffset = stepDepth;
-
-                    const stairsParts = [];
-                    if (step2) {
-                        step2._xOffset = 0;
-                        step2._yOffset = h2 * 0.5;
-                        step2._zOffset = 0;
-                        stairsParts.push(step2);
-                    }
-                    if (step3) {
-                        step3._xOffset = 0;
-                        step3._yOffset = h3 * 0.5;
-                        step3._zOffset = -stepDepth;
-                        stairsParts.push(step3);
-                    }
-
-                    // 3 longitudinal wooden planks along the incline connecting the steps
-                    const plankL = createCustomBoxPart(4.6, 1.8, 54, getWoodPlankTexture(), 0x6e4720);
-                    if (plankL) {
-                        plankL._xOffset = -5.2; plankL._yOffset = targetH * 0.5; plankL._zOffset = 0; plankL.rx = -0.42;
-                        stairsParts.push(plankL);
-                    }
-                    const plankM = createCustomBoxPart(4.6, 1.8, 54, getWoodPlankTexture(), 0x6e4720);
-                    if (plankM) {
-                        plankM._xOffset = 0; plankM._yOffset = targetH * 0.5; plankM._zOffset = 0; plankM.rx = -0.42;
-                        stairsParts.push(plankM);
-                    }
-                    const plankR = createCustomBoxPart(4.6, 1.8, 54, getWoodPlankTexture(), 0x6e4720);
-                    if (plankR) {
-                        plankR._xOffset = 5.2; plankR._yOffset = targetH * 0.5; plankR._zOffset = 0; plankR.rx = -0.42;
-                        stairsParts.push(plankR);
-                    }
-
-                    mesh._woodenStairsParts = stairsParts;
-                    mesh.targetHeight = targetH;
-                    bounds = { depth: 56, width: 17, height: targetH, isWoodenStairs: true, targetHeight: targetH };
-                }
-            } else if (type === 'suspended_container') {
-                const bodyColor = options.color || '#9e4a13';
-                const contBody = createCustomBoxPart(16.5, 22, 52, getContainerTexture(bodyColor), 0xffffff);
-                if (contBody) {
-                    mesh = contBody;
-                    mesh._xOffset = 0;
-                    mesh._yOffset = 0;
-                    mesh._zOffset = 0;
-
-                    const spreader = createCustomBoxPart(17.5, 2.2, 54, getHazardSpreaderTexture(), 0xffffff);
-                    if (spreader) {
-                        spreader._xOffset = 0;
-                        spreader._yOffset = 11 + 1.1;
-                        spreader._zOffset = 0;
-                    }
-
-                    const fbTop = createCustomBoxPart(16.8, 1.8, 1.5, getHazardSpreaderTexture(), 0xffffff);
-                    if (fbTop) { fbTop._xOffset = 0; fbTop._yOffset = 9.8; fbTop._zOffset = -26.2; }
-
-                    const fbBot = createCustomBoxPart(16.8, 1.8, 1.5, getHazardSpreaderTexture(), 0xffffff);
-                    if (fbBot) { fbBot._xOffset = 0; fbBot._yOffset = -9.8; fbBot._zOffset = -26.2; }
-
-                    const bbTop = createCustomBoxPart(16.8, 1.8, 1.5, getHazardSpreaderTexture(), 0xffffff);
-                    if (bbTop) { bbTop._xOffset = 0; bbTop._yOffset = 9.8; bbTop._zOffset = 26.2; }
-
-                    const bbBot = createCustomBoxPart(16.8, 1.8, 1.5, getHazardSpreaderTexture(), 0xffffff);
-                    if (bbBot) { bbBot._xOffset = 0; bbBot._yOffset = -9.8; bbBot._zOffset = 26.2; }
-
-                    const cableCorners = [
-                        { ox: -7.8, oz: -25 },
-                        { ox: 7.8, oz: -25 },
-                        { ox: -7.8, oz: 25 },
-                        { ox: 7.8, oz: 25 }
-                    ];
-                    const cableParts = [];
-                    if (spreader) cableParts.push(spreader);
-                    if (fbTop) cableParts.push(fbTop);
-                    if (fbBot) cableParts.push(fbBot);
-                    if (bbTop) cableParts.push(bbTop);
-                    if (bbBot) cableParts.push(bbBot);
-
-                    cableCorners.forEach(c => {
-                        const cable = createCustomBoxPart(0.35, 80, 0.35, null, 0x95a5a6);
-                        if (cable) {
-                            cable._xOffset = c.ox;
-                            cable._yOffset = 12 + 40;
-                            cable._zOffset = c.oz;
-                            cableParts.push(cable);
-                        }
-                    });
-
-                    mesh._suspendedContainerParts = cableParts;
-                    bounds = { depth: 54, width: 17, height: 24, isSuspendedContainer: true };
-                }
-            } else if (type === 'wooden_ramp') {
-                let rampMesh = null;
-                try {
-                    if (window.__lib && window.__lib.hasGeometry && window.__lib.hasGeometry('train_ramp')) {
-                        rampMesh = window.__lib.getEntity('train_ramp');
-                    }
-                } catch(e) {}
-                if (rampMesh) {
-                    rampMesh.rx = 0; rampMesh.rz = 0; rampMesh.ry = Math.PI;
-                    if (rampMesh.scale) rampMesh.scale.set(1.0, 1.0, 1.0);
-                    mesh = rampMesh;
+            } else if (type === 'wooden_stairs' || type === 'wooden_ramp') {
+                const ramp = getRampWagon();
+                if (ramp) {
+                    ramp.rx = 0; ramp.rz = 0; ramp.ry = Math.PI;
+                    const targetH = options.targetHeight || 29;
+                    if (ramp.scale) ramp.scale.set(1.0, targetH / 29, 1.0);
                     try {
-                        const woodTex = getWoodPlankTexture();
+                        const woodTex = get3WoodPlanksTexture();
                         if (woodTex) {
                             const visit = obj => {
                                 if (!obj) return;
@@ -3350,17 +3086,51 @@
                                         if (m) {
                                             m.diffuseMap = woodTex;
                                             if ('map' in m) m.map = woodTex;
-                                            m.color = 0x5c3818;
+                                            m.color = 0x6e4720;
                                         }
                                     });
                                 }
                                 const ch = obj.children || (obj.container && obj.container.children);
                                 if (ch) for (let i = 0; i < ch.length; i++) visit(ch[i]);
                             };
-                            visit(rampMesh);
+                            visit(ramp);
                         }
                     } catch(e) {}
-                    bounds = { depth: 70, width: 18, height: 29, isWoodenRamp: true };
+                    mesh = ramp;
+                    bounds = { depth: 70, width: 18, height: targetH, isWoodenRamp: true, isWoodenStairs: true, targetHeight: targetH };
+                }
+            } else if (type === 'suspended_container') {
+                const container = getCargoWagon();
+                if (container) {
+                    container.rx = 0; container.rz = 0; container.ry = Math.PI;
+                    const colors = [0xd35400, 0xc0392b, 0x27ae60, 0x2980b9];
+                    const chosenColor = options.color || colors[Math.floor(Math.random() * colors.length)];
+                    try { setEntityHexColor(container, chosenColor); } catch(e) {}
+                    mesh = container;
+
+                    // 4 cabos finos de aco para o ceu
+                    const cableParts = [];
+                    const corners = [
+                        { ox: -7.5, oz: -26 },
+                        { ox: 7.5, oz: -26 },
+                        { ox: -7.5, oz: 26 },
+                        { ox: 7.5, oz: 26 }
+                    ];
+                    corners.forEach(c => {
+                        let cable = null;
+                        try { cable = window.__lib.getEntity('currency_coin'); } catch(e) {}
+                        if (cable) {
+                            cable.rx = 0; cable.rz = 0; cable.ry = 0;
+                            if (cable.scale) cable.scale.set(0.04, 18.0, 0.04);
+                            setEntityHexColor(cable, 0x95a5a6);
+                            cable._xOffset = c.ox;
+                            cable._yOffset = 28;
+                            cable._zOffset = c.oz;
+                            cableParts.push(cable);
+                        }
+                    });
+                    mesh._suspendedContainerParts = cableParts;
+                    bounds = { depth: 58, width: 18, height: 29, isSuspendedContainer: true };
                 }
             }
 
@@ -4511,10 +4281,11 @@
                         if (!obs.used) activateTrampoline(obs, hero, heroBody, heroY, now);
                         continue;
                     }
-                    if (obs.type === 'wooden_ramp') {
+                    if (obs.type === 'wooden_ramp' || obs.type === 'wooden_stairs') {
+                        const targetH = (obs.bounds && obs.bounds.targetHeight) || 29;
                         const progress = Math.max(0, Math.min(1, ((obs.z + 35) - heroZ) / 70));
-                        const rampY = progress * 29;
-                        if (heroY >= rampY - 12) {
+                        const rampY = progress * targetH;
+                        if (heroY >= rampY - 14) {
                             heroBody.ground = Math.max(heroBody.ground || 0, rampY);
                             heroBody.bottom = Math.max(heroBody.bottom || 0, rampY);
                             heroBody.landed = true;
@@ -4522,11 +4293,11 @@
                         continue;
                     }
                     if (obs.type === 'double_train') {
-                        if (heroY >= 48) {
+                        if (heroY >= 45) {
                             heroBody.ground = Math.max(heroBody.ground || 0, 58);
                             heroBody.bottom = Math.max(heroBody.bottom || 0, 58);
                             heroBody.landed = true;
-                        } else if (heroY >= 20) {
+                        } else if (heroY >= 18) {
                             heroBody.ground = Math.max(heroBody.ground || 0, 29);
                             heroBody.bottom = Math.max(heroBody.bottom || 0, 29);
                             heroBody.landed = true;
@@ -4549,19 +4320,8 @@
                         }
                         continue;
                     }
-                    if (obs.type === 'wooden_stairs') {
-                        const targetH = obs.bounds ? (obs.bounds.targetHeight || 29) : 29;
-                        const progress = Math.max(0, Math.min(1, ((obs.z + 28) - heroZ) / 56));
-                        const stairY = progress * targetH;
-                        if (heroY >= stairY - 14) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, stairY);
-                            heroBody.bottom = Math.max(heroBody.bottom || 0, stairY);
-                            heroBody.landed = true;
-                        }
-                        continue;
-                    }
                     if (obs.type === 'suspended_container') {
-                        const topY = (obs.y || 25) + 22;
+                        const topY = (obs.y || 25) + 29;
                         if (heroY >= topY - 14) {
                             heroBody.ground = Math.max(heroBody.ground || 0, topY);
                             heroBody.bottom = Math.max(heroBody.bottom || 0, topY);
