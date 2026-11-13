@@ -140,6 +140,7 @@
         volume: _swSavedVol !== null ? Math.max(0, Math.min(100, parseInt(_swSavedVol, 10) || 0)) : 30, // 0 - 100 (padrão 30%)
         motionBlur: localStorage.getItem('sw_motion_blur') || 'soft', // 'off' | 'soft' | 'high'
         shaders: localStorage.getItem('sw_shaders') === 'medium' ? 'medium' : 'off', // 'off' (padrão) | 'medium' (BETA)
+        timeOfDay: localStorage.getItem('sw_time_of_day') || 'night', // 'night' | 'sunset' | 'day'
         noRevive: localStorage.getItem('sw_no_revive') !== '0', // true by default
     };
     window.__SW_VOLUME_OVERRIDE__ = GFX_SETTINGS.volume / 100;
@@ -149,6 +150,7 @@
         document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
         document.documentElement.style.setProperty('--game-contrast', GFX_SETTINGS.contrast + '%');
         applyScreenAspectRatio(GFX_SETTINGS.aspectRatio);
+        setTimeout(() => applyTimeOfDay(GFX_SETTINGS.timeOfDay), 500);
     } catch(e) {}
 
     function applyGameVolume(pct) {
@@ -216,7 +218,91 @@
         } catch(e) { return null; }
     }
 
+    function applyTimeOfDay(tod = 'night') {
+        tod = (tod === 'sunset' || tod === 'day') ? tod : 'night';
+        GFX_SETTINGS.timeOfDay = tod;
+        try { localStorage.setItem('sw_time_of_day', tod); } catch(e) {}
+
+        try {
+            const renderer = window.app && window.app.renderer;
+            if (renderer) {
+                if (tod === 'sunset') renderer.backgroundColor = 0xc0392b;
+                else if (tod === 'day') renderer.backgroundColor = 0x2980b9;
+                else renderer.backgroundColor = 0x110826;
+            }
+        } catch(e) {}
+
+        try {
+            const cv = document.querySelector('canvas');
+            if (cv) {
+                if (tod === 'sunset') cv.style.background = 'linear-gradient(180deg, #c0392b 0%, #d35400 45%, #f39c12 100%)';
+                else if (tod === 'day') cv.style.background = 'linear-gradient(180deg, #1565c0 0%, #1e88e5 45%, #64b5f6 100%)';
+                else cv.style.background = 'linear-gradient(180deg, #090314 0%, #1a0b2e 60%, #2e1065 100%)';
+            }
+        } catch(e) {}
+
+        try {
+            const systems = (window.__SW_LIGHT_SYSTEMS__ || []).slice();
+            const gScene = window.game && window.game.scene && window.game.scene.view3d && window.game.scene.view3d.lights;
+            if (gScene && !systems.includes(gScene)) systems.push(gScene);
+            for (const ls of systems) {
+                if (!ls) continue;
+                if (ls.ambientLight) {
+                    if (tod === 'sunset') {
+                        ls.ambientLight.color = 0xff944d;
+                        ls.ambientLight.intensity = 0.65;
+                    } else if (tod === 'day') {
+                        ls.ambientLight.color = 0xffffff;
+                        ls.ambientLight.intensity = 0.90;
+                    } else { // night
+                        ls.ambientLight.color = (GFX_SETTINGS.shaders === 'off') ? 0xffffff : 0x9bbdff;
+                        ls.ambientLight.intensity = (GFX_SETTINGS.shaders === 'off') ? 0.5 : 0.35;
+                    }
+                    ls.ambientLight.dirty = true;
+                    if (typeof ls.ambientLight.update === 'function') ls.ambientLight.update();
+                }
+                if (Array.isArray(ls.lightEntities)) {
+                    for (const le of ls.lightEntities) {
+                        const l = le && le.light;
+                        if (!l) continue;
+                        if (tod === 'sunset') {
+                            l.color = 0xff7043;
+                            l.intensity = 1.85;
+                            if (l.direction && l.direction.set) l.direction.set(0.65, -0.60, -0.45);
+                        } else if (tod === 'day') {
+                            l.color = 0xfffae6;
+                            l.intensity = 1.55;
+                            if (l.direction && l.direction.set) l.direction.set(0.35, -0.85, -0.40);
+                        } else { // night
+                            l.color = (GFX_SETTINGS.shaders === 'off') ? 0xffffff : 0xd8b4fe;
+                            l.intensity = (GFX_SETTINGS.shaders === 'off') ? 1.0 : 1.25;
+                            if (l.direction && l.direction.set) l.direction.set(0.48, -0.80, -0.36);
+                        }
+                        if (typeof l.update === 'function') l.update();
+                    }
+                }
+            }
+        } catch(e) {}
+    }
+
+    window.__setTimeOfDay = function(tod) {
+        applyTimeOfDay(tod);
+        const pill = document.getElementById('val-gfx-timeofday');
+        if (pill) pill.textContent = getTimeOfDayLabel(tod);
+        ['night', 'sunset', 'day'].forEach(t => {
+            const btn = document.getElementById('btn-tod-' + t);
+            if (btn) btn.classList.toggle('active', t === tod);
+        });
+    };
+
+    function getTimeOfDayLabel(tod) {
+        if (tod === 'sunset') return 'Tarde (Pôr do Sol)';
+        if (tod === 'day') return 'Dia (Claro)';
+        return 'Noite (Padrão)';
+    }
+
     function applyShaderAndShadowPipeline() {
+        applyTimeOfDay(GFX_SETTINGS.timeOfDay);
         const mode = (GFX_SETTINGS.shaders === 'off') ? 'off' : 'medium';
         window.__SW_SHADER_MODE__ = mode;
         const lv = mode === 'off' ? 0.0 : 1.0;
@@ -3062,14 +3148,6 @@
         for (const c of corners) {
             b.addBox(c.cx - 0.8, y1, c.cz - 0.8, c.cx + 0.8, y1 + 1.2, c.cz + 0.8, 0.4, 0.4, 0.6, 0.6);
         }
-
-        if (hasCables) {
-            const cableR = 0.22;
-            const cableTopY = 160;
-            for (const c of corners) {
-                b.addBox(c.cx - cableR, y1 + 1.0, c.cz - cableR, c.cx + cableR, cableTopY, c.cz + cableR, 0.45, 0.45, 0.55, 0.55);
-            }
-        }
         return b;
     }
 
@@ -3269,10 +3347,11 @@
                     bounds = { depth: 17.5, width: 17.5, height: 8, isTrampoline: true };
                 }
             } else if (type === 'double_train') {
-                const bottomCont = createCustom3DEntity('container_nocable_d35400', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xd35400), 0xd35400);
+                const bottomWagon = getCargoWagon() || createCustom3DEntity('container_nocable_d35400', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xd35400), 0xd35400);
                 const topCont = createCustom3DEntity('container_nocable_c0392b', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xc0392b), 0xc0392b);
-                if (bottomCont) {
-                    mesh = bottomCont;
+                if (bottomWagon) {
+                    bottomWagon.rx = 0; bottomWagon.rz = 0; bottomWagon.ry = Math.PI;
+                    mesh = bottomWagon;
                     if (topCont) {
                         topCont._xOffset = 0;
                         topCont._yOffset = 28;
@@ -3282,15 +3361,17 @@
                     bounds = { depth: 56, width: 18, height: 56, isDoubleTrain: true };
                 }
             } else if (type === 'triple_train') {
-                const bottomCont = createCustom3DEntity('container_nocable_2980b9', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0x2980b9), 0x2980b9);
-                const midCont = createCustom3DEntity('container_nocable_d35400', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xd35400), 0xd35400);
+                const bottomWagon = getCargoWagon() || createCustom3DEntity('container_nocable_2980b9', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0x2980b9), 0x2980b9);
+                const midWagon = getCargoWagon() || createCustom3DEntity('container_nocable_d35400', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xd35400), 0xd35400);
                 const topCont = createCustom3DEntity('container_nocable_c0392b', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xc0392b), 0xc0392b);
-                if (bottomCont) {
-                    mesh = bottomCont;
+                if (bottomWagon) {
+                    bottomWagon.rx = 0; bottomWagon.rz = 0; bottomWagon.ry = Math.PI;
+                    mesh = bottomWagon;
                     const trainParts = [];
-                    if (midCont) {
-                        midCont._xOffset = 0; midCont._yOffset = 28; midCont._zOffset = 0;
-                        trainParts.push(midCont);
+                    if (midWagon) {
+                        midWagon.rx = 0; midWagon.rz = 0; midWagon.ry = Math.PI;
+                        midWagon._xOffset = 0; midWagon._yOffset = 28; midWagon._zOffset = 0;
+                        trainParts.push(midWagon);
                     }
                     if (topCont) {
                         topCont._xOffset = 0; topCont._yOffset = 56; topCont._zOffset = 0;
@@ -3300,7 +3381,7 @@
                     bounds = { depth: 56, width: 18, height: 84, isTripleTrain: true };
                 }
             } else if (type === 'wooden_stairs' || type === 'wooden_ramp') {
-                const targetH = options.targetHeight || 29;
+                const targetH = options.targetHeight || 28;
                 const key = 'wooden_ramp_' + Math.round(targetH);
                 const rampEnt = createCustom3DEntity(key, () => build3PlankWoodenRamp(targetH), { minX: -9, minY: -2, minZ: -28, maxX: 9, maxY: targetH, maxZ: 28 }, get3WoodPlanksTexture(), 0x6e4720);
                 if (rampEnt) {
@@ -3310,8 +3391,8 @@
             } else if (type === 'suspended_container') {
                 const colors = [0xd35400, 0xc0392b, 0x27ae60, 0x2980b9];
                 const chosenColor = options.color || colors[Math.floor(Math.random() * colors.length)];
-                const key = 'container_cables_' + chosenColor.toString(16);
-                const containerEnt = createCustom3DEntity(key, () => buildShippingContainer(true), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 160, maxZ: 28 }, getContainerTexture(chosenColor), chosenColor);
+                const key = 'container_nocable_' + chosenColor.toString(16);
+                const containerEnt = createCustom3DEntity(key, () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(chosenColor), chosenColor);
                 if (containerEnt) {
                     mesh = containerEnt;
                     bounds = { depth: 56, width: 18, height: 28, isSuspendedContainer: true };
@@ -3952,63 +4033,63 @@
                 }
             });
         } else if (pattern === 18) {
-            // 18. Triple Train (3 vagões de altura, y=87) + Escada de tábuas de madeira na frente + Moedas no teto alto
+            // 18. Triple Train (3 vagões de altura, y=84) + Escada perfeitamente alinhada no 2º andar
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 40, { targetHeight: 58 });
-            if (stairs) customObstacles.push(stairs);
             const triple = createObstacle3D('triple_train', lane, 0, centerZ - 20);
             if (triple) customObstacles.push(triple);
-            [centerZ + 45, centerZ + 25, centerZ + 5, centerZ - 15, centerZ - 35].forEach((z, idx) => {
-                const y = idx < 2 ? 18 + idx * 16 : 92;
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, (centerZ - 20) + 56, { targetHeight: 56 });
+            if (stairs) customObstacles.push(stairs);
+            [centerZ + 36, centerZ + 15, centerZ - 5, centerZ - 25, centerZ - 45].forEach((z, idx) => {
+                const y = idx < 2 ? 20 + idx * 18 : 88;
                 const c = createObstacle3D('coin', lane, y, z);
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 19) {
-            // 19. Container Suspenso no ar com 4 cabos cinzas para o céu + Escada de tábuas para subir
+            // 19. Container Suspenso (y=28, teto=56) + Escada de tábuas perfeitamente alinhada com o teto
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 45, { targetHeight: 29 });
-            if (stairs) customObstacles.push(stairs);
-            const container = createObstacle3D('suspended_container', lane, 25, centerZ - 15);
+            const container = createObstacle3D('suspended_container', lane, 28, centerZ - 20);
             if (container) customObstacles.push(container);
-            [centerZ + 50, centerZ + 30, centerZ + 10, centerZ - 10, centerZ - 30].forEach((z, idx) => {
-                const y = idx < 2 ? 10 + idx * 10 : 56;
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, (centerZ - 20) + 56, { targetHeight: 56 });
+            if (stairs) customObstacles.push(stairs);
+            [centerZ + 36, centerZ + 15, centerZ - 5, centerZ - 25, centerZ - 45].forEach((z, idx) => {
+                const y = idx < 2 ? 18 + idx * 18 : 60;
                 const c = createObstacle3D('coin', lane, y, z);
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 20) {
-            // 20. Parkour Aéreo: 2 Containers Suspensos com cabos cinzas em pistas vizinhas + Moedas guiando o pulo
+            // 20. Parkour Aéreo: 2 Containers Suspensos em pistas vizinhas com escada alinhada
             const lane1 = freeGroundLanes[0];
             const lane2 = freeGroundLanes.length > 1 ? freeGroundLanes[1] : 0;
-            const c1 = createObstacle3D('suspended_container', lane1, 24, centerZ + 25);
+            const c1 = createObstacle3D('suspended_container', lane1, 28, centerZ + 20);
             if (c1) customObstacles.push(c1);
-            const c2 = createObstacle3D('suspended_container', lane2, 32, centerZ - 35);
+            const c2 = createObstacle3D('suspended_container', lane2, 28, centerZ - 40);
             if (c2) customObstacles.push(c2);
-            const stairs = createObstacle3D('wooden_stairs', lane1, 0, centerZ + 80, { targetHeight: 29 });
+            const stairs = createObstacle3D('wooden_stairs', lane1, 0, (centerZ + 20) + 56, { targetHeight: 56 });
             if (stairs) customObstacles.push(stairs);
-            [ { x: lane1, y: 54, z: centerZ + 25 }, { x: (lane1 + lane2) / 2, y: 58, z: centerZ - 5 }, { x: lane2, y: 62, z: centerZ - 35 } ].forEach(pt => {
+            [ { x: lane1, y: 60, z: centerZ + 20 }, { x: (lane1 + lane2) / 2, y: 60, z: centerZ - 10 }, { x: lane2, y: 60, z: centerZ - 40 } ].forEach(pt => {
                 const coin = createObstacle3D('coin', pt.x, pt.y, pt.z);
                 if (coin) customObstacles.push(coin);
             });
         } else if (pattern === 21) {
-            // 21. Escadaria de Trens Progressiva: Vagão Normal (y=29) -> Vagão Duplo (y=58) -> Vagão Triplo (y=87)
+            // 21. Escadaria de Trens Progressiva: Vagão Duplo (y=56) com escada alinhada
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 90, { targetHeight: 29 });
-            if (stairs) customObstacles.push(stairs);
-            const dTrain = createObstacle3D('double_train', lane, 0, centerZ + 30);
+            const dTrain = createObstacle3D('double_train', lane, 0, centerZ + 20);
             if (dTrain) customObstacles.push(dTrain);
-            const tTrain = createObstacle3D('triple_train', lane, 0, centerZ - 40);
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, (centerZ + 20) + 56, { targetHeight: 56 });
+            if (stairs) customObstacles.push(stairs);
+            const tTrain = createObstacle3D('triple_train', lane, 0, centerZ - 50);
             if (tTrain) customObstacles.push(tTrain);
-            [centerZ + 90, centerZ + 60, centerZ + 30, centerZ, centerZ - 35].forEach((z, i) => {
-                const y = [14, 34, 62, 75, 92][i];
+            [centerZ + 76, centerZ + 50, centerZ + 20, centerZ - 10, centerZ - 50].forEach((z, i) => {
+                const y = [16, 38, 60, 72, 88][i];
                 const coin = createObstacle3D('coin', lane, y, z);
                 if (coin) customObstacles.push(coin);
             });
         } else if (pattern === 22) {
-            // 22. Desvio Aéreo por Container Suspenso com 4 Cabos sobre Chão Bloqueado (Mato + Caçamba)
+            // 22. Desvio Aéreo por Container Suspenso com escada alinhada
             const centerLane = 0;
-            const container = createObstacle3D('suspended_container', centerLane, 26, centerZ);
+            const container = createObstacle3D('suspended_container', centerLane, 28, centerZ);
             if (container) customObstacles.push(container);
-            const stairs = createObstacle3D('wooden_stairs', centerLane, 0, centerZ + 55, { targetHeight: 29 });
+            const stairs = createObstacle3D('wooden_stairs', centerLane, 0, centerZ + 56, { targetHeight: 56 });
             if (stairs) customObstacles.push(stairs);
             [-20, 20].forEach(lx => {
                 const obs = createObstacle3D(lx < 0 ? 'bush' : 'dumpster', lx, 0, centerZ);
@@ -4035,30 +4116,30 @@
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const doubleTrain = createObstacle3D('double_train', lane, 0, centerZ);
             if (doubleTrain) customObstacles.push(doubleTrain);
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 55, { targetHeight: 58 });
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 56, { targetHeight: 56 });
             if (stairs) customObstacles.push(stairs);
             [centerZ + 50, centerZ + 25, centerZ, centerZ - 25].forEach((z, i) => {
                 const coin = createObstacle3D('coin', lane, 62, z);
                 if (coin) customObstacles.push(coin);
             });
         } else if (pattern === 25) {
-            // 25. Trilha Aérea de 3 Containers Suspensos Segurados por Cabos
+            // 25. Trilha Aérea de 3 Containers Suspensos
             [-20, 0, 20].forEach((lx, i) => {
                 const z = centerZ - (i * 35) + 35;
-                const cont = createObstacle3D('suspended_container', lx, 25, z);
+                const cont = createObstacle3D('suspended_container', lx, 28, z);
                 if (cont) customObstacles.push(cont);
-                const coin = createObstacle3D('coin', lx, 55, z);
+                const coin = createObstacle3D('coin', lx, 60, z);
                 if (coin) customObstacles.push(coin);
             });
-            const stairs = createObstacle3D('wooden_stairs', -20, 0, centerZ + 85, { targetHeight: 29 });
+            const stairs = createObstacle3D('wooden_stairs', -20, 0, (centerZ + 35) + 56, { targetHeight: 56 });
             if (stairs) customObstacles.push(stairs);
         } else if (pattern === 26) {
             // 26. Escadaria de Madeira Dupla Paralela com Moedas Cruzadas
             const laneA = freeGroundLanes[0];
             const laneB = freeGroundLanes[freeGroundLanes.length - 1];
-            const s1 = createObstacle3D('wooden_stairs', laneA, 0, centerZ + 30, { targetHeight: 29 });
+            const s1 = createObstacle3D('wooden_stairs', laneA, 0, centerZ + 30, { targetHeight: 28 });
             if (s1) customObstacles.push(s1);
-            const s2 = createObstacle3D('wooden_stairs', laneB, 0, centerZ - 20, { targetHeight: 29 });
+            const s2 = createObstacle3D('wooden_stairs', laneB, 0, centerZ - 20, { targetHeight: 28 });
             if (s2) customObstacles.push(s2);
             [centerZ + 30, centerZ + 10, centerZ - 10, centerZ - 30].forEach((z, i) => {
                 const lx = i % 2 === 0 ? laneA : laneB;
@@ -4071,9 +4152,9 @@
             const sideLane = freeGroundLanes.length > 1 ? freeGroundLanes[1] : (mainLane === 0 ? 20 : 0);
             const triple = createObstacle3D('triple_train', mainLane, 0, centerZ);
             if (triple) customObstacles.push(triple);
-            const stairs = createObstacle3D('wooden_stairs', mainLane, 0, centerZ + 60, { targetHeight: 87 });
+            const stairs = createObstacle3D('wooden_stairs', mainLane, 0, centerZ + 56, { targetHeight: 84 });
             if (stairs) customObstacles.push(stairs);
-            const cont = createObstacle3D('suspended_container', sideLane, 35, centerZ - 20);
+            const cont = createObstacle3D('suspended_container', sideLane, 28, centerZ - 20);
             if (cont) customObstacles.push(cont);
             [centerZ + 40, centerZ + 10, centerZ - 20].forEach((z, i) => {
                 const coin = createObstacle3D('coin', mainLane, 92, z);
@@ -4081,9 +4162,9 @@
             });
         } else if (pattern === 28) {
             // 28. Parkour Zig-Zag em Tábuas de Madeira e Tetos de Trem
-            const stairs1 = createObstacle3D('wooden_stairs', -20, 0, centerZ + 40, { targetHeight: 29 });
+            const stairs1 = createObstacle3D('wooden_stairs', -20, 0, centerZ + 40, { targetHeight: 28 });
             if (stairs1) customObstacles.push(stairs1);
-            const stairs2 = createObstacle3D('wooden_stairs', 20, 0, centerZ - 20, { targetHeight: 29 });
+            const stairs2 = createObstacle3D('wooden_stairs', 20, 0, centerZ - 20, { targetHeight: 28 });
             if (stairs2) customObstacles.push(stairs2);
             [-20, 0, 20].forEach((lx, i) => {
                 const z = centerZ - (i * 25) + 25;
@@ -4091,27 +4172,27 @@
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 29) {
-            // 29. Super Container Suspenso com 4 Cabos + Moeda de Energia no Teto
+            // 29. Super Container Suspenso + Moeda de Energia no Teto
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 50, { targetHeight: 29 });
-            if (stairs) customObstacles.push(stairs);
-            const cont = createObstacle3D('suspended_container', lane, 26, centerZ);
+            const cont = createObstacle3D('suspended_container', lane, 28, centerZ);
             if (cont) customObstacles.push(cont);
-            const energyCoin = createObstacle3D('energyCoin', lane, 56, centerZ);
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 56, { targetHeight: 56 });
+            if (stairs) customObstacles.push(stairs);
+            const energyCoin = createObstacle3D('energyCoin', lane, 62, centerZ);
             if (energyCoin) customObstacles.push(energyCoin);
-            const c1 = createObstacle3D('coin', lane, 56, centerZ + 20);
+            const c1 = createObstacle3D('coin', lane, 62, centerZ + 20);
             if (c1) customObstacles.push(c1);
-            const c2 = createObstacle3D('coin', lane, 56, centerZ - 20);
+            const c2 = createObstacle3D('coin', lane, 62, centerZ - 20);
             if (c2) customObstacles.push(c2);
         } else if (pattern === 30) {
-            // 30. Parkour de Containers Suspensos com Cabos no Céu
+            // 30. Parkour de Containers Suspensos
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const cont = createObstacle3D('suspended_container', lane, 29, centerZ - 20);
+            const cont = createObstacle3D('suspended_container', lane, 28, centerZ - 20);
             if (cont) customObstacles.push(cont);
-            const ramp = createObstacle3D('wooden_stairs', lane, 0, centerZ + 40, { targetHeight: 29 });
+            const ramp = createObstacle3D('wooden_stairs', lane, 0, (centerZ - 20) + 56, { targetHeight: 56 });
             if (ramp) customObstacles.push(ramp);
             [centerZ, centerZ - 20, centerZ - 40].forEach(z => {
-                const c = createObstacle3D('coin', lane, 60, z);
+                const c = createObstacle3D('coin', lane, 62, z);
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 31) {
@@ -4120,30 +4201,30 @@
             if (leftTrain) customObstacles.push(leftTrain);
             const rightTrain = createObstacle3D('double_train', 20, 0, centerZ);
             if (rightTrain) customObstacles.push(rightTrain);
-            const midCont = createObstacle3D('suspended_container', 0, 32, centerZ);
+            const midCont = createObstacle3D('suspended_container', 0, 28, centerZ);
             if (midCont) customObstacles.push(midCont);
-            const stairs = createObstacle3D('wooden_stairs', 0, 0, centerZ + 50, { targetHeight: 29 });
+            const stairs = createObstacle3D('wooden_stairs', 0, 0, centerZ + 56, { targetHeight: 56 });
             if (stairs) customObstacles.push(stairs);
             [centerZ + 20, centerZ, centerZ - 20].forEach(z => {
                 const c = createObstacle3D('coin', 0, 62, z);
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 32) {
-            // 32. Escadaria de Madeira Alta para Vagão Duplo (y=58) com Moedas Curvadas
+            // 32. Escadaria de Madeira Alta para Vagão Duplo (y=56) com Moedas Curvadas
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 45, { targetHeight: 58 });
-            if (stairs) customObstacles.push(stairs);
             const train = createObstacle3D('double_train', lane, 0, centerZ - 15);
             if (train) customObstacles.push(train);
-            [centerZ + 50, centerZ + 25, centerZ, centerZ - 25].forEach((z, i) => {
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, (centerZ - 15) + 56, { targetHeight: 56 });
+            if (stairs) customObstacles.push(stairs);
+            [centerZ + 35, centerZ + 15, centerZ - 5, centerZ - 25].forEach((z, i) => {
                 const c = createObstacle3D('coin', lane, 20 + i * 14, z);
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 33) {
-            // 33. Containers Suspensos Gêmeos com Moeda Oscilante entre Cabos
-            const c1 = createObstacle3D('suspended_container', -20, 26, centerZ);
+            // 33. Containers Suspensos Gêmeos com Moeda Oscilante
+            const c1 = createObstacle3D('suspended_container', -20, 28, centerZ);
             if (c1) customObstacles.push(c1);
-            const c2 = createObstacle3D('suspended_container', 20, 26, centerZ);
+            const c2 = createObstacle3D('suspended_container', 20, 28, centerZ);
             if (c2) customObstacles.push(c2);
             const oscCoin = createObstacle3D('coin', 0, 56, centerZ, {
                 isOscillating: true,
@@ -4151,14 +4232,14 @@
                 phase: 0
             });
             if (oscCoin) customObstacles.push(oscCoin);
-            const stairs = createObstacle3D('wooden_stairs', 0, 0, centerZ + 45, { targetHeight: 29 });
+            const stairs = createObstacle3D('wooden_stairs', -20, 0, centerZ + 56, { targetHeight: 56 });
             if (stairs) customObstacles.push(stairs);
         } else if (pattern === 34) {
             // 34. Vagão Triplo Central com Escada de Tábuas Frontal e Pistas Laterais Livres
-            const stairs = createObstacle3D('wooden_stairs', 0, 0, centerZ + 45, { targetHeight: 58 });
-            if (stairs) customObstacles.push(stairs);
             const triple = createObstacle3D('triple_train', 0, 0, centerZ - 15);
             if (triple) customObstacles.push(triple);
+            const stairs = createObstacle3D('wooden_stairs', 0, 0, (centerZ - 15) + 56, { targetHeight: 84 });
+            if (stairs) customObstacles.push(stairs);
             [centerZ + 30, centerZ + 5, centerZ - 20, centerZ - 45].forEach(z => {
                 const c = createObstacle3D('coin', 0, 92, z);
                 if (c) customObstacles.push(c);
@@ -4166,23 +4247,23 @@
         } else if (pattern === 35) {
             // 35. Parkour de 3 Níveis: Chão -> Escada -> Container Suspenso -> Teto do Trem
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, centerZ + 75, { targetHeight: 29 });
-            if (stairs) customObstacles.push(stairs);
-            const cont = createObstacle3D('suspended_container', lane, 26, centerZ + 20);
+            const cont = createObstacle3D('suspended_container', lane, 28, centerZ + 20);
             if (cont) customObstacles.push(cont);
-            const dTrain = createObstacle3D('double_train', lane, 0, centerZ - 35);
+            const stairs = createObstacle3D('wooden_stairs', lane, 0, (centerZ + 20) + 56, { targetHeight: 56 });
+            if (stairs) customObstacles.push(stairs);
+            const dTrain = createObstacle3D('double_train', lane, 0, centerZ - 36);
             if (dTrain) customObstacles.push(dTrain);
             [centerZ + 75, centerZ + 45, centerZ + 20, centerZ - 10, centerZ - 35].forEach((z, i) => {
-                const y = [14, 32, 56, 58, 62][i];
+                const y = [14, 32, 60, 60, 62][i];
                 const c = createObstacle3D('coin', lane, y, z);
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 36) {
             // 36. Ondulação Aérea de Moedas por cima de 2 Containers Suspensos
             [-20, 20].forEach((lx, i) => {
-                const cont = createObstacle3D('suspended_container', lx, 25, centerZ);
+                const cont = createObstacle3D('suspended_container', lx, 28, centerZ);
                 if (cont) customObstacles.push(cont);
-                const stairs = createObstacle3D('wooden_stairs', lx, 0, centerZ + 45, { targetHeight: 29 });
+                const stairs = createObstacle3D('wooden_stairs', lx, 0, centerZ + 56, { targetHeight: 56 });
                 if (stairs) customObstacles.push(stairs);
             });
             for (let i = 0; i < 5; i++) {
@@ -4195,11 +4276,11 @@
             // 37. Grande Desafio Vertical: Escada para Vagão Duplo + Container Suspenso com 4 Cabos + Vagão Triplo
             const laneA = freeGroundLanes[0];
             const laneB = freeGroundLanes.length > 1 ? freeGroundLanes[1] : 0;
-            const stairs = createObstacle3D('wooden_stairs', laneA, 0, centerZ + 70, { targetHeight: 58 });
-            if (stairs) customObstacles.push(stairs);
             const dTrain = createObstacle3D('double_train', laneA, 0, centerZ + 15);
             if (dTrain) customObstacles.push(dTrain);
-            const cont = createObstacle3D('suspended_container', laneB, 30, centerZ);
+            const stairs = createObstacle3D('wooden_stairs', laneA, 0, (centerZ + 15) + 56, { targetHeight: 56 });
+            if (stairs) customObstacles.push(stairs);
+            const cont = createObstacle3D('suspended_container', laneB, 28, centerZ);
             if (cont) customObstacles.push(cont);
             const tTrain = createObstacle3D('triple_train', laneA, 0, centerZ - 45);
             if (tTrain) customObstacles.push(tTrain);
@@ -4286,6 +4367,40 @@
         // Update active obstacles
         const now = frameNow;
         const isDashing = now < dashInvulnUntil;
+
+        // Elevate runner physics & smooth camera following over roofs and ramps
+        let maxElevatedGround = 0;
+        for (const obs of customObstacles) {
+            if (!obs || obs.destroyed) continue;
+            if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
+                const hd = (obs.bounds && obs.bounds.depth ? obs.bounds.depth / 2 : 28) + 2;
+                const hw = (obs.bounds && obs.bounds.width ? obs.bounds.width / 2 : 9) + 2;
+                if (Math.abs(obs.x - heroX) <= hw && Math.abs(obs.z - heroZ) <= hd) {
+                    const topRoof = obs.type === 'triple_train' ? 84 : (obs.type === 'double_train' ? 56 : (obs.y || 28) + 28);
+                    if (heroY >= topRoof - 10) {
+                        maxElevatedGround = Math.max(maxElevatedGround, topRoof);
+                    }
+                }
+            } else if (obs.type === 'wooden_ramp' || obs.type === 'wooden_stairs') {
+                const hd = (obs.bounds && obs.bounds.depth ? obs.bounds.depth / 2 : 28) + 2;
+                const hw = (obs.bounds && obs.bounds.width ? obs.bounds.width / 2 : 9) + 2;
+                if (Math.abs(obs.x - heroX) <= hw && Math.abs(obs.z - heroZ) <= hd) {
+                    const targetH = (obs.bounds && obs.bounds.targetHeight) || 28;
+                    const progress = Math.max(0, Math.min(1, ((obs.z + 28) - heroZ) / 56));
+                    const rampY = progress * targetH;
+                    if (heroY >= rampY - 10) {
+                        maxElevatedGround = Math.max(maxElevatedGround, rampY);
+                    }
+                }
+            }
+        }
+        if (maxElevatedGround > 0) {
+            heroBody.ground = Math.max(heroBody.ground || 0, maxElevatedGround);
+            if (hero.player) {
+                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, maxElevatedGround);
+                hero.player.cameraY = hero.player.cameraY * 0.85 + hero.player.cameraTargetY * 0.15;
+            }
+        }
 
         // Resolve spring contact before coin collisions so nearby No Coin
         // pickups shatter instead of ending the run on the same frame.
@@ -4440,7 +4555,7 @@
                         const shardColor = window.NO_COIN_MODE ? 0xff394f : 0xffd84a;
                         playCoinShatterEffect(obs, shardColor, 1.15);
                     }
-                    obs.destroyed = true;
+                    if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs') obs.destroyed = true;
                     removeObstacleViews(obs);
                     customObstacles.splice(i, 1);
 
@@ -4450,13 +4565,13 @@
                         grantEnergy(1);
                         playEnergyPickupEffect(obs);
                         try { if (window.game && window.game.sfx) window.game.sfx.play('pickup-coin', { volume: 0.8 }); } catch(e) {}
-                        obs.destroyed = true;
+                        if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs') obs.destroyed = true;
                         removeObstacleViews(obs);
                         customObstacles.splice(i, 1);
                         continue;
                     }
                     if (obs.type === 'coin') {
-                        obs.destroyed = true;
+                        if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs') obs.destroyed = true;
                         removeObstacleViews(obs);
                         customObstacles.splice(i, 1);
                         if (window.NO_COIN_MODE) {
@@ -4479,52 +4594,94 @@
                         continue;
                     }
                     if (obs.type === 'wooden_ramp' || obs.type === 'wooden_stairs') {
-                        const targetH = (obs.bounds && obs.bounds.targetHeight) || 29;
-                        const progress = Math.max(0, Math.min(1, ((obs.z + 35) - heroZ) / 70));
+                        const targetH = (obs.bounds && obs.bounds.targetHeight) || 28;
+                        const progress = Math.max(0, Math.min(1, ((obs.z + 28) - heroZ) / 56));
                         const rampY = progress * targetH;
-                        if (heroY >= rampY - 14) {
+                        if (heroY >= rampY - 8) {
                             heroBody.ground = Math.max(heroBody.ground || 0, rampY);
                             heroBody.bottom = Math.max(heroBody.bottom || 0, rampY);
+                            heroBody.y = Math.max(heroBody.y || 0, rampY);
                             heroBody.landed = true;
+                            if (hero.player) {
+                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, rampY);
+                                hero.player.cameraY = hero.player.cameraY * 0.80 + hero.player.cameraTargetY * 0.20;
+                            }
+                            continue;
                         }
-                        continue;
                     }
                     if (obs.type === 'double_train') {
-                        if (heroY >= 45) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, 58);
-                            heroBody.bottom = Math.max(heroBody.bottom || 0, 58);
+                        if (heroY >= 48) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, 56);
+                            heroBody.bottom = Math.max(heroBody.bottom || 0, 56);
+                            heroBody.y = Math.max(heroBody.y || 0, 56);
                             heroBody.landed = true;
-                        } else if (heroY >= 18) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, 29);
-                            heroBody.bottom = Math.max(heroBody.bottom || 0, 29);
+                            if (hero.player) {
+                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, 56);
+                                hero.player.cameraY = hero.player.cameraY * 0.85 + hero.player.cameraTargetY * 0.15;
+                            }
+                            continue;
+                        } else if (heroY >= 22) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, 28);
+                            heroBody.bottom = Math.max(heroBody.bottom || 0, 28);
+                            heroBody.y = Math.max(heroBody.y || 0, 28);
                             heroBody.landed = true;
+                            if (hero.player) {
+                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, 28);
+                                hero.player.cameraY = hero.player.cameraY * 0.85 + hero.player.cameraTargetY * 0.15;
+                            }
+                            continue;
                         }
-                        continue;
                     }
                     if (obs.type === 'triple_train') {
-                        if (heroY >= 72) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, 87);
-                            heroBody.bottom = Math.max(heroBody.bottom || 0, 87);
+                        if (heroY >= 74) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, 84);
+                            heroBody.bottom = Math.max(heroBody.bottom || 0, 84);
+                            heroBody.y = Math.max(heroBody.y || 0, 84);
                             heroBody.landed = true;
-                        } else if (heroY >= 45) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, 58);
-                            heroBody.bottom = Math.max(heroBody.bottom || 0, 58);
+                            if (hero.player) {
+                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, 84);
+                                hero.player.cameraY = hero.player.cameraY * 0.85 + hero.player.cameraTargetY * 0.15;
+                            }
+                            continue;
+                        } else if (heroY >= 48) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, 56);
+                            heroBody.bottom = Math.max(heroBody.bottom || 0, 56);
+                            heroBody.y = Math.max(heroBody.y || 0, 56);
                             heroBody.landed = true;
-                        } else if (heroY >= 18) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, 29);
-                            heroBody.bottom = Math.max(heroBody.bottom || 0, 29);
+                            if (hero.player) {
+                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, 56);
+                                hero.player.cameraY = hero.player.cameraY * 0.85 + hero.player.cameraTargetY * 0.15;
+                            }
+                            continue;
+                        } else if (heroY >= 22) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, 28);
+                            heroBody.bottom = Math.max(heroBody.bottom || 0, 28);
+                            heroBody.y = Math.max(heroBody.y || 0, 28);
                             heroBody.landed = true;
+                            if (hero.player) {
+                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, 28);
+                                hero.player.cameraY = hero.player.cameraY * 0.85 + hero.player.cameraTargetY * 0.15;
+                            }
+                            continue;
                         }
-                        continue;
                     }
                     if (obs.type === 'suspended_container') {
-                        const topY = (obs.y || 25) + 29;
-                        if (heroY >= topY - 14) {
+                        const topY = (obs.y || 28) + 28;
+                        const botY = obs.y || 28;
+                        if (heroY <= botY - 12) {
+                            continue; // runner passes safely under suspended container
+                        }
+                        if (heroY >= topY - 8) {
                             heroBody.ground = Math.max(heroBody.ground || 0, topY);
                             heroBody.bottom = Math.max(heroBody.bottom || 0, topY);
+                            heroBody.y = Math.max(heroBody.y || 0, topY);
                             heroBody.landed = true;
+                            if (hero.player) {
+                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, topY);
+                                hero.player.cameraY = hero.player.cameraY * 0.85 + hero.player.cameraTargetY * 0.15;
+                            }
+                            continue;
                         }
-                        continue;
                     }
 
                     if (obs.type === 'blocker_jump' && isJumping) {
@@ -4540,7 +4697,7 @@
                     if (now < trampolineCameraUntil) {
                         trampolineHitCount++;
                         if (trampolineHitCount <= 1) {
-                            obs.destroyed = true;
+                            if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs') obs.destroyed = true;
                             playCoinShatterEffect(obs, 0xffd84a, 1.2);
                             removeObstacleViews(obs);
                             customObstacles.splice(i, 1);
@@ -4566,7 +4723,7 @@
                         }
                     }
 
-                    obs.destroyed = true;
+                    if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs') obs.destroyed = true;
                     if (window.NO_COIN_MODE) {
                         triggerNoCoinDeath(null);
                         return;
@@ -7041,6 +7198,22 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Time of Day Card -->
+                    <div class="subway-setting-card">
+                        <div class="setting-row-top">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Hora do Dia</span>
+                                <span class="setting-desc">Iluminação do céu e mapa (Noite, Pôr do Sol, Dia)</span>
+                            </div>
+                            <span class="setting-pill" id="val-gfx-timeofday">${getTimeOfDayLabel(GFX_SETTINGS.timeOfDay)}</span>
+                        </div>
+                        <div class="sat-presets-row" style="margin-top: 10px;">
+                            <button class="btn-sat-chip ${GFX_SETTINGS.timeOfDay === 'night' ? 'active' : ''}" id="btn-tod-night" onclick="window.__setTimeOfDay('night')">🌙 Noite</button>
+                            <button class="btn-sat-chip ${GFX_SETTINGS.timeOfDay === 'sunset' ? 'active' : ''}" id="btn-tod-sunset" onclick="window.__setTimeOfDay('sunset')">🌅 Tarde (Pôr do Sol)</button>
+                            <button class="btn-sat-chip ${GFX_SETTINGS.timeOfDay === 'day' ? 'active' : ''}" id="btn-tod-day" onclick="window.__setTimeOfDay('day')">☀️ Dia</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Tab 2: Online Multiplayer (Clean Obsidian Hub) -->
@@ -7114,6 +7287,22 @@
                                 <button class="btn-refresh-online" onclick="window.__refreshOnline()">Atualizar</button>
                             </div>
                             <div class="online-players-list" id="online-players-list"></div>
+                        </div>
+                    </div>
+
+                    <!-- Time of Day Card -->
+                    <div class="subway-setting-card">
+                        <div class="setting-row-top">
+                            <div class="setting-text-col">
+                                <span class="setting-title">Hora do Dia</span>
+                                <span class="setting-desc">Iluminação do céu e mapa (Noite, Pôr do Sol, Dia)</span>
+                            </div>
+                            <span class="setting-pill" id="val-gfx-timeofday">${getTimeOfDayLabel(GFX_SETTINGS.timeOfDay)}</span>
+                        </div>
+                        <div class="sat-presets-row" style="margin-top: 10px;">
+                            <button class="btn-sat-chip ${GFX_SETTINGS.timeOfDay === 'night' ? 'active' : ''}" id="btn-tod-night" onclick="window.__setTimeOfDay('night')">🌙 Noite</button>
+                            <button class="btn-sat-chip ${GFX_SETTINGS.timeOfDay === 'sunset' ? 'active' : ''}" id="btn-tod-sunset" onclick="window.__setTimeOfDay('sunset')">🌅 Tarde (Pôr do Sol)</button>
+                            <button class="btn-sat-chip ${GFX_SETTINGS.timeOfDay === 'day' ? 'active' : ''}" id="btn-tod-day" onclick="window.__setTimeOfDay('day')">☀️ Dia</button>
                         </div>
                     </div>
                 </div>
