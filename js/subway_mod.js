@@ -1187,6 +1187,18 @@
     let trampolinePadTexture = null;
     let pilowGeometry = null;
     const pilowGeometryReady = loadPilowGeometry().then(data => { pilowGeometry = data; return data; }).catch(() => null);
+    let ventoinhaGeometry = null;
+    async function loadVentoinhaGeometry() {
+        try {
+            const resp = await fetch(new URL('assets/ventoinha_data.json', window.location.href).href, { cache: 'force-cache' });
+            if (resp.ok) {
+                ventoinhaGeometry = await resp.json();
+                return ventoinhaGeometry;
+            }
+        } catch(e) {}
+        return null;
+    }
+    const ventoinhaGeometryReady = loadVentoinhaGeometry();
 
     function multiplyMatrix4(a, b) {
         const out = new Float32Array(16);
@@ -2530,6 +2542,50 @@
     let ventLaunchActiveUntil = 0;
     let ventTargetRoof = 0;
 
+    function updateVentParticles(obs, now) {
+        if (!obs || obs.destroyed) return;
+        const hero = window.game && window.game.hero;
+        if (!hero || !hero.parent || !window.__lib || !window.__lib.getEntity) return;
+        if (!obs.windParticles) obs.windParticles = [];
+        const desiredCount = 6;
+        while (obs.windParticles.length < desiredCount) {
+            let part = null;
+            try { part = window.__lib.getEntity('currency_coin'); } catch(e) {}
+            if (!part) break;
+            part.rx = Math.PI / 2;
+            part.scale.set(0.12, 0.12, 0.04);
+            setEntityHexColor(part, 0x38bdf8);
+            try { hero.parent.addChild(part); } catch(e) { break; }
+            obs.windParticles.push({
+                entity: part,
+                xOff: (Math.random() - 0.5) * 10,
+                zOff: (Math.random() - 0.5) * 20,
+                progress: Math.random(),
+                speed: 0.018 + Math.random() * 0.016
+            });
+        }
+        const ventX = obs.x;
+        const ventY = obs.y || 0;
+        const ventZ = obs.z;
+        for (let i = 0; i < obs.windParticles.length; i++) {
+            const p = obs.windParticles[i];
+            p.progress += p.speed;
+            if (p.progress > 1) {
+                p.progress = 0;
+                p.xOff = (Math.random() - 0.5) * 10;
+                p.zOff = (Math.random() - 0.5) * 20;
+            }
+            const currentY = ventY + 1.2 + p.progress * 26;
+            const currentScale = (1 - p.progress * 0.5) * 0.14;
+            p.entity.x = ventX + p.xOff + Math.sin(now * 0.006 + i) * 1.2;
+            p.entity.y = currentY;
+            p.entity.z = ventZ + p.zOff;
+            p.entity.scale.set(currentScale, currentScale, 0.04);
+            p.entity.ry = (p.entity.ry || 0) + 0.12;
+            p.entity.active = true;
+        }
+    }
+
     function playVentWindEffect(vent) {
         try {
             const burst = document.createElement('div');
@@ -3026,6 +3082,14 @@
 
     function removeObstacleViews(obs) {
         if (!obs) return;
+        if (obs.windParticles && Array.isArray(obs.windParticles)) {
+            for (const p of obs.windParticles) {
+                if (p && p.parent) {
+                    try { p.parent.removeChild(p); } catch(e) {}
+                }
+            }
+            obs.windParticles = [];
+        }
         const views = [obs.mesh, ...(obs.parts || [])];
         for (const view of views) {
             if (view && view.parent) {
@@ -3357,6 +3421,14 @@
     }
 
     function buildVentGrateMesh() {
+        if (ventoinhaGeometry && ventoinhaGeometry.pos && ventoinhaGeometry.idx) {
+            return {
+                pos: ventoinhaGeometry.pos.slice(),
+                norm: ventoinhaGeometry.norm.slice(),
+                uv: ventoinhaGeometry.uv.slice(),
+                idx: ventoinhaGeometry.idx.slice()
+            };
+        }
         const b = createMeshBuilder();
         // Base plate between rails
         b.addBox(-7.5, 0, -16.0, 7.5, 1.0, 16.0, 0, 0, 1, 1);
@@ -3968,7 +4040,8 @@
                     if (rampY >= heroBody.ground) {
                         heroBody.ground = rampY;
                     }
-                    if (!isJumping && heroY <= rampY + 1.5 && heroY >= rampY - 4.5) {
+                    const isAscendingJump = (hero.jump && hero.jump.isJumping) || (heroBody.velocity && heroBody.velocity.y > 0.5);
+                    if (!isAscendingJump && heroY <= rampY + 1.5 && heroY >= rampY - 4.5) {
                         heroBody.bottom = rampY;
                         heroBody.y = rampY;
                         heroBody.velocity.y = 0;
@@ -3995,8 +4068,14 @@
                             heroBody.velocity.y = 0;
                         }
                     } else if (heroY < topRoof - 5) {
-                        if (obs.type === 'suspended_container' && baseY >= 24 && heroY <= 15) {
-                            // Safe underpass under suspended container!
+                        if (obs.type === 'suspended_container' && (baseY >= 20 || obs.y >= 20) && heroY <= (baseY || 28) + 1) {
+                            // Safe underpass under suspended container! Completely harmless.
+                        } else if (dx >= 6.2) {
+                            // Hitting the side/flank of a container: stumble / knockout instead of lethal death
+                            if (hero.player && !hero.player.dead) {
+                                if (typeof hero.player.stumble === 'function') hero.player.stumble('side');
+                                else if (typeof hero.player.dizzyStart === 'function') hero.player.dizzyStart();
+                            }
                         } else {
                             if (hero.player && !hero.player.dead) {
                                 hero.player.die('train');
@@ -4764,6 +4843,51 @@
             updateFlightCamera(hero, heroBody, heroY, now);
         }
 
+        // Update vent air particles and instant trigger on pass-over
+        for (const vent of customObstacles) {
+            if (!vent || (vent.type !== 'ventoinha' && vent.type !== 'air_vent')) continue;
+            updateVentParticles(vent, now);
+            const dz = Math.abs(vent.z - heroZ);
+            const dx = Math.abs(vent.x - heroX);
+            const ventTop = (vent.y || 0) + 18;
+            if (dz <= 20 && dx <= 8.5 && heroY <= ventTop) {
+                if (!vent.used && (!vent.usedTime || now - vent.usedTime > 1000)) {
+                    vent.usedTime = now;
+                    let targetRoof = (vent.bounds && vent.bounds.targetHeight) || 56;
+                    let distAhead = 50;
+                    for (const other of customObstacles) {
+                        if (!other || other === vent || other.destroyed) continue;
+                        if (Math.abs(other.x - vent.x) < 6 && other.z < vent.z && other.z >= vent.z - 130) {
+                            targetRoof = other.type === 'triple_train' ? 84 : (other.type === 'double_train' ? 56 : ((other.y || 0) + 28));
+                            distAhead = Math.abs(vent.z - other.z);
+                            break;
+                        }
+                    }
+                    try {
+                        if (window.game && window.game.sfx && window.game.sfx.play) {
+                            window.game.sfx.play('super-sneakers-jump');
+                        }
+                    } catch(e) {}
+                    playVentWindEffect(vent);
+                    const speedZ = Math.max(25, Math.abs(heroBody.velocity.z || 30));
+                    const tAirSec = Math.max(0.7, Math.min(1.3, distAhead / speedZ));
+                    if (hero.jump && hero.jump.perform) {
+                        hero.jump.perform(targetRoof + 4, true);
+                    } else if (heroBody.velocity) {
+                        heroBody.velocity.y = (targetRoof + 4) / (tAirSec * 28);
+                    }
+                    heroBody.landed = false;
+                    ventLaunchActiveUntil = now + (tAirSec * 1000);
+                    ventTargetRoof = targetRoof;
+                    flightAirborne = true;
+                    flightLaunchAt = now;
+                    if (hero.player) {
+                        hero.player.cameraTargetY = targetRoof;
+                    }
+                }
+            }
+        }
+
         // Resolve spring contact before coin collisions so nearby No Coin
         // pickups shatter instead of ending the run on the same frame.
         for (const pad of customObstacles) {
@@ -5114,6 +5238,13 @@
                         if (hero && hero.player) {
                             if (obs.type === 'bush' && typeof hero.player.stumble === 'function') {
                                 hero.player.stumble('bush');
+                            } else if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
+                                const dx = Math.abs(obs.x - heroX);
+                                if (dx >= 6.2 && typeof hero.player.stumble === 'function') {
+                                    hero.player.stumble('side');
+                                } else if (typeof hero.player.die === 'function') {
+                                    hero.player.die('train');
+                                }
                             } else if (typeof hero.player.die === 'function') {
                                 hero.player.die('train');
                             }
