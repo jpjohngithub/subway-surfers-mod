@@ -139,17 +139,20 @@
             if (leg === '1') return 70;
             return 0;
         })(), // 0 - 100 (100 = moeda totalmente preta)
-        volume: _swSavedVol !== null ? Math.max(0, Math.min(100, parseInt(_swSavedVol, 10) || 0)) : 30, // 0 - 100 (padrão 30%)
+        volume: (() => {
+            const v = localStorage.getItem('sw_volume');
+            return (v !== null && v !== '0') ? Math.max(10, Math.min(100, parseInt(v, 10) || 75)) : 75;
+        })(),
         musicVolume: (() => {
             const m = localStorage.getItem('sw_music_volume');
-            return m !== null ? Math.max(0, Math.min(100, parseInt(m, 10) || 0)) : 50;
+            return (m !== null && m !== '0') ? Math.max(10, Math.min(100, parseInt(m, 10) || 65)) : 65;
         })(),
         sfxVolume: (() => {
             const s = localStorage.getItem('sw_sfx_volume');
-            return s !== null ? Math.max(0, Math.min(100, parseInt(s, 10) || 0)) : 70;
+            return (s !== null && s !== '0') ? Math.max(10, Math.min(100, parseInt(s, 10) || 80)) : 80;
         })(),
         motionBlur: localStorage.getItem('sw_motion_blur') || 'off',
-        shaders: (localStorage.getItem('sw_shaders') === 'off') ? 'off' : 'on',
+        shaders: 'off',
         perfMode: localStorage.getItem('sw_perf_mode') === '1',
         timeOfDay: 'day',
         noRevive: localStorage.getItem('sw_no_revive') !== '0',
@@ -158,26 +161,61 @@
     window.__SW_NO_REVIVE__ = GFX_SETTINGS.noRevive;
     window.VANILLA_MODE = localStorage.getItem('sw_vanilla_mode') === '1';
     window.__swipeT = 16;
-    window.__SW_SHADER_VEC__ = new Float32Array([GFX_SETTINGS.perfMode || GFX_SETTINGS.shaders === 'off' ? 0.0 : 1.0, 0, 0, 0]);
+    window.__SW_SHADER_VEC__ = new Float32Array([0.0, 0, 0, 0]);
 
     function applyPerformanceMode(enabled) {
         GFX_SETTINGS.perfMode = !!enabled;
         localStorage.setItem('sw_perf_mode', enabled ? '1' : '0');
-        const canvas = document.getElementById('canvas');
+        const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
         if (canvas) {
-            canvas.style.filter = enabled ? 'none' : 'contrast(1.08) saturate(1.18) brightness(1.02)';
+            canvas.style.filter = enabled ? 'none' : (GFX_SETTINGS.saturation === 100 && GFX_SETTINGS.contrast === 100 ? '' : `saturate(${GFX_SETTINGS.saturation}%) contrast(${GFX_SETTINGS.contrast}%)`);
         }
         if (window.__SW_SHADER_VEC__) {
-            window.__SW_SHADER_VEC__[0] = enabled ? 0.0 : (GFX_SETTINGS.shaders === 'off' ? 0.0 : 1.0);
+            window.__SW_SHADER_VEC__[0] = 0.0;
         }
         window.__swipeT = 16;
         try {
             if (window.app && window.app.renderer) {
-                window.app.renderer.resolution = enabled ? 0.75 : 1.0;
+                window.app.renderer.resolution = enabled ? 0.60 : 1.0;
+                window.app.renderer.roundPixels = !!enabled;
                 window.app.renderer.resize(window.innerWidth, window.innerHeight);
+            }
+            if (window.GAME_CONFIG) {
+                window.GAME_CONFIG.grindParticles = !enabled;
+                window.GAME_CONFIG.culling = !!enabled;
+            }
+            const blurCv = document.getElementById('sw-motion-blur-canvas');
+            if (blurCv) blurCv.style.display = 'none';
+        } catch(e) {}
+    }
+
+    function ensureAudioUnlocked() {
+        try {
+            if (window.Howler && window.Howler.ctx && window.Howler.ctx.state === 'suspended') {
+                window.Howler.ctx.resume();
+            }
+            if (window.app && window.app.sound) {
+                if (window.app.sound.muted) window.app.sound.muted = false;
+                if (window.app.user && window.app.user.muted) {
+                    window.app.user.muted = false;
+                    try { window.app.user.save(); } catch(e) {}
+                }
+                const vol = (GFX_SETTINGS.volume || 75) / 100;
+                window.app.sound.volume(vol);
+                if (window.__SW_AUDIO_MGR__) {
+                    window.__SW_AUDIO_MGR__.muted = false;
+                    window.__SW_AUDIO_MGR__.systemMuted = false;
+                    window.__SW_AUDIO_MGR__.volume = vol;
+                }
+                if (!window.app.sound._musicPlaying && typeof window.app.sound.playMusic === 'function') {
+                    window.app.sound.playMusic('theme', { loops: true });
+                }
             }
         } catch(e) {}
     }
+    ['click', 'keydown', 'pointerdown', 'touchstart'].forEach(evt => {
+        window.addEventListener(evt, ensureAudioUnlocked, { passive: true });
+    });
 
     try {
         document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
@@ -186,6 +224,7 @@
         setTimeout(() => {
             applyTimeOfDay(GFX_SETTINGS.timeOfDay);
             applyPerformanceMode(GFX_SETTINGS.perfMode);
+            ensureAudioUnlocked();
         }, 500);
     } catch(e) {}
 
@@ -196,19 +235,9 @@
         const norm = clamped / 100;
         try {
             if (window.__SW_AUDIO_MGR__ && window.__SW_AUDIO_MGR__.musicChannel) {
-                const mc = window.__SW_AUDIO_MGR__.musicChannel;
-                mc.volume = norm;
-                if (!mc.__swFadeHooked) {
-                    mc.__swFadeHooked = true;
-                    const origFadeTo = mc.fadeTo;
-                    mc.fadeTo = function(targetVol, duration, onComplete) {
-                        const maxVol = (GFX_SETTINGS.musicVolume / 100);
-                        const scaled = targetVol > 0 ? (targetVol * maxVol) : 0;
-                        return origFadeTo.call(this, scaled, duration, onComplete);
-                    };
-                }
-                if (mc._children) {
-                    mc._children.forEach(inst => {
+                window.__SW_AUDIO_MGR__.musicChannel.volume = norm;
+                if (window.__SW_AUDIO_MGR__.musicChannel._children) {
+                    window.__SW_AUDIO_MGR__.musicChannel._children.forEach(inst => {
                         if (inst && typeof inst.volume !== 'undefined') inst.volume = norm;
                     });
                 }
@@ -223,10 +252,9 @@
         const norm = clamped / 100;
         try {
             if (window.__SW_AUDIO_MGR__ && window.__SW_AUDIO_MGR__.sfxChannel) {
-                const sc = window.__SW_AUDIO_MGR__.sfxChannel;
-                sc.volume = norm;
-                if (sc._children) {
-                    sc._children.forEach(inst => {
+                window.__SW_AUDIO_MGR__.sfxChannel.volume = norm;
+                if (window.__SW_AUDIO_MGR__.sfxChannel._children) {
+                    window.__SW_AUDIO_MGR__.sfxChannel._children.forEach(inst => {
                         if (inst && typeof inst.volume !== 'undefined') inst.volume = norm;
                     });
                 }
@@ -247,7 +275,7 @@
             if (window.__SW_AUDIO_MGR__) {
                 window.__SW_AUDIO_MGR__.volume = norm;
             }
-            if (window.app && window.app.sound && typeof window.app.sound.volume === 'function' && !window.app.sound.muted) {
+            if (window.app && window.app.sound && typeof window.app.sound.volume === 'function') {
                 window.app.sound.volume(norm);
             }
             applyMusicVolume(GFX_SETTINGS.musicVolume);
@@ -2155,8 +2183,8 @@
         const immunityBadge = document.getElementById('subway-boost-immunity-badge');
         const immunityTime = document.getElementById('subway-immunity-time');
         if (immunityBadge) {
-            if (boostEndTime > now && isRunActive && !isDead) {
-                const remainSec = Math.max(0, (boostEndTime - now) / 1000).toFixed(1);
+            if (boostImmunityUntil > now && isRunActive && !isDead) {
+                const remainSec = Math.max(0, (boostImmunityUntil - now) / 1000).toFixed(1);
                 immunityBadge.style.display = 'inline-flex';
                 if (immunityTime) immunityTime.textContent = `${remainSec}s`;
             } else {
@@ -2449,12 +2477,14 @@
 
     let boostStartTime = 0;
     let boostEndTime = 0;
+    let boostImmunityUntil = 0;
     window.__boostFovAdd = 0;
     window.__dashSpeedMult = 1.0;
 
     function resetBoost() {
         boostStartTime = 0;
         boostEndTime = 0;
+        boostImmunityUntil = 0;
         window.__dashSpeedMult = 1.0;
         window.__boostFovAdd = 0;
     }
@@ -2612,6 +2642,7 @@
         dashInvulnUntil = now + 750;
         boostStartTime = now;
         boostEndTime = now + 10000; // 7s velocidade total + 3s desaceleração suave
+        boostImmunityUntil = now + 3000; // Imunidade contra moeda vermelha dura exatamente 3s
         window.__dashSpeedMult = 1.45;
         window.__boostFovAdd = 15;
         playCoinShatterEffect(coin, 0x16a34a, 1.35, 14, false, true);
@@ -2791,7 +2822,7 @@
     // Called when player touches a coin in No Coin Mode
     window.__onNoCoinCollect = function(coin) {
         if (!window.NO_COIN_MODE) return;
-        if (Date.now() < dashInvulnUntil || Date.now() < boostEndTime) {
+        if (Date.now() < dashInvulnUntil || Date.now() < boostImmunityUntil) {
             playCoinShatterEffect(coin, 0xff2844, 1.35, 14, true, false, false);
             return;
         }
@@ -4481,48 +4512,42 @@
 
     function spawnSupplementalCoinTrail(centerZ) {
         const lanes = [-20, 0, 20];
-        const spacing = 22;
-        const firstZ = centerZ - 220;
-        const choices = lanes.map(lane => {
+        const spacing = 18;
+        const count = 7;
+        const firstZ = centerZ - 200;
+        let spawned = 0;
+
+        lanes.forEach(lane => {
             let clear = 0;
-            for (let i = 0; i < 4; i++) {
+            for (let i = 0; i < count; i++) {
                 const z = firstZ - i * spacing;
                 const nearPad = customObstacles.some(obs => obs && obs.type === 'trampoline' &&
-                    Math.abs(obs.x - lane) < 10 && Math.abs(obs.z - z) < 150);
+                    Math.abs(obs.x - lane) < 10 && Math.abs(obs.z - z) < 120);
                 const duplicate = customObstacles.some(obs => obs && obs.type === 'coin' &&
-                    Math.abs(obs.x - lane) < 8 && Math.abs(obs.z - z) < 20);
+                    Math.abs(obs.x - lane) < 8 && Math.abs(obs.z - z) < 18);
                 if (!nearPad && !duplicate && !isPositionBlocked(lane, 7, z, 9)) clear++;
             }
-            return { lane, clear };
-        }).sort((a, b) => b.clear - a.clear);
+            if (clear < 4) return;
 
-        const choice = choices[0];
-        if (!choice || choice.clear < 3) return 0;
-        const physics = window.game && window.game.physics;
-        const nearTrain = !!(physics && Array.isArray(physics.entities) && physics.entities.some(ent => {
-            const b = ent && ent.body;
-            const lbl = `${(ent && ent.name) || ''} ${(ent && ent.type) || ''} ${(ent && ent.model && ent.model.name) || ''}`.toLowerCase();
-            return b && !b.deco && !b.player && /train|wagon|freight/.test(lbl) && Math.abs(b.z - firstZ) < 150;
-        }));
-        const makeWave = !nearTrain && obstacleChunkCount % 3 === 0;
-        let spawned = 0;
-        for (let i = 0; i < 4; i++) {
-            const z = firstZ - i * spacing;
-            if (isPositionBlocked(choice.lane, 7, z, 9)) continue;
-            if (customObstacles.some(obs => obs && obs.type === 'trampoline' &&
-                Math.abs(obs.x - choice.lane) < 10 && Math.abs(obs.z - z) < 150)) continue;
-            if (customObstacles.some(obs => obs && obs.type === 'coin' &&
-                Math.abs(obs.x - choice.lane) < 8 && Math.abs(obs.z - z) < 20)) continue;
-            const coin = createObstacle3D('coin', choice.lane, 7, z, makeWave ? {
-                isOscillating: true,
-                speed: 1.35,
-                phase: i * 0.62
-            } : {});
-            if (coin) {
-                customObstacles.push(coin);
-                spawned++;
+            const makeWave = obstacleChunkCount % 3 === 0;
+            for (let i = 0; i < count; i++) {
+                const z = firstZ - i * spacing;
+                if (isPositionBlocked(lane, 7, z, 9)) continue;
+                if (customObstacles.some(obs => obs && obs.type === 'trampoline' &&
+                    Math.abs(obs.x - lane) < 10 && Math.abs(obs.z - z) < 120)) continue;
+                if (customObstacles.some(obs => obs && obs.type === 'coin' &&
+                    Math.abs(obs.x - lane) < 8 && Math.abs(obs.z - z) < 18)) continue;
+                const coin = createObstacle3D('coin', lane, 7, z, makeWave ? {
+                    isOscillating: true,
+                    speed: 1.35,
+                    phase: i * 0.62
+                } : {});
+                if (coin) {
+                    customObstacles.push(coin);
+                    spawned++;
+                }
             }
-        }
+        });
         return spawned;
     }
 
@@ -4567,16 +4592,11 @@
         const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 12));
 
         if (isInsideTunnel(centerZ)) {
-            // NEVER spawn high containers, double trains or triple trains inside tunnels
+            // NEVER spawn high containers, double trains or blockers inside tunnels; spawn dense coins!
             if (freeGroundLanes.length > 0) {
-                const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-                const r = Math.random();
-                const obsType = r < 0.4 ? 'bush' : (r < 0.7 ? 'blocker_jump' : 'dumpster');
-                const o = createObstacle3D(obsType, lane, 0, centerZ);
-                if (o) customObstacles.push(o);
                 [-20, 0, 20].forEach(lx => {
-                    if (lx !== lane && Math.random() < 0.5) {
-                        const c = createObstacle3D('coin', lx, 6, centerZ);
+                    for (let s = 0; s < 4; s++) {
+                        const c = createObstacle3D('coin', lx, 6, centerZ - s * 22);
                         if (c) customObstacles.push(c);
                     }
                 });
@@ -4674,16 +4694,16 @@
         // 15–17: new coin formations (diamond, fork merge and triple wave)
         let pattern;
         if (isInsideTunnel(centerZ)) {
-            // Tunnels: only ground-level coins & low obstacles
+            // Tunnels: ground-level coins & dense coin trails
             pattern = Math.floor(Math.random() * 18);
         } else if (window.NO_COIN_MODE) {
-            // No Coin Mode: High obstacle & coin variety (0 to 45)
-            pattern = Math.floor(Math.random() * 46);
+            // No Coin Mode: High obstacle & coin variety (0 to 52)
+            pattern = Math.floor(Math.random() * 52);
         } else {
-            // Open air: 60% chance of varied container, parkour & vent patterns (18–37)
-            pattern = Math.random() < 0.60
-                ? (18 + Math.floor(Math.random() * 20))
-                : (Math.random() < 0.25 ? [0, 6, 7][Math.floor(Math.random() * 3)] : Math.floor(Math.random() * 18));
+            // Open air: 55% chance of dedicated rich coin formations (0-17, 46-51), 45% parkour container/train patterns
+            pattern = Math.random() < 0.55
+                ? (Math.random() < 0.50 ? (46 + Math.floor(Math.random() * 6)) : Math.floor(Math.random() * 18))
+                : (18 + Math.floor(Math.random() * 20));
         }
 
         if (pattern === 0) {
@@ -5118,14 +5138,68 @@
                 }
             });
         } else if (pattern === 45) {
-            // 45. NO-COIN: Sequência Tripla de Obstáculos com Moedas de Pressão
-            const obsTypes = ['dumpster', 'blocker_jump', 'bush'];
-            obsTypes.forEach((type, idx) => {
-                const lx = (idx % 2 === 0) ? -20 : 20;
-                const obs = createObstacle3D(type, lx, 0, centerZ - idx * 28);
-                if (obs) customObstacles.push(obs);
-                const c = createObstacle3D('coin', 0, 6, centerZ - idx * 28);
+            // 45. Sequência com Moedas Centrais
+            for (let s = 0; s < 5; s++) {
+                const c = createObstacle3D('coin', 0, 6, centerZ - s * 22);
                 if (c) customObstacles.push(c);
+            }
+        } else if (pattern === 46) {
+            // 46. TAPETE TRIPLO DE MOEDAS: Chuva de moedas em todas as 3 pistas (18 moedas!)
+            [-20, 0, 20].forEach(lx => {
+                for (let s = 0; s < 6; s++) {
+                    const c = createObstacle3D('coin', lx, 6, centerZ - s * 20);
+                    if (c) customObstacles.push(c);
+                }
+            });
+        } else if (pattern === 47) {
+            // 47. ARCO GIGANTE DE MOEDAS: Arcos parabólicos altos para pulo
+            [-20, 0, 20].forEach(lx => {
+                const arcHeights = [6, 11, 16, 20, 16, 11, 6];
+                arcHeights.forEach((h, s) => {
+                    const c = createObstacle3D('coin', lx, h, centerZ - s * 18);
+                    if (c) customObstacles.push(c);
+                });
+            });
+        } else if (pattern === 48) {
+            // 48. SERPENTE / ZIGUE-ZAGUE DE MOEDAS: Rota fluida contínua cruzando as pistas
+            const zigzag = [-20, -10, 0, 10, 20, 10, 0, -10, -20];
+            zigzag.forEach((lx, s) => {
+                const c = createObstacle3D('coin', lx, 6.5, centerZ - s * 22);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 49) {
+            // 49. MURALHA FLUTUANTE DE MOEDAS: Moedas no teto (y=16) + moedas no chão
+            [-20, 0, 20].forEach(lx => {
+                for (let s = 0; s < 4; s++) {
+                    const cRoof = createObstacle3D('coin', lx, 16, centerZ - s * 24);
+                    if (cRoof) customObstacles.push(cRoof);
+                    const cFloor = createObstacle3D('coin', lx, 5, centerZ - s * 24);
+                    if (cFloor) customObstacles.push(cFloor);
+                }
+            });
+        } else if (pattern === 50) {
+            // 50. LOSANGOS / DIAMOND GATES: Portais geométricos de moedas
+            [-20, 20].forEach(lx => {
+                const offsets = [
+                    { dy: 6, dz: 0 }, { dy: 11, dz: -16 }, { dy: 16, dz: -32 },
+                    { dy: 11, dz: -48 }, { dy: 6, dz: -64 }
+                ];
+                offsets.forEach(pt => {
+                    const c = createObstacle3D('coin', lx, pt.dy, centerZ + pt.dz);
+                    if (c) customObstacles.push(c);
+                });
+            });
+        } else if (pattern === 51) {
+            // 51. ONDA OSCILANTE TRIPLA: 3 Grupos de moedas oscilantes cruzando em sincronia
+            [-15, 0, 15].forEach((startX, idx) => {
+                for (let s = 0; s < 3; s++) {
+                    const c = createObstacle3D('coin', startX, 6.5, centerZ - s * 30, {
+                        isOscillating: true,
+                        speed: 1.8 + idx * 0.4,
+                        phase: idx * 1.2 + s * 0.5
+                    });
+                    if (c) customObstacles.push(c);
+                }
             });
         } else {
             // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
@@ -5191,7 +5265,7 @@
         // Check spawn ahead of runner at native train horizon distance
         if (heroZ < nextObstacleZ) {
             spawnNoCoinObstaclePattern(heroZ - 480);
-            const interval = window.NO_COIN_MODE ? (60 + Math.random() * 35) : (130 + Math.random() * 70);
+            const interval = window.NO_COIN_MODE ? (45 + Math.random() * 25) : (65 + Math.random() * 30);
             nextObstacleZ = heroZ - interval;
         }
 
@@ -5620,14 +5694,17 @@
                         }
                     }
 
-                    if (obs.type === 'blocker_jump' && isJumping) {
-                        continue; // Cleared jump barrier
-                    }
-                    if (obs.type === 'blocker_roll' && isRolling) {
-                        continue; // Cleared roll barrier
-                    }
-                    if (obs.type === 'bush' && isJumping) {
-                        continue; // Cleared bush jump
+                    if (obs.type === 'blocker_jump' || obs.type === 'blocker_roll' || obs.type === 'bush' || obs.type === 'dumpster') {
+                        if (isJumping || heroY >= 3.0 || isRolling) {
+                            continue; // Cleared barrier cleanly!
+                        }
+                        // Touching barrier: only stumble, NEVER instant kill!
+                        if (hero && hero.player && typeof hero.player.stumble === 'function') {
+                            hero.player.stumble(obs.type === 'blocker_roll' ? 'upper' : 'stumble');
+                        }
+                        removeObstacleViews(obs);
+                        customObstacles.splice(i, 1);
+                        continue;
                     }
 
                     if (now < trampolineCameraUntil) {
@@ -7683,7 +7760,7 @@
     try {
         _johnSurfLogoImg = new Image();
         _johnSurfLogoImg.crossOrigin = 'anonymous';
-        _johnSurfLogoImg.src = 'bundles/lasvegas/game-idle/train-start.png?v=logo1';
+        _johnSurfLogoImg.src = 'bundles/lasvegas/game-idle/train-start.png?v=johnsurf12';
     } catch(e) {}
 
     const SKIN_THEMES = {
@@ -7739,14 +7816,28 @@
 
         ctx.drawImage(img, 0, 0, w, h);
 
-        // Replace Subway Surfers logo on Jake's clothes with John Surf logo without any background box
+        // Replace Subway Surfers logo on Jake's clothes with John Surf logo with 100% transparent background
         try {
             if (_johnSurfLogoImg && _johnSurfLogoImg.complete && _johnSurfLogoImg.naturalWidth) {
                 const bx = Math.round(w * (67 / 256));
                 const by = Math.round(h * (174 / 256));
                 const bw = Math.round(w * (103 / 256));
                 const bh = Math.round(h * (80 / 256));
-                ctx.drawImage(_johnSurfLogoImg, bx, by, bw, bh);
+                const logoCv = document.createElement('canvas');
+                logoCv.width = bw; logoCv.height = bh;
+                const logoCtx = logoCv.getContext('2d');
+                if (logoCtx) {
+                    logoCtx.drawImage(_johnSurfLogoImg, 0, 0, bw, bh);
+                    const imgD = logoCtx.getImageData(0, 0, bw, bh);
+                    const dt = imgD.data;
+                    for (let p = 0; p < dt.length; p += 4) {
+                        if (dt[p] < 45 && dt[p + 1] < 45 && dt[p + 2] < 45) {
+                            dt[p + 3] = 0; // 100% transparent
+                        }
+                    }
+                    logoCtx.putImageData(imgD, 0, 0);
+                    ctx.drawImage(logoCv, bx, by);
+                }
             }
         } catch(e) {}
 
@@ -8142,15 +8233,6 @@
                                 <span class="setting-desc">Exibe contador discreto abaixo do timer</span>
                             </div>
                             <span class="setting-pill" id="val-gfx-showfps">${GFX_SETTINGS.showFps ? 'Ativado' : 'Desativado'}</span>
-                        </div>
-
-                        <!-- Shaders & Reformulated Shadows Setting (BETA) -->
-                        <div class="subway-setting-row" onclick="window.__cycleShaders()" title="Toque para alternar Shaders e Sombras 3D">
-                            <div class="setting-text-col">
-                                <span class="setting-title">Shaders & Sombras 3D <span style="display:inline-block;padding:1px 6px;margin-left:6px;font-size:9px;font-weight:900;border-radius:4px;background:#ff9800;color:#000;letter-spacing:0.5px;vertical-align:middle;">BETA</span></span>
-                                <span class="setting-desc">Iluminação direcional e sombras em tempo real</span>
-                            </div>
-                            <span class="setting-pill" id="val-gfx-shaders">${getShaderLabel(GFX_SETTINGS.shaders)}</span>
                         </div>
 
                         <!-- Motion Blur Setting -->
