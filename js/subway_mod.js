@@ -2547,6 +2547,12 @@
     let ventLaunchActiveUntil = 0;
     let ventTargetRoof = 0;
 
+    // ---- SKY PHASE SYSTEM ----
+    let skyPhaseActive = false;
+    let skyPhaseEndZ = 0;
+    let skyPhaseChunksLeft = 0;
+    let skyPhaseBaseZ = 0;
+
     function updateVentParticles(obs, now) {
         // Zero coin particles: ensures strictly NO coins ever appear above/on the ventoinha
         if (!obs || !obs.windParticles) return;
@@ -3205,6 +3211,9 @@
         trampolineCameraUntil = 0;
         trampolineLaunchAt = 0;
         window.__SW_TRAMPOLINE_AIR_UNTIL__ = 0;
+        skyPhaseActive = false;
+        skyPhaseChunksLeft = 0;
+        skyPhaseEndZ = 0;
         nextObstacleZ = (window.game && window.game.hero && window.game.hero.body ? window.game.hero.body.z : 0) - 350;
     }
 
@@ -3873,7 +3882,7 @@
 
     function createObstacle3D(type, x, y, z, options = {}) {
         if (!window.__lib || !window.__lib.getEntity) return null;
-        const margin = (type === 'wooden_ramp' || type === 'double_train') ? 70 : ((type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20);
+        const margin = (type === 'wooden_ramp' || type === 'double_train' || type === 'sky_bridge' || type === 'sky_parkour_ramp') ? 70 : ((type === 'dumpster' || type === 'bush' || type === 'blocker_jump' || type === 'blocker_roll') ? 35 : 20);
         try {
             if ((type === 'coin' || type === 'energyCoin') && !options.platformEntity && window.game && window.game.physics && Array.isArray(window.game.physics.entities)) {
                 const ents = window.game.physics.entities;
@@ -3901,7 +3910,7 @@
             }
         } catch(e) {}
         if (isPositionBlocked(x, y, z, margin, options.platformEntity || null)) return null;
-        if (/double_train|triple_train|suspended_container|ventoinha|air_vent|trampoline/.test(type)) {
+        if (/double_train|triple_train|suspended_container|ventoinha|air_vent|trampoline|sky_bridge|sky_parkour_ramp|rooftop_barrier/.test(type)) {
             if (isInsideTunnel(z)) return null;
         }
 
@@ -4003,6 +4012,37 @@
                     }
                     mesh._tripleTrainParts = trainParts;
                     bounds = { depth: 58, width: 18, height: 84, isTripleTrain: true };
+                }
+            } else if (type === 'sky_bridge') {
+                // Flat horizontal bridge platform, no support column
+                const bridgeMeshBuilder = buildSkyBridgeMesh();
+                if (bridgeMeshBuilder) {
+                    const bridgeEnt = createCustom3DEntity('sky_bridge_v1', () => buildSkyBridgeMesh(),
+                        { minX: -9, minY: 0, minZ: -30, maxX: 9, maxY: 8, maxZ: 30 }, getVentGrateTexture(), 0x8B6914);
+                    if (bridgeEnt) {
+                        setEntityHexColor(bridgeEnt, 0x8B6914);
+                        mesh = bridgeEnt;
+                        bounds = { depth: 60, width: 18, height: 8, isSkyBridge: true };
+                    }
+                }
+            } else if (type === 'sky_parkour_ramp') {
+                // Gradual-ascent ramp restored — improved wooden ramp
+                const tH = options.targetHeight || 28;
+                const rampEnt = createCustom3DEntity('sky_ramp_v1', () => buildSkyParkourRampMesh(tH),
+                    { minX: -9, minY: 0, minZ: -30, maxX: 9, maxY: tH, maxZ: 30 }, getVentGrateTexture(), 0xA0522D);
+                if (rampEnt) {
+                    setEntityHexColor(rampEnt, 0xA0522D);
+                    mesh = rampEnt;
+                    bounds = { depth: 60, width: 18, height: tH, targetHeight: tH, isSkyRamp: true };
+                }
+            } else if (type === 'rooftop_barrier') {
+                // Barrier at rooftop level (must roll under it)
+                const rEnt = createCustom3DEntity('rooftop_barrier_v1', () => buildRooftopBarrierMesh(),
+                    { minX: -8, minY: 0, minZ: -2, maxX: 8, maxY: 13, maxZ: 2 }, getVentGrateTexture(), 0xE0C040);
+                if (rEnt) {
+                    setEntityHexColor(rEnt, 0xE0C040);
+                    mesh = rEnt;
+                    bounds = { depth: 5, width: 18, height: 13, isRooftopBarrier: true, rollable: true };
                 }
             } else if (type === 'wooden_stairs' || type === 'wooden_ramp') {
                 return null; // Fake wooden stairs completely removed per user request
@@ -4140,6 +4180,84 @@
             if (children) for (let i = 0; i < children.length; i++) applyMaterialGlow(children[i]);
         };
         applyMaterialGlow(mesh);
+    }
+
+    // ---- SKY BRIDGE MESH ----
+    // A flat horizontal platform (like wooden ramp lying flat, no supports below)
+    function buildSkyBridgeMesh() {
+        const b = createMeshBuilder();
+        // Bridge deck: 60 deep x 18 wide x 3 tall, planks going longitudinal
+        const deckW = 9, deckH = 3, deckD = 30;
+        const uW0 = 0.02, vW0 = 0.52, uW1 = 0.48, vW1 = 0.98; // Brown wood
+        const uD0 = 0.52, vD0 = 0.52, uD1 = 0.98, vD1 = 0.98; // Dark underside
+        // Top face
+        b.addBox(-deckW, deckH, -deckD, deckW, deckH + 0.5, deckD, uW0, vW0, uW1, vW1);
+        // Side rails (wooden guardrails)
+        const railH = 5, railThick = 1.0;
+        b.addBox(-deckW, deckH, -deckD, -deckW + railThick, deckH + railH, deckD, uW0, vW0, uW1, vW1);
+        b.addBox( deckW - railThick, deckH, -deckD, deckW, deckH + railH, deckD, uW0, vW0, uW1, vW1);
+        // Cross-posts every 10u
+        for (let dz = -deckD + 10; dz < deckD; dz += 10) {
+            b.addBox(-deckW, deckH, dz - 0.5, deckW, deckH + railH, dz + 0.5, uW0, vW0, uW1, vW1);
+        }
+        // Underside
+        b.addBox(-deckW, 0, -deckD, deckW, deckH, deckD, uD0, vD0, uD1, vD1);
+        return b;
+    }
+
+    // ---- SKY PARKOUR RAMP MESH ----
+    // Gradual ascent ramp — restored & improved version of wooden_ramp
+    function buildSkyParkourRampMesh(targetH) {
+        const b = createMeshBuilder();
+        const h = targetH || 28;
+        const d = 60;
+        const w = 9;
+        const uW0 = 0.02, vW0 = 0.02, uW1 = 0.48, vW1 = 0.48;
+        const uDk = 0.52, vDk = 0.02, uDk1 = 0.98, vDk1 = 0.48;
+        // Main slope surface (top)
+        b.addQuad([-w, 0, d/2], [w, 0, d/2], [w, h, -d/2], [-w, h, -d/2], [0, 1, 0], uW0, vW0, uW1, vW1);
+        // Underside
+        b.addQuad([-w, h, -d/2], [w, h, -d/2], [w, 0, d/2], [-w, 0, d/2], [0, -1, 0], uDk, vDk, uDk1, vDk1);
+        // Side L
+        b.addQuad([-w, 0, d/2], [-w, h, -d/2], [-w, 0, -d/2], [-w, 0, -d/2], [-1, 0, 0], uDk, vDk, uDk1, vDk1);
+        // Side R
+        b.addQuad([w, h, -d/2], [w, 0, d/2], [w, 0, -d/2], [w, 0, -d/2], [1, 0, 0], uDk, vDk, uDk1, vDk1);
+        // Support pillars every 15u along the ramp
+        const steps = 4;
+        for (let s = 0; s < steps; s++) {
+            const frac = (s + 0.5) / steps;
+            const pz = d/2 - frac * d;
+            const ph = h * frac;
+            const pt = 1.5;
+            b.addBox(-w - 0.5, 0, pz - pt, -w, ph, pz + pt, uDk, vDk, uDk1, vDk1);
+            b.addBox( w, 0, pz - pt, w + 0.5, ph, pz + pt, uDk, vDk, uDk1, vDk1);
+        }
+        return b;
+    }
+
+    // ---- ROOFTOP BARRIER MESH ----
+    // Like a blocker_roll but for y=56 rooftop level
+    function buildRooftopBarrierMesh() {
+        const b = createMeshBuilder();
+        const uR0 = 0.02, vR0 = 0.02, uR1 = 0.48, vR1 = 0.48;
+        // Horizontal pipe obstacle - must roll under
+        b.addBox(-8, 0, -2, 8, 3.5, 2, uR0, vR0, uR1, vR1);         // base bar
+        b.addBox(-8.5, 0, -0.5, -7.5, 12, 0.5, uR0, vR0, uR1, vR1); // left post
+        b.addBox( 7.5, 0, -0.5, 8.5, 12, 0.5, uR0, vR0, uR1, vR1);  // right post
+        b.addBox(-8, 10, -1.5, 8, 13, 1.5, uR0, vR0, uR1, vR1);     // top pipe
+        return b;
+    }
+
+    // ---- SKY ARCH GATE MESH ----
+    // Coin arch gate for the sky level - arch of coins you jump through
+    function buildSkyArchGateMesh() {
+        const b = createMeshBuilder();
+        const uG0 = 0.52, vG0 = 0.02, uG1 = 0.98, vG1 = 0.48;
+        // Two tall pillars with a crossbeam - marker for coin arch
+        b.addBox(-10, 0, -1.5, -7, 20, 1.5, uG0, vG0, uG1, vG1);
+        b.addBox(  7, 0, -1.5, 10, 20, 1.5, uG0, vG0, uG1, vG1);
+        b.addBox(-10, 18, -1.5, 10, 20, 1.5, uG0, vG0, uG1, vG1);
+        return b;
     }
 
     function buildTrampolineCushionMesh(x, y, z) {
@@ -4333,10 +4451,39 @@
             const obs = customObstacles[i];
             if (!obs || obs.destroyed) continue;
 
+            if (obs.type === 'sky_bridge') {
+                const bridgeTop = (obs.y || 0) + (obs.bounds && obs.bounds.height ? obs.bounds.height : 8);
+                const hw2 = 10, hd2 = 32;
+                const dx2 = Math.abs(obs.x - heroX), dz2 = Math.abs(obs.z - heroZ);
+                if (dx2 <= hw2 && dz2 <= hd2) {
+                    const isAirborneAssisted2 = (now < ventLaunchActiveUntil) || (window.__SW_TRAMPOLINE_AIR_UNTIL__ && now < window.__SW_TRAMPOLINE_AIR_UNTIL__);
+                    if (heroY >= bridgeTop - 4 || isAirborneAssisted2) {
+                        heroBody.ground = Math.max(heroBody.ground || 0, bridgeTop + 0.11);
+                        if (hero.player) hero.player.cameraTargetY = bridgeTop;
+                    }
+                }
+                continue;
+            }
+
+            if (obs.type === 'sky_parkour_ramp') {
+                const rampHD3 = (obs.bounds && obs.bounds.depth ? obs.bounds.depth / 2 : 30);
+                const hw3 = (obs.bounds && obs.bounds.width ? obs.bounds.width / 2 : 9) + 1;
+                const dx3 = Math.abs(obs.x - heroX), dz3 = Math.abs(obs.z - heroZ);
+                if (dx3 <= hw3 && dz3 <= rampHD3 + 2) {
+                    const targetH3 = (obs.bounds && obs.bounds.targetHeight) || 28;
+                    const progress3 = Math.max(0, Math.min(1, ((obs.z + rampHD3) - heroZ) / (rampHD3 * 2)));
+                    const rampY3 = (obs.y || 0) + progress3 * targetH3;
+                    if (heroY >= rampY3 - 3) {
+                        heroBody.ground = Math.max(heroBody.ground || 0, rampY3 + 0.11);
+                        if (hero.player) hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, rampY3);
+                    }
+                }
+                continue;
+            }
+
             if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
                 const hw = 12.0;
-                const hd = 34;
-                const dx = Math.abs(obs.x - heroX);
+                const hd = 34;                const dx = Math.abs(obs.x - heroX);
                 const dz = Math.abs(obs.z - heroZ);
                 if (dx <= hw && dz <= hd) {
                     const isTriple = (obs.type === 'triple_train');
@@ -4645,14 +4792,42 @@
         if (isInsideTunnel(centerZ)) {
             // Tunnels: ground-level coins & dense coin trails
             pattern = Math.floor(Math.random() * 18);
+        } else if (skyPhaseActive && skyPhaseChunksLeft > 0) {
+            // SKY PHASE: spawn aerial sky patterns
+            skyPhaseChunksLeft--;
+            if (skyPhaseChunksLeft <= 0) {
+                // End sky phase with descent pattern
+                pattern = 62;
+                skyPhaseActive = false;
+            } else {
+                // Pick from sky patterns 54-65 (excluding descent 62)
+                const skyPool = [54, 55, 56, 57, 58, 59, 60, 61, 63, 64, 65];
+                pattern = skyPool[Math.floor(Math.random() * skyPool.length)];
+            }
         } else if (window.NO_COIN_MODE) {
-            // No Coin Mode: High obstacle & coin variety (0 to 52)
-            pattern = Math.floor(Math.random() * 52);
+            // No Coin Mode: High obstacle & coin variety (0 to 65)
+            // 15% chance to trigger a sky phase entry
+            if (!skyPhaseActive && obstacleChunkCount > 5 && Math.random() < 0.15) {
+                skyPhaseActive = true;
+                skyPhaseChunksLeft = 8 + Math.floor(Math.random() * 7);
+                skyPhaseBaseZ = centerZ;
+                pattern = 52 + Math.floor(Math.random() * 2); // 52 or 53 = ascent ramp
+            } else {
+                pattern = Math.floor(Math.random() * 52);
+            }
         } else {
             // Open air: 55% chance of dedicated rich coin formations (0-17, 46-51), 45% parkour container/train patterns
-            pattern = Math.random() < 0.55
-                ? (Math.random() < 0.50 ? (46 + Math.floor(Math.random() * 6)) : Math.floor(Math.random() * 18))
-                : (18 + Math.floor(Math.random() * 20));
+            // 10% chance of sky phase entry
+            if (!skyPhaseActive && obstacleChunkCount > 5 && Math.random() < 0.10) {
+                skyPhaseActive = true;
+                skyPhaseChunksLeft = 6 + Math.floor(Math.random() * 5);
+                skyPhaseBaseZ = centerZ;
+                pattern = 52;
+            } else {
+                pattern = Math.random() < 0.55
+                    ? (Math.random() < 0.50 ? (46 + Math.floor(Math.random() * 6)) : Math.floor(Math.random() * 18))
+                    : (18 + Math.floor(Math.random() * 20));
+            }
         }
 
         if (pattern === 0) {
@@ -5145,6 +5320,177 @@
                 });
                 if (c) customObstacles.push(c);
             }
+
+        // ---- SKY PHASE PATTERNS (52-65) ----
+        } else if (pattern === 52) {
+            // 52. RAMPA DE ASCENSÃO: Rampa gradual sky_parkour_ramp -> inicia fase aérea
+            const rampLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const ramp = createObstacle3D('sky_parkour_ramp', rampLane, 0, centerZ, { targetHeight: 28 });
+            if (ramp) customObstacles.push(ramp);
+            // Coins guiding player up the ramp
+            for (let s = 0; s < 4; s++) {
+                const frac = s / 3;
+                const rampZ = centerZ + 25 - s * 15;
+                const rampY = frac * 28 + 7;
+                const c = createObstacle3D('coin', rampLane, rampY, rampZ);
+                if (c) customObstacles.push(c);
+            }
+        } else if (pattern === 53) {
+            // 53. ASCENSÃO DUPLA: Duas rampas nas laterais, moedas no centro em cima
+            [-20, 20].forEach(lx => {
+                const ramp = createObstacle3D('sky_parkour_ramp', lx, 0, centerZ, { targetHeight: 28 });
+                if (ramp) customObstacles.push(ramp);
+            });
+            for (let s = 0; s < 3; s++) {
+                const c = createObstacle3D('coin', 0, 32 + s * 6, centerZ - s * 20);
+                if (c) customObstacles.push(c);
+            }
+        } else if (pattern === 54) {
+            // 54. SKY BRIDGE: Ponte suspensa no alto com moedas no topo
+            const bridgeLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const bridgeY = 28;
+            const bridge = createObstacle3D('sky_bridge', bridgeLane, bridgeY, centerZ);
+            if (bridge) customObstacles.push(bridge);
+            // Coins on top of bridge
+            for (let s = 0; s < 4; s++) {
+                const c = createObstacle3D('coin', bridgeLane, bridgeY + 14, centerZ - s * 14 + 20);
+                if (c) customObstacles.push(c);
+            }
+            // Vent to reach bridge
+            const vent = createObstacle3D('ventoinha', bridgeLane, 0, centerZ + 60, { targetHeight: bridgeY + 10 });
+            if (vent) customObstacles.push(vent);
+        } else if (pattern === 55) {
+            // 55. PONTE DUPLA: Duas pontes paralelas com gap no meio
+            const bridge1 = createObstacle3D('sky_bridge', -20, 28, centerZ);
+            if (bridge1) customObstacles.push(bridge1);
+            const bridge2 = createObstacle3D('sky_bridge', 20, 28, centerZ - 65);
+            if (bridge2) customObstacles.push(bridge2);
+            // Coins arching between bridges
+            const archH = [36, 42, 46, 42, 36];
+            archH.forEach((h, s) => {
+                const c = createObstacle3D('coin', 0, h, centerZ - 10 - s * 10);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 56) {
+            // 56. BARREIRA NO TOPO: Barreira no teto do double_train (deve rolar)
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const dTrain = createObstacle3D('double_train', lane, 0, centerZ - 15);
+            if (dTrain) customObstacles.push(dTrain);
+            const vent = createObstacle3D('ventoinha', lane, 0, centerZ + 50, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
+            const barrier = createObstacle3D('rooftop_barrier', lane, 56, centerZ - 15);
+            if (barrier) customObstacles.push(barrier);
+        } else if (pattern === 57) {
+            // 57. PARKOUR ESCALONADO: Ramp -> Bridge -> Double Train (3 níveis)
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const ramp = createObstacle3D('sky_parkour_ramp', lane, 0, centerZ + 60, { targetHeight: 28 });
+            if (ramp) customObstacles.push(ramp);
+            const bridge = createObstacle3D('sky_bridge', lane, 28, centerZ);
+            if (bridge) customObstacles.push(bridge);
+            const dTrain = createObstacle3D('double_train', lane, 0, centerZ - 65);
+            if (dTrain) customObstacles.push(dTrain);
+            // Coins guiding up
+            for (let s = 0; s < 3; s++) {
+                const c = createObstacle3D('coin', lane, 36 + s * 5, centerZ - 5 - s * 15);
+                if (c) customObstacles.push(c);
+            }
+        } else if (pattern === 58) {
+            // 58. SKYWAY LONGO: Sequência longa de bridges + containers no alto
+            const lane = [-20, 0, 20][obstacleChunkCount % 3];
+            const bridge1 = createObstacle3D('sky_bridge', lane, 28, centerZ);
+            if (bridge1) customObstacles.push(bridge1);
+            const cont = createObstacle3D('suspended_container', lane === 0 ? 20 : 0, 28, centerZ - 60);
+            if (cont) customObstacles.push(cont);
+            const bridge2 = createObstacle3D('sky_bridge', lane === 20 ? -20 : 20, 28, centerZ - 120);
+            if (bridge2) customObstacles.push(bridge2);
+            // Energy coin at peak
+            const ec = createObstacle3D('energyCoin', lane, 42, centerZ - 20);
+            if (ec) customObstacles.push(ec);
+        } else if (pattern === 59) {
+            // 59. CÂNION AÉREO: Double trains flanqueando com bridge no meio em cima
+            const leftTrain = createObstacle3D('double_train', -20, 0, centerZ);
+            if (leftTrain) customObstacles.push(leftTrain);
+            const rightTrain = createObstacle3D('double_train', 20, 0, centerZ);
+            if (rightTrain) customObstacles.push(rightTrain);
+            const bridge = createObstacle3D('sky_bridge', 0, 56, centerZ);
+            if (bridge) customObstacles.push(bridge);
+            // Coins at triple height
+            for (let s = 0; s < 4; s++) {
+                const c = createObstacle3D('coin', 0, 64, centerZ - s * 15 + 20);
+                if (c) customObstacles.push(c);
+            }
+        } else if (pattern === 60) {
+            // 60. RAMPA DUPLA CRUZADA: Ramps from both sides converging into bridge
+            const rampL = createObstacle3D('sky_parkour_ramp', -20, 0, centerZ + 50, { targetHeight: 28 });
+            if (rampL) customObstacles.push(rampL);
+            const rampR = createObstacle3D('sky_parkour_ramp', 20, 0, centerZ + 50, { targetHeight: 28 });
+            if (rampR) customObstacles.push(rampR);
+            const bridge = createObstacle3D('sky_bridge', 0, 28, centerZ);
+            if (bridge) customObstacles.push(bridge);
+            // Vent in center below bridge to launch up
+            const vent = createObstacle3D('ventoinha', 0, 0, centerZ + 25, { targetHeight: 36 });
+            if (vent) customObstacles.push(vent);
+        } else if (pattern === 61) {
+            // 61. TREM TRIPLO + BRIDGE: Triple train com bridge no topo (y=84)
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const tTrain = createObstacle3D('triple_train', lane, 0, centerZ - 20);
+            if (tTrain) customObstacles.push(tTrain);
+            const vent = createObstacle3D('ventoinha', lane, 0, centerZ + 50, { targetHeight: 84 });
+            if (vent) customObstacles.push(vent);
+            const bridge = createObstacle3D('sky_bridge', lane, 84, centerZ - 20);
+            if (bridge) customObstacles.push(bridge);
+            const barrier = createObstacle3D('rooftop_barrier', lane, 84, centerZ - 25);
+            if (barrier) customObstacles.push(barrier);
+        } else if (pattern === 62) {
+            // 62. DESCIDA GRADUAL: Bridge high -> bridge mid -> back to ground (fim sky phase)
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const bridge1 = createObstacle3D('sky_bridge', lane, 56, centerZ);
+            if (bridge1) customObstacles.push(bridge1);
+            const bridge2 = createObstacle3D('sky_bridge', lane, 28, centerZ - 70);
+            if (bridge2) customObstacles.push(bridge2);
+            const rampDown = createObstacle3D('sky_parkour_ramp', lane, 28, centerZ - 140, { targetHeight: 28 });
+            if (rampDown) customObstacles.push(rampDown);
+            if (skyPhaseActive) {
+                skyPhaseActive = false;
+                skyPhaseChunksLeft = 0;
+            }
+        } else if (pattern === 63) {
+            // 63. ARCO MULTI-BRIDGE: Bridges alternados em 3 pistas
+            [-20, 0, 20].forEach((lx, idx) => {
+                const bY = 28 + idx * 14;
+                const bZ = centerZ - idx * 50;
+                const bridge = createObstacle3D('sky_bridge', lx, bY, bZ);
+                if (bridge) customObstacles.push(bridge);
+                // Coins on each bridge
+                const c = createObstacle3D('coin', lx, bY + 12, bZ);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 64) {
+            // 64. ESCALADA COMPLETA: Ramp -> Bridge -> Container -> Triple Train (máxima altura)
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const ramp = createObstacle3D('sky_parkour_ramp', lane, 0, centerZ + 80, { targetHeight: 28 });
+            if (ramp) customObstacles.push(ramp);
+            const bridge = createObstacle3D('sky_bridge', lane, 28, centerZ + 25);
+            if (bridge) customObstacles.push(bridge);
+            const cont = createObstacle3D('suspended_container', lane, 28, centerZ - 30);
+            if (cont) customObstacles.push(cont);
+            const tTrain = createObstacle3D('triple_train', lane, 0, centerZ - 90);
+            if (tTrain) customObstacles.push(tTrain);
+            const vent = createObstacle3D('ventoinha', lane, 28, centerZ - 30 + 55, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
+        } else if (pattern === 65) {
+            // 65. BOOST NA ALTITUDE: Boost coin no topo de bridge com barreiras
+            const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const bridge = createObstacle3D('sky_bridge', lane, 28, centerZ);
+            if (bridge) customObstacles.push(bridge);
+            const boost = createObstacle3D('boostCoin', lane, 42, centerZ + 5);
+            if (boost) customObstacles.push(boost);
+            const vent = createObstacle3D('ventoinha', lane, 0, centerZ + 60, { targetHeight: 36 });
+            if (vent) customObstacles.push(vent);
+            [-20, 0, 20].filter(lx => lx !== lane).forEach(lx => {
+                const c = createObstacle3D('coin', lx, 6, centerZ - 10);
+                if (c) customObstacles.push(c);
+            });
         } else {
             // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
@@ -5258,6 +5604,27 @@
                     const progress = Math.max(0, Math.min(1, ((obs.z + 28) - heroZ) / 56));
                     const rampY = baseY + progress * targetH;
                     maxElevatedGround = Math.max(maxElevatedGround, rampY);
+                }
+            } else if (obs.type === 'sky_parkour_ramp') {
+                const hd = (obs.bounds && obs.bounds.depth ? obs.bounds.depth / 2 : 30) + 2;
+                const hw = (obs.bounds && obs.bounds.width ? obs.bounds.width / 2 : 9) + 2;
+                if (Math.abs(obs.x - heroX) <= hw && Math.abs(obs.z - heroZ) <= hd) {
+                    const targetH = (obs.bounds && obs.bounds.targetHeight) || 28;
+                    const baseY = obs.y || 0;
+                    const rampHD = (obs.bounds && obs.bounds.depth ? obs.bounds.depth / 2 : 30);
+                    const progress = Math.max(0, Math.min(1, ((obs.z + rampHD) - heroZ) / (rampHD * 2)));
+                    const rampY = baseY + progress * targetH;
+                    maxElevatedGround = Math.max(maxElevatedGround, rampY);
+                }
+            } else if (obs.type === 'sky_bridge') {
+                const hd = (obs.bounds && obs.bounds.depth ? obs.bounds.depth / 2 : 30) + 2;
+                const hw = (obs.bounds && obs.bounds.width ? obs.bounds.width / 2 : 9) + 2;
+                if (Math.abs(obs.x - heroX) <= hw && Math.abs(obs.z - heroZ) <= hd) {
+                    const bridgeTop = (obs.y || 0) + (obs.bounds && obs.bounds.height ? obs.bounds.height : 8);
+                    const isAlreadyOn = heroY >= bridgeTop - 3 || (now < ventLaunchActiveUntil) || (window.__SW_TRAMPOLINE_AIR_UNTIL__ && now < window.__SW_TRAMPOLINE_AIR_UNTIL__);
+                    if (isAlreadyOn) {
+                        maxElevatedGround = Math.max(maxElevatedGround, bridgeTop);
+                    }
                 }
             } else if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
                 const hd = (obs.bounds && obs.bounds.depth ? obs.bounds.depth / 2 : 28) + 2;
@@ -5507,7 +5874,7 @@
                         const shardColor = window.NO_COIN_MODE ? 0xff394f : 0xffd84a;
                         playCoinShatterEffect(obs, shardColor, 1.15);
                     }
-                    if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs') obs.destroyed = true;
+                    if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs' && obs.type !== 'sky_bridge' && obs.type !== 'sky_parkour_ramp' && obs.type !== 'rooftop_barrier') obs.destroyed = true;
                     removeObstacleViews(obs);
                     customObstacles.splice(i, 1);
 
@@ -5517,13 +5884,13 @@
                         grantEnergy(1);
                         playEnergyPickupEffect(obs);
                         try { if (window.game && window.game.sfx) window.game.sfx.play('pickup-coin', { volume: 0.8 }); } catch(e) {}
-                        if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs') obs.destroyed = true;
+                        if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs' && obs.type !== 'sky_bridge' && obs.type !== 'sky_parkour_ramp' && obs.type !== 'rooftop_barrier') obs.destroyed = true;
                         removeObstacleViews(obs);
                         customObstacles.splice(i, 1);
                         continue;
                     }
                     if (obs.type === 'coin') {
-                        if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs') obs.destroyed = true;
+                        if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs' && obs.type !== 'sky_bridge' && obs.type !== 'sky_parkour_ramp' && obs.type !== 'rooftop_barrier') obs.destroyed = true;
                         removeObstacleViews(obs);
                         customObstacles.splice(i, 1);
                         if (window.NO_COIN_MODE) {
@@ -5547,6 +5914,67 @@
 
                     if (obs.type === 'trampoline') {
                         if (!obs.used) activateTrampoline(obs, hero, heroBody, heroY, now);
+                        continue;
+                    }
+                    if (obs.type === 'sky_parkour_ramp') {
+                        const targetH = (obs.bounds && obs.bounds.targetHeight) || 28;
+                        const baseY = obs.y || 0;
+                        const rampHD = (obs.bounds && obs.bounds.depth ? obs.bounds.depth / 2 : 30);
+                        const progress = Math.max(0, Math.min(1, ((obs.z + rampHD) - heroZ) / (rampHD * 2)));
+                        const rampY = baseY + progress * targetH;
+                        heroBody.ground = Math.max(heroBody.ground || 0, rampY);
+                        const isJumpingUp = (heroBody.velocity && heroBody.velocity.y > 0.05) || (hero.jump && (hero.jump.active || hero.jump.isJumping));
+                        if (!isJumpingUp && heroY <= rampY + 3.5) {
+                            heroBody.bottom = rampY;
+                            heroBody.y = Math.max(heroBody.y, rampY);
+                            heroBody.landed = true;
+                            if (heroBody.velocity && heroBody.velocity.y < 0) heroBody.velocity.y = 0;
+                        }
+                        if (hero.player) {
+                            hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, rampY);
+                            hero.player.cameraY = hero.player.cameraY * 0.80 + hero.player.cameraTargetY * 0.20;
+                        }
+                        // Activate sky phase when ramp is traversed high enough
+                        if (rampY >= targetH * 0.85 && !skyPhaseActive) {
+                            skyPhaseActive = true;
+                            skyPhaseChunksLeft = 8 + Math.floor(Math.random() * 6);
+                            skyPhaseBaseZ = obs.z;
+                            skyPhaseEndZ = obs.z - 600;
+                        }
+                        continue;
+                    }
+                    if (obs.type === 'sky_bridge') {
+                        const bridgeTop = (obs.y || 0) + (obs.bounds && obs.bounds.height ? obs.bounds.height : 8);
+                        // Can land on top - must jump or already be on top level
+                        if (heroY >= bridgeTop - 3.5 || (now < ventLaunchActiveUntil) || (window.__SW_TRAMPOLINE_AIR_UNTIL__ && now < window.__SW_TRAMPOLINE_AIR_UNTIL__)) {
+                            heroBody.ground = Math.max(heroBody.ground || 0, bridgeTop + 0.11);
+                            if (hero.player) {
+                                hero.player.cameraTargetY = bridgeTop;
+                                hero.player.cameraY = hero.player.cameraY * 0.85 + bridgeTop * 0.15;
+                            }
+                            continue;
+                        }
+                        // Side collision - stumble
+                        const hitDx2 = Math.abs(obs.x - heroX);
+                        if (hitDx2 >= 6.5) {
+                            if (hero && hero.player && typeof hero.player.stumble === 'function') hero.player.stumble('side');
+                            continue;
+                        }
+                        // Run under bridge if low enough
+                        if (heroY <= (obs.y || 0) + 1) continue;
+                        if (hero && hero.player && typeof hero.player.stumble === 'function') hero.player.stumble('upper');
+                        continue;
+                    }
+                    if (obs.type === 'rooftop_barrier') {
+                        // Rooftop barrier: must roll under
+                        const baseObsY = obs.y || 0;
+                        const isRollingNow = isRolling;
+                        if (isRollingNow || heroY < baseObsY + 4.5) {
+                            continue; // Cleared by rolling
+                        }
+                        if (hero && hero.player && typeof hero.player.stumble === 'function') {
+                            hero.player.stumble('upper');
+                        }
                         continue;
                     }
                     if (obs.type === 'wooden_ramp' || obs.type === 'wooden_stairs') {
@@ -5659,7 +6087,7 @@
                         trampolineHitCount++;
                         if (trampolineHitCount <= 1) {
                             if (obs.type === 'ventoinha' || obs.type === 'air_vent' || obs.type === 'trampoline') continue;
-                            if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs') obs.destroyed = true;
+                            if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs' && obs.type !== 'sky_bridge' && obs.type !== 'sky_parkour_ramp' && obs.type !== 'rooftop_barrier') obs.destroyed = true;
                             playCoinShatterEffect(obs, 0xffd84a, 1.2);
                             removeObstacleViews(obs);
                             customObstacles.splice(i, 1);
@@ -5696,7 +6124,7 @@
                         }
                     }
 
-                    if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs') obs.destroyed = true;
+                    if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs' && obs.type !== 'sky_bridge' && obs.type !== 'sky_parkour_ramp' && obs.type !== 'rooftop_barrier') obs.destroyed = true;
                     if (hero && hero.player) {
                         if (obs.type === 'bush' || obs.type === 'blocker_jump' || obs.type === 'blocker_roll' || obs.type === 'dumpster') {
                             if (typeof hero.player.stumble === 'function') hero.player.stumble('stumble');
