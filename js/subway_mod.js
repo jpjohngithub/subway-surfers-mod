@@ -167,27 +167,10 @@
             if (window.Howler && window.Howler.ctx && window.Howler.ctx.state === 'suspended') {
                 window.Howler.ctx.resume();
             }
-            if (window.app && window.app.sound) {
-                if (window.app.sound.muted) window.app.sound.muted = false;
-                if (window.app.user && window.app.user.muted) {
-                    window.app.user.muted = false;
-                    try { window.app.user.save(); } catch(e) {}
-                }
-                const vol = (GFX_SETTINGS.volume || 75) / 100;
-                window.app.sound.volume(vol);
-                if (window.__SW_AUDIO_MGR__) {
-                    window.__SW_AUDIO_MGR__.muted = false;
-                    window.__SW_AUDIO_MGR__.systemMuted = false;
-                    window.__SW_AUDIO_MGR__.volume = vol;
-                }
-                if (!window.app.sound._musicPlaying && typeof window.app.sound.playMusic === 'function') {
-                    window.app.sound.playMusic('theme', { loops: true });
-                }
-            }
         } catch(e) {}
     }
     ['click', 'keydown', 'pointerdown', 'touchstart'].forEach(evt => {
-        window.addEventListener(evt, ensureAudioUnlocked, { passive: true });
+        window.addEventListener(evt, ensureAudioUnlocked, { passive: true, once: true });
     });
 
     try {
@@ -1680,7 +1663,7 @@
             const ref = lib && lib.getMap && (lib.getMap('props-tex') || lib.getMap('trains-tex') || lib.getMap('shadow'));
             const TexCls = ref && ref.constructor;
             if (TexCls && typeof TexCls.from === 'function') {
-                window.__SW_JOHNSURF_LOGO_TEX__ = TexCls.from(new URL('bundles/lasvegas/game-idle/train-start.png?v=johnsurf11', window.location.href).href);
+                window.__SW_JOHNSURF_LOGO_TEX__ = TexCls.from(new URL('bundles/lasvegas/game-idle/train-start.png?v=johnsurf20', window.location.href).href);
                 return window.__SW_JOHNSURF_LOGO_TEX__;
             }
         } catch(e) {}
@@ -7720,7 +7703,7 @@
     try {
         _johnSurfLogoImg = new Image();
         _johnSurfLogoImg.crossOrigin = 'anonymous';
-        _johnSurfLogoImg.src = 'bundles/lasvegas/game-idle/train-start.png?v=johnsurf12';
+        _johnSurfLogoImg.src = 'bundles/lasvegas/game-idle/train-start.png?v=johnsurf20';
     } catch(e) {}
 
     const SKIN_THEMES = {
