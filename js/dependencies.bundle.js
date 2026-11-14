@@ -34617,7 +34617,9 @@
           this.rig.idleX = 0, this.rig.idleY = 0, this.rig.idleZ = 0, this.rig.idleRotX = 0, this.rig.idleRotY = 0;
           const e = this.game.stats.x * r.a.cameraModX;
           this.rig.mainX = o.a.lerp(this.rig.mainX, e, .3 * t);
-          const i = this.game.hero.player.cameraY + r.a.cameraPosY + (window.__flightCameraYExtra || 0);
+          const heroBottom = (this.game.hero && this.game.hero.body && (this.game.hero.body.bottom || this.game.hero.body.y)) || 0;
+          const targetCamY = Math.max(this.game.hero.player.cameraY, heroBottom > 6 ? (heroBottom - 2) : this.game.hero.player.cameraY);
+          const i = targetCamY + r.a.cameraPosY + (window.__flightCameraYExtra || 0);
           this.rig.mainY = o.a.lerp(this.rig.mainY, i, .3 * t), this.rig.mainZ = this.game.stats.z + r.a.cameraPosZ, this.rig.mainRotX = o.a.lerp(this.rig.mainRotX, r.a.cameraRotX + (window.__flightCameraRotXExtra || 0), .1 * t), this.rig.mainRotY = 0, this.rig.fov = r.a.cameraFov + (window.__boostFovAdd || 0);
         }
         this.updateTunnel(t), this.updateShake(t);
@@ -38175,21 +38177,12 @@
         e = null == t ? void 0 : t.getLastCheckpointByPosition(this.entity.body.z);
       e && (this.rewindEndPoint = e.body.center);
     }
-    trampolineBounceSurvive() {
-      this.entity.game.camera.shake(3);
-      this.dizzyStart();
-      this.bumpCount = 24;
-      try {
-        this.entity.jump && this.entity.jump.perform ? this.entity.jump.perform(58, !0) : this.entity.body && this.entity.body.velocity && (this.entity.body.velocity.y = 56);
-        window.__SW_TRAMPOLINE_AIR_UNTIL__ = Date.now() + 2600;
-      } catch (t) {}
-    }
+    trampolineBounceSurvive() {}
     stumble(t, e, i) {
-      if (void 0 === e && (e = "lower"), void 0 === i && (i = !1), window.__SW_TRAMPOLINE_AIR_UNTIL__ && Date.now() < window.__SW_TRAMPOLINE_AIR_UNTIL__) return void (this.bumpCount || this.trampolineBounceSurvive());
+      if (void 0 === e && (e = "lower"), void 0 === i && (i = !1));
       this.bumpCount && i || (this.entity.game.camera.shake(3), this.processBumpMission(t), this.dizzy ? this.die(e) : (this.dizzyStart(), this.bumpCount = 20));
     }
     crash(t, e) {
-      if (window.__SW_TRAMPOLINE_AIR_UNTIL__ && Date.now() < window.__SW_TRAMPOLINE_AIR_UNTIL__) return void (this.bumpCount || this.trampolineBounceSurvive());
       void 0 === e && (e = "train"), this.cameraLow = 0, this.tunnel = !1, this.entity.game.camera.shake(5), this.processBumpMission(t), this.die(e);
     }
     processBumpMission(t) {
@@ -38197,7 +38190,7 @@
       t.includes("light") ? e.missions.addStat(1, "mission-bump-lights") : t.includes("train") ? e.missions.addStat(1, "mission-bump-trains-onerun") : t.includes("blocker") && e.missions.addStat(1, "mission-bump-barriers");
     }
     die(t) {
-      if (window.__SW_TRAMPOLINE_AIR_UNTIL__ && Date.now() < window.__SW_TRAMPOLINE_AIR_UNTIL__) return void (this.bumpCount || this.trampolineBounceSurvive());
+      window.__SW_TRAMPOLINE_AIR_UNTIL__ = 0;
       if (!f.a.god) {
         if (this.entity.hoverboard.isOn()) return this.dizzyEnd(), this.entity.hoverboard.explode(), this.entity.game.level.removeObstacles(), void setTimeout(() => {
           this.entity.hoverboard.explode(), this.entity.hoverboard.turnOff(), this.entity.game.exitTunnel(), this.entity.game.sfx.play("hero-hoverboard-crash");

@@ -1504,23 +1504,19 @@
                 canvas.width = 512; canvas.height = 512;
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
-                    // Q1 (0..256, 0..256): Clean Light Cartoon Green for Arrow Faces
-                    ctx.fillStyle = '#4ade80';
+                    // Q1 (0..256, 0..256): Clean Light Cartoon Green for Arrow Faces (Flat Cartoon, No Neon)
+                    ctx.fillStyle = '#86efac';
                     ctx.fillRect(0, 0, 256, 256);
-                    const grad = ctx.createLinearGradient(0, 0, 256, 256);
-                    grad.addColorStop(0.0, '#86efac');
-                    grad.addColorStop(0.5, '#4ade80');
-                    grad.addColorStop(1.0, '#22c55e');
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(8, 8, 240, 240);
+                    ctx.fillStyle = '#4ade80';
+                    ctx.fillRect(16, 16, 224, 224);
 
                     // Q2 (256..512, 0..256): Darker Cartoon Outline Green for Extruded Edges
                     ctx.fillStyle = '#15803d';
                     ctx.fillRect(256, 0, 256, 256);
                     ctx.fillStyle = '#166534';
-                    ctx.fillRect(264, 8, 240, 240);
+                    ctx.fillRect(272, 16, 224, 224);
 
-                    // Q3 (0..256, 256..512): Cartoon Bevel Highlight
+                    // Q3 (0..256, 256..512): Cartoon Highlight
                     ctx.fillStyle = '#bbf7d0';
                     ctx.fillRect(0, 256, 256, 256);
 
@@ -1563,8 +1559,8 @@
                         cloned.diffuseMap = tex;
                         if ('map' in cloned) cloned.map = tex;
                         cloned.color = 0xffffff;
-                        cloned.emissive = 0x00471a;
-                        cloned.emissiveIntensity = 0.35;
+                        cloned.emissive = 0x000000;
+                        cloned.emissiveIntensity = 0.0;
                         cloned._isBoostMat = true;
                         return cloned;
                     };
@@ -2401,9 +2397,9 @@
             }
         } else {
             if (coin.body) {
-                coin.body.width = 5.0;
-                coin.body.height = 5.0;
-                coin.body.depth = 5.0;
+                coin.body.width = 3.8;
+                coin.body.height = 3.8;
+                coin.body.depth = 3.8;
             }
         }
 
@@ -2776,12 +2772,17 @@
         }
         if (coin && coin._isDashItem) return;
         if (coin && coin.attractable && coin.attractable.attracted) return;
+        playCoinShatterEffect(coin, 0xff2844, 1.45, 16, true, false);
         triggerNoCoinDeath(coin);
     };
 
     function triggerNoCoinDeath(coin) {
         const g = (coin && coin.game) || window.game;
         if (!g) return;
+
+        window.__SW_TRAMPOLINE_AIR_UNTIL__ = 0;
+        trampolineCameraUntil = 0;
+        ventLaunchActiveUntil = 0;
 
         // Visual death flash only (NO red coin message banner!)
         const flash = document.createElement('div');
@@ -3010,6 +3011,19 @@
         }
     }
 
+    function getModeBestRecordTime(modeName) {
+        try {
+            const history = JSON.parse(localStorage.getItem('subway_surfers_records') || '[]');
+            const filtered = history.filter(r => r && (r.mode === modeName || (!r.mode && modeName === 'No Coin')));
+            if (!filtered.length) return null;
+            let best = filtered[0];
+            for (let i = 1; i < filtered.length; i++) {
+                if (filtered[i].timeMs > best.timeMs) best = filtered[i];
+            }
+            return best;
+        } catch(e) { return null; }
+    }
+
     function hookGameOverScreen() {
         if (!window.app || !window.app.gameover) return;
         const go = window.app.gameover;
@@ -3026,27 +3040,47 @@
                 if (this.character) this.character.visible = false;
                 if (this.leaderboard) this.leaderboard.visible = false;
 
-                // Center and scale scoreboard, display record instead of coins
+                // Center and scale scoreboard, display last run time and mode best record
                 if (this.scoreboard) {
                     this.scoreboard.x = 0;
                     this.scoreboard.y = -60;
                     this.scoreboard.scale.set(1.35, 1.35);
+                    if (this.scoreboard.title) {
+                        this.scoreboard.title.text = "TEMPO";
+                        if (this.scoreboard.title.scale) this.scoreboard.title.scale.set(0.95, 0.95);
+                    }
                     if (this.scoreboard.icon) this.scoreboard.icon.visible = false;
+
+                    const curMode = window.NO_COIN_MODE ? 'No Coin' : 'Normal';
+                    const lastTimeStr = formatTime(runElapsedTime || 0);
+                    const bestRec = getModeBestRecordTime(curMode);
+                    const bestTimeStr = (bestRec && bestRec.timeStr) || lastTimeStr;
+
+                    if (this.scoreboard.score) {
+                        this.scoreboard.score.text = lastTimeStr;
+                    }
                     if (this.scoreboard.coins) {
                         this.scoreboard.coins.x = 0;
-                        const hs = (window.app && window.app.user && window.app.user.highscore) || 0;
-                        this.scoreboard.coins.text = "RECORD: " + hs;
+                        this.scoreboard.coins.text = "RECORDE: " + bestTimeStr;
                     }
                     if (!this.scoreboard.__swHooked) {
                         this.scoreboard.__swHooked = true;
                         const origUpd = this.scoreboard.update;
                         this.scoreboard.update = function(data) {
                             if (origUpd) origUpd.call(this, data);
+                            if (this.title) {
+                                this.title.text = "TEMPO";
+                                if (this.title.scale) this.title.scale.set(0.95, 0.95);
+                            }
                             if (this.icon) this.icon.visible = false;
+                            const m = window.NO_COIN_MODE ? 'No Coin' : 'Normal';
+                            const curTime = formatTime(runElapsedTime || 0);
+                            const rec = getModeBestRecordTime(m);
+                            const recStr = (rec && rec.timeStr) || curTime;
+                            if (this.score) this.score.text = curTime;
                             if (this.coins) {
                                 this.coins.x = 0;
-                                const hs = Math.max((window.app && window.app.user && window.app.user.highscore) || 0, (data && data.score) || 0);
-                                this.scoreboard.coins.text = "RECORD: " + hs;
+                                this.coins.text = "RECORDE: " + recStr;
                             }
                         };
                     }
@@ -3219,7 +3253,12 @@
         for (let i = 0; i < customObstacles.length; i++) {
             const obs = customObstacles[i];
             if (obs && !obs.destroyed) {
-                if (Math.abs(obs.z - z) < 24 && Math.abs(obs.x - x) < 8 && Math.abs((obs.y || 0) - y) < 7) {
+                const obsDepth = (obs.bounds && obs.bounds.depth) || (obs.type && (obs.type.includes('train') || obs.type.includes('container') || obs.type.includes('ramp')) ? 90 : 26);
+                const halfD = obsDepth / 2 + Math.max(margin, 25);
+                const halfW = ((obs.bounds && obs.bounds.width) || 14) / 2 + 5;
+                const obsY = obs.y || 0;
+                const obsH = (obs.bounds && obs.bounds.height) || 24;
+                if (Math.abs(obs.z - z) < halfD && Math.abs(obs.x - x) < halfW && (y < obsY + obsH && y + 10 > obsY)) {
                     return true;
                 }
             }
@@ -3744,42 +3783,40 @@
 
     function buildSpeedBoostCoinMesh() {
         const b = createMeshBuilder();
-        const addChevron3D = (yTip, yInnerTip, yBase, xOuter, xInner, zHalf) => {
-            const uF0 = 0.05, vF0 = 0.05, uF1 = 0.45, vF1 = 0.45; // Clean light cartoon green face
-            const uS0 = 0.55, vS0 = 0.05, uS1 = 0.95, vS1 = 0.45; // Darker cartoon green border/sides
+        const addCartoonArrow = (yCenter, totalH, halfThick) => {
+            const uF0 = 0.05, vF0 = 0.05, uF1 = 0.45, vF1 = 0.45; // Light cartoon green face
+            const uS0 = 0.55, vS0 = 0.05, uS1 = 0.95, vS1 = 0.45; // Dark cartoon outline
 
-            const P_tip = [0, yTip];
-            const P_leftOuter = [-xOuter, yBase];
-            const P_leftInner = [-xInner, yBase];
-            const P_innerTip = [0, yInnerTip];
-            const P_rightInner = [xInner, yBase];
-            const P_rightOuter = [xOuter, yBase];
+            const yTip = yCenter + totalH * 0.5;
+            const yBase = yCenter - totalH * 0.45;
+            const xOuter = 2.9;
+            const xInner = 1.4;
+            const yInnerTip = yTip - 1.35;
 
-            const peri = [P_tip, P_leftOuter, P_leftInner, P_innerTip, P_rightInner, P_rightOuter];
+            // Front (+Z)
+            b.addQuad([0, yTip, halfThick], [-xOuter, yBase, halfThick], [-xInner, yBase, halfThick], [0, yInnerTip, halfThick], [0, 0, 1], uF0, vF0, uF1, vF1);
+            b.addQuad([0, yTip, halfThick], [0, yInnerTip, halfThick], [xInner, yBase, halfThick], [xOuter, yBase, halfThick], [0, 0, 1], uF0, vF0, uF1, vF1);
 
-            // Front face (+Z) - strictly Counter-Clockwise
-            b.addQuad([P_tip[0], P_tip[1], zHalf], [P_leftOuter[0], P_leftOuter[1], zHalf], [P_leftInner[0], P_leftInner[1], zHalf], [P_innerTip[0], P_innerTip[1], zHalf], [0, 0, 1], uF0, vF0, uF1, vF1);
-            b.addQuad([P_tip[0], P_tip[1], zHalf], [P_innerTip[0], P_innerTip[1], zHalf], [P_rightInner[0], P_rightInner[1], zHalf], [P_rightOuter[0], P_rightOuter[1], zHalf], [0, 0, 1], uF0, vF0, uF1, vF1);
+            // Back (-Z)
+            b.addQuad([0, yTip, -halfThick], [0, yInnerTip, -halfThick], [-xInner, yBase, -halfThick], [-xOuter, yBase, -halfThick], [0, 0, -1], uF0, vF0, uF1, vF1);
+            b.addQuad([0, yTip, -halfThick], [xOuter, yBase, -halfThick], [xInner, yBase, -halfThick], [0, yInnerTip, -halfThick], [0, 0, -1], uF0, vF0, uF1, vF1);
 
-            // Back face (-Z) - strictly Counter-Clockwise from back
-            b.addQuad([P_tip[0], P_tip[1], -zHalf], [P_innerTip[0], P_innerTip[1], -zHalf], [P_leftInner[0], P_leftInner[1], -zHalf], [P_leftOuter[0], P_leftOuter[1], -zHalf], [0, 0, -1], uF0, vF0, uF1, vF1);
-            b.addQuad([P_tip[0], P_tip[1], -zHalf], [P_rightOuter[0], P_rightOuter[1], -zHalf], [P_rightInner[0], P_rightInner[1], -zHalf], [P_innerTip[0], P_innerTip[1], -zHalf], [0, 0, -1], uF0, vF0, uF1, vF1);
-
-            // Side walls around perimeter with outward normals
+            // Perimeter walls
+            const peri = [[0, yTip], [-xOuter, yBase], [-xInner, yBase], [0, yInnerTip], [xInner, yBase], [xOuter, yBase]];
             for (let i = 0; i < 6; i++) {
                 const pA = peri[i];
                 const pB = peri[(i + 1) % 6];
                 const dx = pB[0] - pA[0], dy = pB[1] - pA[1];
                 const len = Math.hypot(dx, dy) || 1;
                 const nx = dy / len, ny = -dx / len;
-                b.addQuad([pA[0], pA[1], zHalf], [pA[0], pA[1], -zHalf], [pB[0], pB[1], -zHalf], [pB[0], pB[1], zHalf], [nx, ny, 0], uS0, vS0, uS1, vS1);
+                b.addQuad([pA[0], pA[1], halfThick], [pA[0], pA[1], -halfThick], [pB[0], pB[1], -halfThick], [pB[0], pB[1], halfThick], [nx, ny, 0], uS0, vS0, uS1, vS1);
             }
         };
 
         // Arrow 1 (Top Upward Arrow)
-        addChevron3D(3.8, 2.3, 1.1, 3.2, 1.8, 0.75);
+        addCartoonArrow(2.3, 2.7, 0.65);
         // Arrow 2 (Bottom Upward Arrow)
-        addChevron3D(1.4, -0.1, -1.3, 3.2, 1.8, 0.75);
+        addCartoonArrow(-0.3, 2.7, 0.65);
 
         return b;
     }
@@ -4178,7 +4215,7 @@
         }
 
         if (broken) {
-            playCoinShatterEffect({ x: pad.x, y: pad.y + 5, z: pad.z - 18 }, 0xff394f, 1.5, 0);
+            playCoinShatterEffect({ x: pad.x, y: pad.y + 5, z: pad.z - 18 }, 0xff394f, 1.5, 12, true, false);
         }
         return broken;
     }
@@ -4530,7 +4567,9 @@
 
         // Fill long gaps with a short, safe route while preserving the existing
         // random obstacle and coin-pattern rotation.
-        spawnSupplementalCoinTrail(centerZ);
+        if (obstacleChunkCount % 7 === 4) {
+            if (spawnSupplementalCoinTrail(centerZ)) return;
+        }
 
         // More frequent wagon-top routes, using the train's actual roof height.
         if (obstacleChunkCount % 3 !== 1 && spawnTrainTopCoinPattern(centerZ)) return;
@@ -5121,7 +5160,7 @@
         // Check spawn ahead of runner at native train horizon distance
         if (heroZ < nextObstacleZ) {
             spawnNoCoinObstaclePattern(heroZ - 480);
-            const interval = window.NO_COIN_MODE ? (55 + Math.random() * 30) : (130 + Math.random() * 70);
+            const interval = window.NO_COIN_MODE ? (190 + Math.random() * 70) : (240 + Math.random() * 80);
             nextObstacleZ = heroZ - interval;
         }
 
