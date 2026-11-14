@@ -2311,6 +2311,10 @@
 
     window.__onCoinAwake = function(coin) {
         if (!coin) return;
+        if (window.VANILLA_MODE) {
+            // In Vanilla mode, strictly preserve 100% original coin placement, hitboxes and mechanics
+            return;
+        }
         if (!window.__activeCoins) window.__activeCoins = new Set();
         window.__activeCoins.add(coin);
         const isNoCoin = !!window.NO_COIN_MODE;
@@ -2374,8 +2378,14 @@
             } catch(e) {}
         }
 
-        // Prevent coins directly on top of trampolines, ventoinhas, stairs or boost coins
-        if (customObstacles.some(obs => obs && !obs.destroyed && (obs.type === 'trampoline' || obs.type === 'ventoinha' || obs.type === 'air_vent' || obs.type === 'wooden_stairs' || obs.type === 'boostCoin') && Math.abs(obs.x - coinX) < 16 && Math.abs(obs.z - coinZ) < 55)) {
+        // Prevent coins directly on top of or near trampolines, ventoinhas, or boost coins
+        if (customObstacles.some(obs => {
+            if (!obs || obs.destroyed) return false;
+            const isVent = (obs.type === 'ventoinha' || obs.type === 'air_vent');
+            const rX = isVent ? 20 : 16;
+            const rZ = isVent ? 85 : 55;
+            return (obs.type === 'trampoline' || isVent || obs.type === 'boostCoin') && Math.abs(obs.x - coinX) < rX && Math.abs(obs.z - coinZ) < rZ;
+        })) {
             coin.active = false;
             coin.visible = false;
             if (coin.body) { coin.body.width = 0; coin.body.height = 0; coin.body.depth = 0; }
@@ -2465,7 +2475,8 @@
         }
 
         const isBoardActive = !!(hero.hoverboard && hero.hoverboard.isOn && hero.hoverboard.isOn());
-        const shouldShow = !isBoardActive && (!hero.player || !hero.player.dead);
+        const isEnergyFull = (typeof skateEnergy !== 'undefined') && (skateEnergy >= ENERGY_MAX);
+        const shouldShow = isEnergyFull && !isBoardActive && (!hero.player || !hero.player.dead);
 
         if (!shouldShow) {
             if (backpackBoardMesh && backpackBoardMesh.parent) {
@@ -2515,13 +2526,13 @@
                 }, { minX: -3.2, minY: -0.4, minZ: -9.0, maxX: 3.2, maxY: 0.4, maxZ: 9.0 }, null, 0x00bcd4);
             }
             if (mesh) {
-                mesh.scale.set(0.0052);
-                mesh.rx = Math.PI / 2; // Flat against the back (deitado nas costas)
-                mesh.ry = 0;
-                mesh.rz = -0.45; // Ergonomic diagonal tilt
+                mesh.scale.set(0.0055);
+                mesh.rx = 0;
+                mesh.ry = Math.PI;
+                mesh.rz = 0.45; // Diagonal across the back
                 mesh.x = 0.0;
-                mesh.y = 0.002;
-                mesh.z = -0.0035; // Snug outside the jacket/backpack without clipping
+                mesh.y = 0.012;
+                mesh.z = 0.0065; // Snug outside jacket without clipping
                 backpackBoardMesh = mesh;
             }
         }
@@ -2535,60 +2546,42 @@
     let ventTargetRoof = 0;
 
     function updateVentParticles(obs, now) {
-        if (!obs || obs.destroyed) return;
-        const hero = window.game && window.game.hero;
-        if (!hero || !hero.body || !hero.parent || !window.__lib || !window.__lib.getEntity) return;
-        if (Math.abs(obs.z - hero.body.z) > 180) return; // Skip distant vents to save CPU/GPU
-        if (!obs.windParticles) obs.windParticles = [];
-        const desiredCount = 6;
-        while (obs.windParticles.length < desiredCount) {
-            let part = null;
-            try { part = window.__lib.getEntity('currency_coin'); } catch(e) {}
-            if (!part) break;
-            part.rx = Math.PI / 2;
-            part.scale.set(0.12, 0.12, 0.04);
-            setEntityHexColor(part, 0x38bdf8);
-            try { hero.parent.addChild(part); } catch(e) { break; }
-            obs.windParticles.push({
-                entity: part,
-                xOff: (Math.random() - 0.5) * 10,
-                zOff: (Math.random() - 0.5) * 20,
-                progress: Math.random(),
-                speed: 0.018 + Math.random() * 0.016
-            });
+        // Zero coin particles: ensures strictly NO coins ever appear above/on the ventoinha
+        if (!obs || !obs.windParticles) return;
+        for (const p of obs.windParticles) {
+            try {
+                if (p && p.entity && p.entity.parent) p.entity.parent.removeChild(p.entity);
+            } catch(e) {}
         }
-        const ventX = obs.x;
-        const ventY = obs.y || 0;
-        const ventZ = obs.z;
-        for (let i = 0; i < obs.windParticles.length; i++) {
-            const p = obs.windParticles[i];
-            p.progress += p.speed;
-            if (p.progress > 1) {
-                p.progress = 0;
-                p.xOff = (Math.random() - 0.5) * 10;
-                p.zOff = (Math.random() - 0.5) * 20;
-            }
-            const currentY = ventY + 1.2 + p.progress * 26;
-            const currentScale = (1 - p.progress * 0.5) * 0.14;
-            p.entity.x = ventX + p.xOff + Math.sin(now * 0.006 + i) * 1.2;
-            p.entity.y = currentY;
-            p.entity.z = ventZ + p.zOff;
-            p.entity.scale.set(currentScale, currentScale, 0.04);
-            p.entity.ry = (p.entity.ry || 0) + 0.12;
-            p.entity.active = true;
-        }
+        obs.windParticles = [];
     }
 
     function playVentWindEffect(vent) {
         try {
+            // Screen shake impact
+            if (window.game && window.game.camera && typeof window.game.camera.shake === 'function') {
+                window.game.camera.shake(0.42, 16);
+            }
+            // Dynamic FOV punch
+            window.__boostFovAdd = 16;
+            setTimeout(() => { window.__boostFovAdd = 0; }, 420);
+
+            // Explosive updraft sound
+            try {
+                if (window.game && window.game.sfx && window.game.sfx.play) {
+                    window.game.sfx.play('special-jetpack-start');
+                }
+            } catch(e) {}
+
             const burst = document.createElement('div');
             burst.className = 'subway-vent-burst';
+            burst.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:99;display:flex;align-items:center;justify-content:center;';
             burst.innerHTML = `
-                <div class="vent-wind-column"></div>
-                <div class="vent-wind-ring"></div>
+                <div style="position:absolute;width:100vw;height:100vh;background:radial-gradient(ellipse at 50% 60%, rgba(56, 189, 248, 0.45) 0%, rgba(14, 165, 233, 0.20) 40%, transparent 75%);animation:sw-burst-fade 0.5s ease-out forwards;"></div>
+                <div style="position:absolute;bottom:0;width:320px;height:70vh;background:linear-gradient(0deg, rgba(255,255,255,0.7) 0%, rgba(56,189,248,0.4) 60%, transparent 100%);filter:blur(8px);animation:sw-burst-up 0.55s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;"></div>
             `;
             document.body.appendChild(burst);
-            setTimeout(() => burst.remove(), 750);
+            setTimeout(() => burst.remove(), 600);
         } catch(e) {}
     }
 
@@ -3494,7 +3487,7 @@
     function buildVentGrateMesh() {
         const b = createMeshBuilder();
         const N = 24;
-        const rOut = 8.2, rIn = 7.0, h = 2.0;
+        const rOut = 9.8, rIn = 8.4, h = 2.4;
         const uW0 = 0.05, vW0 = 0.05, uW1 = 0.45, vW1 = 0.45; // Clean White
         const uD0 = 0.55, vD0 = 0.05, uD1 = 0.95, vD1 = 0.45; // Dark cavity
 
@@ -3520,32 +3513,32 @@
             // Top rim ring (normal +Y)
             b.addQuad([xo1, h, zo1], [xi1, h, zi1], [xi2, h, zi2], [xo2, h, zo2], [0, 1, 0], uW0, vW0, uW1, vW1);
 
-            // Recessed cavity floor (dark circular disc at y=0.3)
-            const i0 = b.pushV(0, 0.3, 0, 0, 1, 0, (uD0 + uD1) * 0.5, (vD0 + vD1) * 0.5);
-            const i1 = b.pushV(xi1, 0.3, zi1, 0, 1, 0, uD0, vD0);
-            const i2 = b.pushV(xi2, 0.3, zi2, 0, 1, 0, uD1, vD0);
+            // Recessed cavity floor (dark circular disc at y=0.35)
+            const i0 = b.pushV(0, 0.35, 0, 0, 1, 0, (uD0 + uD1) * 0.5, (vD0 + vD1) * 0.5);
+            const i1 = b.pushV(xi1, 0.35, zi1, 0, 1, 0, uD0, vD0);
+            const i2 = b.pushV(xi2, 0.35, zi2, 0, 1, 0, uD1, vD0);
             b.idx.push(i0, i1, i2);
         }
 
-        // 2. Crossbars dividing 4 quadrants (height 1.5 to 2.0, clean white)
-        const crossThick = 0.7;
-        b.addBox(-rIn, 1.5, -crossThick, rIn, h, crossThick, uW0, vW0, uW1, vW1);
-        b.addBox(-crossThick, 1.5, -rIn, crossThick, h, rIn, uW0, vW0, uW1, vW1);
+        // 2. Crossbars dividing 4 quadrants (clean white)
+        const crossThick = 0.8;
+        b.addBox(-rIn, 1.8, -crossThick, rIn, h, crossThick, uW0, vW0, uW1, vW1);
+        b.addBox(-crossThick, 1.8, -rIn, crossThick, h, rIn, uW0, vW0, uW1, vW1);
 
         // 3. Slats in each of the 4 quadrants (exact alternating pattern from reference image)
-        const slatW = 0.45;
-        const offsets = [1.8, 3.4, 5.0];
+        const slatW = 0.55;
+        const offsets = [2.2, 4.4, 6.4];
         offsets.forEach(d => {
             const span = Math.sqrt(Math.max(0, rIn * rIn - d * d)) - 0.2;
             if (span > crossThick + 0.4) {
                 // Q1 (+X, +Z): horizontal slats along X
-                b.addBox(crossThick + 0.1, 1.5, d - slatW, span, h, d + slatW, uW0, vW0, uW1, vW1);
+                b.addBox(crossThick + 0.1, 1.8, d - slatW, span, h, d + slatW, uW0, vW0, uW1, vW1);
                 // Q3 (-X, -Z): horizontal slats along X
-                b.addBox(-span, 1.5, -d - slatW, -crossThick - 0.1, h, -d + slatW, uW0, vW0, uW1, vW1);
+                b.addBox(-span, 1.8, -d - slatW, -crossThick - 0.1, h, -d + slatW, uW0, vW0, uW1, vW1);
                 // Q2 (-X, +Z): vertical slats along Z
-                b.addBox(-d - slatW, 1.5, crossThick + 0.1, -d + slatW, h, span, uW0, vW0, uW1, vW1);
+                b.addBox(-d - slatW, 1.8, crossThick + 0.1, -d + slatW, h, span, uW0, vW0, uW1, vW1);
                 // Q4 (+X, -Z): vertical slats along Z
-                b.addBox(d - slatW, 1.5, -span, d + slatW, h, -crossThick - 0.1, uW0, vW0, uW1, vW1);
+                b.addBox(d - slatW, 1.8, -span, d + slatW, h, -crossThick - 0.1, uW0, vW0, uW1, vW1);
             }
         });
 
@@ -3596,12 +3589,15 @@
                 canvas.height = 512;
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
-                    // Q1 (0..256, 0..256): Clean Pure White Rim & Grille
+                    // Q1 (0..256, 0..256): Clean Pure White Housing with Vivid Cyan Rim
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(0, 0, 256, 256);
-                    ctx.strokeStyle = '#e2e8f0';
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 14;
+                    ctx.strokeRect(7, 7, 242, 242);
+                    ctx.strokeStyle = '#0284c7';
                     ctx.lineWidth = 4;
-                    ctx.strokeRect(4, 4, 248, 248);
+                    ctx.strokeRect(2, 2, 252, 252);
 
                     // Q2 (256..512, 0..256): Dark Charcoal Duct Interior with Air Cyan Core
                     ctx.fillStyle = '#101317';
@@ -3971,12 +3967,12 @@
                 }
             } else if (type === 'ventoinha' || type === 'air_vent') {
                 const targetH = options.targetHeight || 56;
-                const ventEnt = createCustom3DEntity('vent_white_grate_v4', () => buildVentGrateMesh(), { minX: -8.5, minY: 0, minZ: -8.5, maxX: 8.5, maxY: 2, maxZ: 8.5 }, getVentGrateTexture(), 0xffffff);
-                const bladeEnt = createCustom3DEntity('vent_blade_v4', () => buildVentBladeMesh(), { minX: -6.5, minY: 0, minZ: -6.5, maxX: 6.5, maxY: 1.5, maxZ: 6.5 }, getVentGrateTexture(), 0xffffff);
+                const ventEnt = createCustom3DEntity('vent_white_grate_v5', () => buildVentGrateMesh(), { minX: -10, minY: 0, minZ: -10, maxX: 10, maxY: 2.5, maxZ: 10 }, getVentGrateTexture(), 0xffffff);
+                const bladeEnt = createCustom3DEntity('vent_blade_v5', () => buildVentBladeMesh(), { minX: -7.5, minY: 0, minZ: -7.5, maxX: 7.5, maxY: 1.8, maxZ: 7.5 }, getVentGrateTexture(), 0xffffff);
                 if (ventEnt) {
                     applyVentGrateTexture(ventEnt);
                     mesh = ventEnt;
-                    bounds = { depth: 17, width: 17, height: 2, isVent: true, targetHeight: targetH };
+                    bounds = { depth: 20, width: 20, height: 2.5, isVent: true, targetHeight: targetH };
                     if (bladeEnt) {
                         applyVentGrateTexture(bladeEnt);
                         bladeEnt._isVentBlade = true;
@@ -4225,19 +4221,29 @@
 
     function updateFlightCamera(hero, heroBody, heroY, now) {
         if (!hero || !heroBody) return;
+        if (window.VANILLA_MODE) {
+            window.__flightCameraYExtra = 0;
+            window.__flightCameraRotXExtra = 0;
+            return;
+        }
         const groundY = Number.isFinite(heroBody.ground) ? heroBody.ground : 0;
         const feetY = Number.isFinite(heroBody.bottom) ? heroBody.bottom : heroY;
         const isSpecialAir = (now < trampolineCameraUntil) || (now < ventLaunchActiveUntil);
 
         if (isSpecialAir) {
-            const elevation = Math.max(0, feetY - groundY);
-            const targetExtraY = Math.min(65, elevation * 0.85);
-            const targetRotX = Math.max(-0.20, -0.0025 * elevation);
-            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.75 + targetExtraY * 0.25;
-            window.__flightCameraRotXExtra = (window.__flightCameraRotXExtra || 0) * 0.75 + targetRotX * 0.25;
+            const currentHeroHeight = Math.max(0, feetY);
+            const targetExtraY = Math.min(65, currentHeroHeight * 0.75);
+            const targetRotX = Math.max(-0.20, -0.0020 * currentHeroHeight);
+            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.70 + targetExtraY * 0.30;
+            window.__flightCameraRotXExtra = (window.__flightCameraRotXExtra || 0) * 0.70 + targetRotX * 0.30;
+
+            if (hero.player) {
+                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, currentHeroHeight);
+                hero.player.cameraY = hero.player.cameraY * 0.75 + hero.player.cameraTargetY * 0.25;
+            }
 
             const elapsed = now - Math.max(flightLaunchAt, trampolineLaunchAt);
-            if (elapsed > 350 && (heroBody.landed || feetY <= groundY + 1.0)) {
+            if (elapsed > 500 && (heroBody.landed || (heroBody.velocity && heroBody.velocity.y <= 0 && feetY <= groundY + 1.5))) {
                 trampolineCameraUntil = 0;
                 ventLaunchActiveUntil = 0;
                 flightLandTime = now;
@@ -4262,6 +4268,7 @@
     }
 
     window.__swPhysicsPostStep = function(physicsSystem, hero) {
+        if (window.VANILLA_MODE) return;
         if (!hero || !hero.body || (hero.player && hero.player.dead)) return;
         const heroBody = hero.body;
         const heroX = heroBody.x;
@@ -4274,33 +4281,7 @@
             const obs = customObstacles[i];
             if (!obs || obs.destroyed) continue;
 
-            if (obs.type === 'wooden_ramp' || obs.type === 'wooden_stairs') {
-                const hw = 9.5;
-                const hd = 31;
-                const dx = Math.abs(obs.x - heroX);
-                const dz = obs.z - heroZ;
-                if (dx <= hw && dz >= -hd && dz <= hd) {
-                    const targetH = (obs.bounds && obs.bounds.targetHeight) || 28;
-                    const baseY = (obs.bounds && obs.bounds.baseY !== undefined) ? obs.bounds.baseY : (obs.y || 0);
-                    const progress = Math.max(0, Math.min(1, (dz + 28) / 56));
-                    const rampY = baseY + progress * targetH;
-
-                    heroBody.ground = Math.max(heroBody.ground || 0, rampY);
-                    if (progress >= 0.85) {
-                        heroBody.ground = Math.max(heroBody.ground || 0, baseY + targetH);
-                    }
-                    const isAscendingJump = (hero.jump && hero.jump.isJumping) || (heroBody.velocity && heroBody.velocity.y > 0.5);
-                    if (!isAscendingJump) {
-                        if (heroBody.bottom <= rampY + 2.5 || heroBody.bottom < rampY) {
-                            heroBody.bottom = rampY;
-                            heroBody.y = rampY;
-                            heroBody.ground = rampY;
-                            heroBody.landed = true;
-                            if (heroBody.velocity && heroBody.velocity.y < 0) heroBody.velocity.y = 0;
-                        }
-                    }
-                }
-            } else if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
+            if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
                 const hw = 12.0;
                 const hd = 34;
                 const dx = Math.abs(obs.x - heroX);
@@ -4312,19 +4293,9 @@
                     const topRoof = isTriple ? 84 : (isDouble ? 56 : baseY + 28);
                     const isAirborneAssisted = (now < ventLaunchActiveUntil) || (window.__SW_TRAMPOLINE_AIR_UNTIL__ && now < window.__SW_TRAMPOLINE_AIR_UNTIL__);
 
-                    // 100% Solid Roof Platform with full native jump height & movement
-                    if (heroY >= topRoof - 4.0 || isAirborneAssisted) {
-                        heroBody.ground = Math.max(heroBody.ground || 0, topRoof);
-                        const isAscending = (hero.jump && hero.jump.isJumping) || (heroBody.velocity && heroBody.velocity.y > 0.5);
-                        if (!isAscending) {
-                            if (heroBody.bottom <= topRoof + 2.5 || heroBody.bottom < topRoof) {
-                                heroBody.bottom = topRoof;
-                                heroBody.y = topRoof;
-                                heroBody.ground = topRoof;
-                                heroBody.landed = true;
-                                if (heroBody.velocity && heroBody.velocity.y < 0) heroBody.velocity.y = 0;
-                            }
-                        }
+                    // 100% Solid Roof Platform with full native jump height & parkour movement
+                    if (heroY >= topRoof - 3.5 || isAirborneAssisted) {
+                        heroBody.ground = Math.max(heroBody.ground || 0, topRoof + 0.11);
                         if (hero.player) hero.player.cameraTargetY = topRoof;
                     } else if (heroY < topRoof - 7) {
                         if (obs.type === 'suspended_container' && (baseY >= 20 || obs.y >= 20)) {
@@ -5544,14 +5515,7 @@
                     }
                     if (obs.type === 'double_train') {
                         if (heroY >= 52 || (now < ventLaunchActiveUntil)) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, 56);
-                            const isJumpingUp = (hero.jump && hero.jump.isJumping) || (heroBody.velocity && heroBody.velocity.y > 0.5);
-                            if (!isJumpingUp && heroY <= 58.5) {
-                                heroBody.bottom = 56;
-                                heroBody.y = 56;
-                                heroBody.landed = true;
-                                if (heroBody.velocity && heroBody.velocity.y < 0) heroBody.velocity.y = 0;
-                            }
+                            heroBody.ground = Math.max(heroBody.ground || 0, 56.11);
                             if (hero.player) {
                                 hero.player.cameraTargetY = 56;
                                 hero.player.cameraY = hero.player.cameraY * 0.85 + 56 * 0.15;
@@ -5561,14 +5525,7 @@
                     }
                     if (obs.type === 'triple_train') {
                         if (heroY >= 80 || (now < ventLaunchActiveUntil)) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, 84);
-                            const isJumpingUp = (hero.jump && hero.jump.isJumping) || (heroBody.velocity && heroBody.velocity.y > 0.5);
-                            if (!isJumpingUp && heroY <= 86.5) {
-                                heroBody.bottom = 84;
-                                heroBody.y = 84;
-                                heroBody.landed = true;
-                                if (heroBody.velocity && heroBody.velocity.y < 0) heroBody.velocity.y = 0;
-                            }
+                            heroBody.ground = Math.max(heroBody.ground || 0, 84.11);
                             if (hero.player) {
                                 hero.player.cameraTargetY = 84;
                                 hero.player.cameraY = hero.player.cameraY * 0.85 + 84 * 0.15;
@@ -5582,16 +5539,9 @@
                         if (heroY <= 27.5) {
                             continue;
                         }
-                        // Running on top of roof:
+                        // Running on top of roof with full native parkour jumping
                         if (heroY >= topY - 4 || (now < ventLaunchActiveUntil)) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, topY);
-                            const isJumpingUp = (hero.jump && hero.jump.isJumping) || (heroBody.velocity && heroBody.velocity.y > 0.5);
-                            if (!isJumpingUp && heroY <= topY + 2.5) {
-                                heroBody.bottom = topY;
-                                heroBody.y = topY;
-                                heroBody.landed = true;
-                                if (heroBody.velocity && heroBody.velocity.y < 0) heroBody.velocity.y = 0;
-                            }
+                            heroBody.ground = Math.max(heroBody.ground || 0, topY + 0.11);
                             if (hero.player) {
                                 hero.player.cameraTargetY = topY;
                                 hero.player.cameraY = hero.player.cameraY * 0.85 + topY * 0.15;
