@@ -310,14 +310,14 @@
 
         if (ls.ambientLight) {
             if (isSunset) {
-                ls.ambientLight.color = 0xff7043;
-                ls.ambientLight.intensity = 0.95;
+                ls.ambientLight.color = 0x3d1428;
+                ls.ambientLight.intensity = 0.36;
             } else if (isDay) {
-                ls.ambientLight.color = 0xffffff;
-                ls.ambientLight.intensity = 1.15;
+                ls.ambientLight.color = 0x223555;
+                ls.ambientLight.intensity = 0.40;
             } else {
-                ls.ambientLight.color = (GFX_SETTINGS.shaders === 'off') ? 0xffffff : 0x9bbdff;
-                ls.ambientLight.intensity = (GFX_SETTINGS.shaders === 'off') ? 0.5 : 0.35;
+                ls.ambientLight.color = 0x161033;
+                ls.ambientLight.intensity = 0.28;
             }
             ls.ambientLight.dirty = true;
             if (typeof ls.ambientLight.update === 'function') ls.ambientLight.update();
@@ -329,16 +329,16 @@
                 if (!l) continue;
                 if (isSunset) {
                     l.color = 0xff8c42;
-                    l.intensity = 2.1;
-                    if (l.direction && l.direction.set) l.direction.set(0.65, -0.60, -0.45);
+                    l.intensity = 2.4;
+                    if (l.direction && l.direction.set) l.direction.set(0.65, -0.65, -0.45);
                 } else if (isDay) {
-                    l.color = 0xfffae6;
-                    l.intensity = 1.85;
-                    if (l.direction && l.direction.set) l.direction.set(0.35, -0.85, -0.40);
+                    l.color = 0xfff4db;
+                    l.intensity = 2.2;
+                    if (l.direction && l.direction.set) l.direction.set(0.55, -0.72, -0.42);
                 } else {
-                    l.color = (GFX_SETTINGS.shaders === 'off') ? 0xffffff : 0xd8b4fe;
-                    l.intensity = (GFX_SETTINGS.shaders === 'off') ? 1.0 : 1.35;
-                    if (l.direction && l.direction.set) l.direction.set(0.48, -0.80, -0.36);
+                    l.color = 0xffdfa4;
+                    l.intensity = 2.3;
+                    if (l.direction && l.direction.set) l.direction.set(0.55, -0.72, -0.42);
                 }
                 l.dirty = true;
                 if (typeof l.render === 'function') l.render();
@@ -1504,50 +1504,29 @@
                 canvas.width = 512; canvas.height = 512;
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
-                    ctx.fillStyle = '#021f11';
-                    ctx.fillRect(0, 0, 512, 512);
+                    // Q1 (0..256, 0..256): Clean Light Cartoon Green for Arrow Faces
+                    ctx.fillStyle = '#4ade80';
+                    ctx.fillRect(0, 0, 256, 256);
+                    const grad = ctx.createLinearGradient(0, 0, 256, 256);
+                    grad.addColorStop(0.0, '#86efac');
+                    grad.addColorStop(0.5, '#4ade80');
+                    grad.addColorStop(1.0, '#22c55e');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(8, 8, 240, 240);
 
-                    const gBack = ctx.createRadialGradient(256, 256, 20, 256, 256, 250);
-                    gBack.addColorStop(0.0, '#052e16');
-                    gBack.addColorStop(0.65, '#02200f');
-                    gBack.addColorStop(1.0, '#011208');
-                    ctx.fillStyle = gBack;
-                    ctx.fillRect(0, 0, 512, 512);
+                    // Q2 (256..512, 0..256): Darker Cartoon Outline Green for Extruded Edges
+                    ctx.fillStyle = '#15803d';
+                    ctx.fillRect(256, 0, 256, 256);
+                    ctx.fillStyle = '#166534';
+                    ctx.fillRect(264, 8, 240, 240);
 
-                    // Speed Chevron Outer
-                    const drawChevron = (topY, height, thick, colStart, colEnd) => {
-                        const midX = 256;
-                        ctx.save();
-                        const grad = ctx.createLinearGradient(0, topY, 0, topY + height);
-                        grad.addColorStop(0.0, colStart);
-                        grad.addColorStop(1.0, colEnd);
-                        ctx.fillStyle = grad;
-                        ctx.shadowColor = '#00ff88';
-                        ctx.shadowBlur = 18;
-                        ctx.beginPath();
-                        ctx.moveTo(midX, topY);
-                        ctx.lineTo(midX + 180, topY + height * 0.75);
-                        ctx.lineTo(midX + 180, topY + height * 0.75 + thick);
-                        ctx.lineTo(midX, topY + thick);
-                        ctx.lineTo(midX - 180, topY + height * 0.75 + thick);
-                        ctx.lineTo(midX - 180, topY + height * 0.75);
-                        ctx.closePath();
-                        ctx.fill();
-                        ctx.restore();
-                    };
+                    // Q3 (0..256, 256..512): Cartoon Bevel Highlight
+                    ctx.fillStyle = '#bbf7d0';
+                    ctx.fillRect(0, 256, 256, 256);
 
-                    drawChevron(70, 160, 50, '#ffffff', '#00e676');
-                    drawChevron(220, 160, 50, '#a7f3d0', '#059669');
-
-                    // Center cyan speed core
-                    const gCore = ctx.createRadialGradient(256, 260, 4, 256, 260, 45);
-                    gCore.addColorStop(0.0, '#ffffff');
-                    gCore.addColorStop(0.4, '#00f5ff');
-                    gCore.addColorStop(1.0, 'rgba(0, 245, 255, 0)');
-                    ctx.fillStyle = gCore;
-                    ctx.beginPath();
-                    ctx.arc(256, 260, 45, 0, Math.PI * 2);
-                    ctx.fill();
+                    // Q4 (256..512, 256..512): Cartoon Shadow Base
+                    ctx.fillStyle = '#14532d';
+                    ctx.fillRect(256, 256, 256, 256);
 
                     boostCoinGreenTexture = TextureClass.from(canvas);
                 }
@@ -1559,9 +1538,12 @@
     function getBoostCoinGreenTexture() {
         if (boostCoinGreenTexture) return boostCoinGreenTexture;
         try {
-            const origMap = window.__lib && window.__lib.getMap && window.__lib.getMap('props-tex');
-            return createBoostCoinAtlas(origMap && origMap.constructor);
-        } catch(e) { return null; }
+            const lib = window.__lib;
+            const origMap = (lib && lib.getMap && (lib.getMap('props-tex') || lib.getMap('trains-tex') || lib.getMap('environment-tex') || lib.getMap('halo') || lib.getMap('ui'))) || (window.game && window.game.map);
+            const TextureClass = origMap && origMap.constructor;
+            if (TextureClass) return createBoostCoinAtlas(TextureClass);
+        } catch(e) {}
+        return null;
     }
 
     function applyBoostCoinTexture(mesh) {
@@ -2964,11 +2946,7 @@
             if (history.length > 50) history.pop();
             localStorage.setItem('subway_surfers_records', JSON.stringify(history));
 
-            // Sync with global leaderboard if valid
-            record.avatar = myProfile.avatar;
-            record.id = myProfile.id;
-            updateGlobalRecord(record);
-            broadcastGlobalRecord(record);
+            // Local records only
         } catch(e) {}
     }
 
@@ -3527,20 +3505,20 @@
             const cos1 = Math.cos(a1), sin1 = Math.sin(a1);
             const cos2 = Math.cos(a2), sin2 = Math.sin(a2);
 
-            // Outer wall
+            // Outer wall (facing outwards)
             const xo1 = rOut * cos1, zo1 = rOut * sin1;
             const xo2 = rOut * cos2, zo2 = rOut * sin2;
             const nMid = [(cos1 + cos2) * 0.5, 0, (sin1 + sin2) * 0.5];
-            b.addQuad([xo1, 0, zo1], [xo2, 0, zo2], [xo2, h, zo2], [xo1, h, zo1], nMid, uW0, vW0, uW1, vW1);
+            b.addQuad([xo2, 0, zo2], [xo1, 0, zo1], [xo1, h, zo1], [xo2, h, zo2], nMid, uW0, vW0, uW1, vW1);
 
             // Inner wall (facing inwards)
             const xi1 = rIn * cos1, zi1 = rIn * sin1;
             const xi2 = rIn * cos2, zi2 = rIn * sin2;
             const nIn = [-(cos1 + cos2) * 0.5, 0, -(sin1 + sin2) * 0.5];
-            b.addQuad([xi2, 0, zi2], [xi1, 0, zi1], [xi1, h, zi1], [xi2, h, zi2], nIn, uW0, vW0, uW1, vW1);
+            b.addQuad([xi1, 0, zi1], [xi2, 0, zi2], [xi2, h, zi2], [xi1, h, zi1], nIn, uW0, vW0, uW1, vW1);
 
-            // Top rim ring
-            b.addQuad([xo1, h, zo1], [xo2, h, zo2], [xi2, h, zi2], [xi1, h, zi1], [0, 1, 0], uW0, vW0, uW1, vW1);
+            // Top rim ring (normal +Y)
+            b.addQuad([xo1, h, zo1], [xi1, h, zi1], [xi2, h, zi2], [xo2, h, zo2], [0, 1, 0], uW0, vW0, uW1, vW1);
 
             // Recessed cavity floor (dark circular disc at y=0.3)
             const i0 = b.pushV(0, 0.3, 0, 0, 1, 0, (uD0 + uD1) * 0.5, (vD0 + vD1) * 0.5);
@@ -3609,7 +3587,8 @@
     function getVentGrateTexture() {
         if (ventGrateTexture) return ventGrateTexture;
         try {
-            const originalMap = window.__lib && window.__lib.getMap && window.__lib.getMap('props-tex');
+            const lib = window.__lib;
+            const originalMap = (lib && lib.getMap && (lib.getMap('props-tex') || lib.getMap('trains-tex') || lib.getMap('environment-tex') || lib.getMap('halo') || lib.getMap('ui'))) || (window.game && window.game.map);
             const TextureClass = originalMap && originalMap.constructor;
             if (typeof document !== 'undefined' && TextureClass && typeof TextureClass.from === 'function') {
                 const canvas = document.createElement('canvas');
@@ -3727,16 +3706,20 @@
         const geom = getCustom3DGeom(key, builderFn, boundsBox);
         if (!geom) return null;
         let ent = null;
-        if (texture) {
+        try { ent = window.__lib.getEntity('currency_coin'); } catch(e) {}
+        if (!ent && texture) {
             try { ent = window.__lib.getEntity('dumpster') || window.__lib.getEntity('blocker_standard'); } catch(e) {}
-        }
-        if (!ent) {
-            try { ent = window.__lib.getEntity('currency_coin'); } catch(e) {}
         }
         if (!ent) return null;
         ent.rx = 0; ent.ry = 0; ent.rz = 0;
         if (ent.scale) ent.scale.set(1, 1, 1);
         setFirstViewGeometry(ent, geom);
+        if (ent.children && ent.children.length > 1) {
+            for (let ci = 1; ci < ent.children.length; ci++) {
+                const child = ent.children[ci];
+                if (child) { child.visible = false; child.active = false; }
+            }
+        }
 
         const visit = obj => {
             if (!obj) return;
@@ -3765,33 +3748,51 @@
 
     function buildSpeedBoostCoinMesh() {
         const b = createMeshBuilder();
-        const minX = -4.2, maxX = 4.2, minY = -2.6, maxY = 4.0;
-        const addPlanarBox = (x0, y0, z0, x1, y1, z1) => {
-            const u0 = (x0 - minX) / (maxX - minX);
-            const u1 = (x1 - minX) / (maxX - minX);
-            const v0 = 1 - (y1 - minY) / (maxY - minY);
-            const v1 = 1 - (y0 - minY) / (maxY - minY);
-            b.addBox(x0, y0, z0, x1, y1, z1, u0, v0, u1, v1);
+        const addChevron3D = (yTip, yInnerTip, yBase, xOuter, xInner, zHalf) => {
+            const uF0 = 0.05, vF0 = 0.05, uF1 = 0.45, vF1 = 0.45; // Clean light cartoon green face
+            const uS0 = 0.55, vS0 = 0.05, uS1 = 0.95, vS1 = 0.45; // Darker cartoon green border/sides
+
+            const P_tip = [0, yTip];
+            const P_leftOuter = [-xOuter, yBase];
+            const P_leftInner = [-xInner, yBase];
+            const P_innerTip = [0, yInnerTip];
+            const P_rightInner = [xInner, yBase];
+            const P_rightOuter = [xOuter, yBase];
+
+            const peri = [P_tip, P_leftOuter, P_leftInner, P_innerTip, P_rightInner, P_rightOuter];
+
+            // Front face (+Z) - strictly Counter-Clockwise
+            b.addQuad([P_tip[0], P_tip[1], zHalf], [P_leftOuter[0], P_leftOuter[1], zHalf], [P_leftInner[0], P_leftInner[1], zHalf], [P_innerTip[0], P_innerTip[1], zHalf], [0, 0, 1], uF0, vF0, uF1, vF1);
+            b.addQuad([P_tip[0], P_tip[1], zHalf], [P_innerTip[0], P_innerTip[1], zHalf], [P_rightInner[0], P_rightInner[1], zHalf], [P_rightOuter[0], P_rightOuter[1], zHalf], [0, 0, 1], uF0, vF0, uF1, vF1);
+
+            // Back face (-Z) - strictly Counter-Clockwise from back
+            b.addQuad([P_tip[0], P_tip[1], -zHalf], [P_innerTip[0], P_innerTip[1], -zHalf], [P_leftInner[0], P_leftInner[1], -zHalf], [P_leftOuter[0], P_leftOuter[1], -zHalf], [0, 0, -1], uF0, vF0, uF1, vF1);
+            b.addQuad([P_tip[0], P_tip[1], -zHalf], [P_rightOuter[0], P_rightOuter[1], -zHalf], [P_rightInner[0], P_rightInner[1], -zHalf], [P_innerTip[0], P_innerTip[1], -zHalf], [0, 0, -1], uF0, vF0, uF1, vF1);
+
+            // Side walls around perimeter with outward normals
+            for (let i = 0; i < 6; i++) {
+                const pA = peri[i];
+                const pB = peri[(i + 1) % 6];
+                const dx = pB[0] - pA[0], dy = pB[1] - pA[1];
+                const len = Math.hypot(dx, dy) || 1;
+                const nx = dy / len, ny = -dx / len;
+                b.addQuad([pA[0], pA[1], zHalf], [pA[0], pA[1], -zHalf], [pB[0], pB[1], -zHalf], [pB[0], pB[1], zHalf], [nx, ny, 0], uS0, vS0, uS1, vS1);
+            }
         };
-        addPlanarBox(-0.6, 2.0, -0.75, 0.6, 3.8, 0.75);
-        addPlanarBox(-2.6, 0.8, -0.65, -0.6, 2.4, 0.65);
-        addPlanarBox(0.6, 0.8, -0.65, 2.6, 2.4, 0.65);
-        addPlanarBox(-0.5, 0.4, -0.65, 0.5, 1.8, 0.65);
-        addPlanarBox(-2.2, -0.6, -0.55, -0.5, 0.8, 0.55);
-        addPlanarBox(0.5, -0.6, -0.55, 2.2, 0.8, 0.55);
-        addPlanarBox(-3.2, -1.6, -0.75, -2.0, 1.0, 0.75);
-        addPlanarBox(2.0, -1.6, -0.75, 3.2, 1.0, 0.75);
-        addPlanarBox(-0.9, -0.3, -1.0, 0.9, 1.5, 1.0);
-        addPlanarBox(-4.0, -2.4, -0.45, -3.0, -0.7, 0.45);
-        addPlanarBox(3.0, -2.4, -0.45, 4.0, -0.7, 0.45);
+
+        // Arrow 1 (Top Upward Arrow)
+        addChevron3D(3.8, 2.3, 1.1, 3.2, 1.8, 0.75);
+        // Arrow 2 (Bottom Upward Arrow)
+        addChevron3D(1.4, -0.1, -1.3, 3.2, 1.8, 0.75);
+
         return b;
     }
 
     function buildSpeedBoostCoinModel() {
-        const ent = createCustom3DEntity('speed_boost_coin_v3', () => buildSpeedBoostCoinMesh(), { minX: -4.2, minY: -2.6, minZ: -1.2, maxX: 4.2, maxY: 4.0, maxZ: 1.2 }, getBoostCoinGreenTexture(), 0xffffff);
+        const ent = createCustom3DEntity('speed_boost_cartoon_v5', () => buildSpeedBoostCoinMesh(), { minX: -3.5, minY: -1.5, minZ: -1.0, maxX: 3.5, maxY: 4.0, maxZ: 1.0 }, getBoostCoinGreenTexture(), 0xffffff);
         if (!ent) return null;
         applyBoostCoinTexture(ent);
-        if (ent.scale) ent.scale.set(1.35, 1.35, 1.35);
+        if (ent.scale) ent.scale.set(1.2, 1.2, 1.2);
         return ent;
     }
 
@@ -3951,13 +3952,7 @@
                     bounds = { depth: 58, width: 18, height: 84, isTripleTrain: true };
                 }
             } else if (type === 'wooden_stairs' || type === 'wooden_ramp') {
-                const targetH = options.targetHeight || 28;
-                const key = 'wooden_ramp_' + Math.round(targetH);
-                const rampEnt = createCustom3DEntity(key, () => build3PlankWoodenRamp(targetH), { minX: -9, minY: -2, minZ: -28, maxX: 9, maxY: targetH, maxZ: 28 }, get3WoodPlanksTexture(), 0x6e4720);
-                if (rampEnt) {
-                    mesh = rampEnt;
-                    bounds = { depth: 56, width: 17.5, height: targetH, isWoodenRamp: true, isWoodenStairs: true, targetHeight: targetH };
-                }
+                return null; // Fake wooden stairs completely removed per user request
             } else if (type === 'suspended_container') {
                 const wagon = getCargoWagon();
                 if (wagon) {
@@ -3976,8 +3971,8 @@
                 }
             } else if (type === 'ventoinha' || type === 'air_vent') {
                 const targetH = options.targetHeight || 56;
-                const ventEnt = createCustom3DEntity('vent_white_grate_v3', () => buildVentGrateMesh(), { minX: -8.5, minY: 0, minZ: -8.5, maxX: 8.5, maxY: 2, maxZ: 8.5 }, getVentGrateTexture(), 0xffffff);
-                const bladeEnt = createCustom3DEntity('vent_blade_v3', () => buildVentBladeMesh(), { minX: -6.5, minY: 0, minZ: -6.5, maxX: 6.5, maxY: 1.5, maxZ: 6.5 }, getVentGrateTexture(), 0xffffff);
+                const ventEnt = createCustom3DEntity('vent_white_grate_v4', () => buildVentGrateMesh(), { minX: -8.5, minY: 0, minZ: -8.5, maxX: 8.5, maxY: 2, maxZ: 8.5 }, getVentGrateTexture(), 0xffffff);
+                const bladeEnt = createCustom3DEntity('vent_blade_v4', () => buildVentBladeMesh(), { minX: -6.5, minY: 0, minZ: -6.5, maxX: 6.5, maxY: 1.5, maxZ: 6.5 }, getVentGrateTexture(), 0xffffff);
                 if (ventEnt) {
                     applyVentGrateTexture(ventEnt);
                     mesh = ventEnt;
@@ -4232,38 +4227,37 @@
         if (!hero || !heroBody) return;
         const groundY = Number.isFinite(heroBody.ground) ? heroBody.ground : 0;
         const feetY = Number.isFinite(heroBody.bottom) ? heroBody.bottom : heroY;
-        const isAirTime = (now < trampolineCameraUntil) || (now < ventLaunchActiveUntil) || flightAirborne;
+        const isSpecialAir = (now < trampolineCameraUntil) || (now < ventLaunchActiveUntil);
 
-        if (isAirTime || feetY > groundY + 3.0) {
+        if (isSpecialAir) {
             const elevation = Math.max(0, feetY - groundY);
-            const targetExtraY = Math.min(75, elevation * 0.85);
-            const targetRotX = Math.max(-0.25, -0.003 * elevation);
-            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.72 + targetExtraY * 0.28;
-            window.__flightCameraRotXExtra = (window.__flightCameraRotXExtra || 0) * 0.72 + targetRotX * 0.28;
-
-            if (hero.player) {
-                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, feetY);
-                hero.player.cameraY = Math.max(hero.player.cameraY || 0, feetY);
-            }
+            const targetExtraY = Math.min(65, elevation * 0.85);
+            const targetRotX = Math.max(-0.20, -0.0025 * elevation);
+            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.75 + targetExtraY * 0.25;
+            window.__flightCameraRotXExtra = (window.__flightCameraRotXExtra || 0) * 0.75 + targetRotX * 0.25;
 
             const elapsed = now - Math.max(flightLaunchAt, trampolineLaunchAt);
-            if (elapsed > 350 && (heroBody.landed || feetY <= groundY + 1.2)) {
-                flightAirborne = false;
+            if (elapsed > 350 && (heroBody.landed || feetY <= groundY + 1.0)) {
+                trampolineCameraUntil = 0;
+                ventLaunchActiveUntil = 0;
                 flightLandTime = now;
                 flightLastExtraY = window.__flightCameraYExtra || 0;
             }
         } else if (flightLandTime > 0) {
             const elapsed = now - flightLandTime;
-            if (elapsed >= 1500) {
+            if (elapsed >= 1000) {
                 flightLandTime = 0;
                 window.__flightCameraYExtra = 0;
                 window.__flightCameraRotXExtra = 0;
             } else {
-                const factor = Math.max(0, 1 - elapsed / 1500);
+                const factor = Math.max(0, 1 - elapsed / 1000);
                 const eased = factor * factor;
                 window.__flightCameraYExtra = flightLastExtraY * eased;
-                window.__flightCameraRotXExtra = -0.05 * eased;
+                window.__flightCameraRotXExtra = -0.04 * eased;
             }
+        } else {
+            window.__flightCameraYExtra = 0;
+            window.__flightCameraRotXExtra = 0;
         }
     }
 
@@ -4307,8 +4301,8 @@
                     }
                 }
             } else if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
-                const hw = 9.5;
-                const hd = 30;
+                const hw = 12.0;
+                const hd = 34;
                 const dx = Math.abs(obs.x - heroX);
                 const dz = Math.abs(obs.z - heroZ);
                 if (dx <= hw && dz <= hd) {
@@ -4318,15 +4312,18 @@
                     const topRoof = isTriple ? 84 : (isDouble ? 56 : baseY + 28);
                     const isAirborneAssisted = (now < ventLaunchActiveUntil) || (window.__SW_TRAMPOLINE_AIR_UNTIL__ && now < window.__SW_TRAMPOLINE_AIR_UNTIL__);
 
-                    // 100% Solid Roof Platform
-                    if (heroY >= topRoof - 7 || isAirborneAssisted) {
+                    // 100% Solid Roof Platform with full native jump height & movement
+                    if (heroY >= topRoof - 4.0 || isAirborneAssisted) {
                         heroBody.ground = Math.max(heroBody.ground || 0, topRoof);
-                        if (heroBody.bottom <= topRoof + 2 || heroBody.bottom < topRoof) {
-                            heroBody.bottom = topRoof;
-                            heroBody.y = topRoof;
-                            heroBody.ground = topRoof;
-                            heroBody.landed = true;
-                            if (heroBody.velocity && heroBody.velocity.y < 0) heroBody.velocity.y = 0;
+                        const isAscending = (hero.jump && hero.jump.isJumping) || (heroBody.velocity && heroBody.velocity.y > 0.5);
+                        if (!isAscending) {
+                            if (heroBody.bottom <= topRoof + 2.5 || heroBody.bottom < topRoof) {
+                                heroBody.bottom = topRoof;
+                                heroBody.y = topRoof;
+                                heroBody.ground = topRoof;
+                                heroBody.landed = true;
+                                if (heroBody.velocity && heroBody.velocity.y < 0) heroBody.velocity.y = 0;
+                            }
                         }
                         if (hero.player) hero.player.cameraTargetY = topRoof;
                     } else if (heroY < topRoof - 7) {
@@ -4816,28 +4813,28 @@
             const vent = createObstacle3D('ventoinha', lane, 0, centerZ + 75, { targetHeight: 84 });
             if (vent) customObstacles.push(vent);
         } else if (pattern === 19) {
-            // 19. Container Suspenso (y=28, teto=56) com Escada de Madeira perfeitamente alinhada - SEM moedas na escada
+            // 19. Container Suspenso (y=28, teto=56) com Ventoinha de Impulso Frontal - SEM moedas
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const container = createObstacle3D('suspended_container', lane, 28, centerZ - 20);
             if (container) customObstacles.push(container);
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, (centerZ - 20) + 56, { targetHeight: 56, baseY: 0 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', lane, 0, centerZ + 45, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
         } else if (pattern === 20) {
-            // 20. Rampa de Madeira EM CIMA de Vagão/Container (baseY=28) subindo para Container Superior (y=56)
+            // 20. Trilha Aérea: Vagão/Container com Ventoinha Frontal subindo para Container Superior (y=56)
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const baseCont = createObstacle3D('suspended_container', lane, 0, centerZ + 30);
             if (baseCont) customObstacles.push(baseCont);
-            const roofRamp = createObstacle3D('wooden_stairs', lane, 28, centerZ + 25, { targetHeight: 28, baseY: 28 });
-            if (roofRamp) customObstacles.push(roofRamp);
+            const vent = createObstacle3D('ventoinha', lane, 0, centerZ + 65, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
             const highCont = createObstacle3D('suspended_container', lane, 28, centerZ - 35);
             if (highCont) customObstacles.push(highCont);
         } else if (pattern === 21) {
-            // 21. Escadaria de Trens Progressiva: Vagão Duplo (y=56) com escada alinhada - SEM moedas na escada
+            // 21. Escadaria Aérea de Trens: Vagão Duplo (y=56) com Ventoinha Frontal e Vagão Triplo
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const dTrain = createObstacle3D('double_train', lane, 0, centerZ + 15);
             if (dTrain) customObstacles.push(dTrain);
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, (centerZ + 15) + 56, { targetHeight: 56, baseY: 0 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', lane, 0, centerZ + 65, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
             const tTrain = createObstacle3D('triple_train', lane, 0, centerZ - 45);
             if (tTrain) customObstacles.push(tTrain);
         } else if (pattern === 22) {
@@ -4875,14 +4872,14 @@
             const vent = createObstacle3D('ventoinha', -20, 0, centerZ + 75, { targetHeight: 56 });
             if (vent) customObstacles.push(vent);
         } else if (pattern === 26) {
-            // 26. Escada de Madeira no Chão + Escada de Madeira EM CIMA do Trem (duplo nível)
+            // 26. Sequência de Containers com Ventoinhas Frontais
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const s1 = createObstacle3D('wooden_stairs', lane, 0, centerZ + 40, { targetHeight: 28, baseY: 0 });
-            if (s1) customObstacles.push(s1);
-            const midCont = createObstacle3D('suspended_container', lane, 0, centerZ - 15);
+            const vent1 = createObstacle3D('ventoinha', lane, 0, centerZ + 55, { targetHeight: 56 });
+            if (vent1) customObstacles.push(vent1);
+            const midCont = createObstacle3D('suspended_container', lane, 28, centerZ);
             if (midCont) customObstacles.push(midCont);
-            const s2 = createObstacle3D('wooden_stairs', lane, 28, centerZ - 20, { targetHeight: 28, baseY: 28 });
-            if (s2) customObstacles.push(s2);
+            const highCont = createObstacle3D('suspended_container', lane, 28, centerZ - 45);
+            if (highCont) customObstacles.push(highCont);
         } else if (pattern === 27) {
             // 27. Vagão Triplo (3 andares) com Ventoinha Frontal + Container Suspenso ao Lado
             const mainLane = freeGroundLanes[0];
@@ -4894,11 +4891,13 @@
             const cont = createObstacle3D('suspended_container', sideLane, 28, centerZ - 20);
             if (cont) customObstacles.push(cont);
         } else if (pattern === 28) {
-            // 28. Parkour Zig-Zag em Tábuas de Madeira e Tetos de Trem - SEM moedas nas escadas
-            const stairs1 = createObstacle3D('wooden_stairs', -20, 0, centerZ + 40, { targetHeight: 28, baseY: 0 });
-            if (stairs1) customObstacles.push(stairs1);
-            const stairs2 = createObstacle3D('wooden_stairs', 20, 0, centerZ - 20, { targetHeight: 28, baseY: 0 });
-            if (stairs2) customObstacles.push(stairs2);
+            // 28. Parkour Aéreo em Tetos de Vagões com Ventoinhas
+            const v1 = createObstacle3D('ventoinha', -20, 0, centerZ + 50, { targetHeight: 56 });
+            if (v1) customObstacles.push(v1);
+            const c1 = createObstacle3D('suspended_container', -20, 28, centerZ);
+            if (c1) customObstacles.push(c1);
+            const c2 = createObstacle3D('suspended_container', 20, 28, centerZ - 30);
+            if (c2) customObstacles.push(c2);
         } else if (pattern === 29) {
             // 29. Super Container Suspenso com Ventoinha Frontal + Moeda de Energia no Teto
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
@@ -4909,12 +4908,12 @@
             const energyCoin = createObstacle3D('energyCoin', lane, 62, centerZ);
             if (energyCoin) customObstacles.push(energyCoin);
         } else if (pattern === 30) {
-            // 30. Parkour de Containers Suspensos com Escada - SEM moedas na escada
+            // 30. Parkour de Containers Suspensos com Ventoinha Frontal
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const cont = createObstacle3D('suspended_container', lane, 28, centerZ - 20);
             if (cont) customObstacles.push(cont);
-            const ramp = createObstacle3D('wooden_stairs', lane, 0, (centerZ - 20) + 56, { targetHeight: 56, baseY: 0 });
-            if (ramp) customObstacles.push(ramp);
+            const vent = createObstacle3D('ventoinha', lane, 0, centerZ + 45, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
         } else if (pattern === 31) {
             // 31. Desfiladeiro de Trens Duplos com Ponte de Container Suspenso no Meio e Ventoinha
             const leftTrain = createObstacle3D('double_train', -20, 0, centerZ);
@@ -4926,12 +4925,12 @@
             const vent = createObstacle3D('ventoinha', 0, 0, centerZ + 42, { targetHeight: 56 });
             if (vent) customObstacles.push(vent);
         } else if (pattern === 32) {
-            // 32. Escadaria de Madeira Alta para Vagão Duplo (y=56) - SEM moedas na escada
+            // 32. Vagão Duplo (y=56) com Ventoinha Frontal
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const train = createObstacle3D('double_train', lane, 0, centerZ - 15);
             if (train) customObstacles.push(train);
-            const stairs = createObstacle3D('wooden_stairs', lane, 0, (centerZ - 15) + 56, { targetHeight: 56, baseY: 0 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', lane, 0, centerZ + 55, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
         } else if (pattern === 33) {
             // 33. Containers Suspensos Gêmeos com Ventoinha Lateral
             const c1 = createObstacle3D('suspended_container', -20, 28, centerZ);
@@ -4956,12 +4955,12 @@
             const dTrain = createObstacle3D('double_train', lane, 0, centerZ - 36);
             if (dTrain) customObstacles.push(dTrain);
         } else if (pattern === 36) {
-            // 36. 2 Containers Suspensos com Escadas de Madeira - SEM moedas nas escadas
+            // 36. 2 Containers Suspensos com Ventoinhas Frontais
             [-20, 20].forEach((lx, i) => {
                 const cont = createObstacle3D('suspended_container', lx, 28, centerZ);
                 if (cont) customObstacles.push(cont);
-                const stairs = createObstacle3D('wooden_stairs', lx, 0, centerZ + 56, { targetHeight: 56, baseY: 0 });
-                if (stairs) customObstacles.push(stairs);
+                const vent = createObstacle3D('ventoinha', lx, 0, centerZ + 55, { targetHeight: 56 });
+                if (vent) customObstacles.push(vent);
             });
         } else if (pattern === 37) {
             // 37. Grande Desafio Vertical: Ventoinha para Vagão Duplo + Container Suspenso + Vagão Triplo
@@ -5047,10 +5046,10 @@
                 if (c) customObstacles.push(c);
             }
         } else if (pattern === 44) {
-            // 44. NO-COIN: Escada Alta Flanqueada por Moedas Vermelhas
+            // 44. NO-COIN: Ventoinha Flanqueada por Moedas Vermelhas
             const stairsLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
-            const stairs = createObstacle3D('wooden_stairs', stairsLane, 0, centerZ + 45, { targetHeight: 56, baseY: 0 });
-            if (stairs) customObstacles.push(stairs);
+            const vent = createObstacle3D('ventoinha', stairsLane, 0, centerZ + 45, { targetHeight: 56 });
+            if (vent) customObstacles.push(vent);
             const train = createObstacle3D('double_train', stairsLane, 0, centerZ - 20);
             if (train) customObstacles.push(train);
             [-20, 0, 20].forEach(lx => {
@@ -5144,7 +5143,7 @@
                 hero.player.cameraTargetY = groundY;
                 hero.player.cameraY = groundY;
             } else {
-                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, feetY);
+                hero.player.cameraTargetY = groundY + Math.max(0, feetY - groundY) * 0.70;
             }
         }
 
@@ -5411,6 +5410,11 @@
                     }
                 }
             }
+            // Smoothly rotate speed boost coin around Y
+            if (obs.type === 'boostCoin' && obs.mesh) {
+                if (obs.mesh.rotation) obs.mesh.rotation.y += 0.045 * dtFactor;
+                else obs.mesh.ry = (obs.mesh.ry || 0) + 0.045 * dtFactor;
+            }
             const zMin = Math.min(prevHeroZ, heroZ);
             const zMax = Math.max(prevHeroZ, heroZ);
             const dz = obs.z < zMin ? (zMin - obs.z) : (obs.z > zMax ? (obs.z - zMax) : 0);
@@ -5539,13 +5543,14 @@
                         continue;
                     }
                     if (obs.type === 'double_train') {
-                        if (heroY >= 54 || (now < ventLaunchActiveUntil)) {
+                        if (heroY >= 52 || (now < ventLaunchActiveUntil)) {
                             heroBody.ground = Math.max(heroBody.ground || 0, 56);
-                            const isJumpingUp = heroBody.velocity && heroBody.velocity.y > 0.5;
-                            if (!isJumpingUp && heroY <= 57.5) {
+                            const isJumpingUp = (hero.jump && hero.jump.isJumping) || (heroBody.velocity && heroBody.velocity.y > 0.5);
+                            if (!isJumpingUp && heroY <= 58.5) {
                                 heroBody.bottom = 56;
                                 heroBody.y = 56;
                                 heroBody.landed = true;
+                                if (heroBody.velocity && heroBody.velocity.y < 0) heroBody.velocity.y = 0;
                             }
                             if (hero.player) {
                                 hero.player.cameraTargetY = 56;
@@ -5555,13 +5560,14 @@
                         }
                     }
                     if (obs.type === 'triple_train') {
-                        if (heroY >= 82 || (now < ventLaunchActiveUntil)) {
+                        if (heroY >= 80 || (now < ventLaunchActiveUntil)) {
                             heroBody.ground = Math.max(heroBody.ground || 0, 84);
-                            const isJumpingUp = heroBody.velocity && heroBody.velocity.y > 0.5;
-                            if (!isJumpingUp && heroY <= 85.5) {
+                            const isJumpingUp = (hero.jump && hero.jump.isJumping) || (heroBody.velocity && heroBody.velocity.y > 0.5);
+                            if (!isJumpingUp && heroY <= 86.5) {
                                 heroBody.bottom = 84;
                                 heroBody.y = 84;
                                 heroBody.landed = true;
+                                if (heroBody.velocity && heroBody.velocity.y < 0) heroBody.velocity.y = 0;
                             }
                             if (hero.player) {
                                 hero.player.cameraTargetY = 84;
@@ -5577,13 +5583,14 @@
                             continue;
                         }
                         // Running on top of roof:
-                        if (heroY >= topY - 2 || (now < ventLaunchActiveUntil)) {
+                        if (heroY >= topY - 4 || (now < ventLaunchActiveUntil)) {
                             heroBody.ground = Math.max(heroBody.ground || 0, topY);
-                            const isJumpingUp = heroBody.velocity && heroBody.velocity.y > 0.5;
-                            if (!isJumpingUp && heroY <= topY + 1.5) {
+                            const isJumpingUp = (hero.jump && hero.jump.isJumping) || (heroBody.velocity && heroBody.velocity.y > 0.5);
+                            if (!isJumpingUp && heroY <= topY + 2.5) {
                                 heroBody.bottom = topY;
                                 heroBody.y = topY;
                                 heroBody.landed = true;
+                                if (heroBody.velocity && heroBody.velocity.y < 0) heroBody.velocity.y = 0;
                             }
                             if (hero.player) {
                                 hero.player.cameraTargetY = topY;
@@ -8293,11 +8300,10 @@
                 <!-- Tab 3: Records History -->
                 <div class="tab-pane" id="pane-records">
                     <div class="records-filter-bar">
-                        <button class="btn-filter-record active" onclick="window.__filterRecords('global', this)">🏆 GLOBAL TOP</button>
+                        <button class="btn-filter-record active" onclick="window.__filterRecords('all', this)">TODOS (LOCAL)</button>
                         <button class="btn-filter-record" onclick="window.__filterRecords('nocoin', this)">NO COIN</button>
                         <button class="btn-filter-record" onclick="window.__filterRecords('normal', this)">NORMAL</button>
-                        <button class="btn-filter-record" onclick="window.__filterRecords('local', this)">HISTÓRICO LOCAL</button>
-                        <button class="btn-clear-records" onclick="window.__clearRecords()">LIMPAR LOCAL</button>
+                        <button class="btn-clear-records" onclick="window.__clearRecords()">LIMPAR</button>
                     </div>
                     <div class="records-table-container" id="records-table-wrap">
                         <!-- Injected by renderRecordsTable -->
@@ -8645,38 +8651,23 @@
     function renderRecordsTable(filterMode) {
         const container = document.getElementById('records-table-wrap');
         if (!container) return;
-        window.__currentRecordFilter = filterMode || 'global';
+        window.__currentRecordFilter = filterMode || 'all';
 
+        const localRecords = JSON.parse(localStorage.getItem('subway_surfers_records') || '[]');
         let records = [];
-        const isGlobal = (filterMode === 'global' || !filterMode);
 
-        if (isGlobal) {
-            records = getGlobalLeaderboard();
-        } else if (filterMode === 'nocoin') {
-            const globalNc = getGlobalLeaderboard().filter(r => r.mode === 'No Coin');
-            const localNc = JSON.parse(localStorage.getItem('subway_surfers_records') || '[]').filter(r => r.mode === 'No Coin');
-            const map = new Map();
-            [...globalNc, ...localNc].forEach(r => {
-                const k = (r.nick || 'Você') + '_' + r.mode;
-                if (!map.has(k) || r.timeMs > map.get(k).timeMs) map.set(k, r);
-            });
-            records = Array.from(map.values()).sort((a, b) => b.timeMs - a.timeMs);
+        if (filterMode === 'nocoin') {
+            records = localRecords.filter(r => r.mode === 'No Coin');
         } else if (filterMode === 'normal') {
-            const globalNm = getGlobalLeaderboard().filter(r => r.mode === 'Normal');
-            const localNm = JSON.parse(localStorage.getItem('subway_surfers_records') || '[]').filter(r => r.mode === 'Normal');
-            const map = new Map();
-            [...globalNm, ...localNm].forEach(r => {
-                const k = (r.nick || 'Você') + '_' + r.mode;
-                if (!map.has(k) || r.timeMs > map.get(k).timeMs) map.set(k, r);
-            });
-            records = Array.from(map.values()).sort((a, b) => b.timeMs - a.timeMs);
+            records = localRecords.filter(r => r.mode === 'Normal');
         } else {
-            // Local history
-            records = JSON.parse(localStorage.getItem('subway_surfers_records') || '[]');
+            records = localRecords.slice();
         }
 
+        records.sort((a, b) => (b.timeMs || 0) - (a.timeMs || 0));
+
         if (records.length === 0) {
-            container.innerHTML = '<div class="no-records">Nenhum recorde registrado ainda. Inicie uma corrida para pontuar!</div>';
+            container.innerHTML = '<div class="no-records">Nenhum recorde local registrado ainda. Inicie uma corrida para pontuar!</div>';
             return;
         }
 
