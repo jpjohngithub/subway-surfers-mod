@@ -851,11 +851,10 @@
         default: _0x5a61de,
         high: _0x5a61de
       };
-      const _0x556677 = _0x2f0445["assets/game-idle"].image["assets/game-idle/train-start.png"].webp.default;
       _0x2f0445["assets/game-idle"].image["assets/game-idle/train-start.png"].webp = {
-        low: _0x556677,
-        default: _0x556677,
-        high: _0x556677
+        low: _0x5a61de,
+        default: _0x5a61de,
+        high: _0x5a61de
       }, _0x2f0445["assets/ui"].image.ui.standard = {
         default: "assets/ui/ui.json",
         high: "assets/ui/ui.json",
@@ -869,7 +868,7 @@
       if ("object" == typeof _0x27f257) for (const _0xc1237e in _0x27f257) {
         if ('shortcut' === _0xc1237e) continue;
         const _0xa9bb5 = _0x27f257[_0xc1237e];
-        'string' == typeof _0xa9bb5 && _0xa9bb5.includes("assets/") && !_0xa9bb5.match(/ui(.*?)\.json/) ? _0x27f257[_0xc1237e] = _0xa9bb5 + (_0xa9bb5.includes("train-start") ? "?h=johnsurf9" : "?h=40599v1onlst4h9vc") : 'object' == typeof _0xa9bb5 && _0x363c0e(_0xa9bb5);
+        'string' == typeof _0xa9bb5 && _0xa9bb5.includes("assets/") && !_0xa9bb5.match(/ui(.*?)\.json/) ? _0x27f257[_0xc1237e] = _0xa9bb5 + (_0xa9bb5.includes("train-start") ? "?h=johnsurf11" : "?h=40599v1onlst4h9vc") : 'object' == typeof _0xa9bb5 && _0x363c0e(_0xa9bb5);
       }
     }(_0x324ddd), _0x324ddd;
   }

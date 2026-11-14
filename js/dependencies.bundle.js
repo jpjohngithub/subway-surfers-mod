@@ -23386,7 +23386,7 @@
         if (1 === this.lane && t > 0) return void (this.entity.body.x > r.a.laneWidth - 1 && this.onBumpSideways.dispatch("wall"));
         if (-1 === this.lane && t < 0) return void (this.entity.body.x < 1 - r.a.laneWidth && this.onBumpSideways.dispatch("wall"));
       }
-      const s = .16 + .06 * (1 - this.entity.game.stats.speedRatio),
+      const s = .2 + .1 * (1 - this.entity.game.stats.speedRatio),
         h = Math.round(this.lane + t),
         l = o.a.clamp(h, -1, 1),
         u = l * r.a.laneWidth,
@@ -34722,7 +34722,7 @@
       const e = t.data.global,
         i = e.x - this.pressStartX,
         n = e.y - this.pressStartY;
-      const T = window.__swipeT || 8;
+      const T = window.__swipeT || 16;
       if (Math.abs(i) > T && Math.abs(i) >= Math.abs(n)) {
         this.pressing = !1;
         this.doubleTapReset();

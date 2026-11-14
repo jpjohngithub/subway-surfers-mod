@@ -113,16 +113,11 @@
     // ==========================================
     // ZERO-DELAY INSTANT TOUCH & INPUT ENGINE
     // ==========================================
-    window.__swipeT = 7; // Ultra-sensitive swipe threshold (7px instead of 22px)
-
-    // Ultra-responsive native swipe threshold
-    window.__swipeT = 9;
-    // Keyboard routing is handled synchronously inside ControllerSystem (dependencies.bundle.js).
+    window.__swipeT = 16;
 
     try { 
         localStorage.removeItem('sw_shader_lighting');
         localStorage.removeItem('sw_shaders');
-        localStorage.removeItem('sw_saturation');
     } catch (e) {}
 
     const _swSavedVol = localStorage.getItem('sw_volume');
@@ -130,7 +125,10 @@
     const GFX_SETTINGS = {
         fps: (_swSavedFps === '60' || _swSavedFps === '120' || _swSavedFps === '240') ? _swSavedFps : '60', // '60' (Padrão) | '120' | '240'
         showFps: localStorage.getItem('sw_show_fps') === '1',
-        saturation: 100, // 100% original
+        saturation: (() => {
+            const s = localStorage.getItem('sw_saturation');
+            return s !== null ? Math.max(50, Math.min(300, parseInt(s, 10) || 150)) : 150;
+        })(),
         contrast: 100, // 100% original
         aspectRatio: localStorage.getItem('sw_aspect_ratio') || 'native', // 'native' | 'stretched_4_3' | 'stretched_16_10' | 'square_1_1'
         coinOutline: (() => {
@@ -153,20 +151,18 @@
         motionBlur: localStorage.getItem('sw_motion_blur') || 'off',
         shaders: (localStorage.getItem('sw_shaders') === 'off') ? 'off' : 'on',
         perfMode: localStorage.getItem('sw_perf_mode') === '1',
-        timeOfDay: localStorage.getItem('sw_time_of_day') || 'night',
+        timeOfDay: 'day',
         noRevive: localStorage.getItem('sw_no_revive') !== '0',
     };
     window.__SW_VOLUME_OVERRIDE__ = GFX_SETTINGS.volume / 100;
     window.__SW_NO_REVIVE__ = GFX_SETTINGS.noRevive;
     window.VANILLA_MODE = localStorage.getItem('sw_vanilla_mode') === '1';
-    window.__swipeT = GFX_SETTINGS.perfMode ? 4 : 6;
+    window.__swipeT = 16;
     window.__SW_SHADER_VEC__ = new Float32Array([GFX_SETTINGS.perfMode || GFX_SETTINGS.shaders === 'off' ? 0.0 : 1.0, 0, 0, 0]);
 
     function applyPerformanceMode(enabled) {
         GFX_SETTINGS.perfMode = !!enabled;
         localStorage.setItem('sw_perf_mode', enabled ? '1' : '0');
-        const rays = document.getElementById('subway-god-rays');
-        if (rays) rays.style.display = enabled ? 'none' : '';
         const canvas = document.getElementById('canvas');
         if (canvas) {
             canvas.style.filter = enabled ? 'none' : 'contrast(1.08) saturate(1.18) brightness(1.02)';
@@ -174,7 +170,7 @@
         if (window.__SW_SHADER_VEC__) {
             window.__SW_SHADER_VEC__[0] = enabled ? 0.0 : (GFX_SETTINGS.shaders === 'off' ? 0.0 : 1.0);
         }
-        window.__swipeT = enabled ? 4 : 6;
+        window.__swipeT = 16;
         try {
             if (window.app && window.app.renderer) {
                 window.app.renderer.resolution = enabled ? 0.75 : 1.0;
@@ -182,23 +178,6 @@
             }
         } catch(e) {}
     }
-
-    window.addEventListener('keydown', (e) => {
-        const c = window.game && window.game.controller;
-        if (!c || (window.game.state !== 1 && window.game.state !== 'running')) return;
-        const k = e.key;
-        if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
-            c.pressLeft(e);
-        } else if (k === 'ArrowRight' || k === 'd' || k === 'D') {
-            c.pressRight(e);
-        } else if (k === 'ArrowUp' || k === 'w' || k === 'W') {
-            c.pressUp(e);
-        } else if (k === 'ArrowDown' || k === 's' || k === 'S') {
-            c.pressDown(e);
-        } else if (k === ' ' || e.code === 'Space') {
-            if (typeof c.pressAction === 'function') c.pressAction(e);
-        }
-    }, { capture: true, passive: false });
 
     try {
         document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
@@ -389,10 +368,10 @@
         ls.lightsDirtyTick++;
     };
 
-    function applyTimeOfDay(tod = 'night') {
-        tod = (tod === 'sunset' || tod === 'day') ? tod : 'night';
-        GFX_SETTINGS.timeOfDay = tod;
-        try { localStorage.setItem('sw_time_of_day', tod); } catch(e) {}
+    function applyTimeOfDay(tod = 'day') {
+        tod = 'day';
+        GFX_SETTINGS.timeOfDay = 'day';
+        try { localStorage.setItem('sw_time_of_day', 'day'); } catch(e) {}
 
         if (tod === 'night') {
             try {
@@ -1042,10 +1021,10 @@
         const el = document.getElementById('val-gfx-saturation');
         if (el) {
             let desc = GFX_SETTINGS.saturation + '%';
-            if (GFX_SETTINGS.saturation === 100) desc += ' (Padrão)';
-            else if (GFX_SETTINGS.saturation >= 200) desc += ' (Ultra Vívido)';
-            else if (GFX_SETTINGS.saturation >= 150) desc += ' (Intenso)';
-            else if (GFX_SETTINGS.saturation <= 75) desc += ' (Suave)';
+            if (GFX_SETTINGS.saturation === 150) desc += ' (Padrão)';
+            else if (GFX_SETTINGS.saturation >= 220) desc += ' (Ultra Vívido)';
+            else if (GFX_SETTINGS.saturation >= 180) desc += ' (Intenso)';
+            else if (GFX_SETTINGS.saturation <= 100) desc += ' (Original)';
             el.textContent = desc;
         }
         const s = document.getElementById('slider-saturation');
@@ -1710,7 +1689,7 @@
             const ref = lib && lib.getMap && (lib.getMap('props-tex') || lib.getMap('trains-tex') || lib.getMap('shadow'));
             const TexCls = ref && ref.constructor;
             if (TexCls && typeof TexCls.from === 'function') {
-                window.__SW_JOHNSURF_LOGO_TEX__ = TexCls.from(new URL('bundles/lasvegas/game-idle/train-start.png?v=johnsurf9', window.location.href).href);
+                window.__SW_JOHNSURF_LOGO_TEX__ = TexCls.from(new URL('bundles/lasvegas/game-idle/train-start.png?v=johnsurf11', window.location.href).href);
                 return window.__SW_JOHNSURF_LOGO_TEX__;
             }
         } catch(e) {}
@@ -2730,7 +2709,7 @@
         }
     }
 
-    function playCoinShatterEffect(source = null, color = 0xffd84a, intensity = 1.25, fragmentCount = 10, isBrokenCoin = false, isBoost = false) {
+    function playCoinShatterEffect(source = null, color = 0xffd84a, intensity = 1.25, fragmentCount = 10, isBrokenCoin = false, isBoost = false, isDeath = false) {
         if (fragmentCount > 0) spawnCoinWorldFragments(source, color, fragmentCount, intensity);
         const burst = document.createElement('div');
         burst.className = 'subway-coin-shatter';
@@ -2743,7 +2722,7 @@
                 '<div class="coin-broken-wrapper">' +
                 '<div class="coin-half coin-half-left"><svg viewBox="0 0 42 84" class="coin-half-svg"><path d="M 42,0 A 42,42 0 0,0 42,84 L 35,64 L 46,45 L 34,26 L 42,0 Z" fill="#e11d48" stroke="#ffffff" stroke-width="2.5"/><path d="M 42,6 A 36,36 0 0,0 42,78 L 36,63 L 45,45 L 35,27 L 42,6 Z" fill="#9f1239"/><polygon points="42,20 35.5,33.5 21,34 32.5,43.5 28.5,57.5 42,49.5" fill="#fecdd3" stroke="#ffffff" stroke-width="1.2"/></svg></div>' +
                 '<div class="coin-half coin-half-right"><svg viewBox="0 0 42 84" class="coin-half-svg"><path d="M 0,0 L -8,26 L 4,45 L -7,64 L 0,84 A 42,42 0 0,0 0,0 Z" fill="#e11d48" stroke="#ffffff" stroke-width="2.5"/><path d="M 0,6 L -7,27 L 3,45 L -6,63 L 0,78 A 36,36 0 0,0 0,6 Z" fill="#9f1239"/><polygon points="0,20 0,49.5 13.5,57.5 9.5,43.5 21,34 6.5,33.5" fill="#fecdd3" stroke="#ffffff" stroke-width="1.2"/></svg></div>' +
-                '<div class="coin-crack-spark">💀</div>' +
+                `<div class="coin-crack-spark">${isDeath ? '💀' : '💥'}</div>` +
                 '</div>';
         } else if (isBoost) {
             burst.innerHTML = '<span class="coin-shatter-flash" style="background: radial-gradient(circle at 50% 59%, rgba(22,163,74,0.28), transparent 45%);"></span>' +
@@ -2813,12 +2792,12 @@
     window.__onNoCoinCollect = function(coin) {
         if (!window.NO_COIN_MODE) return;
         if (Date.now() < dashInvulnUntil || Date.now() < boostEndTime) {
-            playCoinShatterEffect(coin, 0xff2844, 1.35, 14, true, false);
+            playCoinShatterEffect(coin, 0xff2844, 1.35, 14, true, false, false);
             return;
         }
         if (coin && coin._isDashItem) return;
         if (coin && coin.attractable && coin.attractable.attracted) return;
-        playCoinShatterEffect(coin, 0xff2844, 1.45, 16, true, false);
+        playCoinShatterEffect(coin, 0xff2844, 1.45, 16, true, false, true);
         triggerNoCoinDeath(coin);
     };
 
@@ -7638,13 +7617,6 @@
     // 8. UNIFIED MOD MENU & UI
     // ==========================================
     function createUnifiedUI() {
-        if (!document.getElementById('subway-god-rays')) {
-            const gr = document.createElement('div');
-            gr.id = 'subway-god-rays';
-            gr.className = 'subway-god-rays';
-            document.body.appendChild(gr);
-        }
-
         if (!document.getElementById('subway-energy-widget')) {
             const meter = document.createElement('div');
             meter.id = 'subway-energy-widget';
@@ -8221,7 +8193,7 @@
                         <div class="sat-slider-wrap">
                             <input type="range" id="slider-saturation" min="50" max="300" step="5" value="${GFX_SETTINGS.saturation}" oninput="window.__setSaturation(this.value)" />
                             <div class="sat-presets-row">
-                                <button class="btn-sat-chip" onclick="window.__setSaturation(100)">100% Padrão</button>
+                                <button class="btn-sat-chip" onclick="window.__setSaturation(150)">150% Padrão</button>
                                 <button class="btn-sat-chip" onclick="window.__setSaturation(160)">160% Vívido</button>
                                 <button class="btn-sat-chip" onclick="window.__setSaturation(220)">220% Forte</button>
                                 <button class="btn-sat-chip" onclick="window.__setSaturation(300)">300% Máximo</button>
@@ -8246,22 +8218,6 @@
                                 <button class="btn-sat-chip" onclick="window.__setCoinOutline(75)">75% Forte</button>
                                 <button class="btn-sat-chip" onclick="window.__setCoinOutline(100)">100% Preta</button>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Time of Day Card -->
-                    <div class="subway-setting-card">
-                        <div class="setting-row-top">
-                            <div class="setting-text-col">
-                                <span class="setting-title">Hora do Dia</span>
-                                <span class="setting-desc">Iluminação do céu e mapa (Noite, Pôr do Sol, Dia)</span>
-                            </div>
-                            <span class="setting-pill" id="val-gfx-timeofday">${getTimeOfDayLabel(GFX_SETTINGS.timeOfDay)}</span>
-                        </div>
-                        <div class="sat-presets-row" style="margin-top: 10px;">
-                            <button class="btn-sat-chip ${GFX_SETTINGS.timeOfDay === 'night' ? 'active' : ''}" id="btn-tod-night" onclick="window.__setTimeOfDay('night')">🌙 Noite</button>
-                            <button class="btn-sat-chip ${GFX_SETTINGS.timeOfDay === 'sunset' ? 'active' : ''}" id="btn-tod-sunset" onclick="window.__setTimeOfDay('sunset')">🌅 Tarde (Pôr do Sol)</button>
-                            <button class="btn-sat-chip ${GFX_SETTINGS.timeOfDay === 'day' ? 'active' : ''}" id="btn-tod-day" onclick="window.__setTimeOfDay('day')">☀️ Dia</button>
                         </div>
                     </div>
                 </div>
@@ -8341,22 +8297,6 @@
                                 <button class="btn-refresh-online" onclick="window.__refreshOnline()">Atualizar</button>
                             </div>
                             <div class="online-players-list" id="online-players-list"></div>
-                        </div>
-                    </div>
-
-                    <!-- Time of Day Card -->
-                    <div class="subway-setting-card">
-                        <div class="setting-row-top">
-                            <div class="setting-text-col">
-                                <span class="setting-title">Hora do Dia</span>
-                                <span class="setting-desc">Iluminação do céu e mapa (Noite, Pôr do Sol, Dia)</span>
-                            </div>
-                            <span class="setting-pill" id="val-gfx-timeofday">${getTimeOfDayLabel(GFX_SETTINGS.timeOfDay)}</span>
-                        </div>
-                        <div class="sat-presets-row" style="margin-top: 10px;">
-                            <button class="btn-sat-chip ${GFX_SETTINGS.timeOfDay === 'night' ? 'active' : ''}" id="btn-tod-night" onclick="window.__setTimeOfDay('night')">🌙 Noite</button>
-                            <button class="btn-sat-chip ${GFX_SETTINGS.timeOfDay === 'sunset' ? 'active' : ''}" id="btn-tod-sunset" onclick="window.__setTimeOfDay('sunset')">🌅 Tarde (Pôr do Sol)</button>
-                            <button class="btn-sat-chip ${GFX_SETTINGS.timeOfDay === 'day' ? 'active' : ''}" id="btn-tod-day" onclick="window.__setTimeOfDay('day')">☀️ Dia</button>
                         </div>
                     </div>
                 </div>
@@ -8820,25 +8760,6 @@
             @keyframes immunityPulse {
                 0% { transform: translateY(-50%) scale(0.96); box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); }
                 100% { transform: translateY(-50%) scale(1.06); box-shadow: 0 0 14px rgba(16, 185, 129, 0.85); }
-            }
-            .subway-god-rays {
-                position: fixed; inset: 0; pointer-events: none; z-index: 5;
-                mix-blend-mode: screen; opacity: 0.35;
-                background:
-                    radial-gradient(ellipse 65% 55% at 75% 15%, rgba(255, 238, 180, 0.40), transparent 70%),
-                    conic-gradient(from 125deg at 75% 15%,
-                        transparent 0deg, rgba(255, 240, 190, 0.28) 8deg, transparent 16deg,
-                        transparent 28deg, rgba(255, 230, 160, 0.24) 36deg, transparent 44deg,
-                        transparent 56deg, rgba(255, 245, 210, 0.30) 64deg, transparent 74deg,
-                        transparent 88deg, rgba(255, 220, 150, 0.26) 96deg, transparent 108deg,
-                        transparent 120deg, rgba(255, 240, 190, 0.24) 130deg, transparent 145deg);
-                filter: blur(3px);
-                animation: godRaySway 9s ease-in-out infinite alternate;
-            }
-            @keyframes godRaySway {
-                0% { transform: scale(1.0) rotate(0deg); opacity: 0.28; }
-                50% { transform: scale(1.02) rotate(1deg); opacity: 0.40; }
-                100% { transform: scale(0.99) rotate(-1deg); opacity: 0.26; }
             }
             @media(max-width:600px) { #subway-energy-widget { width:min(228px,58vw); height:10px; bottom:max(14px, env(safe-area-inset-bottom, 14px)); } #subway-energy-toast { bottom:34px; } }
             
