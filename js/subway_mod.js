@@ -231,7 +231,7 @@
     window.__SW_PRO_HUB__ = false;
     window.__SW_UNLIMITED_TICK__ = ((parseInt(GFX_SETTINGS.fps, 10) || 60) > 65);
     window.__SW_TUNING__ = Object.assign({
-        halfWagonChance: 0.1,
+        halfWagonChance: (window.VANILLA_MODE ? 0 : 0.1),
         energyCoinScale: 2.05,
         shadowSoftness: 1.0,
     }, window.__SW_TUNING__ || {});
@@ -1093,11 +1093,13 @@
         if (mpChk) mpChk.checked = window.VANILLA_MODE;
         if (window.VANILLA_MODE) {
             cleanupCustomObstacles();
+            if (window.__SW_TUNING__) window.__SW_TUNING__.halfWagonChance = 0;
             const widget = document.getElementById('subway-energy-widget');
             if (widget) widget.style.display = 'none';
             if (backpackBoardMesh && backpackBoardMesh.parent) backpackBoardMesh.parent.removeChild(backpackBoardMesh);
             if (typeof resetBoost === 'function') resetBoost();
         } else {
+            if (window.__SW_TUNING__) window.__SW_TUNING__.halfWagonChance = 0.1;
             updateEnergyHud();
         }
         showHUDNotification(window.VANILLA_MODE ? '🍃 MODO VANILLA ATIVADO (Jogo Original)' : '⚙️ MODO MODIFICADO ATIVADO');
@@ -1275,9 +1277,14 @@
     let trampolinePadTexture = null;
     let pilowGeometry = null;
     const pilowGeometryReady = loadPilowGeometry().then(data => { pilowGeometry = data; return data; }).catch(() => null);
-    let ventoinhaGeometry = null;
+    let ventoinhaGeometry = (typeof window !== 'undefined' && window.VENTOINHA_DATA) ? window.VENTOINHA_DATA : null;
     async function loadVentoinhaGeometry() {
+        if (ventoinhaGeometry) return ventoinhaGeometry;
         try {
+            if (typeof window !== 'undefined' && window.VENTOINHA_DATA) {
+                ventoinhaGeometry = window.VENTOINHA_DATA;
+                return ventoinhaGeometry;
+            }
             const resp = await fetch(new URL('assets/ventoinha_data.json', window.location.href).href, { cache: 'force-cache' });
             if (resp.ok) {
                 ventoinhaGeometry = await resp.json();
@@ -1701,47 +1708,8 @@
     }
 
     function buildBoostCoinModel() {
-        if (!window.__lib || !window.__lib.getEntity) return null;
-        let face, ring;
-        try {
-            face = window.__lib.getEntity('currency_coin');
-            ring = window.__lib.getEntity('currency_coin');
-        } catch(e) { return face || null; }
-        if (!face) return null;
-        face.rx = 0; face.ry = 0; face.rz = 0;
-        if (face.scale) face.scale.set(1, 1, 1);
-
-        let protoView = null;
-        let protoChildScale = 1;
-        {
-            const q = [{ node: face, s: 1 }];
-            while (q.length) {
-                const cur = q.shift();
-                const c = cur.node;
-                const sc = cur.s * (c && c.scale && Number.isFinite(c.scale.x) ? c.scale.x : 1);
-                if (c && c.view3d && c.view3d.geometry) {
-                    protoView = c.view3d;
-                    protoChildScale = sc;
-                    break;
-                }
-                const ch = c && (c.children || (c.container && c.container.children));
-                if (ch) for (let i = 0; i < ch.length; i++) q.push({ node: ch[i], s: sc });
-            }
-        }
-        const geos = protoView ? buildEnergyCoinGeometries(protoView, protoChildScale) : null;
-        if (geos) {
-            setFirstViewGeometry(face, geos.coreGeom);
-            if (ring) setFirstViewGeometry(ring, geos.ringGeom);
-        }
-        applyBoostCoinTexture(face);
-
-        if (ring) {
-            ring.rx = 0.42; ring.ry = 0; ring.rz = 0.24;
-            if (ring.scale) ring.scale.set(1.06, 1.06, 1.06);
-            applyBoostCoinTexture(ring);
-            face.addChild(ring);
-        }
-        return face;
+        if (typeof buildSpeedBoostCoinModel === 'function') return buildSpeedBoostCoinModel();
+        return null;
     }
 
     window.__SW_GET_JOHNSURF_TEX__ = function() {
@@ -2421,61 +2389,36 @@
             if (coin.body) { coin.body.width = 0; coin.body.height = 0; coin.body.depth = 0; }
             return;
         }
-        coinSpawnCounter++;
-
-        // Spawn collectible Dash Item on the map lanes every ~16 coins when spaced >= 180 Z units
-        if (coinSpawnCounter % 16 === 0 && Math.abs(coinZ - lastDashZ) > 180) {
-            coin._isDashItem = true;
-            lastDashZ = coinZ;
-            lastDashLaneX = coinX;
-            // Clear any previously spawned overlapping red coins on the same lane
-            if (isNoCoin && window.__activeCoins) {
-                for (const other of window.__activeCoins) {
-                    if (!other || other === coin || other._isDashItem || !other.active) continue;
-                    const ox = other.body ? other.body.x : (other.x || 0);
-                    const oz = other.body ? other.body.z : (other.z || 0);
-                    if (Math.abs(ox - coinX) < 5 && Math.abs(oz - coinZ) < 42) {
-                        other.active = false;
-                        other.visible = false;
-                        if (other.model) { other.model.active = false; other.model.visible = false; }
-                        if (other.body) { other.body.width = 0; other.body.height = 0; other.body.depth = 0; }
+        // In No Coin Mode, prevent coins directly on top of blockers (like blocker_jump)
+        if (isNoCoin) {
+            try {
+                const phys = window.game && window.game.physics;
+                if (phys && Array.isArray(phys.entities)) {
+                    for (let i = 0; i < phys.entities.length; i++) {
+                        const ent = phys.entities[i];
+                        const b = ent && ent.body;
+                        if (b && !b.deco && !b.player && (ent.name === 'blocker_jump' || (ent.constructor && ent.constructor.name === 'BlockerJump') || ent.modelName === 'blocker_jump')) {
+                            if (Math.abs(b.x - coinX) < 10 && Math.abs(b.z - coinZ) < 18) {
+                                coin.active = false;
+                                coin.visible = false;
+                                if (coin.body) { coin.body.width = 0; coin.body.height = 0; coin.body.depth = 0; }
+                                if (coin.model) { coin.model.active = false; coin.model.visible = false; }
+                                return;
+                            }
+                        }
                     }
                 }
-            }
-            if (coin.attractable) {
-                if (coin.attractable.__normalMagnetUpdate) coin.attractable.update = coin.attractable.__normalMagnetUpdate;
-                if (coin.attractable.__normalMagnetStart) coin.attractable.attractionStart = coin.attractable.__normalMagnetStart;
-                coin.attractable.active = true;
-            }
-            if (coin.body) {
-                coin.body.width = 6.2;
-                coin.body.height = 6.2;
-                coin.body.depth = 6.2;
-            }
-            if (coin.model) {
-                setEntityHexColor(coin.model, 0x00ff66);
-                if (coin.model.scale) coin.model.scale.set(1.5, 1.5, 1.5);
-            }
-            if (coin.shine) {
-                coin.shine.active = true;
-                if (coin.shine.view) setEntityHexColor(coin.shine.view, 0x00ff66);
-            }
-            return;
+            } catch(e) {}
         }
 
-        // In No Coin Mode, clear adjacent coins right behind/ahead of a Dash item on the same lane
-        if (isNoCoin && Math.abs(coinX - lastDashLaneX) < 5 && Math.abs(coinZ - lastDashZ) < 42) {
+        // Prevent coins directly on top of trampolines, ventoinhas, stairs or boost coins
+        if (customObstacles.some(obs => obs && !obs.destroyed && (obs.type === 'trampoline' || obs.type === 'ventoinha' || obs.type === 'air_vent' || obs.type === 'wooden_stairs' || obs.type === 'boostCoin') && Math.abs(obs.x - coinX) < 16 && Math.abs(obs.z - coinZ) < 55)) {
             coin.active = false;
             coin.visible = false;
-            if (coin.body) {
-                coin.body.width = 0;
-                coin.body.height = 0;
-                coin.body.depth = 0;
-            }
+            if (coin.body) { coin.body.width = 0; coin.body.height = 0; coin.body.depth = 0; }
+            if (coin.model) { coin.model.active = false; coin.model.visible = false; }
             return;
         }
-
-
 
         if (isNoCoin) {
             if (coin.body) {
@@ -2489,14 +2432,6 @@
                 coin.body.height = 5.0;
                 coin.body.depth = 5.0;
             }
-        }
-
-        // Prevent coins directly on top of trampolines
-        if (customObstacles.some(obs => obs && obs.type === 'trampoline' && Math.abs(obs.x - coinX) < 16 && Math.abs(obs.z - coinZ) < 42)) {
-            coin.active = false;
-            coin.visible = false;
-            if (coin.body) { coin.body.width = 0; coin.body.height = 0; coin.body.depth = 0; }
-            return;
         }
 
         const outlinePct = Math.max(0, Math.min(100, parseInt(GFX_SETTINGS.coinOutline, 10) || 0));
@@ -2566,16 +2501,8 @@
             return;
         }
 
-        if (window.VANILLA_MODE) {
-            if (backpackBoardMesh && backpackBoardMesh.parent) {
-                backpackBoardMesh.parent.removeChild(backpackBoardMesh);
-            }
-            return;
-        }
-
-        const isReady = (typeof skateEnergy === 'number') && (skateEnergy >= ENERGY_MAX);
         const isBoardActive = !!(hero.hoverboard && hero.hoverboard.isOn && hero.hoverboard.isOn());
-        const shouldShow = isReady && !isBoardActive && isRunActive && !deathFrozen && (!hero.player || !hero.player.dead);
+        const shouldShow = !isBoardActive && (!hero.player || !hero.player.dead);
 
         if (!shouldShow) {
             if (backpackBoardMesh && backpackBoardMesh.parent) {
@@ -3606,28 +3533,17 @@
     }
 
     function buildVentGrateMesh() {
-        if (ventoinhaGeometry && ventoinhaGeometry.pos && ventoinhaGeometry.idx) {
+        const geom = (typeof window !== 'undefined' && window.VENTOINHA_DATA) || ventoinhaGeometry;
+        if (geom && geom.pos && geom.idx) {
             return {
-                pos: ventoinhaGeometry.pos.slice(),
-                norm: ventoinhaGeometry.norm.slice(),
-                uv: ventoinhaGeometry.uv.slice(),
-                idx: ventoinhaGeometry.idx.slice()
+                pos: geom.pos.slice(),
+                norm: geom.norm.slice(),
+                uv: geom.uv.slice(),
+                idx: geom.idx.slice()
             };
         }
         const b = createMeshBuilder();
-        // Base plate between rails
-        b.addBox(-7.5, 0, -16.0, 7.5, 1.0, 16.0, 0, 0, 1, 1);
-        // Outer yellow hazard border rim
-        b.addBox(-7.8, 0.8, -16.2, -6.2, 1.35, 16.2, 0, 0, 0.15, 1);
-        b.addBox(6.2, 0.8, -16.2, 7.8, 1.35, 16.2, 0.85, 0, 1, 1);
-        b.addBox(-6.2, 0.8, -16.2, 6.2, 1.35, -14.8, 0.15, 0, 0.85, 0.15);
-        b.addBox(-6.2, 0.8, 14.8, 6.2, 1.35, 16.2, 0.15, 0.85, 0.85, 1);
-        // Inner recessed metallic ventilation grill
-        b.addBox(-6.2, 0.2, -14.8, 6.2, 1.15, 14.8, 0.2, 0.2, 0.8, 0.8);
-        // Transverse steel slats
-        for (let zc = -12; zc <= 12; zc += 3.2) {
-            b.addBox(-6.0, 1.05, zc - 0.4, 6.0, 1.30, zc + 0.4, 0.3, 0.3, 0.7, 0.7);
-        }
+        b.addBox(-7.5, 0, -14.0, 7.5, 1.5, 14.0, 0, 0, 1, 1);
         return b;
     }
 
@@ -3637,8 +3553,88 @@
         try {
             const originalMap = window.__lib && window.__lib.getMap && window.__lib.getMap('props-tex');
             const TextureClass = originalMap && originalMap.constructor;
-            if (TextureClass && typeof TextureClass.from === 'function') {
-                ventGrateTexture = TextureClass.from(new URL('assets/ventoinha-pad.svg', window.location.href).href);
+            if (typeof document !== 'undefined' && TextureClass && typeof TextureClass.from === 'function') {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 512;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.fillStyle = '#161a20';
+                    ctx.fillRect(0, 0, 512, 512);
+
+                    const stripeW = 28;
+                    for (let x = -512; x < 1024; x += stripeW * 2) {
+                        ctx.fillStyle = '#ffcc00';
+                        ctx.beginPath();
+                        ctx.moveTo(x, 0); ctx.lineTo(x + stripeW, 0);
+                        ctx.lineTo(x + stripeW - 512, 512); ctx.lineTo(x - 512, 512);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    ctx.fillStyle = '#21262d';
+                    ctx.fillRect(40, 40, 432, 432);
+                    ctx.strokeStyle = '#38424d';
+                    ctx.lineWidth = 6;
+                    ctx.strokeRect(40, 40, 432, 432);
+
+                    for (let x = 52; x <= 460; x += 9.5) {
+                        ctx.fillStyle = '#0a0d11';
+                        ctx.fillRect(x - 1, 48, 7, 416);
+                        ctx.fillStyle = '#3a4450';
+                        ctx.fillRect(x, 48, 5, 416);
+                        ctx.fillStyle = '#5c6d80';
+                        ctx.fillRect(x + 1, 48, 2, 416);
+                    }
+
+                    const fanCX = 352, fanCY = 128, fanR = 90;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(fanCX, fanCY, fanR, 0, Math.PI * 2);
+                    ctx.clip();
+                    ctx.fillStyle = '#07090c';
+                    ctx.fillRect(fanCX - fanR, fanCY - fanR, fanR * 2, fanR * 2);
+
+                    const gAir = ctx.createRadialGradient(fanCX, fanCY, 8, fanCX, fanCY, fanR);
+                    gAir.addColorStop(0.0, '#ffffff');
+                    gAir.addColorStop(0.3, '#00f0ff');
+                    gAir.addColorStop(0.7, '#005577');
+                    gAir.addColorStop(1.0, '#0a0e14');
+                    ctx.fillStyle = gAir;
+                    ctx.beginPath();
+                    ctx.arc(fanCX, fanCY, fanR, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#1c222a';
+                    ctx.strokeStyle = '#00f0ff';
+                    ctx.lineWidth = 2;
+                    for (let a = 0; a < 6; a++) {
+                        const ang = (a * Math.PI) / 3;
+                        ctx.beginPath();
+                        ctx.moveTo(fanCX, fanCY);
+                        ctx.arc(fanCX, fanCY, fanR - 4, ang, ang + 0.5);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+
+                    ctx.strokeStyle = '#00f0ff';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.arc(fanCX, fanCY, fanR, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#3a4450';
+                    ctx.beginPath();
+                    ctx.arc(fanCX, fanCY, 22, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#00f0ff';
+                    ctx.beginPath();
+                    ctx.arc(fanCX, fanCY, 10, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ventGrateTexture = TextureClass.from(canvas);
+                }
             }
         } catch(e) {}
         return ventGrateTexture;
@@ -3717,7 +3713,7 @@
         if (!geom) return null;
         let ent = null;
         if (texture) {
-            try { ent = window.__lib.getEntity('dumpster') || window.__lib.getEntity('train_ramp'); } catch(e) {}
+            try { ent = window.__lib.getEntity('dumpster') || window.__lib.getEntity('blocker_standard'); } catch(e) {}
         }
         if (!ent) {
             try { ent = window.__lib.getEntity('currency_coin'); } catch(e) {}
@@ -3749,6 +3745,30 @@
             if (ch) for (let i = 0; i < ch.length; i++) visit(ch[i]);
         };
         visit(ent);
+        return ent;
+    }
+
+    function buildSpeedBoostCoinMesh() {
+        const b = createMeshBuilder();
+        b.addBox(-0.6, 2.0, -0.75, 0.6, 3.8, 0.75, 0, 0, 0.5, 0.5);
+        b.addBox(-2.6, 0.8, -0.65, -0.6, 2.4, 0.65, 0, 0, 0.5, 0.5);
+        b.addBox(0.6, 0.8, -0.65, 2.6, 2.4, 0.65, 0, 0, 0.5, 0.5);
+        b.addBox(-0.5, 0.4, -0.65, 0.5, 1.8, 0.65, 0, 0.5, 0.5, 1.0);
+        b.addBox(-2.2, -0.6, -0.55, -0.5, 0.8, 0.55, 0, 0.5, 0.5, 1.0);
+        b.addBox(0.5, -0.6, -0.55, 2.2, 0.8, 0.55, 0, 0.5, 0.5, 1.0);
+        b.addBox(-3.2, -1.6, -0.75, -2.0, 1.0, 0.75, 0.5, 0, 1.0, 0.5);
+        b.addBox(2.0, -1.6, -0.75, 3.2, 1.0, 0.75, 0.5, 0, 1.0, 0.5);
+        b.addBox(-0.9, -0.3, -1.0, 0.9, 1.5, 1.0, 0.5, 0.5, 1.0, 1.0);
+        b.addBox(-4.0, -2.4, -0.45, -3.0, -0.7, 0.45, 0.5, 0, 1.0, 0.5);
+        b.addBox(3.0, -2.4, -0.45, 4.0, -0.7, 0.45, 0.5, 0, 1.0, 0.5);
+        return b;
+    }
+
+    function buildSpeedBoostCoinModel() {
+        const ent = createCustom3DEntity('speed_boost_coin_entity', () => buildSpeedBoostCoinMesh(), { minX: -4, minY: -2.5, minZ: -1.2, maxX: 4, maxY: 4, maxZ: 1.2 }, getBoostCoinGreenTexture(), 0xffffff);
+        if (!ent) return null;
+        applyBoostCoinTexture(ent);
+        if (ent.scale) ent.scale.set(1.35, 1.35, 1.35);
         return ent;
     }
 
@@ -3871,23 +3891,23 @@
                     bounds = { depth: 17.5, width: 17.5, height: 8, isTrampoline: true };
                 }
             } else if (type === 'double_train') {
-                const bottomWagon = getCargoWagon() || createCustom3DEntity('container_nocable_d35400', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xd35400), 0xd35400);
-                const topCont = createCustom3DEntity('container_nocable_c0392b', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xc0392b), 0xc0392b);
+                const bottomWagon = getCargoWagon();
+                const topWagon = getCargoWagon();
                 if (bottomWagon) {
                     bottomWagon.rx = 0; bottomWagon.rz = 0; bottomWagon.ry = Math.PI;
                     mesh = bottomWagon;
-                    if (topCont) {
-                        topCont._xOffset = 0;
-                        topCont._yOffset = 28;
-                        topCont._zOffset = 0;
-                        mesh._doubleTrainParts = [topCont];
+                    if (topWagon) {
+                        topWagon.rx = 0; topWagon.rz = 0; topWagon.ry = Math.PI;
+                        topWagon._xOffset = 0; topWagon._yOffset = 28; topWagon._zOffset = 0;
+                        setEntityHexColor(topWagon, 0xc0392b);
+                        mesh._doubleTrainParts = [topWagon];
                     }
-                    bounds = { depth: 56, width: 18, height: 56, isDoubleTrain: true };
+                    bounds = { depth: 58, width: 18, height: 56, isDoubleTrain: true };
                 }
             } else if (type === 'triple_train') {
-                const bottomWagon = getCargoWagon() || createCustom3DEntity('container_nocable_2980b9', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0x2980b9), 0x2980b9);
-                const midWagon = getCargoWagon() || createCustom3DEntity('container_nocable_d35400', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xd35400), 0xd35400);
-                const topCont = createCustom3DEntity('container_nocable_c0392b', () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(0xc0392b), 0xc0392b);
+                const bottomWagon = getCargoWagon();
+                const midWagon = getCargoWagon();
+                const topWagon = getCargoWagon();
                 if (bottomWagon) {
                     bottomWagon.rx = 0; bottomWagon.rz = 0; bottomWagon.ry = Math.PI;
                     mesh = bottomWagon;
@@ -3895,14 +3915,17 @@
                     if (midWagon) {
                         midWagon.rx = 0; midWagon.rz = 0; midWagon.ry = Math.PI;
                         midWagon._xOffset = 0; midWagon._yOffset = 28; midWagon._zOffset = 0;
+                        setEntityHexColor(midWagon, 0xd35400);
                         trainParts.push(midWagon);
                     }
-                    if (topCont) {
-                        topCont._xOffset = 0; topCont._yOffset = 56; topCont._zOffset = 0;
-                        trainParts.push(topCont);
+                    if (topWagon) {
+                        topWagon.rx = 0; topWagon.rz = 0; topWagon.ry = Math.PI;
+                        topWagon._xOffset = 0; topWagon._yOffset = 56; topWagon._zOffset = 0;
+                        setEntityHexColor(topWagon, 0x2980b9);
+                        trainParts.push(topWagon);
                     }
                     mesh._tripleTrainParts = trainParts;
-                    bounds = { depth: 56, width: 18, height: 84, isTripleTrain: true };
+                    bounds = { depth: 58, width: 18, height: 84, isTripleTrain: true };
                 }
             } else if (type === 'wooden_stairs' || type === 'wooden_ramp') {
                 const targetH = options.targetHeight || 28;
@@ -3913,13 +3936,20 @@
                     bounds = { depth: 56, width: 17.5, height: targetH, isWoodenRamp: true, isWoodenStairs: true, targetHeight: targetH };
                 }
             } else if (type === 'suspended_container') {
-                const colors = [0xd35400, 0xc0392b, 0x27ae60, 0x2980b9];
-                const chosenColor = options.color || colors[Math.floor(Math.random() * colors.length)];
-                const key = 'container_nocable_' + chosenColor.toString(16);
-                const containerEnt = createCustom3DEntity(key, () => buildShippingContainer(false), { minX: -9, minY: 0, minZ: -28, maxX: 9, maxY: 28, maxZ: 28 }, getContainerTexture(chosenColor), chosenColor);
-                if (containerEnt) {
-                    mesh = containerEnt;
-                    bounds = { depth: 56, width: 18, height: 28, isSuspendedContainer: true };
+                const wagon = getCargoWagon();
+                if (wagon) {
+                    wagon.rx = 0; wagon.rz = 0; wagon.ry = Math.PI;
+                    const colors = [0xd35400, 0xc0392b, 0x27ae60, 0x2980b9, 0x8e44ad];
+                    const chosenColor = options.color || colors[Math.floor(Math.random() * colors.length)];
+                    setEntityHexColor(wagon, chosenColor);
+                    mesh = wagon;
+                    bounds = { depth: 58, width: 18, height: 28, isSuspendedContainer: true };
+                }
+            } else if (type === 'boostCoin') {
+                const bEnt = buildSpeedBoostCoinModel();
+                if (bEnt) {
+                    mesh = bEnt;
+                    bounds = { depth: 8, width: 8, height: 8, isBoostCoin: true };
                 }
             } else if (type === 'ventoinha' || type === 'air_vent') {
                 const targetH = options.targetHeight || 56;
@@ -4485,6 +4515,13 @@
             const pad = safeSpot && createObstacle3D('trampoline', safeSpot.lane, safeSpot.y || 0, safeSpot.z, options);
             if (pad) customObstacles.push(pad);
             if (pad) return;
+        } else if (!window.VANILLA_MODE && obstacleChunkCount % 10 === 5) {
+            const safeSpot = findSafeSpecialPosition(7, centerZ);
+            if (safeSpot && !customObstacles.some(obs => obs && obs.type === 'boostCoin' && Math.abs(obs.z - safeSpot.z) < 220)) {
+                const bCoin = createObstacle3D('boostCoin', safeSpot.lane, 7, safeSpot.z);
+                if (bCoin) customObstacles.push(bCoin);
+            }
+            if (safeSpot && customObstacles.some(obs => obs && obs.type === 'boostCoin' && Math.abs(obs.z - safeSpot.z) < 90)) return;
         }
 
         // Fill long gaps with a short, safe route while preserving the existing
@@ -5023,11 +5060,10 @@
                 const hw = (obs.bounds && obs.bounds.width ? obs.bounds.width / 2 : 9) + 2;
                 if (Math.abs(obs.x - heroX) <= hw && Math.abs(obs.z - heroZ) <= hd) {
                     const targetH = (obs.bounds && obs.bounds.targetHeight) || 28;
+                    const baseY = obs.y || 0;
                     const progress = Math.max(0, Math.min(1, ((obs.z + 28) - heroZ) / 56));
-                    const rampY = progress * targetH;
-                    if (heroY >= rampY - 8) {
-                        maxElevatedGround = Math.max(maxElevatedGround, rampY);
-                    }
+                    const rampY = baseY + progress * targetH;
+                    maxElevatedGround = Math.max(maxElevatedGround, rampY);
                 }
             } else if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
                 const hd = (obs.bounds && obs.bounds.depth ? obs.bounds.depth / 2 : 28) + 2;
@@ -5209,8 +5245,10 @@
             }
 
             // Spin coin
-            if ((obs.type === 'coin' || obs.type === 'energyCoin') && obs.mesh && obs.mesh.rotation) {
-                obs.mesh.rotation.y += (obs.type === 'energyCoin' ? 0.065 : 0.09) * dtFactor;
+            if ((obs.type === 'coin' || obs.type === 'energyCoin' || obs.type === 'boostCoin') && obs.mesh) {
+                const spinSpeed = (obs.type === 'boostCoin' ? 0.08 : (obs.type === 'energyCoin' ? 0.065 : 0.09)) * dtFactor;
+                if (obs.mesh.rotation) obs.mesh.rotation.y += spinSpeed;
+                else obs.mesh.ry = (obs.mesh.ry || 0) + spinSpeed;
                 if (obs.type === 'energyCoin') {
                     for (const part of (obs.parts || [])) {
                         if (part._energyCoinRing) {
@@ -5221,7 +5259,7 @@
                                 part.ry = (part.ry || 0) - 0.11 * dtFactor;
                             }
                         } else {
-                            const rotationY = obs.mesh.rotation.y + (part._energyCoinRotationOffset || 0);
+                            const rotationY = (obs.mesh.rotation ? obs.mesh.rotation.y : obs.mesh.ry) + (part._energyCoinRotationOffset || 0);
                             if (part.rotation) part.rotation.y = rotationY;
                             else part.ry = rotationY;
                         }
@@ -5236,11 +5274,21 @@
 
             // Calibrated hitboxes per obstacle type
             const isEnergy = obs.type === 'energyCoin';
-            const hitDepth = (obs.bounds ? obs.bounds.depth / 2 : 5) + (isEnergy ? 4.5 : 3.0);
-            const hitWidth = (obs.bounds ? obs.bounds.width / 2 : 4) + (isEnergy ? 3.5 : 1.5);
-            const hitHeight = (obs.bounds ? obs.bounds.height : 6) + (isEnergy ? 4.0 : 2.0);
+            const isBoost = obs.type === 'boostCoin';
+            const hitDepth = (obs.bounds ? obs.bounds.depth / 2 : 5) + (isEnergy || isBoost ? 4.5 : 3.0);
+            const hitWidth = (obs.bounds ? obs.bounds.width / 2 : 4) + (isEnergy || isBoost ? 3.5 : 1.5);
+            const hitHeight = (obs.bounds ? obs.bounds.height : 6) + (isEnergy || isBoost ? 4.0 : 2.0);
 
             if (dz < hitDepth && dx < hitWidth && dy < hitHeight) {
+                if (obs.type === 'boostCoin') {
+                    if (typeof window.__onDashCollect === 'function') window.__onDashCollect(obs);
+                    playCoinShatterEffect(obs, 0x10b981, 1.4, 16, false, true);
+                    try { if (window.game && window.game.sfx) window.game.sfx.play('pickup-coin', { volume: 0.9 }); } catch(e) {}
+                    obs.destroyed = true;
+                    removeObstacleViews(obs);
+                    customObstacles.splice(i, 1);
+                    continue;
+                }
                 if (isDashing) {
                     if (obs.type === 'energyCoin') {
                         grantEnergy(1);
@@ -5291,23 +5339,22 @@
                     }
                     if (obs.type === 'wooden_ramp' || obs.type === 'wooden_stairs') {
                         const targetH = (obs.bounds && obs.bounds.targetHeight) || 28;
+                        const baseY = obs.y || 0;
                         const progress = Math.max(0, Math.min(1, ((obs.z + 28) - heroZ) / 56));
-                        const rampY = progress * targetH;
-                        if (heroY >= rampY - 8) {
-                            heroBody.ground = Math.max(heroBody.ground || 0, rampY);
-                            // ALLOW JUMPING: don't lock y/bottom if jumping upward or in jump action!
-                            const isJumpingUp = (heroBody.velocity && heroBody.velocity.y > 0.05) || (hero.jump && (hero.jump.active || hero.jump.isJumping));
-                            if (!isJumpingUp && heroY <= rampY + 2.0) {
-                                heroBody.bottom = rampY;
-                                heroBody.y = rampY;
-                                heroBody.landed = true;
-                            }
-                            if (hero.player) {
-                                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, rampY);
-                                hero.player.cameraY = hero.player.cameraY * 0.80 + hero.player.cameraTargetY * 0.20;
-                            }
-                            continue;
+                        const rampY = baseY + progress * targetH;
+                        heroBody.ground = Math.max(heroBody.ground || 0, rampY);
+                        const isJumpingUp = (heroBody.velocity && heroBody.velocity.y > 0.05) || (hero.jump && (hero.jump.active || hero.jump.isJumping));
+                        if (!isJumpingUp && heroY <= rampY + 3.0) {
+                            heroBody.bottom = rampY;
+                            heroBody.y = Math.max(heroBody.y, rampY);
+                            heroBody.landed = true;
+                            if (heroBody.velocity && heroBody.velocity.y < 0) heroBody.velocity.y = 0;
                         }
+                        if (hero.player) {
+                            hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, rampY);
+                            hero.player.cameraY = hero.player.cameraY * 0.80 + hero.player.cameraTargetY * 0.20;
+                        }
+                        continue;
                     }
                     if (obs.type === 'ventoinha' || obs.type === 'air_vent') {
                         if (!obs.used && (!obs.usedTime || now - obs.usedTime > 1200)) {

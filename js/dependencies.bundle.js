@@ -23194,7 +23194,7 @@
       return !!t.name.match(/trains_(\d)_/) || !!t.name.match(/train_sub_(\d)_/) || !!t.name.match(/train_intro/);
     }
     static factory(t, e, i) {
-      const hasHalf = a.a.library.hasGeometry("train_halfwagon01");
+      const hasHalf = !window.VANILLA_MODE && a.a.library.hasGeometry("train_halfwagon01");
       let n = TrainSub;
       e.name.match("intro") || e.name.match("sub") ? n = TrainSub : e.name.match("cargo") ? n = a.a.library.hasGeometry("train_sub") ? TrainCargo : TrainSub : e.name.match("standard") ? n = a.a.library.hasGeometry("train_standard") ? TrainStandard : TrainSub : a.a.library.hasGeometry("train_standard") && (n = hasHalf ? h.a.pick(...v) : h.a.pick(TrainStandard, TrainCargo, TrainSub));
       const o = t.name.match("intro") ? "z" : "back",
@@ -23202,8 +23202,8 @@
         u = l ? parseInt(l[1], 10) : 0,
         c = e.name.match(/coins/),
         p = 60 * u;
-      const halfChance = (window.__SW_TUNING__ && typeof window.__SW_TUNING__.halfWagonChance === "number") ? window.__SW_TUNING__.halfWagonChance : 0.1;
-      if (!e.name.match("intro") && hasHalf && n !== TrainHalf && Math.random() < halfChance) n = TrainHalf;
+      const halfChance = (!window.VANILLA_MODE && window.__SW_TUNING__ && typeof window.__SW_TUNING__.halfWagonChance === "number") ? window.__SW_TUNING__.halfWagonChance : 0;
+      if (!window.VANILLA_MODE && !e.name.match("intro") && hasHalf && n !== TrainHalf && Math.random() < halfChance) n = TrainHalf;
       let cursorPos = t.z - e.components.Transform.position.z,
         m = (t.z - e.components.Transform.position.z) - 24 * u + 90,
         b = Number.NEGATIVE_INFINITY,
@@ -40191,7 +40191,7 @@
       !this.model && n.a.library.hasGeometry(this.modelName) && (this.model = n.a.library.getEntity(this.modelName), this.addChild(this.model));
     }
     awake(t, e) {
-      this.build(), this.model && (this.model.ry = Math.PI, this.model.z = -5);
+      this.build(), this.model && (this.model.ry = Math.PI, this.model.z = (this instanceof BlockerJump ? 0 : -5));
     }
     hasNecessaryResources() {
       return n.a.library.hasGeometry("blocker_jump");
@@ -40207,7 +40207,7 @@
         h = t.game.pool.get(BlockerDodgeDetector_BlockerDodgeDetector),
         u = e.components.Transform.position.x,
         c = e.components.Transform.position.z;
-      a.body.front = t.z - c, a.body.x = u, i.offsetX && (a.body.x = i.offsetX), i.flip && (a.body.x *= -1), a.awake(t, e), t.game.addChild(a), t.game.addChild(h), h.body.x = a.body.x || 0, h.body.y = a.body.y || 0, h.body.z = a.body.z || 0, a.dodgeDetector = h, e.name.match("w_coins") && (o === l.jump ? s.a.spawnCurve(t, a.body.x, 0, a.body.z) : s.a.spawnLine(t, a.body.x, 0, a.body.z));
+      a.body.front = t.z - c, a.body.x = u, i.offsetX && (a.body.x = i.offsetX), i.flip && (a.body.x *= -1), a.awake(t, e), t.game.addChild(a), t.game.addChild(h), h.body.x = a.body.x || 0, h.body.y = a.body.y || 0, h.body.z = a.body.z || 0, a.dodgeDetector = h, (!window.NO_COIN_MODE && e.name.match("w_coins")) && (o === l.jump ? s.a.spawnCurve(t, a.body.x, 0, a.body.z) : s.a.spawnLine(t, a.body.x, 0, a.body.z));
     }
     static prepopulate() {
       n.a.game.pool.prepopulate(BlockerJump, 8), n.a.game.pool.prepopulate(BlockerRoll, 8), n.a.game.pool.prepopulate(BlockerStandard, 8);
@@ -40218,7 +40218,8 @@
       super(), this.modelName = "blocker_jump";
     }
     awake(t, e) {
-      super.awake(t, e), this.body.height = 26;
+      super.awake(t, e), this.body.height = 7.5, this.body.depth = 4;
+      this.model && (this.model.z = 0);
     }
   }
   class BlockerRoll extends Blocker_Blocker {
