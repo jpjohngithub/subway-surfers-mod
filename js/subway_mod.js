@@ -150,20 +150,64 @@
             const s = localStorage.getItem('sw_sfx_volume');
             return s !== null ? Math.max(0, Math.min(100, parseInt(s, 10) || 0)) : 70;
         })(),
-        motionBlur: localStorage.getItem('sw_motion_blur') || 'off', // 'off' (padrão otimizado) | 'soft' | 'high'
-        shaders: 'off', // Always off to preserve original lighting
-        timeOfDay: localStorage.getItem('sw_time_of_day') || 'night', // 'night' | 'sunset' | 'day'
-        noRevive: localStorage.getItem('sw_no_revive') !== '0', // true by default
+        motionBlur: localStorage.getItem('sw_motion_blur') || 'off',
+        shaders: (localStorage.getItem('sw_shaders') === 'off') ? 'off' : 'on',
+        perfMode: localStorage.getItem('sw_perf_mode') === '1',
+        timeOfDay: localStorage.getItem('sw_time_of_day') || 'night',
+        noRevive: localStorage.getItem('sw_no_revive') !== '0',
     };
     window.__SW_VOLUME_OVERRIDE__ = GFX_SETTINGS.volume / 100;
     window.__SW_NO_REVIVE__ = GFX_SETTINGS.noRevive;
     window.VANILLA_MODE = localStorage.getItem('sw_vanilla_mode') === '1';
-    window.__swipeT = 6;
+    window.__swipeT = GFX_SETTINGS.perfMode ? 4 : 6;
+    window.__SW_SHADER_VEC__ = new Float32Array([GFX_SETTINGS.perfMode || GFX_SETTINGS.shaders === 'off' ? 0.0 : 1.0, 0, 0, 0]);
+
+    function applyPerformanceMode(enabled) {
+        GFX_SETTINGS.perfMode = !!enabled;
+        localStorage.setItem('sw_perf_mode', enabled ? '1' : '0');
+        const rays = document.getElementById('subway-god-rays');
+        if (rays) rays.style.display = enabled ? 'none' : '';
+        const canvas = document.getElementById('canvas');
+        if (canvas) {
+            canvas.style.filter = enabled ? 'none' : 'contrast(1.08) saturate(1.18) brightness(1.02)';
+        }
+        if (window.__SW_SHADER_VEC__) {
+            window.__SW_SHADER_VEC__[0] = enabled ? 0.0 : (GFX_SETTINGS.shaders === 'off' ? 0.0 : 1.0);
+        }
+        window.__swipeT = enabled ? 4 : 6;
+        try {
+            if (window.app && window.app.renderer) {
+                window.app.renderer.resolution = enabled ? 0.75 : 1.0;
+                window.app.renderer.resize(window.innerWidth, window.innerHeight);
+            }
+        } catch(e) {}
+    }
+
+    window.addEventListener('keydown', (e) => {
+        const c = window.game && window.game.controller;
+        if (!c || (window.game.state !== 1 && window.game.state !== 'running')) return;
+        const k = e.key;
+        if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
+            c.pressLeft(e);
+        } else if (k === 'ArrowRight' || k === 'd' || k === 'D') {
+            c.pressRight(e);
+        } else if (k === 'ArrowUp' || k === 'w' || k === 'W') {
+            c.pressUp(e);
+        } else if (k === 'ArrowDown' || k === 's' || k === 'S') {
+            c.pressDown(e);
+        } else if (k === ' ' || e.code === 'Space') {
+            if (typeof c.pressAction === 'function') c.pressAction(e);
+        }
+    }, { capture: true, passive: false });
+
     try {
         document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
         document.documentElement.style.setProperty('--game-contrast', GFX_SETTINGS.contrast + '%');
         applyScreenAspectRatio(GFX_SETTINGS.aspectRatio);
-        setTimeout(() => applyTimeOfDay(GFX_SETTINGS.timeOfDay), 500);
+        setTimeout(() => {
+            applyTimeOfDay(GFX_SETTINGS.timeOfDay);
+            applyPerformanceMode(GFX_SETTINGS.perfMode);
+        }, 500);
     } catch(e) {}
 
     function applyMusicVolume(pct) {
@@ -249,9 +293,26 @@
     }
 
     function ensureReformulatedShadowTexture() {
+        if (window.__SW_SHADOW_TEX__) return window.__SW_SHADOW_TEX__;
         try {
             const lib = window.__lib || (window.app && window.app.library);
-            return (lib && lib.getMap && lib.getMap('shadow')) || null;
+            const originalMap = lib && lib.getMap && (lib.getMap('shadow') || lib.getMap('props-tex'));
+            const TextureClass = originalMap && originalMap.constructor;
+            if (!TextureClass || typeof TextureClass.from !== 'function' || typeof document === 'undefined') return (lib && lib.getMap && lib.getMap('shadow')) || null;
+            const c = document.createElement('canvas');
+            c.width = 128; c.height = 128;
+            const ctx = c.getContext('2d');
+            if (ctx) {
+                const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 60);
+                g.addColorStop(0.0, 'rgba(4, 6, 12, 0.88)');
+                g.addColorStop(0.42, 'rgba(6, 8, 16, 0.62)');
+                g.addColorStop(0.78, 'rgba(10, 12, 22, 0.22)');
+                g.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+                ctx.fillStyle = g;
+                ctx.fillRect(0, 0, 128, 128);
+            }
+            window.__SW_SHADOW_TEX__ = TextureClass.from(c);
+            return window.__SW_SHADOW_TEX__;
         } catch(e) { return null; }
     }
 
@@ -1039,6 +1100,17 @@
         if (el) el.textContent = GFX_SETTINGS.sfxVolume + '%';
         const s = document.getElementById('slider-sfx-volume');
         if (s && s.value != GFX_SETTINGS.sfxVolume) s.value = GFX_SETTINGS.sfxVolume;
+    };
+
+    window.__togglePerformanceMode = function() {
+        const next = !GFX_SETTINGS.perfMode;
+        applyPerformanceMode(next);
+        const btn = document.getElementById('btn-toggle-perfmode');
+        if (btn) {
+            btn.className = `btn-clean-toggle ${next ? 'toggle-active' : ''}`;
+            btn.innerHTML = `<span class="toggle-indicator"></span><span class="toggle-label">${next ? 'ATIVADO' : 'DESATIVADO'}</span>`;
+        }
+        showHUDNotification(next ? '⚡ MODO DESEMPENHO ATIVADO! (SUPER LEVE)' : '✨ MODO GRÁFICO COMPLETO ATIVADO!');
     };
 
     window.__toggleVanillaMode = function() {
@@ -2041,6 +2113,18 @@
             if (active) hero.jump.enableDoubleJump();
         }
         widget.setAttribute('aria-label', active ? 'Energia do skate carregando enquanto ativo' : 'Energia do skate');
+        const now = Date.now();
+        const immunityBadge = document.getElementById('subway-boost-immunity-badge');
+        const immunityTime = document.getElementById('subway-immunity-time');
+        if (immunityBadge) {
+            if (boostEndTime > now && isRunActive && !isDead) {
+                const remainSec = Math.max(0, (boostEndTime - now) / 1000).toFixed(1);
+                immunityBadge.style.display = 'inline-flex';
+                if (immunityTime) immunityTime.textContent = `${remainSec}s`;
+            } else {
+                immunityBadge.style.display = 'none';
+            }
+        }
     }
 
     function grantEnergy(amount = 1) {
@@ -2209,7 +2293,9 @@
     window.__onCoinAwake = function(coin) {
         if (!coin) return;
         if (window.VANILLA_MODE) {
-            // In Vanilla mode, strictly preserve 100% original coin placement, hitboxes and mechanics
+            if (coin.model && window.NO_COIN_MODE) {
+                restoreCoinNativeTexture(coin.model, true, outlinePct);
+            }
             return;
         }
         if (!window.__activeCoins) window.__activeCoins = new Set();
@@ -2423,13 +2509,13 @@
                 }, { minX: -3.2, minY: -0.4, minZ: -9.0, maxX: 3.2, maxY: 0.4, maxZ: 9.0 }, null, 0x00bcd4);
             }
             if (mesh) {
-                mesh.scale.set(0.0055);
-                mesh.rx = 0;
+                mesh.scale.set(0.0048);
+                mesh.rx = Math.PI / 2;
                 mesh.ry = Math.PI;
-                mesh.rz = 0.45; // Diagonal across the back
-                mesh.x = 0.0;
-                mesh.y = 0.012;
-                mesh.z = 0.0065; // Snug outside jacket without clipping
+                mesh.rz = 0.12; // Aligned vertically along spine with slight diagonal
+                mesh.x = -0.001;
+                mesh.y = 0.004; // Fitted neatly on back between shoulders and waist
+                mesh.z = -0.0065; // Snug against back of jacket
                 backpackBoardMesh = mesh;
             }
         }
@@ -2596,9 +2682,9 @@
             burst.innerHTML = '<span class="coin-shatter-flash" style="background: radial-gradient(circle at 50% 59%, rgba(255,46,77,0.5), transparent 42%);"></span>' +
                 '<span class="coin-shatter-ring" style="border-color: #ff2844;"></span>' +
                 '<div class="coin-broken-wrapper">' +
-                '<div class="coin-half coin-half-left"><svg viewBox="0 0 40 80" class="coin-half-svg"><path d="M 40,0 A 40,40 0 0,0 40,80 L 33,62 L 44,45 L 32,24 L 40,0 Z" fill="#ff2844" stroke="#ffffff" stroke-width="3"/><path d="M 28,14 A 25,25 0 0,0 28,66 L 31,52 L 23,38 L 31,22 Z" fill="#990014"/></svg></div>' +
-                '<div class="coin-half coin-half-right"><svg viewBox="0 0 40 80" class="coin-half-svg"><path d="M 0,0 L 7,24 L -5,45 L 7,62 L 0,80 A 40,40 0 0,0 0,0 Z" fill="#ff2844" stroke="#ffffff" stroke-width="3"/><path d="M 12,14 L 3,22 L 11,38 L 3,52 L 12,66 A 25,25 0 0,0 12,14 Z" fill="#990014"/></svg></div>' +
-                '<div class="coin-crack-spark">💥</div>' +
+                '<div class="coin-half coin-half-left"><svg viewBox="0 0 42 84" class="coin-half-svg"><path d="M 42,0 A 42,42 0 0,0 42,84 L 35,64 L 46,45 L 34,26 L 42,0 Z" fill="#e11d48" stroke="#ffffff" stroke-width="2.5"/><path d="M 42,6 A 36,36 0 0,0 42,78 L 36,63 L 45,45 L 35,27 L 42,6 Z" fill="#9f1239"/><polygon points="42,20 35.5,33.5 21,34 32.5,43.5 28.5,57.5 42,49.5" fill="#fecdd3" stroke="#ffffff" stroke-width="1.2"/></svg></div>' +
+                '<div class="coin-half coin-half-right"><svg viewBox="0 0 42 84" class="coin-half-svg"><path d="M 0,0 L -8,26 L 4,45 L -7,64 L 0,84 A 42,42 0 0,0 0,0 Z" fill="#e11d48" stroke="#ffffff" stroke-width="2.5"/><path d="M 0,6 L -7,27 L 3,45 L -6,63 L 0,78 A 36,36 0 0,0 0,6 Z" fill="#9f1239"/><polygon points="0,20 0,49.5 13.5,57.5 9.5,43.5 21,34 6.5,33.5" fill="#fecdd3" stroke="#ffffff" stroke-width="1.2"/></svg></div>' +
+                '<div class="coin-crack-spark">💀</div>' +
                 '</div>';
         } else if (isBoost) {
             burst.innerHTML = '<span class="coin-shatter-flash" style="background: radial-gradient(circle at 50% 59%, rgba(22,163,74,0.28), transparent 45%);"></span>' +
@@ -2667,7 +2753,7 @@
     // Called when player touches a coin in No Coin Mode
     window.__onNoCoinCollect = function(coin) {
         if (!window.NO_COIN_MODE) return;
-        if (Date.now() < dashInvulnUntil) {
+        if (Date.now() < dashInvulnUntil || Date.now() < boostEndTime) {
             playCoinShatterEffect(coin, 0xff2844, 1.35, 14, true, false);
             return;
         }
@@ -3794,6 +3880,9 @@
             }
         } catch(e) {}
         if (isPositionBlocked(x, y, z, margin, options.platformEntity || null)) return null;
+        if (/double_train|triple_train|suspended_container|ventoinha|air_vent|trampoline/.test(type)) {
+            if (isInsideTunnel(z)) return null;
+        }
 
         try {
             let mesh = null;
@@ -4178,19 +4267,14 @@
         const isSpecialAir = (now < trampolineCameraUntil) || (now < ventLaunchActiveUntil);
 
         if (isSpecialAir) {
-            const currentHeroHeight = Math.max(0, feetY);
-            const targetExtraY = Math.min(65, currentHeroHeight * 0.75);
-            const targetRotX = Math.max(-0.20, -0.0020 * currentHeroHeight);
-            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.70 + targetExtraY * 0.30;
-            window.__flightCameraRotXExtra = (window.__flightCameraRotXExtra || 0) * 0.70 + targetRotX * 0.30;
-
-            if (hero.player) {
-                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, currentHeroHeight);
-                hero.player.cameraY = hero.player.cameraY * 0.75 + hero.player.cameraTargetY * 0.25;
-            }
+            const currentHeroHeight = Math.max(0, feetY - groundY);
+            const targetExtraY = Math.min(75, currentHeroHeight * 0.85);
+            const targetRotX = Math.max(-0.22, -0.0025 * currentHeroHeight);
+            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.75 + targetExtraY * 0.25;
+            window.__flightCameraRotXExtra = (window.__flightCameraRotXExtra || 0) * 0.75 + targetRotX * 0.25;
 
             const elapsed = now - Math.max(flightLaunchAt, trampolineLaunchAt);
-            if (elapsed > 500 && (heroBody.landed || (heroBody.velocity && heroBody.velocity.y <= 0 && feetY <= groundY + 1.5))) {
+            if (elapsed > 650 && (heroBody.landed || (heroBody.velocity && heroBody.velocity.y <= 0 && feetY <= groundY + 1.5))) {
                 trampolineCameraUntil = 0;
                 ventLaunchActiveUntil = 0;
                 flightLandTime = now;
@@ -4406,16 +4490,31 @@
 
     function isInsideTunnel(z) {
         if (window.game && window.game.camera && window.game.camera.tunnel) return true;
+        if (window.game && window.game.hero && window.game.hero.player && window.game.hero.player.tunnel) return true;
         try {
-            const chunks = window.game && window.game.world && window.game.world.chunks;
-            if (Array.isArray(chunks)) {
-                for (let i = 0; i < chunks.length; i++) {
-                    const ch = chunks[i];
-                    if (!ch || !ch.active) continue;
+            const level = window.game && window.game.level;
+            const targetDist = -z;
+            if (level && Array.isArray(level.chunks)) {
+                for (let i = 0; i < level.chunks.length; i++) {
+                    const ch = level.chunks[i];
+                    if (!ch) continue;
                     const nm = (ch.name || ch.type || '').toLowerCase();
-                    if (nm.includes('tunnel') || nm.includes('tube') || nm.includes('station')) {
-                        const cz = ch.z !== undefined ? ch.z : (ch.body && ch.body.z);
-                        if (cz !== undefined && Math.abs(cz - z) < 140) return true;
+                    if (/tube|tunnel|station|pillar|roof/.test(nm)) {
+                        const start = ch.start !== undefined ? ch.start : (ch.nextPosition - (ch.length || 0));
+                        const end = ch.end !== undefined ? ch.end : (start + (ch.length || 300));
+                        if (targetDist >= start - 70 && targetDist <= end + 70) return true;
+                    }
+                }
+            }
+            const phys = window.game && window.game.physics;
+            if (phys && Array.isArray(phys.entities)) {
+                for (let i = 0; i < phys.entities.length; i++) {
+                    const ent = phys.entities[i];
+                    if (!ent) continue;
+                    if (ent.lowCamera || (ent.name && /tube|tunnel|station|pillar|roof/i.test(ent.name))) {
+                        const b = ent.body;
+                        const bz = b ? b.z : ent.z;
+                        if (bz !== undefined && Math.abs(bz - z) < 180) return true;
                     }
                 }
             }
@@ -4477,7 +4576,7 @@
 
         // Fill long gaps with a short, safe route while preserving the existing
         // random obstacle and coin-pattern rotation.
-        if (obstacleChunkCount % 7 === 4) {
+        if (obstacleChunkCount % 3 === 1) {
             if (spawnSupplementalCoinTrail(centerZ)) return;
         }
 
@@ -5051,26 +5150,10 @@
 
         if (window.isGamePaused) return;
 
-        if (Date.now() < trampolineCameraUntil && hero.player) {
-            const feetY = Number.isFinite(heroBody.bottom) ? heroBody.bottom : heroY;
-            const groundY = Number.isFinite(heroBody.ground) ? heroBody.ground : 0;
-            const elapsedAir = Date.now() - trampolineLaunchAt;
-            if (elapsedAir > 180 && (heroBody.landed || feetY <= groundY + 0.55)) {
-                trampolineCameraUntil = 0;
-                trampolineLaunchAt = 0;
-                trampolineHitCount = 0;
-                window.__SW_TRAMPOLINE_AIR_UNTIL__ = 0;
-                hero.player.cameraTargetY = groundY;
-                hero.player.cameraY = groundY;
-            } else {
-                hero.player.cameraTargetY = groundY + Math.max(0, feetY - groundY) * 0.70;
-            }
-        }
-
         // Check spawn ahead of runner at native train horizon distance
         if (heroZ < nextObstacleZ) {
             spawnNoCoinObstaclePattern(heroZ - 480);
-            const interval = window.NO_COIN_MODE ? (190 + Math.random() * 70) : (240 + Math.random() * 80);
+            const interval = window.NO_COIN_MODE ? (60 + Math.random() * 35) : (130 + Math.random() * 70);
             nextObstacleZ = heroZ - interval;
         }
 
@@ -5512,6 +5595,7 @@
                     if (now < trampolineCameraUntil) {
                         trampolineHitCount++;
                         if (trampolineHitCount <= 1) {
+                            if (obs.type === 'ventoinha' || obs.type === 'air_vent' || obs.type === 'trampoline') continue;
                             if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs') obs.destroyed = true;
                             playCoinShatterEffect(obs, 0xffd84a, 1.2);
                             removeObstacleViews(obs);
@@ -7495,6 +7579,13 @@
     // 8. UNIFIED MOD MENU & UI
     // ==========================================
     function createUnifiedUI() {
+        if (!document.getElementById('subway-god-rays')) {
+            const gr = document.createElement('div');
+            gr.id = 'subway-god-rays';
+            gr.className = 'subway-god-rays';
+            document.body.appendChild(gr);
+        }
+
         if (!document.getElementById('subway-energy-widget')) {
             const meter = document.createElement('div');
             meter.id = 'subway-energy-widget';
@@ -7502,6 +7593,7 @@
             meter.setAttribute('aria-label', 'Energia do skate: 0 de 8');
             meter.innerHTML = `
                 <div class="energy-track"><div class="energy-fill" id="subway-energy-fill"></div><div class="energy-ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+                <div id="subway-boost-immunity-badge" class="boost-immunity-badge" style="display:none;"><span class="boost-immunity-icon">🛡️</span><span id="subway-immunity-time" class="boost-immunity-time">0.0s</span></div>
             `;
             document.body.appendChild(meter);
             updateEnergyHud();
@@ -7960,6 +8052,20 @@
 
                 <!-- Tab 2: Settings, Audio & Graphics -->
                 <div class="tab-pane" id="pane-graphics">
+                    <!-- Performance Mode Card (Ultra Light for Low-end PCs) -->
+                    <div class="subway-setting-card" style="border: 1px solid rgba(16, 185, 129, 0.45); background: rgba(6, 28, 20, 0.55);">
+                        <div class="setting-row-top">
+                            <div class="setting-text-col">
+                                <span class="setting-title" style="color: #6ee7b7;">⚡ Modo Desempenho (Ultra Leve)</span>
+                                <span class="setting-desc">Máximo FPS em PCs e celulares fracos: renderização leve, sem pós-processamento, controles instantâneos</span>
+                            </div>
+                            <button class="btn-clean-toggle ${GFX_SETTINGS.perfMode ? 'toggle-active' : ''}" id="btn-toggle-perfmode" onclick="window.__togglePerformanceMode()">
+                                <span class="toggle-indicator"></span>
+                                <span class="toggle-label">${GFX_SETTINGS.perfMode ? 'ATIVADO' : 'DESATIVADO'}</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Music Volume Card -->
                     <div class="subway-setting-card">
                         <div class="setting-row-top">
@@ -8642,6 +8748,39 @@
             #subway-energy-widget.is-active .energy-fill { background:linear-gradient(90deg,#c27415,#e8b443,#fff0bd); box-shadow:0 0 8px rgba(251,191,36,.54); }
             #subway-energy-toast { position:fixed; left:50%; bottom:42px; transform:translate(-50%,6px); z-index:99991; padding:8px 12px; border:1px solid rgba(103,232,249,.45); border-radius:10px; background:rgba(5,18,31,.9); color:#dffaff; font:800 10px/1.2 Arial,sans-serif; letter-spacing:.7px; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:0; pointer-events:none; transition:opacity .16s,transform .16s; }
             #subway-energy-toast.visible { opacity:1; transform:translate(-50%,0); }
+            #subway-boost-immunity-badge {
+                position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%);
+                display: none; align-items: center; gap: 4px;
+                padding: 3px 8px; border-radius: 99px; white-space: nowrap;
+                background: rgba(16, 185, 129, 0.92); border: 1px solid #6ee7b7;
+                box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+                color: #ffffff; font: 900 11px/1 Arial, sans-serif;
+                animation: immunityPulse 0.9s ease-in-out infinite alternate;
+                pointer-events: none;
+            }
+            @keyframes immunityPulse {
+                0% { transform: translateY(-50%) scale(0.96); box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); }
+                100% { transform: translateY(-50%) scale(1.06); box-shadow: 0 0 14px rgba(16, 185, 129, 0.85); }
+            }
+            .subway-god-rays {
+                position: fixed; inset: 0; pointer-events: none; z-index: 5;
+                mix-blend-mode: screen; opacity: 0.35;
+                background:
+                    radial-gradient(ellipse 65% 55% at 75% 15%, rgba(255, 238, 180, 0.40), transparent 70%),
+                    conic-gradient(from 125deg at 75% 15%,
+                        transparent 0deg, rgba(255, 240, 190, 0.28) 8deg, transparent 16deg,
+                        transparent 28deg, rgba(255, 230, 160, 0.24) 36deg, transparent 44deg,
+                        transparent 56deg, rgba(255, 245, 210, 0.30) 64deg, transparent 74deg,
+                        transparent 88deg, rgba(255, 220, 150, 0.26) 96deg, transparent 108deg,
+                        transparent 120deg, rgba(255, 240, 190, 0.24) 130deg, transparent 145deg);
+                filter: blur(3px);
+                animation: godRaySway 9s ease-in-out infinite alternate;
+            }
+            @keyframes godRaySway {
+                0% { transform: scale(1.0) rotate(0deg); opacity: 0.28; }
+                50% { transform: scale(1.02) rotate(1deg); opacity: 0.40; }
+                100% { transform: scale(0.99) rotate(-1deg); opacity: 0.26; }
+            }
             @media(max-width:600px) { #subway-energy-widget { width:min(228px,58vw); height:10px; bottom:max(14px, env(safe-area-inset-bottom, 14px)); } #subway-energy-toast { bottom:34px; } }
             
             /* Map Themes */
@@ -10205,9 +10344,10 @@
                 filter: drop-shadow(0 0 12px #ff1e38);
             }
             .coin-crack-spark {
-                position: absolute; left: 50%; top: 50%; margin: -22px 0 0 -22px;
-                width: 44px; height: 44px; font-size: 34px; display: grid; place-items: center;
-                animation: coinCrackFlash .38s ease-out forwards;
+                position: absolute; left: 50%; top: 50%; margin: -28px 0 0 -28px;
+                width: 56px; height: 56px; font-size: 46px; display: grid; place-items: center;
+                filter: drop-shadow(0 0 14px #ff1e38) drop-shadow(0 0 26px #880012);
+                animation: coinSkullPop .65s cubic-bezier(.16,.88,.24,1) forwards;
             }
             @keyframes coinSplitLeft {
                 0% { transform: scale(1) translate(0, 0) rotate(0deg); opacity: 1; }
@@ -10219,10 +10359,11 @@
                 40% { transform: scale(1.15) translate(16px, 8px) rotate(20deg); opacity: 1; }
                 100% { transform: scale(.72) translate(46px, 34px) rotate(45deg); opacity: 0; }
             }
-            @keyframes coinCrackFlash {
-                0% { transform: scale(.3); opacity: 1; filter: brightness(2.2); }
-                50% { transform: scale(1.6); opacity: 1; }
-                100% { transform: scale(2.4); opacity: 0; }
+            @keyframes coinSkullPop {
+                0% { transform: scale(0.25) rotate(-12deg); opacity: 0; }
+                25% { transform: scale(1.35) rotate(0deg) translateY(-8px); opacity: 1; }
+                60% { transform: scale(1.15) rotate(6deg) translateY(-22px); opacity: 1; }
+                100% { transform: scale(0.7) rotate(-4deg) translateY(-54px); opacity: 0; }
             }
             .coin-shatter-shard {
                 position: absolute; left: 50%; top: 59%; width: 7px; height: 23px;

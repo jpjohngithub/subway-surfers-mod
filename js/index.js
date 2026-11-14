@@ -7698,6 +7698,7 @@
         _0x17dac2 = this.materialNameByHash[_0x2cdce5];
       if (null != _0x17dac2 && _0x17dac2.includes("shadow")) {
         _0x25cfb3.blendMode = 2;
+        _0x25cfb3.isFxBlend = true;
         const _0x536564 = _0x2cdce5.includes('train') ? 'trains-tex' : "environment-tex";
         _0x25cfb3.map = this.getMap(_0x536564), _0x25cfb3.depthMask = false, _0x25cfb3.customNoFog = true, _0x25cfb3.fog = false;
       }
@@ -11136,6 +11137,13 @@
       writable: true
     }) : _0x3f9aea[_0x2cd33f] = _0x54c718, _0x3f9aea;
   }
+  const _0xswShaderExt = {
+    name: "swShaderLight",
+    fragment: {
+      header: "\n            uniform vec4 uSwShader;\n        ",
+      end: "\n            if (uSwShader.x > 0.1 && finalColor.a > 0.05) {\n                float swLv = uSwShader.x;\n                float swUltra = step(1.5, swLv);\n                vec3 swN = normalize(vWorldNormal + vec3(0.0, 0.0001, 0.0));\n                vec3 swSun = normalize(vec3(0.54, 0.76, 0.34));\n                float swNdl = clamp(dot(swN, swSun), -1.0, 1.0);\n                float swDiff = smoothstep(-0.42, 0.72, swNdl);\n                float swSky = clamp(swN.y * 0.5 + 0.5, 0.0, 1.0);\n                vec3 swCoolShadow = mix(vec3(0.42, 0.52, 0.74), vec3(0.24, 0.36, 0.62), swUltra);\n                vec3 swWarmSun = mix(vec3(1.22, 1.13, 0.96), vec3(1.42, 1.24, 0.96), swUltra);\n                vec3 swKeyFill = mix(swCoolShadow, swWarmSun, swDiff);\n                vec3 swHemi = mix(mix(vec3(0.88, 0.90, 0.96), vec3(0.76, 0.80, 0.92), swUltra), mix(vec3(1.06, 1.04, 1.00), vec3(1.16, 1.08, 0.96), swUltra), swSky);\n                float swMask = smoothstep(0.03, 0.18, clamp(dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114)), 0.0, 1.0)) * finalColor.a;\n                vec3 swHalf = normalize(swSun - eyeToSurfaceDir + vec3(0.0, 0.0001, 0.0));\n                float swNdH = max(dot(swN, swHalf), 0.0);\n                float swSpec = pow(swNdH + 0.0001, mix(26.0, 18.0, swUltra)) * step(0.02, swNdH);\n                float swFresRaw = clamp(1.0 - max(dot(swN, -eyeToSurfaceDir), 0.0), 0.0, 1.0);\n                float swFres = pow(swFresRaw + 0.0001, 2.8) * step(0.02, swFresRaw);\n                vec3 swRimCol = mix(vec3(0.45, 0.74, 1.0), vec3(1.0, 0.84, 0.54), swDiff);\n                vec3 swLit = max(finalColor.rgb, vec3(0.0)) * mix(vec3(1.0), swKeyFill * swHemi, mix(0.68, 0.96, swUltra));\n                swLit += swWarmSun * (swSpec * mix(0.10, 0.24, swUltra)) * swMask;\n                swLit += swRimCol * (swFres * mix(0.07, 0.18, swUltra)) * swMask;\n                vec3 swOver = max(swLit - vec3(0.85), vec3(0.0));\n                swLit = (swLit - swOver) + swOver / (vec3(1.0) + swOver * 1.15);\n                finalColor.rgb = max(swLit, vec3(0.0));\n            }\n        "
+    }
+  };
   const _0x245df7 = {
     bend: true,
     fastNormals: true
@@ -11162,6 +11170,11 @@
         var _0x566615;
         const _0x489d37 = Object(_0x26089b.a)(null !== (_0x566615 = _0x57788c.maxBones) && void 0 !== _0x566615 ? _0x566615 : _0x1e11eb.a.MAX_BONES);
         _0x22f742.extensions.push(_0x489d37);
+      }
+      if (!_0x57788c.isFxBlend && (_0x57788c.opacity === undefined || _0x57788c.opacity >= 0.99) && _0x22f742.extensions) {
+        window.__SW_SHADER_VEC__ || (window.__SW_SHADER_VEC__ = new Float32Array([1.0, 0.0, 0.0, 0.0]));
+        _0x16bb44.uSwShader = window.__SW_SHADER_VEC__;
+        _0x22f742.extensions.push(_0xswShaderExt);
       }
       _0x57788c.screenMask && _0x22f742.extensions && (_0x22f742.extensions.push(_0x4bb817), _0x16bb44.uScreenMask = _0x57788c.screenMask), _0x57788c.bend && _0x22f742.extensions && _0x22f742.extensions.push(_0x53aa24), _0x57788c.fogMultiplier && _0x22f742.extensions && _0x22f742.extensions.push({
         fragment: {
