@@ -1710,12 +1710,71 @@
             const ref = lib && lib.getMap && (lib.getMap('props-tex') || lib.getMap('trains-tex') || lib.getMap('shadow'));
             const TexCls = ref && ref.constructor;
             if (TexCls && typeof TexCls.from === 'function') {
-                window.__SW_JOHNSURF_LOGO_TEX__ = TexCls.from(new URL('bundles/lasvegas/game-idle/train-start.png?h=johnsurf8', window.location.href).href);
+                window.__SW_JOHNSURF_LOGO_TEX__ = TexCls.from(new URL('bundles/lasvegas/game-idle/train-start.png?v=johnsurf9', window.location.href).href);
                 return window.__SW_JOHNSURF_LOGO_TEX__;
             }
         } catch(e) {}
         return null;
     };
+
+    function enforceTrainStartLogo() {
+        try {
+            const tex = window.__SW_GET_JOHNSURF_TEX__ && window.__SW_GET_JOHNSURF_TEX__();
+            if (!tex) return;
+            const roots = [
+                window.app && window.app.game && window.app.game.idleScene,
+                window.app && window.app.game && window.app.game.scene,
+                window.game && window.game.scene
+            ].filter(Boolean);
+            for (const root of roots) {
+                const q = [root];
+                while (q.length) {
+                    const node = q.shift();
+                    const name = ((node.name || '') + ' ' + (node.materialName || '')).toLowerCase();
+                    if (name.includes('train_start') || name.includes('train-start') || (node.view3d && node.view3d.material && name.includes('start'))) {
+                        const v = node.view3d;
+                        if (v && v.material) {
+                            const mats = Array.isArray(v.material) ? v.material : [v.material];
+                            mats.forEach(m => {
+                                if (m && m.diffuseMap !== tex) {
+                                    m.diffuseMap = tex;
+                                    if ('map' in m) m.map = tex;
+                                    m.color = 0xffffff;
+                                    try { m.dirty = true; } catch(err) {}
+                                }
+                            });
+                        }
+                    }
+                    const ch = node.children || (node.container && node.container.children);
+                    if (ch) for (let i = 0; i < ch.length; i++) q.push(ch[i]);
+                }
+            }
+        } catch(e) {}
+    }
+
+    function hookLibraryGetMap() {
+        try {
+            const lib = window.__lib || (window.app && window.app.library);
+            if (lib && lib.getMap && !lib.__swHooked) {
+                lib.__swHooked = true;
+                const orig = lib.getMap.bind(lib);
+                lib.getMap = function(name) {
+                    if (name === 'train-start' || name === 'train_start') {
+                        const custom = window.__SW_GET_JOHNSURF_TEX__ && window.__SW_GET_JOHNSURF_TEX__();
+                        if (custom) return custom;
+                    }
+                    return orig(name);
+                };
+            }
+        } catch(e) {}
+    }
+    try {
+        hookLibraryGetMap();
+        setInterval(() => {
+            hookLibraryGetMap();
+            enforceTrainStartLogo();
+        }, 500);
+    } catch(e) {}
 
     function applyEnergyCoinTexture(mesh) {
         try {

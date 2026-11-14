@@ -81,14 +81,14 @@
             "game-idle/train-start.png": {
                 "shortcut": "train-start.png",
                 "webp": {
-                    "high": "game-idle/train-start@2x.webp?h=johnsurf6",
-                    "default": "game-idle/train-start.webp?h=johnsurf6",
-                    "low": "game-idle/train-start@0.5x.webp?h=johnsurf6"
+                    "high": "game-idle/train-start@2x.webp?h=johnsurf9",
+                    "default": "game-idle/train-start.webp?h=johnsurf9",
+                    "low": "game-idle/train-start@0.5x.webp?h=johnsurf9"
                 },
                 "standard": {
-                    "high": "game-idle/train-start@2x.png?h=johnsurf6",
-                    "default": "game-idle/train-start.png?h=johnsurf6",
-                    "low": "game-idle/train-start@0.5x.png?h=johnsurf6"
+                    "high": "game-idle/train-start@2x.png?h=johnsurf9",
+                    "default": "game-idle/train-start.png?h=johnsurf9",
+                    "low": "game-idle/train-start@0.5x.png?h=johnsurf9"
                 }
             },
             "game-idle/trains-tex.png": {

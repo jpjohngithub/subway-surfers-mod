@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <script>(function(){var s=localStorage.getItem("sw_saturation")||"100";document.documentElement.style.setProperty("--game-saturation",s+"%");function b(u){if(typeof u!=="string")return u;if(u.indexOf("assets/preload/splash")!==-1&&u.indexOf("v=4")===-1)return u+(u.indexOf("?")===-1?"?":"&")+"v=4";if(u.indexOf("train-start")!==-1&&u.indexOf("v=6")===-1)return u+(u.indexOf("?")===-1?"?":"&")+"v=6";return u;}var d=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,"src");if(d&&d.set){Object.defineProperty(HTMLImageElement.prototype,"src",{configurable:true,enumerable:true,get:d.get,set:function(v){return d.set.call(this,b(v));}});}var xo=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){var a=Array.prototype.slice.call(arguments);a[1]=b(u);return xo.apply(this,a);};if(window.fetch){var wf=window.fetch;window.fetch=function(r,i){if(typeof r==="string"){r=b(r);}else if(r&&r.url){var nu=b(r.url);if(nu!==r.url)r=new Request(nu,r);}return wf.call(this,r,i);};}})();</script>
+    <script>(function(){var s=localStorage.getItem("sw_saturation")||"100";document.documentElement.style.setProperty("--game-saturation",s+"%");function b(u){if(typeof u!=="string")return u;if(u.indexOf("assets/preload/splash")!==-1&&u.indexOf("v=4")===-1)return u+(u.indexOf("?")===-1?"?":"&")+"v=4";if(u.indexOf("train-start")!==-1&&u.indexOf("v=9")===-1)return u+(u.indexOf("?")===-1?"?":"&")+"v=9";return u;}var d=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,"src");if(d&&d.set){Object.defineProperty(HTMLImageElement.prototype,"src",{configurable:true,enumerable:true,get:d.get,set:function(v){return d.set.call(this,b(v));}});}var xo=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){var a=Array.prototype.slice.call(arguments);a[1]=b(u);return xo.apply(this,a);};if(window.fetch){var wf=window.fetch;window.fetch=function(r,i){if(typeof r==="string"){r=b(r);}else if(r&&r.url){var nu=b(r.url);if(nu!==r.url)r=new Request(nu,r);}return wf.call(this,r,i);};}})();</script>
     <script src="patch/js/poki-sdk.js"></script>
     
     <meta http-equiv="content-type" content="text/html; charset=UTF8">
@@ -17,7 +17,7 @@
     <link rel="preconnect" href="https://broker.emqx.io">
     
     <link rel="preload" href="js/dependencies.bundle.js?v=68" as="script">
-    <link rel="preload" href="js/index.js?v=54" as="script">
+    <link rel="preload" href="js/index.js?v=55" as="script">
     <link rel="manifest" href="subwaysurfers.webmanifest">
     <link rel="icon" href="assets/images/app-icon-16.png" type="image/png">
     <link rel="apple-touch-icon-precomposed" sizes="114x114" href="assets/images/app-icon-114.png">
@@ -124,8 +124,8 @@
     </div>
     <script src="patch/js/peerjs.min.js"></script>
     <script src="patch/js/mqtt.min.js"></script>
-    <script src="js/subway_mod.js?v=185"></script>
+    <script src="js/subway_mod.js?v=186"></script>
     <script src="js/loading.js?v=15"></script>
-    <script src="js/boot.js?v=58"></script>
+    <script src="js/boot.js?v=59"></script>
 </body>
 </html>
