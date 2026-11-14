@@ -146,7 +146,6 @@
             const s = localStorage.getItem('sw_sfx_volume');
             return s !== null ? Math.max(0, Math.min(100, parseInt(s, 10) || 0)) : 70;
         })(),
-        trail: localStorage.getItem('sw_player_trail') || 'off', // 'off' (padrão desativado)
         motionBlur: localStorage.getItem('sw_motion_blur') || 'off', // 'off' (padrão otimizado) | 'soft' | 'high'
         shaders: localStorage.getItem('sw_shaders') === 'medium' ? 'medium' : 'off', // 'off' (padrão) | 'medium' (BETA)
         timeOfDay: localStorage.getItem('sw_time_of_day') || 'night', // 'night' | 'sunset' | 'day'
@@ -1092,14 +1091,16 @@
         }
         const mpChk = document.getElementById('mp-chk-vanilla');
         if (mpChk) mpChk.checked = window.VANILLA_MODE;
+        if (window.VANILLA_MODE) {
+            cleanupCustomObstacles();
+            const widget = document.getElementById('subway-energy-widget');
+            if (widget) widget.style.display = 'none';
+            if (backpackBoardMesh && backpackBoardMesh.parent) backpackBoardMesh.parent.removeChild(backpackBoardMesh);
+            if (typeof resetBoost === 'function') resetBoost();
+        } else {
+            updateEnergyHud();
+        }
         showHUDNotification(window.VANILLA_MODE ? '🍃 MODO VANILLA ATIVADO (Jogo Original)' : '⚙️ MODO MODIFICADO ATIVADO');
-    };
-
-    window.__setPlayerTrail = function(key) {
-        GFX_SETTINGS.trail = key || 'off';
-        localStorage.setItem('sw_player_trail', GFX_SETTINGS.trail);
-        if (typeof renderTrailsPane === 'function') renderTrailsPane();
-        showHUDNotification('Trilha equipada: ' + ((SW_TRAIL_CONFIG[key] && SW_TRAIL_CONFIG[key].name) || 'Desativado'));
     };
 
 // Multiplayer State
@@ -2186,6 +2187,10 @@
     function updateEnergyHud() {
         const widget = document.getElementById('subway-energy-widget');
         if (!widget) return;
+        if (window.VANILLA_MODE) {
+            widget.style.display = 'none';
+            return;
+        }
         const g = window.game || (window.app && window.app.game);
         const hero = g && g.hero;
         const isRunning = !!(g && g.state === 1);
@@ -2211,6 +2216,7 @@
     }
 
     function grantEnergy(amount = 1) {
+        if (window.VANILLA_MODE) return;
         const hero = window.game && window.game.hero;
         const board = hero && hero.hoverboard;
         if (board && board.isOn && board.isOn()) {
@@ -2230,6 +2236,7 @@
         if (!board || board.__energyGate || typeof board.turnOn !== 'function') return;
         const originalTurnOn = board.turnOn;
         board.turnOn = function() {
+            if (window.VANILLA_MODE) return originalTurnOn.apply(this, arguments);
             if (!this.__energyPermit) {
                 if (skateEnergy >= ENERGY_MAX) activateBoard();
                 else showEnergyToast(`ENERGIA ${skateEnergy}/${ENERGY_MAX}`);
@@ -2240,6 +2247,7 @@
         if (typeof board.onDoubleTap === 'function' && !board.__energyDoubleTapGate) {
             const originalDoubleTap = board.onDoubleTap;
             board.onDoubleTap = function() {
+                if (window.VANILLA_MODE) return originalDoubleTap.apply(this, arguments);
                 if (this.__energyPermit) return originalDoubleTap.apply(this, arguments);
                 if (this.isOn && this.isOn()) return;
                 if (skateEnergy >= ENERGY_MAX) activateBoard();
@@ -4907,85 +4915,7 @@
         }
     }
 
-    const SW_TRAIL_CONFIG = {
-        cyan: { name: 'Ciano Neon', color: 0x00f0ff, css: '#00f0ff', desc: 'Rastro elétrico brilhante ciano' },
-        pink: { name: 'Rosa Choque', color: 0xff007f, css: '#ff007f', desc: 'Rastro neon magenta radiante' },
-        fire: { name: 'Fogo Vulcânico', color: 0xff4500, css: '#ff4500', desc: 'Chamas ardentes e brasas' },
-        gold: { name: 'Ouro Cósmico', color: 0xffd700, css: '#ffd700', desc: 'Partículas douradas cintilantes' },
-        purple: { name: 'Roxo Espectral', color: 0xa855f7, css: '#a855f7', desc: 'Energia etérea violeta' },
-        green: { name: 'Verde Matrix', color: 0x22c55e, css: '#22c55e', desc: 'Brilho cibernético esmeralda' },
-        rainbow: { name: 'Arco-Íris Neon', color: 0x00ffff, css: 'linear-gradient(90deg, #ff0055, #00f0ff, #ffd700)', desc: 'Cores dinâmicas alternadas' },
-        off: { name: 'Desativado', color: 0x000000, css: '#475569', desc: 'Sem efeito de rastro' }
-    };
-
-    function hslToHex(h, s, l) {
-        l /= 100;
-        const a = s * Math.min(l, 1 - l) / 100;
-        const f = n => {
-            const k = (n + h / 30) % 12;
-            const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-            return Math.round(255 * color).toString(16).padStart(2, '0');
-        };
-        return parseInt(`${f(0)}${f(8)}${f(4)}`, 16);
-    }
-
-    let swTrailParticles = [];
-    let lastTrailSpawnAt = 0;
-    function updatePlayerTrail(hero, heroBody, now) {
-        if (window.VANILLA_MODE || !hero || !heroBody || GFX_SETTINGS.trail === 'off' || !isRunActive || deathFrozen) {
-            if (swTrailParticles.length) {
-                for (const p of swTrailParticles) {
-                    if (p.mesh && p.mesh.parent) p.mesh.parent.removeChild(p.mesh);
-                }
-                swTrailParticles = [];
-            }
-            return;
-        }
-        if (now - lastTrailSpawnAt > 35 && hero.parent) {
-            lastTrailSpawnAt = now;
-            const trailChoice = GFX_SETTINGS.trail;
-            let col = (SW_TRAIL_CONFIG[trailChoice] && SW_TRAIL_CONFIG[trailChoice].color) || 0x00f0ff;
-            if (trailChoice === 'rainbow') {
-                col = hslToHex((now * 0.25) % 360, 100, 50);
-            }
-
-            const spawnHandStreak = (xOffset) => {
-                let m = null;
-                try {
-                    m = createCustom3DEntity('trail_streak_mesh', () => {
-                        const b = createMeshBuilder();
-                        b.addBox(-0.08, -0.04, -1.0, 0.08, 0.04, 1.0, 0.1, 0.1, 0.9, 0.9);
-                        return b;
-                    }, { minX: -0.1, minY: -0.05, minZ: -1.0, maxX: 0.1, maxY: 0.05, maxZ: 1.0 }, null, col);
-                } catch(e) {}
-                if (!m && window.__lib && typeof window.__lib.getEntity === 'function') {
-                    try { m = window.__lib.getEntity('currency_coin'); } catch(e) {}
-                }
-                if (m) {
-                    setEntityHexColor(m, col);
-                    m.scale.set(0.18, 0.06, 0.75);
-                    m.x = heroBody.x + xOffset;
-                    m.y = (heroBody.bottom || 0) + 4.2;
-                    m.z = heroBody.z + 1.2;
-                    try { hero.parent.addChild(m); } catch(e) {}
-                    swTrailParticles.push({ mesh: m, born: now, col });
-                }
-            };
-            spawnHandStreak(-1.75); // Mão esquerda
-            spawnHandStreak(1.75);  // Mão direita
-        }
-        for (let i = swTrailParticles.length - 1; i >= 0; i--) {
-            const p = swTrailParticles[i];
-            const age = now - p.born;
-            if (age >= 380) {
-                if (p.mesh && p.mesh.parent) p.mesh.parent.removeChild(p.mesh);
-                swTrailParticles.splice(i, 1);
-            } else {
-                const f = 1 - (age / 380);
-                p.mesh.scale.set(0.18 * f, 0.06 * f, 0.75 * f);
-            }
-        }
-    }
+    // Trails completely removed per user request
 
     let lastObstacleTickMs = 0;
     let prevObstacleHeroZ = null;
@@ -5058,7 +4988,6 @@
 
         updateBoostEngine();
         updateBackpackHoverboard();
-        updatePlayerTrail(hero, heroBody, now);
 
         // Dip camera smoothly when passing under suspended containers (just like native tunnels)
         let isUnderSuspendedContainer = false;
@@ -7894,7 +7823,6 @@
                 <div class="unified-tabs">
                     <button class="tab-btn" data-tab="modes" id="tab-btn-modes">MODOS</button>
                     <button class="tab-btn" data-tab="skins" id="tab-btn-skins">SKINS</button>
-                    <button class="tab-btn" data-tab="trails" id="tab-btn-trails">TRILHAS</button>
                     <button class="tab-btn" data-tab="graphics" id="tab-btn-graphics">CONFIGURAÇÕES</button>
                     <button class="tab-btn" data-tab="multiplayer" id="tab-btn-multiplayer">MULTIPLAYER</button>
                     <button class="tab-btn" data-tab="records" id="tab-btn-records">RECORDES</button>
@@ -7930,12 +7858,6 @@
                 <div class="tab-pane" id="pane-skins">
                     <div class="sw-skins-head">Selecione o visual do personagem</div>
                     <div class="sw-skins-grid" id="sw-skins-grid"></div>
-                </div>
-
-                <!-- Dedicated Custom Trails Tab -->
-                <div class="tab-pane" id="pane-trails">
-                    <div class="sw-skins-head">Selecione o rastro temporário de corrida (Trilha)</div>
-                    <div class="sw-trails-grid" id="sw-trails-grid"></div>
                 </div>
 
                 <!-- Tab 2: Settings, Audio & Graphics -->
