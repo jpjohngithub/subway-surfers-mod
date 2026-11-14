@@ -333,12 +333,18 @@
         GFX_SETTINGS.timeOfDay = tod;
         try { localStorage.setItem('sw_time_of_day', tod); } catch(e) {}
 
+        if (tod === 'night') {
+            try {
+                const cv = document.querySelector('canvas');
+                if (cv) cv.style.background = '';
+            } catch(e) {}
+            return;
+        }
+
         if (tod === 'sunset') {
             updateGameSky('#7c2d12', '#f97316');
         } else if (tod === 'day') {
             updateGameSky('#0284c7', '#7dd3fc');
-        } else {
-            updateGameSky('#0f051d', '#3b0764');
         }
 
         try {
@@ -346,7 +352,6 @@
             if (renderer) {
                 if (tod === 'sunset') renderer.backgroundColor = 0xd35400;
                 else if (tod === 'day') renderer.backgroundColor = 0x64b5f6;
-                else renderer.backgroundColor = 0x110826;
             }
         } catch(e) {}
 
@@ -355,7 +360,6 @@
             if (cv) {
                 if (tod === 'sunset') cv.style.background = 'linear-gradient(180deg, #b91c1c 0%, #ea580c 45%, #f59e0b 100%)';
                 else if (tod === 'day') cv.style.background = 'linear-gradient(180deg, #0284c7 0%, #38bdf8 55%, #bae6fd 100%)';
-                else cv.style.background = 'linear-gradient(180deg, #090314 0%, #1a0b2e 60%, #2e1065 100%)';
             }
         } catch(e) {}
 
@@ -364,7 +368,6 @@
             if (v3d && v3d.fog) {
                 if (tod === 'sunset') { v3d.fog.color = 0xd35400; v3d.fog.density = 0.015; }
                 else if (tod === 'day') { v3d.fog.color = 0x64b5f6; v3d.fog.density = 0.007; }
-                else { v3d.fog.color = 0x110826; v3d.fog.density = 0.012; }
             }
         } catch(e) {}
 
