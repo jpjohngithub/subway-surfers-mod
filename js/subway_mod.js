@@ -2515,6 +2515,56 @@
 
     let ventLaunchActiveUntil = 0;
     let ventTargetRoof = 0;
+    let ventLaunchActive = false;
+    let ventLaunchTime = 0;
+
+    function clearCoinsOnVent(vent) {
+        if (!vent) return;
+        const vx = vent.x || 0;
+        const vz = vent.z || 0;
+        const rX = 24;
+        const rZ = 60;
+        for (let i = customObstacles.length - 1; i >= 0; i--) {
+            const c = customObstacles[i];
+            if (!c || (c.type !== 'coin' && c.type !== 'energyCoin')) continue;
+            if (Math.abs(c.x - vx) < rX && Math.abs(c.z - vz) < rZ) {
+                removeObstacleViews(c);
+                customObstacles.splice(i, 1);
+            }
+        }
+        if (window.__activeCoins) {
+            for (const c of window.__activeCoins) {
+                if (!c) continue;
+                const cx = (c.body && typeof c.body.x === 'number') ? c.body.x : (c.x || 0);
+                const cz = (c.body && typeof c.body.z === 'number') ? c.body.z : (c.z || 0);
+                if (Math.abs(cx - vx) < rX && Math.abs(cz - vz) < rZ) {
+                    c.active = false;
+                    c.visible = false;
+                    if (c.model) { c.model.visible = false; c.model.active = false; }
+                    if (c.body) { c.body.width = 0; c.body.height = 0; c.body.depth = 0; }
+                }
+            }
+        }
+        try {
+            const physics = window.game && window.game.physics;
+            if (physics && Array.isArray(physics.entities)) {
+                for (const ent of physics.entities) {
+                    if (!ent || !ent.body) continue;
+                    const name = ((ent.name || '') + ' ' + (ent.type || '') + ' ' + (ent.modelName || '')).toLowerCase();
+                    if (name.includes('coin') || ent.isCoin) {
+                        const bx = ent.body.x || 0;
+                        const bz = ent.body.z || 0;
+                        if (Math.abs(bx - vx) < rX && Math.abs(bz - vz) < rZ) {
+                            ent.active = false;
+                            ent.visible = false;
+                            if (ent.model) { ent.model.visible = false; ent.model.active = false; }
+                            ent.body.width = 0; ent.body.height = 0; ent.body.depth = 0;
+                        }
+                    }
+                }
+            }
+        } catch(e) {}
+    }
 
     // ---- SKY PHASE SYSTEM ----
     let skyPhaseActive = false;
@@ -4020,6 +4070,7 @@
                         vParts.push(windEnt);
                     }
                     mesh._ventParts = vParts;
+                    clearCoinsOnVent({ x, z });
                 }
             }
 
@@ -4371,14 +4422,18 @@
         const isSpecialAir = (now < trampolineCameraUntil) || (now < ventLaunchActiveUntil);
 
         if (isSpecialAir) {
-            const currentHeroHeight = Math.max(0, feetY - groundY);
-            const targetExtraY = Math.min(75, currentHeroHeight * 0.85);
-            const targetRotX = Math.max(-0.22, -0.0025 * currentHeroHeight);
-            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.75 + targetExtraY * 0.25;
-            window.__flightCameraRotXExtra = (window.__flightCameraRotXExtra || 0) * 0.75 + targetRotX * 0.25;
+            if (hero.player) {
+                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, feetY);
+                hero.player.cameraY = Math.max(hero.player.cameraY || 0, feetY * 0.92);
+            }
+            const currentHeroHeight = Math.max(0, feetY);
+            const targetExtraY = Math.min(80, currentHeroHeight * 0.96);
+            const targetRotX = Math.max(-0.25, -0.0035 * currentHeroHeight);
+            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.45 + targetExtraY * 0.55;
+            window.__flightCameraRotXExtra = (window.__flightCameraRotXExtra || 0) * 0.50 + targetRotX * 0.50;
 
             const elapsed = now - Math.max(flightLaunchAt, trampolineLaunchAt);
-            if (elapsed > 650 && (heroBody.landed || (heroBody.velocity && heroBody.velocity.y <= 0 && feetY <= groundY + 1.5))) {
+            if (elapsed > 450 && heroBody.landed && Math.abs(feetY - groundY) <= 1.5) {
                 trampolineCameraUntil = 0;
                 ventLaunchActiveUntil = 0;
                 flightLandTime = now;
@@ -5625,6 +5680,7 @@
         for (const vent of customObstacles) {
             if (!vent || (vent.type !== 'ventoinha' && vent.type !== 'air_vent')) continue;
             updateVentParticles(vent, now);
+            clearCoinsOnVent(vent);
             const dz = Math.abs(vent.z - heroZ);
             const dx = Math.abs(vent.x - heroX);
             const ventTop = (vent.y || 0) + 26;
@@ -5656,12 +5712,15 @@
                         heroBody.velocity.y = (targetRoof + 4) / (tAirSec * 28);
                     }
                     heroBody.landed = false;
-                    ventLaunchActiveUntil = now + (tAirSec * 1000);
+                    ventLaunchActiveUntil = now + 4000;
+                    ventLaunchActive = true;
+                    ventLaunchTime = now;
                     ventTargetRoof = targetRoof;
                     flightAirborne = true;
                     flightLaunchAt = now;
                     if (hero.player) {
                         hero.player.cameraTargetY = targetRoof;
+                        hero.player.cameraY = Math.max(hero.player.cameraY || 0, heroY);
                     }
                 }
             }
@@ -6000,12 +6059,15 @@
                                 heroBody.velocity.y = (targetRoof + 4) / (tAirSec * 28);
                             }
                             heroBody.landed = false;
-                            ventLaunchActiveUntil = now + (tAirSec * 1000);
+                            ventLaunchActiveUntil = now + 4000;
+                            ventLaunchActive = true;
+                            ventLaunchTime = now;
                             ventTargetRoof = targetRoof;
                             flightAirborne = true;
                             flightLaunchAt = now;
                             if (hero.player) {
                                 hero.player.cameraTargetY = targetRoof;
+                                hero.player.cameraY = Math.max(hero.player.cameraY || 0, heroY);
                             }
                         }
                         continue;
@@ -8475,7 +8537,7 @@
                     <div class="modal-header-branding">
                         <span class="modal-brand-title">SUBWAY SURFERS</span>
                         <span class="modal-brand-sep"></span>
-                        <span class="modal-brand-sub">v0.80.11 beta</span>
+                        <span class="modal-brand-sub">v0.90 beta</span>
                     </div>
                     <button class="btn-modal-close" id="btn-close-unified" title="Fechar">✕</button>
                 </div>
@@ -8706,21 +8768,23 @@
                 <!-- Tab 4: News & Updates Mural -->
                 <div class="tab-pane" id="pane-news">
                     <div class="news-header">
-                        <span class="news-version-badge">Versão 0.80.11 beta</span>
-                        <span class="news-date">13/11/2026 às 20:55</span>
+                        <span class="news-version-badge">Versão 0.90 beta</span>
+                        <span class="news-date">14/11/2026 às 18:50</span>
                     </div>
                     <div class="news-card">
                         <h3 class="news-title">🚀 Mural de Novidades & Atualizações</h3>
                         <p class="news-intro">Todas as melhorias e correções recentes sincronizadas em tempo real:</p>
                         <ul class="news-list">
+                            <li><strong>🎥 Câmera Aérea Dinâmica na Ventoinha:</strong> A câmera 3D agora acompanha o personagem no ar com visão antecipada e suave até o pouso na ponte ou no chão.</li>
+                            <li><strong>🪙 Zero Moedas na Ventoinha:</strong> Purga e bloqueio estrito de qualquer moeda em cima ou próxima da ventoinha.</li>
                             <li><strong>🌉 Nova Ponte de Madeira Suspensa (Sky Bridge):</strong> Plataforma horizontal de madeira estilizada sem suportes embaixo, permitindo corrida contínua e parkour limpo no ar.</li>
                             <li><strong>🪵 Rampa de Madeira de Ascensão Suave:</strong> Rampa restaurada com subida gradual fluida sem travamentos, conectando a pista do chão até o nível superior.</li>
                             <li><strong>🌀 Ventoinha Cartoon 3D & Efeito Instantâneo:</strong> Modelo cartoon estilizado com anéis de vento ascendentes em 3D; basta encostar na ventoinha para receber o impulso imediato!</li>
-                            <li><strong>🚫 Remoção de Trens Altos e Containers:</strong> Eliminados vagões duplos/triplos e containers suspensos pesados para focar exclusivamente na ponte, rampa de madeira e ventoinha.</li>
-                            <li><strong>🚇 Proteção Total em Túneis:</strong> Bloqueio estrito de qualquer obstáculo alto ou aéreo dentro de túneis e passagens cobertas, acabando com colisões no teto.</li>
-                            <li><strong>🍃 Modo Vanilla 100% Funcional:</strong> Corrigido o bug da tela preta ao iniciar partidas no Modo Vanilla; o jogo original roda perfeitamente sem falhas.</li>
-                            <li><strong>🛹 Remoção do Skate nas Costas:</strong> O modelo do skate nas costas foi completamente retirado a pedido da comunidade.</li>
-                            <li><strong>⚡ Super Otimização & Desempenho Leve:</strong> Redução drástica de processos redundantes para eliminar travamentos e deixar o jogo leve e ágil.</li>
+                            <li><strong>🚫 Remoção de Trens Altos e Containers:</strong> Foco exclusivo na ponte suspensa, rampa de madeira e ventoinha cartoon.</li>
+                            <li><strong>🚇 Proteção Total em Túneis:</strong> Bloqueio estrito de qualquer obstáculo alto ou aéreo dentro de túneis e passagens cobertas.</li>
+                            <li><strong>🍃 Modo Vanilla 100% Funcional:</strong> Corrigido o bug da tela preta ao iniciar partidas no Modo Vanilla.</li>
+                            <li><strong>🛹 Remoção do Skate nas Costas:</strong> O modelo do skate nas costas foi completamente retirado.</li>
+                            <li><strong>⚡ Super Otimização & Desempenho Leve:</strong> Redução drástica de processos redundantes para eliminar travamentos.</li>
                         </ul>
                     </div>
                 </div>

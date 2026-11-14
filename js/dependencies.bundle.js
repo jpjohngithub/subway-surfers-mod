@@ -34618,7 +34618,8 @@
           const e = this.game.stats.x * r.a.cameraModX;
           this.rig.mainX = o.a.lerp(this.rig.mainX, e, .3 * t);
           const i = (this.game && this.game.hero && this.game.hero.player && typeof this.game.hero.player.cameraY === 'number' ? this.game.hero.player.cameraY : 0) + r.a.cameraPosY + (window.__flightCameraYExtra || 0);
-          this.rig.mainY = o.a.lerp(this.rig.mainY, i, .3 * t), this.rig.mainZ = this.game.stats.z + r.a.cameraPosZ, this.rig.mainRotX = o.a.lerp(this.rig.mainRotX, r.a.cameraRotX + (window.__flightCameraRotXExtra || 0), .1 * t), this.rig.mainRotY = 0, this.rig.fov = r.a.cameraFov + (window.__boostFovAdd || 0);
+          const followSpd = (window.__flightCameraYExtra && window.__flightCameraYExtra > 2) ? .65 : .3;
+          this.rig.mainY = o.a.lerp(this.rig.mainY, i, followSpd * t), this.rig.mainZ = this.game.stats.z + r.a.cameraPosZ, this.rig.mainRotX = o.a.lerp(this.rig.mainRotX, r.a.cameraRotX + (window.__flightCameraRotXExtra || 0), .15 * t), this.rig.mainRotY = 0, this.rig.fov = r.a.cameraFov + (window.__boostFovAdd || 0);
         }
         this.updateTunnel(t), this.updateShake(t);
       }
