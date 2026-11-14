@@ -1663,7 +1663,7 @@
             const ref = lib && lib.getMap && (lib.getMap('props-tex') || lib.getMap('trains-tex') || lib.getMap('shadow'));
             const TexCls = ref && ref.constructor;
             if (TexCls && typeof TexCls.from === 'function') {
-                window.__SW_JOHNSURF_LOGO_TEX__ = TexCls.from(new URL('bundles/lasvegas/game-idle/train-start.png?v=johnsurf20', window.location.href).href);
+                window.__SW_JOHNSURF_LOGO_TEX__ = TexCls.from(new URL('bundles/lasvegas/game-idle/train-start.png?v=johnsurf25', window.location.href).href);
                 return window.__SW_JOHNSURF_LOGO_TEX__;
             }
         } catch(e) {}
@@ -7703,7 +7703,7 @@
     try {
         _johnSurfLogoImg = new Image();
         _johnSurfLogoImg.crossOrigin = 'anonymous';
-        _johnSurfLogoImg.src = 'bundles/lasvegas/game-idle/train-start.png?v=johnsurf20';
+        _johnSurfLogoImg.src = 'bundles/lasvegas/game-idle/train-start.png?v=johnsurf25';
     } catch(e) {}
 
     const SKIN_THEMES = {
