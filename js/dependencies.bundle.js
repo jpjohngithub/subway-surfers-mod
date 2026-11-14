@@ -35322,23 +35322,6 @@
         fill: 16777215,
         lineHeight: 50
       }), this.scoreContainer = new r.a(), this.scoreContainer.ry = .5 * Math.PI, this.scoreContainer.x = 10, this.scoreContainer.y = 6.3, this.scoreContainer.z = -4, this.addChild(this.scoreContainer), this.score = s.a.plane(2, 2, .99, this.scoreText.texture), this.score.rx = .25, this.scoreContainer.addChild(this.score);
-      try {
-        if (this.model && window.__SW_GET_JOHNSURF_TEX__) {
-          const _jTex = window.__SW_GET_JOHNSURF_TEX__();
-          if (_jTex) {
-            const _ap = o => {
-              if (!o) return;
-              if (o.view3d && o.view3d.material) {
-                const ms = Array.isArray(o.view3d.material) ? o.view3d.material : [o.view3d.material];
-                ms.forEach(m => { if (m) { m.diffuseMap = _jTex; if ('map' in m) m.map = _jTex; m.color = 16777215; } });
-              }
-              const cs = o.children || (o.container && o.container.children);
-              if (cs) for (let i = 0; i < cs.length; i++) _ap(cs[i]);
-            };
-            _ap(this.model);
-          }
-        }
-      } catch(e) {}
     }
     updateScore() {
       const t = a.a.user.gameSettings.highscore;
@@ -38622,31 +38605,7 @@
     update() {
       if (!this.view || !this.view.active) return;
       const t = this.entity.body ? this.entity.body.ground : 0;
-      const mode = window.__SW_SHADER_MODE__ || "off";
-      if ("off" === mode) {
-        this.view.x = 0, this.view.z = 1, this.view.y = -this.entity.y + t + 1;
-        this.view.scale && this.view.scale.set(1, 1, 1);
-        const m = this.view.view3d && this.view.view3d.material;
-        m && (this._origShadowMap && m.diffuseMap !== this._origShadowMap && (m.diffuseMap = this._origShadowMap), m.color = 16777215, m.alpha = .75);
-        return;
-      }
-      const air = Math.max(0, (this.entity.y || 0) - t - (this.entity.body ? .5 * this.entity.body.height : 5.5));
-      const dist = Math.min(1, air / 24);
-      const isUltra = "ultra" === mode;
-      const baseScale = 1.08;
-      const sc = baseScale * (1 - .35 * dist);
-      this.view.scale && this.view.scale.set(sc * 1.15, sc * 1.45, sc);
-      this.view.x = -.55 - .22 * air;
-      this.view.z = -.85 - .35 * air;
-      this.view.y = -this.entity.y + t + .85;
-      const mat = this.view.view3d && this.view.view3d.material;
-      if (mat) {
-        window.__SW_SHADOW_TEX__ && mat.diffuseMap !== window.__SW_SHADOW_TEX__ && (mat.diffuseMap = window.__SW_SHADOW_TEX__);
-        mat.color = 16777215;
-        const a = Math.max(0, .82 * (1 - .55 * dist));
-        mat.alpha = a;
-        mat.uniforms && mat.uniforms.uDiffuseColor && (mat.uniforms.uDiffuseColor[3] = a);
-      }
+      this.view.y = -this.entity.y + t + 1;
     }
     turnOn() {
       this.createView(), this.view && (this.view.active = !0);

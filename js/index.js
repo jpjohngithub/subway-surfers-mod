@@ -3306,8 +3306,19 @@
       }), this.addChild(this.coins), this.coins.y = 35, this.icon = _0x2a24d4.Sprite.from("icon-coin.png"), this.icon.anchor.set(0.5), this.icon.scale.set(0.75), this.addChild(this.icon), this.icon.x = this.coins.x - 100, this.icon.y = this.coins.y, this.starL = _0x2a24d4.Sprite.from("icon-star.png"), this.starL.anchor.set(0.5), this.starL.x = -120, this.title.addChild(this.starL), this.starR = _0x2a24d4.Sprite.from("icon-star.png"), this.starR.anchor.set(0.5), this.starR.x = -this.starL.x, this.title.addChild(this.starR);
     }
     ['update'](_0x48c209) {
-      this.score.text = String(_0x48c209.score), this.coins.text = String(_0x48c209.coins);
-      const _0x8547a2 = this.title.display.width || 1;
+      try {
+        const _m = window.NO_COIN_MODE ? 'No Coin' : 'Normal';
+        const _curTime = (window.__SW_GET_LAST_TIME_STR__ ? window.__SW_GET_LAST_TIME_STR__() : null) || (window.formatTime ? window.formatTime(window.runElapsedTime || 0) : String(_0x48c209.score));
+        const _rec = (window.__SW_GET_BEST_RECORD_STR__ ? window.__SW_GET_BEST_RECORD_STR__(_m) : null) || _curTime;
+        this.score.text = _curTime;
+        this.coins.text = "RECORDE: " + _rec;
+        this.title.text = "TEMPO";
+        if (this.title.display) this.title.display.text = "TEMPO";
+        if (this.icon) this.icon.visible = false;
+      } catch(e) {
+        this.score.text = String(_0x48c209.score), this.coins.text = String(_0x48c209.coins);
+      }
+      const _0x8547a2 = (this.title.display && this.title.display.width) || this.title.width || 1;
       this.starL.x = -_0x8547a2 / 2 - 25, this.starR.x = _0x8547a2 / 2 + 25;
     }
   }
@@ -7712,7 +7723,7 @@
           isFxBlend: _0xisFxBlend
         }),
         _0x4303ac = new _0x2a24d4.State();
-      _0x25cfb3.opacity && (_0x5274d1.opacity = _0x25cfb3.opacity), _0x4303ac.depthTest = true, _0x4303ac.blend = !!_0x25cfb3.opacity && _0x25cfb3.opacity < 1, _0x4303ac.culling = true, _0x25cfb3.blendMode && (_0x4303ac.blendMode = _0x25cfb3.blendMode), false === _0x25cfb3.depthMask && (_0x4303ac.depthMask = false);
+      _0x25cfb3.opacity && (_0x5274d1.opacity = _0x25cfb3.opacity), _0x4303ac.depthTest = true, _0x4303ac.blend = (!!_0x25cfb3.opacity && _0x25cfb3.opacity < 1) || !!_0x25cfb3.blendMode || !!_0xisFxBlend, _0x4303ac.culling = true, _0x25cfb3.blendMode && (_0x4303ac.blendMode = _0x25cfb3.blendMode), false === _0x25cfb3.depthMask && (_0x4303ac.depthMask = false);
       const _0x280cf5 = new _0x18a9c6.a({
         geometry: _0x4d7ba5,
         material: _0x5274d1,
@@ -11162,11 +11173,7 @@
         const _0x489d37 = Object(_0x26089b.a)(null !== (_0x566615 = _0x57788c.maxBones) && void 0 !== _0x566615 ? _0x566615 : _0x1e11eb.a.MAX_BONES);
         _0x22f742.extensions.push(_0x489d37);
       }
-      if (!_0x57788c.isFxBlend && _0x22f742.extensions) {
-        window.__SW_SHADER_VEC__ || (window.__SW_SHADER_VEC__ = new Float32Array([1.0, 0.0, 0.0, 0.0]));
-        _0x16bb44.uSwShader = window.__SW_SHADER_VEC__;
-        _0x22f742.extensions.push(_0xswShaderExt);
-      }
+      window.__SW_SHADER_VEC__ = new Float32Array([0.0, 0.0, 0.0, 0.0]);
       _0x57788c.screenMask && _0x22f742.extensions && (_0x22f742.extensions.push(_0x4bb817), _0x16bb44.uScreenMask = _0x57788c.screenMask), _0x57788c.bend && _0x22f742.extensions && _0x22f742.extensions.push(_0x53aa24), _0x57788c.fogMultiplier && _0x22f742.extensions && _0x22f742.extensions.push({
         fragment: {
           header: "\n                    #define FOG_MULT " + _0x57788c.fogMultiplier + "\n                    "

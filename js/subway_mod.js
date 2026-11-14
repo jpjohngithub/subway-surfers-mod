@@ -119,15 +119,19 @@
     window.__swipeT = 9;
     // Keyboard routing is handled synchronously inside ControllerSystem (dependencies.bundle.js).
 
-    try { localStorage.removeItem('sw_shader_lighting'); } catch (e) {}
+    try { 
+        localStorage.removeItem('sw_shader_lighting');
+        localStorage.removeItem('sw_shaders');
+        localStorage.removeItem('sw_saturation');
+    } catch (e) {}
 
     const _swSavedVol = localStorage.getItem('sw_volume');
     const _swSavedFps = localStorage.getItem('sw_fps');
     const GFX_SETTINGS = {
         fps: (_swSavedFps === '60' || _swSavedFps === '120' || _swSavedFps === '240') ? _swSavedFps : '60', // '60' (Padrão) | '120' | '240'
         showFps: localStorage.getItem('sw_show_fps') === '1',
-        saturation: parseInt(localStorage.getItem('sw_saturation') || '150', 10), // Padrão 150
-        contrast: parseInt(localStorage.getItem('sw_contrast') || '100', 10), // 50 - 300
+        saturation: 100, // 100% original
+        contrast: 100, // 100% original
         aspectRatio: localStorage.getItem('sw_aspect_ratio') || 'native', // 'native' | 'stretched_4_3' | 'stretched_16_10' | 'square_1_1'
         coinOutline: (() => {
             const p = localStorage.getItem('sw_coin_outline_pct');
@@ -147,7 +151,7 @@
             return s !== null ? Math.max(0, Math.min(100, parseInt(s, 10) || 0)) : 70;
         })(),
         motionBlur: localStorage.getItem('sw_motion_blur') || 'off', // 'off' (padrão otimizado) | 'soft' | 'high'
-        shaders: localStorage.getItem('sw_shaders') === 'medium' ? 'medium' : 'off', // 'off' (padrão) | 'medium' (BETA)
+        shaders: 'off', // Always off to preserve original lighting
         timeOfDay: localStorage.getItem('sw_time_of_day') || 'night', // 'night' | 'sunset' | 'day'
         noRevive: localStorage.getItem('sw_no_revive') !== '0', // true by default
     };
@@ -245,26 +249,9 @@
     }
 
     function ensureReformulatedShadowTexture() {
-        if (window.__SW_SHADOW_TEX__) return window.__SW_SHADOW_TEX__;
         try {
             const lib = window.__lib || (window.app && window.app.library);
-            const originalMap = lib && lib.getMap && (lib.getMap('shadow') || lib.getMap('props-tex'));
-            const TextureClass = originalMap && originalMap.constructor;
-            if (!TextureClass || typeof TextureClass.from !== 'function' || typeof document === 'undefined') return null;
-            const c = document.createElement('canvas');
-            c.width = 128; c.height = 128;
-            const ctx = c.getContext('2d');
-            if (ctx) {
-                const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 60);
-                g.addColorStop(0.0, 'rgba(2, 4, 12, 0.90)');
-                g.addColorStop(0.45, 'rgba(4, 6, 16, 0.65)');
-                g.addColorStop(0.78, 'rgba(6, 10, 22, 0.22)');
-                g.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
-                ctx.fillStyle = g;
-                ctx.fillRect(0, 0, 128, 128);
-            }
-            window.__SW_SHADOW_TEX__ = TextureClass.from(c);
-            return window.__SW_SHADOW_TEX__;
+            return (lib && lib.getMap && lib.getMap('shadow')) || null;
         } catch(e) { return null; }
     }
 
@@ -305,6 +292,7 @@
     window.__applyLiveTimeOfDay = function(ls) {
         if (!ls) return;
         const tod = GFX_SETTINGS.timeOfDay || 'night';
+        if (tod === 'night') return; // Preserve native Subway Surfers light settings
         const isSunset = (tod === 'sunset');
         const isDay = (tod === 'day');
 
@@ -315,9 +303,6 @@
             } else if (isDay) {
                 ls.ambientLight.color = 0x223555;
                 ls.ambientLight.intensity = 0.40;
-            } else {
-                ls.ambientLight.color = 0x161033;
-                ls.ambientLight.intensity = 0.28;
             }
             ls.ambientLight.dirty = true;
             if (typeof ls.ambientLight.update === 'function') ls.ambientLight.update();
@@ -329,15 +314,11 @@
                 if (!l) continue;
                 if (isSunset) {
                     l.color = 0xff8c42;
-                    l.intensity = 2.4;
+                    l.intensity = 1.0;
                     if (l.direction && l.direction.set) l.direction.set(0.65, -0.65, -0.45);
                 } else if (isDay) {
                     l.color = 0xfff4db;
-                    l.intensity = 2.2;
-                    if (l.direction && l.direction.set) l.direction.set(0.55, -0.72, -0.42);
-                } else {
-                    l.color = 0xffdfa4;
-                    l.intensity = 2.3;
+                    l.intensity = 1.0;
                     if (l.direction && l.direction.set) l.direction.set(0.55, -0.72, -0.42);
                 }
                 l.dirty = true;
@@ -415,13 +396,11 @@
 
     function applyShaderAndShadowPipeline() {
         applyTimeOfDay(GFX_SETTINGS.timeOfDay);
-        const mode = (GFX_SETTINGS.shaders === 'off') ? 'off' : 'medium';
-        window.__SW_SHADER_MODE__ = mode;
-        const lv = mode === 'off' ? 0.0 : 1.0;
-        if (!window.__SW_SHADER_VEC__) window.__SW_SHADER_VEC__ = new Float32Array([lv, 0, 0, 0]);
-        window.__SW_SHADER_VEC__[0] = lv;
-        const tex = ensureReformulatedShadowTexture();
-        if (tex) window.__SW_SHADOW_TEX__ = tex;
+        const mode = 'off';
+        window.__SW_SHADER_MODE__ = 'off';
+        if (!window.__SW_SHADER_VEC__) window.__SW_SHADER_VEC__ = new Float32Array([0, 0, 0, 0]);
+        window.__SW_SHADER_VEC__[0] = 0.0;
+        window.__SW_SHADOW_TEX__ = null;
 
         // Tune 3D Lights via live time of day
         try {
@@ -431,31 +410,6 @@
             for (const ls of systems) {
                 window.__applyLiveTimeOfDay(ls);
             }
-        } catch(e) {}
-
-        // 2) Keep native multiply shadow quads clean neutral white (no dark tinted boxes)
-        try {
-            const root = (window.game && (window.game.scene || window.game)) || null;
-            const visited = new Set();
-            const tuneObj = (obj, depth) => {
-                if (!obj || depth > 4 || visited.has(obj)) return;
-                visited.add(obj);
-                const view = obj.view3d;
-                if (view && view.material) {
-                    const name = ((obj.name || '') + ' ' + (obj.materialName || '') + ' ' + (obj.groupName || '')).toLowerCase();
-                    if (name.includes('shadow')) {
-                        const mats = Array.isArray(view.material) ? view.material : [view.material];
-                        mats.forEach(m => {
-                            if (m) m.color = 0xffffff;
-                        });
-                    }
-                }
-                const ch = obj.children || (obj.container && obj.container.children);
-                if (ch && ch.length && depth < 3) {
-                    for (let i = 0; i < Math.min(ch.length, 160); i++) tuneObj(ch[i], depth + 1);
-                }
-            };
-            if (root) tuneObj(root, 0);
         } catch(e) {}
 
         // 3) Sync Hero shadow right away (more evident when shaders active)
@@ -639,8 +593,11 @@
 
     function applyCanvasGraphicsFilter(canvas, saturation = GFX_SETTINGS.saturation || 100, contrast = GFX_SETTINGS.contrast || 100) {
         if (!canvas) return;
-        const bloomEffect = GFX_SETTINGS.shaders !== 'off' ? ' drop-shadow(0 0 5px rgba(255, 235, 175, 0.16))' : '';
-        canvas.style.filter = `saturate(${saturation}%) contrast(${contrast}%)${bloomEffect}`;
+        if (saturation === 100 && contrast === 100) {
+            canvas.style.filter = '';
+            return;
+        }
+        canvas.style.filter = `saturate(${saturation}%) contrast(${contrast}%)`;
     }
 
     function optimizeHeroAnimAndFluidity() {
@@ -2964,6 +2921,15 @@
             return best;
         } catch(e) { return null; }
     }
+
+    window.__SW_GET_LAST_TIME_STR__ = function() {
+        return formatTime(runElapsedTime || 0);
+    };
+    window.__SW_GET_BEST_RECORD_STR__ = function(m) {
+        const mode = m || (window.NO_COIN_MODE ? 'No Coin' : 'Normal');
+        const rec = getModeBestRecordTime(mode);
+        return (rec && rec.timeStr) || formatTime(runElapsedTime || 0);
+    };
 
     function hookGameOverScreen() {
         if (!window.app || !window.app.gameover) return;
