@@ -3265,7 +3265,7 @@
                     const halfWidth = (b.width || 14) / 2 + 3;
                     const bodyBottom = Number.isFinite(b.bottom) ? b.bottom : (Number.isFinite(b.y) ? b.y : 0);
                     const bodyTop = Number.isFinite(b.top) ? b.top : bodyBottom + (b.height || 14);
-                    const candidateBottom = y - 3;
+                    const candidateBottom = (y >= bodyTop - 0.5) ? (bodyTop + 0.1) : (y - 3);
                     const candidateTop = y + 8;
                     const overlapsVertically = candidateTop > bodyBottom && candidateBottom < bodyTop;
                     if (overlapsVertically && Math.abs(b.x - x) < halfWidth && Math.abs(b.z - z) < halfDepth) {
@@ -4014,26 +4014,21 @@
                     bounds = { depth: 58, width: 18, height: 84, isTripleTrain: true };
                 }
             } else if (type === 'sky_bridge') {
-                // Flat horizontal bridge platform, no support column
-                const bridgeMeshBuilder = buildSkyBridgeMesh();
-                if (bridgeMeshBuilder) {
-                    const bridgeEnt = createCustom3DEntity('sky_bridge_v1', () => buildSkyBridgeMesh(),
-                        { minX: -9, minY: 0, minZ: -30, maxX: 9, maxY: 8, maxZ: 30 }, getVentGrateTexture(), 0x8B6914);
-                    if (bridgeEnt) {
-                        setEntityHexColor(bridgeEnt, 0x8B6914);
-                        mesh = bridgeEnt;
-                        bounds = { depth: 60, width: 18, height: 8, isSkyBridge: true };
-                    }
+                const woodTex = get3WoodPlanksTexture() || getVentGrateTexture();
+                const bridgeEnt = createCustom3DEntity('sky_bridge_v2', () => buildSkyBridgeMesh(),
+                    { minX: -9, minY: -4, minZ: -30, maxX: 9, maxY: 4, maxZ: 30 }, woodTex, 0xffffff);
+                if (bridgeEnt) {
+                    mesh = bridgeEnt;
+                    bounds = { depth: 58, width: 18, height: 4, isSkyBridge: true };
                 }
             } else if (type === 'sky_parkour_ramp') {
-                // Gradual-ascent ramp restored — improved wooden ramp
                 const tH = options.targetHeight || 28;
-                const rampEnt = createCustom3DEntity('sky_ramp_v1', () => buildSkyParkourRampMesh(tH),
-                    { minX: -9, minY: 0, minZ: -30, maxX: 9, maxY: tH, maxZ: 30 }, getVentGrateTexture(), 0xA0522D);
+                const woodTex = get3WoodPlanksTexture() || getVentGrateTexture();
+                const rampEnt = createCustom3DEntity('sky_ramp_v2_' + tH, () => build3PlankWoodenRamp(tH),
+                    { minX: -9, minY: -4, minZ: -30, maxX: 9, maxY: tH + 2, maxZ: 30 }, woodTex, 0xffffff);
                 if (rampEnt) {
-                    setEntityHexColor(rampEnt, 0xA0522D);
                     mesh = rampEnt;
-                    bounds = { depth: 60, width: 18, height: tH, targetHeight: tH, isSkyRamp: true };
+                    bounds = { depth: 58, width: 18, height: tH, targetHeight: tH, isSkyRamp: true };
                 }
             } else if (type === 'rooftop_barrier') {
                 // Barrier at rooftop level (must roll under it)
@@ -4186,22 +4181,42 @@
     // A flat horizontal platform (like wooden ramp lying flat, no supports below)
     function buildSkyBridgeMesh() {
         const b = createMeshBuilder();
-        // Bridge deck: 60 deep x 18 wide x 3 tall, planks going longitudinal
-        const deckW = 9, deckH = 3, deckD = 30;
-        const uW0 = 0.02, vW0 = 0.52, uW1 = 0.48, vW1 = 0.98; // Brown wood
-        const uD0 = 0.52, vD0 = 0.52, uD1 = 0.98, vD1 = 0.98; // Dark underside
-        // Top face
-        b.addBox(-deckW, deckH, -deckD, deckW, deckH + 0.5, deckD, uW0, vW0, uW1, vW1);
-        // Side rails (wooden guardrails)
-        const railH = 5, railThick = 1.0;
-        b.addBox(-deckW, deckH, -deckD, -deckW + railThick, deckH + railH, deckD, uW0, vW0, uW1, vW1);
-        b.addBox( deckW - railThick, deckH, -deckD, deckW, deckH + railH, deckD, uW0, vW0, uW1, vW1);
-        // Cross-posts every 10u
-        for (let dz = -deckD + 10; dz < deckD; dz += 10) {
-            b.addBox(-deckW, deckH, dz - 0.5, deckW, deckH + railH, dz + 0.5, uW0, vW0, uW1, vW1);
+        const zStart = 28, zEnd = -28;
+        const th = 1.4;
+
+        const planks = [
+            { x0: -8.6, x1: -3.1, u0: 0.03, u1: 0.33 },
+            { x0: -2.6, x1: 2.6,  u0: 0.36, u1: 0.66 },
+            { x0: 3.1,  x1: 8.6,  u0: 0.70, u1: 1.00 }
+        ];
+
+        for (const p of planks) {
+            const { x0, x1, u0, u1 } = p;
+            const t0 = [x0, 0, zStart];
+            const t1 = [x1, 0, zStart];
+            const t2 = [x1, 0, zEnd];
+            const t3 = [x0, 0, zEnd];
+
+            const b0 = [x0, -th, zStart];
+            const b1 = [x1, -th, zStart];
+            const b2 = [x1, -th, zEnd];
+            const b3 = [x0, -th, zEnd];
+
+            b.addQuad(t0, t1, t2, t3, [0, 1, 0], u0, 0.05, u1, 0.95);
+            b.addQuad(b1, b0, b3, b2, [0, -1, 0], u0, 0.05, u1, 0.95);
+            b.addQuad(b0, t0, t3, b3, [-1, 0, 0], 0.05, 0.05, 0.2, 0.95);
+            b.addQuad(t1, b1, b2, t2, [1, 0, 0], 0.8, 0.05, 0.95, 0.95);
+            b.addQuad(b0, b1, t1, t0, [0, 0, 1], u0, 0, u1, 0.1);
+            b.addQuad(t3, t2, b2, b3, [0, 0, -1], u0, 0.9, u1, 1.0);
         }
-        // Underside
-        b.addBox(-deckW, 0, -deckD, deckW, deckH, deckD, uD0, vD0, uD1, vD1);
+
+        const zCross = [20, 10, 0, -10, -20];
+        for (const zc of zCross) {
+            b.addBox(-8.8, -th - 1.8, zc - 1.2, 8.8, -th, zc + 1.2, 0.1, 0.8, 0.9, 0.98);
+        }
+
+        b.addBox(-8.8, 0, -28, -7.8, 3.0, 28, 0.1, 0.1, 0.3, 0.9);
+        b.addBox( 7.8, 0, -28,  8.8, 3.0, 28, 0.7, 0.1, 0.9, 0.9);
         return b;
     }
 
@@ -4452,7 +4467,7 @@
             if (!obs || obs.destroyed) continue;
 
             if (obs.type === 'sky_bridge') {
-                const bridgeTop = (obs.y || 0) + (obs.bounds && obs.bounds.height ? obs.bounds.height : 8);
+                const bridgeTop = obs.y || 0;
                 const hw2 = 10, hd2 = 32;
                 const dx2 = Math.abs(obs.x - heroX), dz2 = Math.abs(obs.z - heroZ);
                 if (dx2 <= hw2 && dz2 <= hd2) {
@@ -5353,7 +5368,7 @@
             if (bridge) customObstacles.push(bridge);
             // Coins on top of bridge
             for (let s = 0; s < 4; s++) {
-                const c = createObstacle3D('coin', bridgeLane, bridgeY + 14, centerZ - s * 14 + 20);
+                const c = createObstacle3D('coin', bridgeLane, bridgeY + 6, centerZ - s * 14 + 20);
                 if (c) customObstacles.push(c);
             }
             // Vent to reach bridge
@@ -5403,8 +5418,8 @@
             if (cont) customObstacles.push(cont);
             const bridge2 = createObstacle3D('sky_bridge', lane === 20 ? -20 : 20, 28, centerZ - 120);
             if (bridge2) customObstacles.push(bridge2);
-            // Energy coin at peak
-            const ec = createObstacle3D('energyCoin', lane, 42, centerZ - 20);
+            // Energy coin at peak (bridge level 28 + 6)
+            const ec = createObstacle3D('energyCoin', lane, 34, centerZ - 20);
             if (ec) customObstacles.push(ec);
         } else if (pattern === 59) {
             // 59. CÂNION AÉREO: Double trains flanqueando com bridge no meio em cima
@@ -5414,9 +5429,9 @@
             if (rightTrain) customObstacles.push(rightTrain);
             const bridge = createObstacle3D('sky_bridge', 0, 56, centerZ);
             if (bridge) customObstacles.push(bridge);
-            // Coins at triple height
+            // Coins at double train level (56 + 6 = 62)
             for (let s = 0; s < 4; s++) {
-                const c = createObstacle3D('coin', 0, 64, centerZ - s * 15 + 20);
+                const c = createObstacle3D('coin', 0, 62, centerZ - s * 15 + 20);
                 if (c) customObstacles.push(c);
             }
         } else if (pattern === 60) {
@@ -5483,7 +5498,7 @@
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
             const bridge = createObstacle3D('sky_bridge', lane, 28, centerZ);
             if (bridge) customObstacles.push(bridge);
-            const boost = createObstacle3D('boostCoin', lane, 42, centerZ + 5);
+            const boost = createObstacle3D('boostCoin', lane, 34, centerZ + 5);
             if (boost) customObstacles.push(boost);
             const vent = createObstacle3D('ventoinha', lane, 0, centerZ + 60, { targetHeight: 36 });
             if (vent) customObstacles.push(vent);
@@ -5620,7 +5635,7 @@
                 const hd = (obs.bounds && obs.bounds.depth ? obs.bounds.depth / 2 : 30) + 2;
                 const hw = (obs.bounds && obs.bounds.width ? obs.bounds.width / 2 : 9) + 2;
                 if (Math.abs(obs.x - heroX) <= hw && Math.abs(obs.z - heroZ) <= hd) {
-                    const bridgeTop = (obs.y || 0) + (obs.bounds && obs.bounds.height ? obs.bounds.height : 8);
+                    const bridgeTop = obs.y || 0;
                     const isAlreadyOn = heroY >= bridgeTop - 3 || (now < ventLaunchActiveUntil) || (window.__SW_TRAMPOLINE_AIR_UNTIL__ && now < window.__SW_TRAMPOLINE_AIR_UNTIL__);
                     if (isAlreadyOn) {
                         maxElevatedGround = Math.max(maxElevatedGround, bridgeTop);
@@ -5940,11 +5955,12 @@
                             skyPhaseChunksLeft = 8 + Math.floor(Math.random() * 6);
                             skyPhaseBaseZ = obs.z;
                             skyPhaseEndZ = obs.z - 600;
+                            try { showEnergyToast('FASE AÉREA: SKY RUN!'); } catch(e) {}
                         }
                         continue;
                     }
                     if (obs.type === 'sky_bridge') {
-                        const bridgeTop = (obs.y || 0) + (obs.bounds && obs.bounds.height ? obs.bounds.height : 8);
+                        const bridgeTop = obs.y || 0;
                         // Can land on top - must jump or already be on top level
                         if (heroY >= bridgeTop - 3.5 || (now < ventLaunchActiveUntil) || (window.__SW_TRAMPOLINE_AIR_UNTIL__ && now < window.__SW_TRAMPOLINE_AIR_UNTIL__)) {
                             heroBody.ground = Math.max(heroBody.ground || 0, bridgeTop + 0.11);
