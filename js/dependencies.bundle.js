@@ -34617,7 +34617,7 @@
           this.rig.idleX = 0, this.rig.idleY = 0, this.rig.idleZ = 0, this.rig.idleRotX = 0, this.rig.idleRotY = 0;
           const e = this.game.stats.x * r.a.cameraModX;
           this.rig.mainX = o.a.lerp(this.rig.mainX, e, .3 * t);
-          const i = this.game.hero.player.cameraY + r.a.cameraPosY + (window.__flightCameraYExtra || 0);
+          const i = (this.game && this.game.hero && this.game.hero.player && typeof this.game.hero.player.cameraY === 'number' ? this.game.hero.player.cameraY : 0) + r.a.cameraPosY + (window.__flightCameraYExtra || 0);
           this.rig.mainY = o.a.lerp(this.rig.mainY, i, .3 * t), this.rig.mainZ = this.game.stats.z + r.a.cameraPosZ, this.rig.mainRotX = o.a.lerp(this.rig.mainRotX, r.a.cameraRotX + (window.__flightCameraRotXExtra || 0), .1 * t), this.rig.mainRotY = 0, this.rig.fov = r.a.cameraFov + (window.__boostFovAdd || 0);
         }
         this.updateTunnel(t), this.updateShake(t);

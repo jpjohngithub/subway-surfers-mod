@@ -645,6 +645,7 @@
     }
 
     function initMotionBlurEngine() {
+        if (!GFX_SETTINGS.motionBlur || GFX_SETTINGS.motionBlur === 'off') return;
         try {
             if (window.__swMotionBlurHooked) return;
             const app = window.app;
@@ -1078,6 +1079,13 @@
         if (mpChk) mpChk.checked = window.VANILLA_MODE;
         if (window.VANILLA_MODE) {
             cleanupCustomObstacles();
+            window.NO_COIN_MODE = false;
+            localStorage.setItem('sw_no_coin_mode', '0');
+            const ncBtn = document.getElementById('btn-toggle-nocoin');
+            if (ncBtn) {
+                ncBtn.className = 'btn-clean-toggle';
+                ncBtn.innerHTML = '<span class="toggle-indicator"></span><span class="toggle-label">DESATIVADO</span>';
+            }
             if (window.__SW_TUNING__) window.__SW_TUNING__.halfWagonChance = 0;
             const widget = document.getElementById('subway-energy-widget');
             if (widget) widget.style.display = 'none';
@@ -2303,13 +2311,7 @@
     }
 
     window.__onCoinAwake = function(coin) {
-        if (!coin) return;
-        if (window.VANILLA_MODE) {
-            if (coin.model && window.NO_COIN_MODE) {
-                restoreCoinNativeTexture(coin.model, true, outlinePct);
-            }
-            return;
-        }
+        if (!coin || window.VANILLA_MODE) return;
         if (!window.__activeCoins) window.__activeCoins = new Set();
         window.__activeCoins.add(coin);
         const isNoCoin = !!window.NO_COIN_MODE;
@@ -2468,80 +2470,11 @@
     let backpackSpineNode = null;
 
     function updateBackpackHoverboard() {
-        const hero = window.game && window.game.hero;
-        if (!hero || !hero.gameScene) {
-            if (backpackBoardMesh && backpackBoardMesh.parent) {
-                backpackBoardMesh.parent.removeChild(backpackBoardMesh);
-            }
-            return;
+        if (backpackBoardMesh && backpackBoardMesh.parent) {
+            try { backpackBoardMesh.parent.removeChild(backpackBoardMesh); } catch(e) {}
         }
-
-        const isBoardActive = !!(hero.hoverboard && hero.hoverboard.isOn && hero.hoverboard.isOn());
-        const isEnergyFull = (typeof skateEnergy !== 'undefined') && (skateEnergy >= ENERGY_MAX);
-        const shouldShow = isEnergyFull && !isBoardActive && (!hero.player || !hero.player.dead);
-
-        if (!shouldShow) {
-            if (backpackBoardMesh && backpackBoardMesh.parent) {
-                backpackBoardMesh.parent.removeChild(backpackBoardMesh);
-            }
-            return;
-        }
-
-        if (!backpackSpineNode || !backpackSpineNode.parent) {
-            const findEntity = (root, name, maxDepth = 12) => {
-                if (!root || maxDepth <= 0) return null;
-                if (root.name === name) return root;
-                const ch = root.children || (root.container && root.container.children) || [];
-                for (let i = 0; i < ch.length; i++) {
-                    const f = findEntity(ch[i], name, maxDepth - 1);
-                    if (f) return f;
-                }
-                return null;
-            };
-            backpackSpineNode = findEntity(hero.gameScene, 'LowerSpine_jnt', 10) ||
-                                findEntity(hero.gameScene, 'Spine_jnt', 10) ||
-                                findEntity(hero.gameScene, 'Bip001 Spine', 10);
-        }
-
-        if (!backpackSpineNode) return;
-
-        if (!backpackBoardMesh) {
-            const boardId = (window.app && window.app.user && window.app.user.board) || 'hoverboard';
-            let mesh = null;
-            try {
-                if (window.__lib && typeof window.__lib.getScene === 'function') {
-                    mesh = window.__lib.getScene('board-' + boardId, { map: 'board-' + boardId + '-tex' });
-                }
-            } catch(e) {}
-            if (!mesh) {
-                try {
-                    if (window.__lib && typeof window.__lib.getEntity === 'function') {
-                        mesh = window.__lib.getEntity('board-' + boardId);
-                    }
-                } catch(e) {}
-            }
-            if (!mesh) {
-                mesh = createCustom3DEntity('proc_back_hoverboard', () => {
-                    const b = createMeshBuilder();
-                    b.addBox(-3.2, -0.4, -9.0, 3.2, 0.4, 9.0, 0.05, 0.05, 0.95, 0.95);
-                    return b;
-                }, { minX: -3.2, minY: -0.4, minZ: -9.0, maxX: 3.2, maxY: 0.4, maxZ: 9.0 }, null, 0x00bcd4);
-            }
-            if (mesh) {
-                mesh.scale.set(0.0048);
-                mesh.rx = Math.PI / 2;
-                mesh.ry = Math.PI;
-                mesh.rz = 0.12; // Aligned vertically along spine with slight diagonal
-                mesh.x = -0.001;
-                mesh.y = 0.004; // Fitted neatly on back between shoulders and waist
-                mesh.z = -0.0065; // Snug against back of jacket
-                backpackBoardMesh = mesh;
-            }
-        }
-
-        if (backpackBoardMesh && backpackSpineNode && backpackBoardMesh.parent !== backpackSpineNode) {
-            backpackSpineNode.addChild(backpackBoardMesh);
-        }
+        backpackBoardMesh = null;
+        backpackSpineNode = null;
     }
 
     let ventLaunchActiveUntil = 0;
@@ -2582,14 +2515,15 @@
             } catch(e) {}
 
             const burst = document.createElement('div');
-            burst.className = 'subway-vent-burst';
+            burst.className = 'subway-cartoon-wind-burst';
             burst.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:99;display:flex;align-items:center;justify-content:center;';
             burst.innerHTML = `
-                <div style="position:absolute;width:100vw;height:100vh;background:radial-gradient(ellipse at 50% 60%, rgba(56, 189, 248, 0.45) 0%, rgba(14, 165, 233, 0.20) 40%, transparent 75%);animation:sw-burst-fade 0.5s ease-out forwards;"></div>
-                <div style="position:absolute;bottom:0;width:320px;height:70vh;background:linear-gradient(0deg, rgba(255,255,255,0.7) 0%, rgba(56,189,248,0.4) 60%, transparent 100%);filter:blur(8px);animation:sw-burst-up 0.55s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;"></div>
+                <div style="position:absolute;width:240px;height:240px;border-radius:50%;border:8px solid #00e5ff;box-shadow:0 0 30px #00e5ff, inset 0 0 20px #ffffff;animation:sw-cartoon-ring 0.42s ease-out forwards;"></div>
+                <div style="position:absolute;width:130px;height:130px;border-radius:50%;border:5px solid #ffffff;box-shadow:0 0 15px #ffffff;animation:sw-cartoon-ring 0.35s 0.06s ease-out forwards;"></div>
+                <style>@keyframes sw-cartoon-ring { 0% { transform: scale(0.2); opacity: 1; } 100% { transform: scale(2.8); opacity: 0; } }</style>
             `;
             document.body.appendChild(burst);
-            setTimeout(() => burst.remove(), 600);
+            setTimeout(() => burst.remove(), 450);
         } catch(e) {}
     }
 
@@ -3549,6 +3483,33 @@
         return b;
     }
 
+    // ---- CARTOON WIND SWIRL MESH ----
+    // Stylized floating cartoon wind spiral rings hovering on top of ventoinha
+    function buildCartoonWindSwirlMesh() {
+        const b = createMeshBuilder();
+        const u0 = 0.55, v0 = 0.05, u1 = 0.95, v1 = 0.45;
+        const rings = [
+            { y: 3.5, r: 6.8, w: 0.9, seg: 16 },
+            { y: 7.2, r: 5.4, w: 0.8, seg: 16 },
+            { y: 11.0, r: 4.0, w: 0.7, seg: 16 }
+        ];
+        for (const ring of rings) {
+            for (let i = 0; i < ring.seg; i++) {
+                if (i % 4 === 3) continue; // Gap creates cartoon spinning spiral appearance
+                const a1 = (i * Math.PI * 2) / ring.seg;
+                const a2 = ((i + 1) * Math.PI * 2) / ring.seg;
+                const r1 = ring.r - ring.w * 0.5, r2 = ring.r + ring.w * 0.5;
+                const p0 = [r1 * Math.cos(a1), ring.y, r1 * Math.sin(a1)];
+                const p1 = [r2 * Math.cos(a1), ring.y, r2 * Math.sin(a1)];
+                const p2 = [r2 * Math.cos(a2), ring.y + 0.4, r2 * Math.sin(a2)];
+                const p3 = [r1 * Math.cos(a2), ring.y + 0.4, r1 * Math.sin(a2)];
+                b.addQuad(p0, p1, p2, p3, [0, 1, 0], u0, v0, u1, v1);
+                b.addQuad(p3, p2, p1, p0, [0, -1, 0], u0, v0, u1, v1);
+            }
+        }
+        return b;
+    }
+
     function buildVentGrateMesh() {
         const b = createMeshBuilder();
         const N = 24;
@@ -3910,7 +3871,7 @@
             }
         } catch(e) {}
         if (isPositionBlocked(x, y, z, margin, options.platformEntity || null)) return null;
-        if (/double_train|triple_train|suspended_container|ventoinha|air_vent|trampoline|sky_bridge|sky_parkour_ramp|rooftop_barrier/.test(type)) {
+        if (/double_train|triple_train|suspended_container|ventoinha|air_vent|trampoline|sky_bridge|sky_parkour_ramp|rooftop_barrier/.test(type) || y >= 14) {
             if (isInsideTunnel(z)) return null;
         }
 
@@ -3976,43 +3937,8 @@
                     applyTrampolineGlow(mesh, 1);
                     bounds = { depth: 17.5, width: 17.5, height: 8, isTrampoline: true };
                 }
-            } else if (type === 'double_train') {
-                const bottomWagon = getCargoWagon();
-                const topWagon = getCargoWagon();
-                if (bottomWagon) {
-                    bottomWagon.rx = 0; bottomWagon.rz = 0; bottomWagon.ry = Math.PI;
-                    mesh = bottomWagon;
-                    if (topWagon) {
-                        topWagon.rx = 0; topWagon.rz = 0; topWagon.ry = Math.PI;
-                        topWagon._xOffset = 0; topWagon._yOffset = 28; topWagon._zOffset = 0;
-                        setEntityHexColor(topWagon, 0xc0392b);
-                        mesh._doubleTrainParts = [topWagon];
-                    }
-                    bounds = { depth: 58, width: 18, height: 56, isDoubleTrain: true };
-                }
-            } else if (type === 'triple_train') {
-                const bottomWagon = getCargoWagon();
-                const midWagon = getCargoWagon();
-                const topWagon = getCargoWagon();
-                if (bottomWagon) {
-                    bottomWagon.rx = 0; bottomWagon.rz = 0; bottomWagon.ry = Math.PI;
-                    mesh = bottomWagon;
-                    const trainParts = [];
-                    if (midWagon) {
-                        midWagon.rx = 0; midWagon.rz = 0; midWagon.ry = Math.PI;
-                        midWagon._xOffset = 0; midWagon._yOffset = 28; midWagon._zOffset = 0;
-                        setEntityHexColor(midWagon, 0xd35400);
-                        trainParts.push(midWagon);
-                    }
-                    if (topWagon) {
-                        topWagon.rx = 0; topWagon.rz = 0; topWagon.ry = Math.PI;
-                        topWagon._xOffset = 0; topWagon._yOffset = 56; topWagon._zOffset = 0;
-                        setEntityHexColor(topWagon, 0x2980b9);
-                        trainParts.push(topWagon);
-                    }
-                    mesh._tripleTrainParts = trainParts;
-                    bounds = { depth: 58, width: 18, height: 84, isTripleTrain: true };
-                }
+            } else if (type === 'double_train' || type === 'triple_train' || type === 'suspended_container' || type === 'rooftop_barrier' || type === 'wooden_stairs' || type === 'wooden_ramp') {
+                return null; // Removidos a pedido do usuário: manter estritamente sky_bridge, sky_parkour_ramp e ventoinha
             } else if (type === 'sky_bridge') {
                 const woodTex = get3WoodPlanksTexture() || getVentGrateTexture();
                 const bridgeEnt = createCustom3DEntity('sky_bridge_v2', () => buildSkyBridgeMesh(),
@@ -4030,27 +3956,6 @@
                     mesh = rampEnt;
                     bounds = { depth: 58, width: 18, height: tH, targetHeight: tH, isSkyRamp: true };
                 }
-            } else if (type === 'rooftop_barrier') {
-                // Barrier at rooftop level (must roll under it)
-                const rEnt = createCustom3DEntity('rooftop_barrier_v1', () => buildRooftopBarrierMesh(),
-                    { minX: -8, minY: 0, minZ: -2, maxX: 8, maxY: 13, maxZ: 2 }, getVentGrateTexture(), 0xE0C040);
-                if (rEnt) {
-                    setEntityHexColor(rEnt, 0xE0C040);
-                    mesh = rEnt;
-                    bounds = { depth: 5, width: 18, height: 13, isRooftopBarrier: true, rollable: true };
-                }
-            } else if (type === 'wooden_stairs' || type === 'wooden_ramp') {
-                return null; // Fake wooden stairs completely removed per user request
-            } else if (type === 'suspended_container') {
-                const wagon = getCargoWagon();
-                if (wagon) {
-                    wagon.rx = 0; wagon.rz = 0; wagon.ry = Math.PI;
-                    const colors = [0xd35400, 0xc0392b, 0x27ae60, 0x2980b9, 0x8e44ad];
-                    const chosenColor = options.color || colors[Math.floor(Math.random() * colors.length)];
-                    setEntityHexColor(wagon, chosenColor);
-                    mesh = wagon;
-                    bounds = { depth: 58, width: 18, height: 28, isSuspendedContainer: true };
-                }
             } else if (type === 'boostCoin') {
                 const bEnt = buildSpeedBoostCoinModel();
                 if (bEnt) {
@@ -4058,18 +3963,27 @@
                     bounds = { depth: 8, width: 8, height: 8, isBoostCoin: true };
                 }
             } else if (type === 'ventoinha' || type === 'air_vent') {
-                const targetH = options.targetHeight || 56;
-                const ventEnt = createCustom3DEntity('vent_white_grate_v5', () => buildVentGrateMesh(), { minX: -10, minY: 0, minZ: -10, maxX: 10, maxY: 2.5, maxZ: 10 }, getVentGrateTexture(), 0xffffff);
-                const bladeEnt = createCustom3DEntity('vent_blade_v5', () => buildVentBladeMesh(), { minX: -7.5, minY: 0, minZ: -7.5, maxX: 7.5, maxY: 1.8, maxZ: 7.5 }, getVentGrateTexture(), 0xffffff);
+                const targetH = options.targetHeight || 36;
+                const ventEnt = createCustom3DEntity('vent_cartoon_grate_v6', () => buildVentGrateMesh(), { minX: -10, minY: 0, minZ: -10, maxX: 10, maxY: 2.8, maxZ: 10 }, getVentGrateTexture(), 0xffffff);
+                const bladeEnt = createCustom3DEntity('vent_cartoon_blade_v6', () => buildVentBladeMesh(), { minX: -7.5, minY: 0, minZ: -7.5, maxX: 7.5, maxY: 1.8, maxZ: 7.5 }, getVentGrateTexture(), 0xffffff);
+                const windEnt = createCustom3DEntity('vent_cartoon_wind_v6', () => buildCartoonWindSwirlMesh(), { minX: -8, minY: 2, minZ: -8, maxX: 8, maxY: 13, maxZ: 8 }, getVentGrateTexture(), 0x00e5ff);
                 if (ventEnt) {
                     applyVentGrateTexture(ventEnt);
                     mesh = ventEnt;
-                    bounds = { depth: 20, width: 20, height: 2.5, isVent: true, targetHeight: targetH };
+                    bounds = { depth: 20, width: 20, height: 2.8, isVent: true, targetHeight: targetH };
+                    const vParts = [];
                     if (bladeEnt) {
                         applyVentGrateTexture(bladeEnt);
                         bladeEnt._isVentBlade = true;
-                        mesh._ventParts = [bladeEnt];
+                        vParts.push(bladeEnt);
                     }
+                    if (windEnt) {
+                        applyVentGrateTexture(windEnt);
+                        windEnt._isVentWind = true;
+                        windEnt._baseY = 0;
+                        vParts.push(windEnt);
+                    }
+                    mesh._ventParts = vParts;
                 }
             }
 
@@ -4676,7 +4590,7 @@
                     if (/tube|tunnel|station|pillar|roof/.test(nm)) {
                         const start = ch.start !== undefined ? ch.start : (ch.nextPosition - (ch.length || 0));
                         const end = ch.end !== undefined ? ch.end : (start + (ch.length || 300));
-                        if (targetDist >= start - 70 && targetDist <= end + 70) return true;
+                        if (targetDist >= start - 150 && targetDist <= end + 150) return true;
                     }
                 }
             }
@@ -4688,7 +4602,7 @@
                     if (ent.lowCamera || (ent.name && /tube|tunnel|station|pillar|roof/i.test(ent.name))) {
                         const b = ent.body;
                         const bz = b ? b.z : ent.z;
-                        if (bz !== undefined && Math.abs(bz - z) < 180) return true;
+                        if (bz !== undefined && Math.abs(bz - z) < 220) return true;
                     }
                 }
             }
@@ -4703,6 +4617,8 @@
         const freeGroundLanes = lanes.filter(lx => !isPositionBlocked(lx, 0, centerZ, 12));
 
         if (isInsideTunnel(centerZ)) {
+            skyPhaseActive = false;
+            skyPhaseChunksLeft = 0;
             // NEVER spawn high containers, double trains or blockers inside tunnels; spawn dense coins!
             if (freeGroundLanes.length > 0) {
                 [-20, 0, 20].forEach(lx => {
@@ -5528,6 +5444,10 @@
     let prevObstacleHeroZ = null;
 
     function updateNoCoinObstacleEngine() {
+        if (window.VANILLA_MODE) {
+            if (customObstacles.length) cleanupCustomObstacles();
+            return;
+        }
         const frameNow = Date.now();
         const dtFactor = lastObstacleTickMs ? Math.min(1.5, Math.max(0.2, (frameNow - lastObstacleTickMs) / 16.6667)) : 1;
         lastObstacleTickMs = frameNow;
@@ -5671,9 +5591,10 @@
             updateVentParticles(vent, now);
             const dz = Math.abs(vent.z - heroZ);
             const dx = Math.abs(vent.x - heroX);
-            const ventTop = (vent.y || 0) + 18;
-            if (dz <= 20 && dx <= 8.5 && heroY <= ventTop) {
-                if (!vent.used && (!vent.usedTime || now - vent.usedTime > 1000)) {
+            const ventTop = (vent.y || 0) + 26;
+            // Immediate touch response: touching anywhere on the ventoinha triggers the launch instantly
+            if (dz <= 24 && dx <= 13.5 && heroY <= ventTop) {
+                if (!vent.used && (!vent.usedTime || now - vent.usedTime > 600)) {
                     vent.usedTime = now;
                     let targetRoof = (vent.bounds && vent.bounds.targetHeight) || 56;
                     let distAhead = 50;
@@ -5846,8 +5767,12 @@
             if ((obs.type === 'ventoinha' || obs.type === 'air_vent') && obs.parts) {
                 for (const part of obs.parts) {
                     if (part._isVentBlade) {
-                        if (part.rotation) part.rotation.y += 0.32 * dtFactor;
-                        else part.ry = (part.ry || 0) + 0.32 * dtFactor;
+                        if (part.rotation) part.rotation.y += 0.35 * dtFactor;
+                        else part.ry = (part.ry || 0) + 0.35 * dtFactor;
+                    } else if (part._isVentWind) {
+                        if (part.rotation) part.rotation.y += 0.20 * dtFactor;
+                        else part.ry = (part.ry || 0) + 0.20 * dtFactor;
+                        part.y = (obs.y || 0) + Math.sin(now * 0.007) * 0.8;
                     }
                 }
             }
@@ -6184,14 +6109,15 @@
         if (overlay) overlay.remove();
     }
 
-    // Lockstep with frame ticker in sampleNow; light fallback only if ticker idle
+    // Fallback interval only runs if main ticker is disconnected
     setInterval(() => {
+        if (_fpsHooked) return;
         const now = performance.now();
         if (!window.__swLastObsTick || now - window.__swLastObsTick > 90) {
             window.__swLastObsTick = now;
             updateNoCoinObstacleEngine();
         }
-    }, 120);
+    }, 250);
 
     window.__onHeroDeath = function() {
         if (typeof resetBoost === 'function') resetBoost();
@@ -8751,15 +8677,14 @@
                         <h3 class="news-title">🚀 Mural de Novidades & Atualizações</h3>
                         <p class="news-intro">Todas as melhorias e correções recentes sincronizadas em tempo real:</p>
                         <ul class="news-list">
-                            <li><strong>🧱 Escadas e Containers 100% Sólidos:</strong> Corrigida a colisão das escadas de madeira e containers novos; o personagem não atravessa mais nem morre de forma injusta ao encostar, com pulo liberado durante a subida.</li>
-                            <li><strong>🌀 Ventoinha 3D com Textura Real & Voo Suave:</strong> Modelo 3D corrigido com textura industrial customizada; impulso vertical puro direto ao topo com proteção para não bater de cara no container nem acelerar pra frente.</li>
-                            <li><strong>🛹 Skate nas Costas Ajustado:</strong> O hoverboard nas costas fica deitado perfeitamente nas costas do personagem sem atravessar o corpo.</li>
-                            <li><strong>🧲 Remoção do Ímã no Modo No Coin:</strong> O ímã não spawna mais no modo No Coin para evitar atrair moedas e causar mortes acidentais.</li>
-                            <li><strong>✨ Trilhas em Riscos nas Duas Mãos:</strong> O rastro temporário agora são riscos luminosos finos saindo das duas mãos simultaneamente, vindo desativado por padrão.</li>
-                            <li><strong>⚡ Otimização Extrema para Dispositivos Fracos:</strong> Motion blur desativado por padrão e culling de partículas distantes para garantir 60 FPS liso e sem travamentos.</li>
-                            <li><strong>💀 Game Over Limpo e Alinhado:</strong> Score centralizado e ampliado, recorde no lugar de moedas, fundo moderno escuro sem capa de caderno e botão Play alinhado onde sempre fica com o botão boost removido.</li>
-                            <li><strong>📱 Ícones e Configurações Responsivos:</strong> Tamanho adaptativo automático que ajusta conforme o tamanho da tela (celular, tablet e PC).</li>
-                            <li><strong>🌐 Multiplayer com Fallback Multi-Broker:</strong> Conexão resiliente com servidores redundantes para exibir jogadores online e garantir partidas coop funcionais.</li>
+                            <li><strong>🌉 Nova Ponte de Madeira Suspensa (Sky Bridge):</strong> Plataforma horizontal de madeira estilizada sem suportes embaixo, permitindo corrida contínua e parkour limpo no ar.</li>
+                            <li><strong>🪵 Rampa de Madeira de Ascensão Suave:</strong> Rampa restaurada com subida gradual fluida sem travamentos, conectando a pista do chão até o nível superior.</li>
+                            <li><strong>🌀 Ventoinha Cartoon 3D & Efeito Instantâneo:</strong> Modelo cartoon estilizado com anéis de vento ascendentes em 3D; basta encostar na ventoinha para receber o impulso imediato!</li>
+                            <li><strong>🚫 Remoção de Trens Altos e Containers:</strong> Eliminados vagões duplos/triplos e containers suspensos pesados para focar exclusivamente na ponte, rampa de madeira e ventoinha.</li>
+                            <li><strong>🚇 Proteção Total em Túneis:</strong> Bloqueio estrito de qualquer obstáculo alto ou aéreo dentro de túneis e passagens cobertas, acabando com colisões no teto.</li>
+                            <li><strong>🍃 Modo Vanilla 100% Funcional:</strong> Corrigido o bug da tela preta ao iniciar partidas no Modo Vanilla; o jogo original roda perfeitamente sem falhas.</li>
+                            <li><strong>🛹 Remoção do Skate nas Costas:</strong> O modelo do skate nas costas foi completamente retirado a pedido da comunidade.</li>
+                            <li><strong>⚡ Super Otimização & Desempenho Leve:</strong> Redução drástica de processos redundantes para eliminar travamentos e deixar o jogo leve e ágil.</li>
                         </ul>
                     </div>
                 </div>
