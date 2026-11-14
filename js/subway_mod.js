@@ -147,47 +147,20 @@
             const m = localStorage.getItem('sw_music_volume');
             return (m !== null && m !== '0') ? Math.max(10, Math.min(100, parseInt(m, 10) || 65)) : 65;
         })(),
-        sfxVolume: (() => {
-            const s = localStorage.getItem('sw_sfx_volume');
-            return (s !== null && s !== '0') ? Math.max(10, Math.min(100, parseInt(s, 10) || 80)) : 80;
-        })(),
+        sfxVolume: 80,
         motionBlur: localStorage.getItem('sw_motion_blur') || 'off',
         shaders: 'off',
-        perfMode: localStorage.getItem('sw_perf_mode') === '1',
         timeOfDay: 'day',
         noRevive: localStorage.getItem('sw_no_revive') !== '0',
     };
-    window.__SW_VOLUME_OVERRIDE__ = GFX_SETTINGS.volume / 100;
+    try { localStorage.removeItem('sw_perf_mode'); } catch(e) {}
+    window.__SW_VOLUME_OVERRIDE__ = undefined;
     window.__SW_NO_REVIVE__ = GFX_SETTINGS.noRevive;
     window.VANILLA_MODE = localStorage.getItem('sw_vanilla_mode') === '1';
     window.__swipeT = 16;
     window.__SW_SHADER_VEC__ = new Float32Array([0.0, 0, 0, 0]);
 
-    function applyPerformanceMode(enabled) {
-        GFX_SETTINGS.perfMode = !!enabled;
-        localStorage.setItem('sw_perf_mode', enabled ? '1' : '0');
-        const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
-        if (canvas) {
-            canvas.style.filter = enabled ? 'none' : (GFX_SETTINGS.saturation === 100 && GFX_SETTINGS.contrast === 100 ? '' : `saturate(${GFX_SETTINGS.saturation}%) contrast(${GFX_SETTINGS.contrast}%)`);
-        }
-        if (window.__SW_SHADER_VEC__) {
-            window.__SW_SHADER_VEC__[0] = 0.0;
-        }
-        window.__swipeT = 16;
-        try {
-            if (window.app && window.app.renderer) {
-                window.app.renderer.resolution = enabled ? 0.60 : 1.0;
-                window.app.renderer.roundPixels = !!enabled;
-                window.app.renderer.resize(window.innerWidth, window.innerHeight);
-            }
-            if (window.GAME_CONFIG) {
-                window.GAME_CONFIG.grindParticles = !enabled;
-                window.GAME_CONFIG.culling = !!enabled;
-            }
-            const blurCv = document.getElementById('sw-motion-blur-canvas');
-            if (blurCv) blurCv.style.display = 'none';
-        } catch(e) {}
-    }
+    function applyPerformanceMode(enabled) {}
 
     function ensureAudioUnlocked() {
         try {
@@ -223,7 +196,6 @@
         applyScreenAspectRatio(GFX_SETTINGS.aspectRatio);
         setTimeout(() => {
             applyTimeOfDay(GFX_SETTINGS.timeOfDay);
-            applyPerformanceMode(GFX_SETTINGS.perfMode);
             ensureAudioUnlocked();
         }, 500);
     } catch(e) {}
@@ -1109,16 +1081,7 @@
         if (s && s.value != GFX_SETTINGS.sfxVolume) s.value = GFX_SETTINGS.sfxVolume;
     };
 
-    window.__togglePerformanceMode = function() {
-        const next = !GFX_SETTINGS.perfMode;
-        applyPerformanceMode(next);
-        const btn = document.getElementById('btn-toggle-perfmode');
-        if (btn) {
-            btn.className = `btn-clean-toggle ${next ? 'toggle-active' : ''}`;
-            btn.innerHTML = `<span class="toggle-indicator"></span><span class="toggle-label">${next ? 'ATIVADO' : 'DESATIVADO'}</span>`;
-        }
-        showHUDNotification(next ? '⚡ MODO DESEMPENHO ATIVADO! (SUPER LEVE)' : '✨ MODO GRÁFICO COMPLETO ATIVADO!');
-    };
+    window.__togglePerformanceMode = function() {};
 
     window.__toggleVanillaMode = function() {
         window.VANILLA_MODE = !window.VANILLA_MODE;
@@ -2481,6 +2444,11 @@
     window.__boostFovAdd = 0;
     window.__dashSpeedMult = 1.0;
 
+    window.__isNoCoinImmune = function() {
+        const now = Date.now();
+        return (now < dashInvulnUntil || now < boostImmunityUntil);
+    };
+
     function resetBoost() {
         boostStartTime = 0;
         boostEndTime = 0;
@@ -2822,7 +2790,7 @@
     // Called when player touches a coin in No Coin Mode
     window.__onNoCoinCollect = function(coin) {
         if (!window.NO_COIN_MODE) return;
-        if (Date.now() < dashInvulnUntil || Date.now() < boostImmunityUntil) {
+        if (window.__isNoCoinImmune && window.__isNoCoinImmune()) {
             playCoinShatterEffect(coin, 0xff2844, 1.35, 14, true, false, false);
             return;
         }
@@ -2833,6 +2801,7 @@
     };
 
     function triggerNoCoinDeath(coin) {
+        if (window.__isNoCoinImmune && window.__isNoCoinImmune()) return;
         const g = (coin && coin.game) || window.game;
         if (!g) return;
 
@@ -4512,42 +4481,39 @@
 
     function spawnSupplementalCoinTrail(centerZ) {
         const lanes = [-20, 0, 20];
-        const spacing = 18;
-        const count = 7;
+        const spacing = 22;
+        const count = 4;
         const firstZ = centerZ - 200;
-        let spawned = 0;
-
-        lanes.forEach(lane => {
+        const choices = lanes.map(lane => {
             let clear = 0;
             for (let i = 0; i < count; i++) {
                 const z = firstZ - i * spacing;
                 const nearPad = customObstacles.some(obs => obs && obs.type === 'trampoline' &&
-                    Math.abs(obs.x - lane) < 10 && Math.abs(obs.z - z) < 120);
+                    Math.abs(obs.x - lane) < 10 && Math.abs(obs.z - z) < 150);
                 const duplicate = customObstacles.some(obs => obs && obs.type === 'coin' &&
-                    Math.abs(obs.x - lane) < 8 && Math.abs(obs.z - z) < 18);
+                    Math.abs(obs.x - lane) < 8 && Math.abs(obs.z - z) < 20);
                 if (!nearPad && !duplicate && !isPositionBlocked(lane, 7, z, 9)) clear++;
             }
-            if (clear < 4) return;
+            return { lane, clear };
+        }).sort((a, b) => b.clear - a.clear);
 
-            const makeWave = obstacleChunkCount % 3 === 0;
-            for (let i = 0; i < count; i++) {
-                const z = firstZ - i * spacing;
-                if (isPositionBlocked(lane, 7, z, 9)) continue;
-                if (customObstacles.some(obs => obs && obs.type === 'trampoline' &&
-                    Math.abs(obs.x - lane) < 10 && Math.abs(obs.z - z) < 120)) continue;
-                if (customObstacles.some(obs => obs && obs.type === 'coin' &&
-                    Math.abs(obs.x - lane) < 8 && Math.abs(obs.z - z) < 18)) continue;
-                const coin = createObstacle3D('coin', lane, 7, z, makeWave ? {
-                    isOscillating: true,
-                    speed: 1.35,
-                    phase: i * 0.62
-                } : {});
-                if (coin) {
-                    customObstacles.push(coin);
-                    spawned++;
-                }
+        const choice = choices[0];
+        if (!choice || choice.clear < 3) return 0;
+        let spawned = 0;
+        const arcY = [6, 12, 12, 6]; // Arco aéreo variado em vez de moedas coladas no chão
+        for (let i = 0; i < count; i++) {
+            const z = firstZ - i * spacing;
+            if (isPositionBlocked(choice.lane, 7, z, 9)) continue;
+            if (customObstacles.some(obs => obs && obs.type === 'trampoline' &&
+                Math.abs(obs.x - choice.lane) < 10 && Math.abs(obs.z - z) < 150)) continue;
+            if (customObstacles.some(obs => obs && obs.type === 'coin' &&
+                Math.abs(obs.x - choice.lane) < 8 && Math.abs(obs.z - z) < 20)) continue;
+            const coin = createObstacle3D('coin', choice.lane, arcY[i], z);
+            if (coin) {
+                customObstacles.push(coin);
+                spawned++;
             }
-        });
+        }
         return spawned;
     }
 
@@ -5144,63 +5110,58 @@
                 if (c) customObstacles.push(c);
             }
         } else if (pattern === 46) {
-            // 46. TAPETE TRIPLO DE MOEDAS: Chuva de moedas em todas as 3 pistas (18 moedas!)
-            [-20, 0, 20].forEach(lx => {
-                for (let s = 0; s < 6; s++) {
-                    const c = createObstacle3D('coin', lx, 6, centerZ - s * 20);
-                    if (c) customObstacles.push(c);
-                }
+            // 46. ARCO AÉREO DE PULO: Arco parabólico de moedas sobre 1 pista livre
+            const aLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const arcH = [6, 12, 17, 12, 6];
+            arcH.forEach((h, s) => {
+                const c = createObstacle3D('coin', aLane, h, centerZ - s * 18);
+                if (c) customObstacles.push(c);
             });
         } else if (pattern === 47) {
-            // 47. ARCO GIGANTE DE MOEDAS: Arcos parabólicos altos para pulo
-            [-20, 0, 20].forEach(lx => {
-                const arcHeights = [6, 11, 16, 20, 16, 11, 6];
-                arcHeights.forEach((h, s) => {
-                    const c = createObstacle3D('coin', lx, h, centerZ - s * 18);
-                    if (c) customObstacles.push(c);
-                });
-            });
+            // 47. TETO FLUTUANTE DE MOEDAS: Moedas altas (y=16) que forçam rolamento por baixo
+            const rollLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            for (let s = 0; s < 4; s++) {
+                const c = createObstacle3D('coin', rollLane, 16, centerZ - s * 22);
+                if (c) customObstacles.push(c);
+            }
         } else if (pattern === 48) {
-            // 48. SERPENTE / ZIGUE-ZAGUE DE MOEDAS: Rota fluida contínua cruzando as pistas
-            const zigzag = [-20, -10, 0, 10, 20, 10, 0, -10, -20];
-            zigzag.forEach((lx, s) => {
-                const c = createObstacle3D('coin', lx, 6.5, centerZ - s * 22);
+            // 48. ESCADA ASCENDENTE DE MOEDAS: Formação em degraus subindo de 6 a 18
+            const stepLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const steps = [6, 10, 14, 18];
+            steps.forEach((h, s) => {
+                const c = createObstacle3D('coin', stepLane, h, centerZ - s * 20);
                 if (c) customObstacles.push(c);
             });
         } else if (pattern === 49) {
-            // 49. MURALHA FLUTUANTE DE MOEDAS: Moedas no teto (y=16) + moedas no chão
-            [-20, 0, 20].forEach(lx => {
-                for (let s = 0; s < 4; s++) {
-                    const cRoof = createObstacle3D('coin', lx, 16, centerZ - s * 24);
-                    if (cRoof) customObstacles.push(cRoof);
-                    const cFloor = createObstacle3D('coin', lx, 5, centerZ - s * 24);
-                    if (cFloor) customObstacles.push(cFloor);
-                }
+            // 49. MOEDA MÓVEL RÁPIDA: Uma moeda rápida oscilando entre pistas com timing
+            const c = createObstacle3D('coin', 0, 7, centerZ, {
+                isOscillating: true,
+                speed: 2.6,
+                phase: Math.random() * Math.PI
             });
+            if (c) customObstacles.push(c);
         } else if (pattern === 50) {
-            // 50. LOSANGOS / DIAMOND GATES: Portais geométricos de moedas
-            [-20, 20].forEach(lx => {
-                const offsets = [
-                    { dy: 6, dz: 0 }, { dy: 11, dz: -16 }, { dy: 16, dz: -32 },
-                    { dy: 11, dz: -48 }, { dy: 6, dz: -64 }
-                ];
-                offsets.forEach(pt => {
-                    const c = createObstacle3D('coin', lx, pt.dy, centerZ + pt.dz);
-                    if (c) customObstacles.push(c);
-                });
+            // 50. PORTAL AÉREO EM V (CHEVRON): V de moedas no ar exigindo pulo preciso
+            const vPoints = [
+                { dx: -14, dy: 14, dz: 0 },
+                { dx: 0, dy: 18, dz: -16 },
+                { dx: 14, dy: 14, dz: -32 }
+            ];
+            vPoints.forEach(pt => {
+                const c = createObstacle3D('coin', pt.dx, pt.dy, centerZ + pt.dz);
+                if (c) customObstacles.push(c);
             });
         } else if (pattern === 51) {
-            // 51. ONDA OSCILANTE TRIPLA: 3 Grupos de moedas oscilantes cruzando em sincronia
-            [-15, 0, 15].forEach((startX, idx) => {
-                for (let s = 0; s < 3; s++) {
-                    const c = createObstacle3D('coin', startX, 6.5, centerZ - s * 30, {
-                        isOscillating: true,
-                        speed: 1.8 + idx * 0.4,
-                        phase: idx * 1.2 + s * 0.5
-                    });
-                    if (c) customObstacles.push(c);
-                }
-            });
+            // 51. ONDA OSCILANTE VERTICAL: Moeda que sobe e desce em onda
+            const waveLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            for (let s = 0; s < 3; s++) {
+                const c = createObstacle3D('coin', waveLane, 7, centerZ - s * 26, {
+                    isOscillating: true,
+                    speed: 1.5,
+                    phase: s * 1.1
+                });
+                if (c) customObstacles.push(c);
+            }
         } else {
             // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
@@ -5583,6 +5544,10 @@
                         removeObstacleViews(obs);
                         customObstacles.splice(i, 1);
                         if (window.NO_COIN_MODE) {
+                            if (window.__isNoCoinImmune && window.__isNoCoinImmune()) {
+                                playCoinShatterEffect(obs, 0xff2844, 1.35, 14, true, false, false);
+                                continue;
+                            }
                             triggerNoCoinDeath(null);
                             return;
                         }
@@ -5749,26 +5714,21 @@
                     }
 
                     if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs') obs.destroyed = true;
-                    if (window.NO_COIN_MODE) {
-                        triggerNoCoinDeath(null);
-                        return;
-                    } else {
-                        if (hero && hero.player) {
-                            if (obs.type === 'bush' && typeof hero.player.stumble === 'function') {
-                                hero.player.stumble('bush');
-                            } else if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
-                                const dx = Math.abs(obs.x - heroX);
-                                if (dx >= 5.5 && typeof hero.player.stumble === 'function') {
-                                    hero.player.stumble('side');
-                                } else if (typeof hero.player.die === 'function') {
-                                    hero.player.die('train');
-                                }
+                    if (hero && hero.player) {
+                        if (obs.type === 'bush' || obs.type === 'blocker_jump' || obs.type === 'blocker_roll' || obs.type === 'dumpster') {
+                            if (typeof hero.player.stumble === 'function') hero.player.stumble('stumble');
+                        } else if (obs.type === 'suspended_container' || obs.type === 'double_train' || obs.type === 'triple_train') {
+                            const dx = Math.abs(obs.x - heroX);
+                            if (dx >= 5.5 && typeof hero.player.stumble === 'function') {
+                                hero.player.stumble('side');
                             } else if (typeof hero.player.die === 'function') {
                                 hero.player.die('train');
                             }
+                        } else if (typeof hero.player.die === 'function') {
+                            hero.player.die('train');
                         }
-                        return;
                     }
+                    return;
                 }
             }
 
@@ -8174,48 +8134,6 @@
 
                 <!-- Tab 2: Settings, Audio & Graphics -->
                 <div class="tab-pane" id="pane-graphics">
-                    <!-- Performance Mode Card (Ultra Light for Low-end PCs) -->
-                    <div class="subway-setting-card" style="border: 1px solid rgba(16, 185, 129, 0.45); background: rgba(6, 28, 20, 0.55);">
-                        <div class="setting-row-top">
-                            <div class="setting-text-col">
-                                <span class="setting-title" style="color: #6ee7b7;">⚡ Modo Desempenho (Ultra Leve)</span>
-                                <span class="setting-desc">Máximo FPS em PCs e celulares fracos: renderização leve, sem pós-processamento, controles instantâneos</span>
-                            </div>
-                            <button class="btn-clean-toggle ${GFX_SETTINGS.perfMode ? 'toggle-active' : ''}" id="btn-toggle-perfmode" onclick="window.__togglePerformanceMode()">
-                                <span class="toggle-indicator"></span>
-                                <span class="toggle-label">${GFX_SETTINGS.perfMode ? 'ATIVADO' : 'DESATIVADO'}</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Music Volume Card -->
-                    <div class="subway-setting-card">
-                        <div class="setting-row-top">
-                            <div class="setting-text-col">
-                                <span class="setting-title">Volume da Música</span>
-                                <span class="setting-desc">Trilha sonora de fundo do jogo</span>
-                            </div>
-                            <span class="setting-pill" id="val-gfx-music-vol">${GFX_SETTINGS.musicVolume}%</span>
-                        </div>
-                        <div class="sat-slider-wrap">
-                            <input type="range" id="slider-music-volume" min="0" max="100" step="1" value="${GFX_SETTINGS.musicVolume}" oninput="window.__setMusicVolume(this.value)" />
-                        </div>
-                    </div>
-
-                    <!-- SFX Volume Card -->
-                    <div class="subway-setting-card">
-                        <div class="setting-row-top">
-                            <div class="setting-text-col">
-                                <span class="setting-title">Volume dos Efeitos (SFX)</span>
-                                <span class="setting-desc">Pulos, moedas, passos e impactos</span>
-                            </div>
-                            <span class="setting-pill" id="val-gfx-sfx-vol">${GFX_SETTINGS.sfxVolume}%</span>
-                        </div>
-                        <div class="sat-slider-wrap">
-                            <input type="range" id="slider-sfx-volume" min="0" max="100" step="1" value="${GFX_SETTINGS.sfxVolume}" oninput="window.__setSfxVolume(this.value)" />
-                        </div>
-                    </div>
-
                     <div class="settings-grid-rows">
                         <!-- Unlimited FPS Setting -->
                         <div class="subway-setting-row" onclick="window.__cycleFPS()" title="Toque para alternar taxa de quadros">

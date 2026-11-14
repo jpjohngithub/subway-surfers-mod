@@ -851,10 +851,11 @@
         default: _0x5a61de,
         high: _0x5a61de
       };
+      const _0x556677 = _0x2f0445["assets/game-idle"].image["assets/game-idle/train-start.png"].webp.default;
       _0x2f0445["assets/game-idle"].image["assets/game-idle/train-start.png"].webp = {
-        low: _0x5a61de,
-        default: _0x5a61de,
-        high: _0x5a61de
+        low: _0x556677,
+        default: _0x556677,
+        high: _0x556677
       }, _0x2f0445["assets/ui"].image.ui.standard = {
         default: "assets/ui/ui.json",
         high: "assets/ui/ui.json",
@@ -7299,7 +7300,7 @@
       try {
         await this.app.resources.load(..._0x4d1b4c);
       } catch (_0xb93023) {
-        throw this.app.tearDown("Sorry, game did not load properly. Try again."), new Error("Game failed to load due to network problems.");
+        console.warn("[ResourceLoader] Non-fatal load issue in groups:", _0x4d1b4c, _0xb93023);
       }
     }
     async ["loadAll"]() {
