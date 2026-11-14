@@ -1277,23 +1277,7 @@
     let trampolinePadTexture = null;
     let pilowGeometry = null;
     const pilowGeometryReady = loadPilowGeometry().then(data => { pilowGeometry = data; return data; }).catch(() => null);
-    let ventoinhaGeometry = (typeof window !== 'undefined' && window.VENTOINHA_DATA) ? window.VENTOINHA_DATA : null;
-    async function loadVentoinhaGeometry() {
-        if (ventoinhaGeometry) return ventoinhaGeometry;
-        try {
-            if (typeof window !== 'undefined' && window.VENTOINHA_DATA) {
-                ventoinhaGeometry = window.VENTOINHA_DATA;
-                return ventoinhaGeometry;
-            }
-            const resp = await fetch(new URL('assets/ventoinha_data.json', window.location.href).href, { cache: 'force-cache' });
-            if (resp.ok) {
-                ventoinhaGeometry = await resp.json();
-                return ventoinhaGeometry;
-            }
-        } catch(e) {}
-        return null;
-    }
-    const ventoinhaGeometryReady = loadVentoinhaGeometry();
+    let ventoinhaGeometry = null;
 
     function multiplyMatrix4(a, b) {
         const out = new Float32Array(16);
@@ -1517,56 +1501,53 @@
         try {
             if (typeof document !== 'undefined') {
                 const canvas = document.createElement('canvas');
-                canvas.width = 256; canvas.height = 256;
+                canvas.width = 512; canvas.height = 512;
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
-                    const gCore = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
-                    gCore.addColorStop(0.0, '#ffffff');
-                    gCore.addColorStop(0.24, '#a3ffb8');
-                    gCore.addColorStop(0.55, '#00e653');
-                    gCore.addColorStop(0.85, '#006b24');
-                    gCore.addColorStop(1.0, '#00260e');
-                    ctx.fillStyle = gCore;
-                    ctx.fillRect(0, 0, 128, 128);
+                    ctx.fillStyle = '#021f11';
+                    ctx.fillRect(0, 0, 512, 512);
 
-                    ctx.fillStyle = '#ffffff';
-                    ctx.shadowColor = '#00ff66';
-                    ctx.shadowBlur = 10;
-                    ctx.beginPath();
-                    ctx.moveTo(68, 20); ctx.lineTo(44, 64); ctx.lineTo(62, 64);
-                    ctx.lineTo(54, 108); ctx.lineTo(84, 56); ctx.lineTo(66, 56);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
+                    const gBack = ctx.createRadialGradient(256, 256, 20, 256, 256, 250);
+                    gBack.addColorStop(0.0, '#052e16');
+                    gBack.addColorStop(0.65, '#02200f');
+                    gBack.addColorStop(1.0, '#011208');
+                    ctx.fillStyle = gBack;
+                    ctx.fillRect(0, 0, 512, 512);
 
-                    const gRim = ctx.createLinearGradient(128, 0, 256, 128);
-                    gRim.addColorStop(0.0, '#85ffab');
-                    gRim.addColorStop(0.4, '#00c749');
-                    gRim.addColorStop(0.8, '#004719');
-                    gRim.addColorStop(1.0, '#2eff7b');
-                    ctx.fillStyle = gRim;
-                    ctx.fillRect(128, 0, 128, 128);
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-                    for (let k = 0; k < 5; k++) ctx.fillRect(132 + k * 24, 48, 12, 32);
-
-                    ctx.fillStyle = '#003814';
-                    ctx.fillRect(0, 128, 128, 128);
-                    ctx.fillStyle = '#00ff66';
-                    for (let c = 0; c < 2; c++) {
-                        const ox = 26 + c * 38;
+                    // Speed Chevron Outer
+                    const drawChevron = (topY, height, thick, colStart, colEnd) => {
+                        const midX = 256;
+                        ctx.save();
+                        const grad = ctx.createLinearGradient(0, topY, 0, topY + height);
+                        grad.addColorStop(0.0, colStart);
+                        grad.addColorStop(1.0, colEnd);
+                        ctx.fillStyle = grad;
+                        ctx.shadowColor = '#00ff88';
+                        ctx.shadowBlur = 18;
                         ctx.beginPath();
-                        ctx.moveTo(ox, 150); ctx.lineTo(ox + 22, 192); ctx.lineTo(ox, 234);
-                        ctx.lineTo(ox + 16, 234); ctx.lineTo(ox + 38, 192); ctx.lineTo(ox + 16, 150);
+                        ctx.moveTo(midX, topY);
+                        ctx.lineTo(midX + 180, topY + height * 0.75);
+                        ctx.lineTo(midX + 180, topY + height * 0.75 + thick);
+                        ctx.lineTo(midX, topY + thick);
+                        ctx.lineTo(midX - 180, topY + height * 0.75 + thick);
+                        ctx.lineTo(midX - 180, topY + height * 0.75);
                         ctx.closePath();
                         ctx.fill();
-                    }
+                        ctx.restore();
+                    };
 
-                    const gRing = ctx.createLinearGradient(128, 128, 256, 256);
-                    gRing.addColorStop(0.0, '#00ff73');
-                    gRing.addColorStop(0.5, '#7dffb3');
-                    gRing.addColorStop(1.0, '#009938');
-                    ctx.fillStyle = gRing;
-                    ctx.fillRect(128, 128, 128, 128);
+                    drawChevron(70, 160, 50, '#ffffff', '#00e676');
+                    drawChevron(220, 160, 50, '#a7f3d0', '#059669');
+
+                    // Center cyan speed core
+                    const gCore = ctx.createRadialGradient(256, 260, 4, 256, 260, 45);
+                    gCore.addColorStop(0.0, '#ffffff');
+                    gCore.addColorStop(0.4, '#00f5ff');
+                    gCore.addColorStop(1.0, 'rgba(0, 245, 255, 0)');
+                    ctx.fillStyle = gCore;
+                    ctx.beginPath();
+                    ctx.arc(256, 260, 45, 0, Math.PI * 2);
+                    ctx.fill();
 
                     boostCoinGreenTexture = TextureClass.from(canvas);
                 }
@@ -3533,17 +3514,94 @@
     }
 
     function buildVentGrateMesh() {
-        const geom = (typeof window !== 'undefined' && window.VENTOINHA_DATA) || ventoinhaGeometry;
-        if (geom && geom.pos && geom.idx) {
-            return {
-                pos: geom.pos.slice(),
-                norm: geom.norm.slice(),
-                uv: geom.uv.slice(),
-                idx: geom.idx.slice()
-            };
-        }
         const b = createMeshBuilder();
-        b.addBox(-7.5, 0, -14.0, 7.5, 1.5, 14.0, 0, 0, 1, 1);
+        const N = 24;
+        const rOut = 8.2, rIn = 7.0, h = 2.0;
+        const uW0 = 0.05, vW0 = 0.05, uW1 = 0.45, vW1 = 0.45; // Clean White
+        const uD0 = 0.55, vD0 = 0.05, uD1 = 0.95, vD1 = 0.45; // Dark cavity
+
+        // 1. Outer circular housing & bevel rim
+        for (let i = 0; i < N; i++) {
+            const a1 = (i * Math.PI * 2) / N;
+            const a2 = ((i + 1) * Math.PI * 2) / N;
+            const cos1 = Math.cos(a1), sin1 = Math.sin(a1);
+            const cos2 = Math.cos(a2), sin2 = Math.sin(a2);
+
+            // Outer wall
+            const xo1 = rOut * cos1, zo1 = rOut * sin1;
+            const xo2 = rOut * cos2, zo2 = rOut * sin2;
+            const nMid = [(cos1 + cos2) * 0.5, 0, (sin1 + sin2) * 0.5];
+            b.addQuad([xo1, 0, zo1], [xo2, 0, zo2], [xo2, h, zo2], [xo1, h, zo1], nMid, uW0, vW0, uW1, vW1);
+
+            // Inner wall (facing inwards)
+            const xi1 = rIn * cos1, zi1 = rIn * sin1;
+            const xi2 = rIn * cos2, zi2 = rIn * sin2;
+            const nIn = [-(cos1 + cos2) * 0.5, 0, -(sin1 + sin2) * 0.5];
+            b.addQuad([xi2, 0, zi2], [xi1, 0, zi1], [xi1, h, zi1], [xi2, h, zi2], nIn, uW0, vW0, uW1, vW1);
+
+            // Top rim ring
+            b.addQuad([xo1, h, zo1], [xo2, h, zo2], [xi2, h, zi2], [xi1, h, zi1], [0, 1, 0], uW0, vW0, uW1, vW1);
+
+            // Recessed cavity floor (dark circular disc at y=0.3)
+            const i0 = b.pushV(0, 0.3, 0, 0, 1, 0, (uD0 + uD1) * 0.5, (vD0 + vD1) * 0.5);
+            const i1 = b.pushV(xi1, 0.3, zi1, 0, 1, 0, uD0, vD0);
+            const i2 = b.pushV(xi2, 0.3, zi2, 0, 1, 0, uD1, vD0);
+            b.idx.push(i0, i1, i2);
+        }
+
+        // 2. Crossbars dividing 4 quadrants (height 1.5 to 2.0, clean white)
+        const crossThick = 0.7;
+        b.addBox(-rIn, 1.5, -crossThick, rIn, h, crossThick, uW0, vW0, uW1, vW1);
+        b.addBox(-crossThick, 1.5, -rIn, crossThick, h, rIn, uW0, vW0, uW1, vW1);
+
+        // 3. Slats in each of the 4 quadrants (exact alternating pattern from reference image)
+        const slatW = 0.45;
+        const offsets = [1.8, 3.4, 5.0];
+        offsets.forEach(d => {
+            const span = Math.sqrt(Math.max(0, rIn * rIn - d * d)) - 0.2;
+            if (span > crossThick + 0.4) {
+                // Q1 (+X, +Z): horizontal slats along X
+                b.addBox(crossThick + 0.1, 1.5, d - slatW, span, h, d + slatW, uW0, vW0, uW1, vW1);
+                // Q3 (-X, -Z): horizontal slats along X
+                b.addBox(-span, 1.5, -d - slatW, -crossThick - 0.1, h, -d + slatW, uW0, vW0, uW1, vW1);
+                // Q2 (-X, +Z): vertical slats along Z
+                b.addBox(-d - slatW, 1.5, crossThick + 0.1, -d + slatW, h, span, uW0, vW0, uW1, vW1);
+                // Q4 (+X, -Z): vertical slats along Z
+                b.addBox(d - slatW, 1.5, -span, d + slatW, h, -crossThick - 0.1, uW0, vW0, uW1, vW1);
+            }
+        });
+
+        return b;
+    }
+
+    function buildVentBladeMesh() {
+        const b = createMeshBuilder();
+        const uS0 = 0.05, vS0 = 0.55, uS1 = 0.45, vS1 = 0.95; // Silver/aluminum blade
+        // Center hub
+        const hubR = 1.4, hubH = 0.7, hubY = 0.5;
+        for (let i = 0; i < 12; i++) {
+            const a1 = (i * Math.PI * 2) / 12, a2 = ((i + 1) * Math.PI * 2) / 12;
+            const x1 = hubR * Math.cos(a1), z1 = hubR * Math.sin(a1);
+            const x2 = hubR * Math.cos(a2), z2 = hubR * Math.sin(a2);
+            b.addQuad([x1, hubY, z1], [x2, hubY, z2], [x2, hubY + hubH, z2], [x1, hubY + hubH, z1], [Math.cos(a1), 0, Math.sin(a1)], uS0, vS0, uS1, vS1);
+            const i0 = b.pushV(0, hubY + hubH, 0, 0, 1, 0, 0.25, 0.75);
+            const i1 = b.pushV(x1, hubY + hubH, z1, 0, 1, 0, uS0, vS0);
+            const i2 = b.pushV(x2, hubY + hubH, z2, 0, 1, 0, uS1, vS0);
+            b.idx.push(i0, i1, i2);
+        }
+        // 4 Aerodynamic curved fan blades
+        for (let a = 0; a < 4; a++) {
+            const angle = (a * Math.PI) / 2;
+            const cos = Math.cos(angle), sin = Math.sin(angle);
+            const rMin = 1.2, rMax = 6.4;
+            const w1 = 1.0, w2 = 1.8;
+            const p0 = [rMin * cos - w1 * sin, hubY + 0.1, rMin * sin + w1 * cos];
+            const p1 = [rMax * cos - w2 * sin, hubY + 0.45, rMax * sin + w2 * cos];
+            const p2 = [rMax * cos + w2 * sin, hubY + 0.15, rMax * sin - w2 * cos];
+            const p3 = [rMin * cos + w1 * sin, hubY + 0.0,  rMin * sin - w1 * cos];
+            b.addQuad(p0, p1, p2, p3, [0, 1, 0], uS0, vS0, uS1, vS1);
+            b.addQuad(p3, p2, p1, p0, [0, -1, 0], uS0, vS0, uS1, vS1);
+        }
         return b;
     }
 
@@ -3559,79 +3617,36 @@
                 canvas.height = 512;
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
-                    ctx.fillStyle = '#161a20';
-                    ctx.fillRect(0, 0, 512, 512);
-
-                    const stripeW = 28;
-                    for (let x = -512; x < 1024; x += stripeW * 2) {
-                        ctx.fillStyle = '#ffcc00';
-                        ctx.beginPath();
-                        ctx.moveTo(x, 0); ctx.lineTo(x + stripeW, 0);
-                        ctx.lineTo(x + stripeW - 512, 512); ctx.lineTo(x - 512, 512);
-                        ctx.closePath();
-                        ctx.fill();
-                    }
-                    ctx.fillStyle = '#21262d';
-                    ctx.fillRect(40, 40, 432, 432);
-                    ctx.strokeStyle = '#38424d';
-                    ctx.lineWidth = 6;
-                    ctx.strokeRect(40, 40, 432, 432);
-
-                    for (let x = 52; x <= 460; x += 9.5) {
-                        ctx.fillStyle = '#0a0d11';
-                        ctx.fillRect(x - 1, 48, 7, 416);
-                        ctx.fillStyle = '#3a4450';
-                        ctx.fillRect(x, 48, 5, 416);
-                        ctx.fillStyle = '#5c6d80';
-                        ctx.fillRect(x + 1, 48, 2, 416);
-                    }
-
-                    const fanCX = 352, fanCY = 128, fanR = 90;
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(fanCX, fanCY, fanR, 0, Math.PI * 2);
-                    ctx.clip();
-                    ctx.fillStyle = '#07090c';
-                    ctx.fillRect(fanCX - fanR, fanCY - fanR, fanR * 2, fanR * 2);
-
-                    const gAir = ctx.createRadialGradient(fanCX, fanCY, 8, fanCX, fanCY, fanR);
-                    gAir.addColorStop(0.0, '#ffffff');
-                    gAir.addColorStop(0.3, '#00f0ff');
-                    gAir.addColorStop(0.7, '#005577');
-                    gAir.addColorStop(1.0, '#0a0e14');
-                    ctx.fillStyle = gAir;
-                    ctx.beginPath();
-                    ctx.arc(fanCX, fanCY, fanR, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    ctx.fillStyle = '#1c222a';
-                    ctx.strokeStyle = '#00f0ff';
-                    ctx.lineWidth = 2;
-                    for (let a = 0; a < 6; a++) {
-                        const ang = (a * Math.PI) / 3;
-                        ctx.beginPath();
-                        ctx.moveTo(fanCX, fanCY);
-                        ctx.arc(fanCX, fanCY, fanR - 4, ang, ang + 0.5);
-                        ctx.closePath();
-                        ctx.fill();
-                        ctx.stroke();
-                    }
-                    ctx.restore();
-
-                    ctx.strokeStyle = '#00f0ff';
+                    // Q1 (0..256, 0..256): Clean Pure White Rim & Grille
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, 256, 256);
+                    ctx.strokeStyle = '#e2e8f0';
                     ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.arc(fanCX, fanCY, fanR, 0, Math.PI * 2);
-                    ctx.stroke();
+                    ctx.strokeRect(4, 4, 248, 248);
 
-                    ctx.fillStyle = '#3a4450';
+                    // Q2 (256..512, 0..256): Dark Charcoal Duct Interior with Air Cyan Core
+                    ctx.fillStyle = '#101317';
+                    ctx.fillRect(256, 0, 256, 256);
+                    const grad = ctx.createRadialGradient(384, 128, 10, 384, 128, 120);
+                    grad.addColorStop(0.0, '#00e5ff');
+                    grad.addColorStop(0.35, '#005577');
+                    grad.addColorStop(1.0, '#101317');
+                    ctx.fillStyle = grad;
                     ctx.beginPath();
-                    ctx.arc(fanCX, fanCY, 22, 0, Math.PI * 2);
+                    ctx.arc(384, 128, 110, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.fillStyle = '#00f0ff';
-                    ctx.beginPath();
-                    ctx.arc(fanCX, fanCY, 10, 0, Math.PI * 2);
-                    ctx.fill();
+
+                    // Q3 (0..256, 256..512): Metallic Silver / Aluminum Blades
+                    ctx.fillStyle = '#e2e8f0';
+                    ctx.fillRect(0, 256, 256, 256);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(20, 276, 216, 24);
+                    ctx.fillStyle = '#cbd5e1';
+                    ctx.fillRect(20, 340, 216, 32);
+
+                    // Q4 (256..512, 256..512): Subtle Bevel Shading
+                    ctx.fillStyle = '#f8fafc';
+                    ctx.fillRect(256, 256, 256, 256);
 
                     ventGrateTexture = TextureClass.from(canvas);
                 }
@@ -3750,22 +3765,30 @@
 
     function buildSpeedBoostCoinMesh() {
         const b = createMeshBuilder();
-        b.addBox(-0.6, 2.0, -0.75, 0.6, 3.8, 0.75, 0, 0, 0.5, 0.5);
-        b.addBox(-2.6, 0.8, -0.65, -0.6, 2.4, 0.65, 0, 0, 0.5, 0.5);
-        b.addBox(0.6, 0.8, -0.65, 2.6, 2.4, 0.65, 0, 0, 0.5, 0.5);
-        b.addBox(-0.5, 0.4, -0.65, 0.5, 1.8, 0.65, 0, 0.5, 0.5, 1.0);
-        b.addBox(-2.2, -0.6, -0.55, -0.5, 0.8, 0.55, 0, 0.5, 0.5, 1.0);
-        b.addBox(0.5, -0.6, -0.55, 2.2, 0.8, 0.55, 0, 0.5, 0.5, 1.0);
-        b.addBox(-3.2, -1.6, -0.75, -2.0, 1.0, 0.75, 0.5, 0, 1.0, 0.5);
-        b.addBox(2.0, -1.6, -0.75, 3.2, 1.0, 0.75, 0.5, 0, 1.0, 0.5);
-        b.addBox(-0.9, -0.3, -1.0, 0.9, 1.5, 1.0, 0.5, 0.5, 1.0, 1.0);
-        b.addBox(-4.0, -2.4, -0.45, -3.0, -0.7, 0.45, 0.5, 0, 1.0, 0.5);
-        b.addBox(3.0, -2.4, -0.45, 4.0, -0.7, 0.45, 0.5, 0, 1.0, 0.5);
+        const minX = -4.2, maxX = 4.2, minY = -2.6, maxY = 4.0;
+        const addPlanarBox = (x0, y0, z0, x1, y1, z1) => {
+            const u0 = (x0 - minX) / (maxX - minX);
+            const u1 = (x1 - minX) / (maxX - minX);
+            const v0 = 1 - (y1 - minY) / (maxY - minY);
+            const v1 = 1 - (y0 - minY) / (maxY - minY);
+            b.addBox(x0, y0, z0, x1, y1, z1, u0, v0, u1, v1);
+        };
+        addPlanarBox(-0.6, 2.0, -0.75, 0.6, 3.8, 0.75);
+        addPlanarBox(-2.6, 0.8, -0.65, -0.6, 2.4, 0.65);
+        addPlanarBox(0.6, 0.8, -0.65, 2.6, 2.4, 0.65);
+        addPlanarBox(-0.5, 0.4, -0.65, 0.5, 1.8, 0.65);
+        addPlanarBox(-2.2, -0.6, -0.55, -0.5, 0.8, 0.55);
+        addPlanarBox(0.5, -0.6, -0.55, 2.2, 0.8, 0.55);
+        addPlanarBox(-3.2, -1.6, -0.75, -2.0, 1.0, 0.75);
+        addPlanarBox(2.0, -1.6, -0.75, 3.2, 1.0, 0.75);
+        addPlanarBox(-0.9, -0.3, -1.0, 0.9, 1.5, 1.0);
+        addPlanarBox(-4.0, -2.4, -0.45, -3.0, -0.7, 0.45);
+        addPlanarBox(3.0, -2.4, -0.45, 4.0, -0.7, 0.45);
         return b;
     }
 
     function buildSpeedBoostCoinModel() {
-        const ent = createCustom3DEntity('speed_boost_coin_entity', () => buildSpeedBoostCoinMesh(), { minX: -4, minY: -2.5, minZ: -1.2, maxX: 4, maxY: 4, maxZ: 1.2 }, getBoostCoinGreenTexture(), 0xffffff);
+        const ent = createCustom3DEntity('speed_boost_coin_v3', () => buildSpeedBoostCoinMesh(), { minX: -4.2, minY: -2.6, minZ: -1.2, maxX: 4.2, maxY: 4.0, maxZ: 1.2 }, getBoostCoinGreenTexture(), 0xffffff);
         if (!ent) return null;
         applyBoostCoinTexture(ent);
         if (ent.scale) ent.scale.set(1.35, 1.35, 1.35);
@@ -3953,11 +3976,17 @@
                 }
             } else if (type === 'ventoinha' || type === 'air_vent') {
                 const targetH = options.targetHeight || 56;
-                const ventEnt = createCustom3DEntity('vent_grate_entity', () => buildVentGrateMesh(), { minX: -8, minY: 0, minZ: -14, maxX: 8, maxY: 2, maxZ: 14 }, getVentGrateTexture(), 0xffffff);
+                const ventEnt = createCustom3DEntity('vent_white_grate_v3', () => buildVentGrateMesh(), { minX: -8.5, minY: 0, minZ: -8.5, maxX: 8.5, maxY: 2, maxZ: 8.5 }, getVentGrateTexture(), 0xffffff);
+                const bladeEnt = createCustom3DEntity('vent_blade_v3', () => buildVentBladeMesh(), { minX: -6.5, minY: 0, minZ: -6.5, maxX: 6.5, maxY: 1.5, maxZ: 6.5 }, getVentGrateTexture(), 0xffffff);
                 if (ventEnt) {
                     applyVentGrateTexture(ventEnt);
                     mesh = ventEnt;
-                    bounds = { depth: 28, width: 16, height: 2, isVent: true, targetHeight: targetH };
+                    bounds = { depth: 17, width: 17, height: 2, isVent: true, targetHeight: targetH };
+                    if (bladeEnt) {
+                        applyVentGrateTexture(bladeEnt);
+                        bladeEnt._isVentBlade = true;
+                        mesh._ventParts = [bladeEnt];
+                    }
                 }
             }
 
@@ -3965,7 +3994,7 @@
             mesh.x = x + (mesh._xOffset || 0);
             mesh.y = y + (mesh._yOffset || 0);
             mesh.z = z + (mesh._zOffset || 0);
-            const parts = (mesh._energyCoinParts || mesh._trampolineTargetParts || mesh._doubleTrainParts || mesh._woodenRampParts || mesh._tripleTrainParts || mesh._woodenStairsParts || mesh._suspendedContainerParts || []).slice();
+            const parts = (mesh._energyCoinParts || mesh._trampolineTargetParts || mesh._doubleTrainParts || mesh._woodenRampParts || mesh._tripleTrainParts || mesh._woodenStairsParts || mesh._suspendedContainerParts || mesh._ventParts || []).slice();
             for (const part of parts) {
                 part.x = x + (part._xOffset || 0);
                 part.y = y + (part._yOffset || 0);
@@ -4203,28 +4232,35 @@
         if (!hero || !heroBody) return;
         const groundY = Number.isFinite(heroBody.ground) ? heroBody.ground : 0;
         const feetY = Number.isFinite(heroBody.bottom) ? heroBody.bottom : heroY;
+        const isAirTime = (now < trampolineCameraUntil) || (now < ventLaunchActiveUntil) || flightAirborne;
 
-        if (flightAirborne) {
+        if (isAirTime || feetY > groundY + 3.0) {
             const elevation = Math.max(0, feetY - groundY);
-            const targetExtraY = Math.min(10, elevation * 0.20);
-            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.80 + targetExtraY * 0.20;
-            window.__flightCameraRotXExtra = 0;
+            const targetExtraY = Math.min(75, elevation * 0.85);
+            const targetRotX = Math.max(-0.25, -0.003 * elevation);
+            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.72 + targetExtraY * 0.28;
+            window.__flightCameraRotXExtra = (window.__flightCameraRotXExtra || 0) * 0.72 + targetRotX * 0.28;
 
-            const elapsed = now - flightLaunchAt;
-            if (elapsed > 200 && (heroBody.landed || feetY <= groundY + 1.2)) {
+            if (hero.player) {
+                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, feetY);
+                hero.player.cameraY = Math.max(hero.player.cameraY || 0, feetY);
+            }
+
+            const elapsed = now - Math.max(flightLaunchAt, trampolineLaunchAt);
+            if (elapsed > 350 && (heroBody.landed || feetY <= groundY + 1.2)) {
                 flightAirborne = false;
                 flightLandTime = now;
                 flightLastExtraY = window.__flightCameraYExtra || 0;
             }
         } else if (flightLandTime > 0) {
             const elapsed = now - flightLandTime;
-            if (elapsed >= 3000) {
+            if (elapsed >= 1500) {
                 flightLandTime = 0;
                 window.__flightCameraYExtra = 0;
                 window.__flightCameraRotXExtra = 0;
             } else {
-                const factor = Math.max(0, 1 - elapsed / 3000);
-                const eased = factor * factor; // 3 seconds smooth return
+                const factor = Math.max(0, 1 - elapsed / 1500);
+                const eased = factor * factor;
                 window.__flightCameraYExtra = flightLastExtraY * eased;
                 window.__flightCameraRotXExtra = -0.05 * eased;
             }
@@ -4586,6 +4622,9 @@
         if (isInsideTunnel(centerZ)) {
             // Tunnels: only ground-level coins & low obstacles
             pattern = Math.floor(Math.random() * 18);
+        } else if (window.NO_COIN_MODE) {
+            // No Coin Mode: High obstacle & coin variety (0 to 45)
+            pattern = Math.floor(Math.random() * 46);
         } else {
             // Open air: 60% chance of varied container, parkour & vent patterns (18–37)
             pattern = Math.random() < 0.60
@@ -4936,6 +4975,102 @@
             if (cont) customObstacles.push(cont);
             const tTrain = createObstacle3D('triple_train', laneA, 0, centerZ - 45);
             if (tTrain) customObstacles.push(tTrain);
+        } else if (pattern === 38) {
+            // 38. NO-COIN: Muralha de Moedas com Brecha e Barreira Baixa
+            const openLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            [-20, 0, 20].forEach(lx => {
+                if (lx !== openLane) {
+                    for (let s = 0; s < 3; s++) {
+                        const c = createObstacle3D('coin', lx, 6, centerZ - s * 16);
+                        if (c) customObstacles.push(c);
+                    }
+                } else {
+                    const hurdle = createObstacle3D('blocker_jump', lx, 0, centerZ - 16);
+                    if (hurdle) customObstacles.push(hurdle);
+                }
+            });
+        } else if (pattern === 39) {
+            // 39. NO-COIN: Slalom Estreito (Caçamba, Mato e Caçamba com moedas alternadas)
+            const lanesSeq = [-20, 0, 20];
+            lanesSeq.forEach((lx, idx) => {
+                const zPos = centerZ - idx * 26;
+                const obs = createObstacle3D(idx === 1 ? 'bush' : 'dumpster', lx, 0, zPos);
+                if (obs) customObstacles.push(obs);
+                [-20, 0, 20].forEach(otherLx => {
+                    if (otherLx !== lx && Math.random() < 0.6) {
+                        const c = createObstacle3D('coin', otherLx, 6, zPos);
+                        if (c) customObstacles.push(c);
+                    }
+                });
+            });
+        } else if (pattern === 40) {
+            // 40. NO-COIN: Teto Baixo de Moedas + Rolo (Força rolamento preciso)
+            const rollLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const rollObs = createObstacle3D('blocker_roll', rollLane, 0, centerZ);
+            if (rollObs) customObstacles.push(rollObs);
+            [-20, 0, 20].forEach(lx => {
+                if (lx !== rollLane) {
+                    for (let s = 0; s < 2; s++) {
+                        const c = createObstacle3D('coin', lx, 6, centerZ - s * 18);
+                        if (c) customObstacles.push(c);
+                    }
+                }
+            });
+        } else if (pattern === 41) {
+            // 41. NO-COIN: Tapete Xadrez de Moedas Vermelhas (Ziguezague contínuo)
+            const patternLanes = [-20, 0, 20, 0, -20];
+            patternLanes.forEach((lx, idx) => {
+                const c = createObstacle3D('coin', lx, 6, centerZ - idx * 20);
+                if (c) customObstacles.push(c);
+            });
+        } else if (pattern === 42) {
+            // 42. NO-COIN: Salto de Trampolim Obrigatório sobre Mar de Moedas Vermelhas
+            const trampLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const tramp = createObstacle3D('trampoline', trampLane, 0, centerZ + 45);
+            if (tramp) customObstacles.push(tramp);
+            const container = createObstacle3D('suspended_container', trampLane, 28, centerZ - 20);
+            if (container) customObstacles.push(container);
+            [-20, 0, 20].forEach(lx => {
+                for (let s = 0; s < 3; s++) {
+                    const c = createObstacle3D('coin', lx, 6, centerZ - s * 18);
+                    if (c) customObstacles.push(c);
+                }
+            });
+        } else if (pattern === 43) {
+            // 43. NO-COIN: Desfiladeiro de Vagões com Moedas Centrais
+            const leftTrain = createObstacle3D('double_train', -20, 0, centerZ);
+            if (leftTrain) customObstacles.push(leftTrain);
+            const rightTrain = createObstacle3D('double_train', 20, 0, centerZ);
+            if (rightTrain) customObstacles.push(rightTrain);
+            for (let s = 0; s < 3; s++) {
+                const c = createObstacle3D('coin', 0, 6, centerZ - s * 22);
+                if (c) customObstacles.push(c);
+            }
+        } else if (pattern === 44) {
+            // 44. NO-COIN: Escada Alta Flanqueada por Moedas Vermelhas
+            const stairsLane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
+            const stairs = createObstacle3D('wooden_stairs', stairsLane, 0, centerZ + 45, { targetHeight: 56, baseY: 0 });
+            if (stairs) customObstacles.push(stairs);
+            const train = createObstacle3D('double_train', stairsLane, 0, centerZ - 20);
+            if (train) customObstacles.push(train);
+            [-20, 0, 20].forEach(lx => {
+                if (lx !== stairsLane) {
+                    for (let s = 0; s < 2; s++) {
+                        const c = createObstacle3D('coin', lx, 6, centerZ - s * 22);
+                        if (c) customObstacles.push(c);
+                    }
+                }
+            });
+        } else if (pattern === 45) {
+            // 45. NO-COIN: Sequência Tripla de Obstáculos com Moedas de Pressão
+            const obsTypes = ['dumpster', 'blocker_jump', 'bush'];
+            obsTypes.forEach((type, idx) => {
+                const lx = (idx % 2 === 0) ? -20 : 20;
+                const obs = createObstacle3D(type, lx, 0, centerZ - idx * 28);
+                if (obs) customObstacles.push(obs);
+                const c = createObstacle3D('coin', 0, 6, centerZ - idx * 28);
+                if (c) customObstacles.push(c);
+            });
         } else {
             // 10. OBSTÁCULOS NATIVOS: Caçamba, Cavalete de Pulo ou Rolo (Semáforo muito raro: < 5%)
             const lane = freeGroundLanes[Math.floor(Math.random() * freeGroundLanes.length)];
@@ -5009,14 +5144,15 @@
                 hero.player.cameraTargetY = groundY;
                 hero.player.cameraY = groundY;
             } else {
-                hero.player.cameraTargetY = groundY + Math.max(0, feetY - groundY) * 0.55;
+                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, feetY);
             }
         }
 
         // Check spawn ahead of runner at native train horizon distance
         if (heroZ < nextObstacleZ) {
             spawnNoCoinObstaclePattern(heroZ - 480);
-            nextObstacleZ = heroZ - (130 + Math.random() * 70);
+            const interval = window.NO_COIN_MODE ? (55 + Math.random() * 30) : (130 + Math.random() * 70);
+            nextObstacleZ = heroZ - interval;
         }
 
         // Update active obstacles
@@ -5263,6 +5399,15 @@
                             if (part.rotation) part.rotation.y = rotationY;
                             else part.ry = rotationY;
                         }
+                    }
+                }
+            }
+            // Spin vent blade
+            if ((obs.type === 'ventoinha' || obs.type === 'air_vent') && obs.parts) {
+                for (const part of obs.parts) {
+                    if (part._isVentBlade) {
+                        if (part.rotation) part.rotation.y += 0.32 * dtFactor;
+                        else part.ry = (part.ry || 0) + 0.32 * dtFactor;
                     }
                 }
             }
