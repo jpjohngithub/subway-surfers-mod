@@ -6795,8 +6795,8 @@
       super({
         icon: "icon-sound.png"
       }), _0x17ee64(this, 'diagonal', void 0), _0x17ee64(this, "refresh", () => {
-        this.diagonal.visible = _0x483390.sound.muted;
-      }), this.diagonal = _0x2a24d4.Sprite.from("diagonal.png"), this.diagonal.anchor.set(0.5), this.addChild(this.diagonal), this.onTap = () => _0x483390.sound.toggleMuted(), _0x483390.sound.onMutedChange.add(this.refresh), this.refresh();
+        this.diagonal.visible = !!(_0x483390.sound && _0x483390.sound.muted);
+      }), this.diagonal = _0x2a24d4.Sprite.from("diagonal.png"), this.diagonal.anchor.set(0.5), this.diagonal.interactive = false, this.addChild(this.diagonal), this.interactive = true, this.buttonMode = true, this.onTap = () => _0x483390.sound.toggleMuted(), this.on("pointertap", () => _0x483390.sound.toggleMuted()), _0x483390.sound.onMutedChange.add(this.refresh), this.refresh();
     }
   }
   function _0x260a1b(_0x1cfc78, _0x48e4fd, _0x39d231) {
@@ -7958,7 +7958,12 @@
       return !!_0x399e7a.a.muted;
     }
     set ["muted"](_0x33e366) {
-      _0x399e7a.a.muted = _0x33e366, _0x399e7a.a.volume = _0x33e366 ? 0 : this._volume, this.app.user.muted = _0x33e366, this.app.user.save(), this.onMutedChange.dispatch(_0x33e366);
+      _0x399e7a.a.muted = !!_0x33e366, _0x399e7a.a.volume = _0x33e366 ? 0 : this._volume, this.app.user.muted = !!_0x33e366, this.app.user.save(), this.onMutedChange.dispatch(!!_0x33e366);
+      try {
+        if (typeof Howler !== 'undefined' && typeof Howler.mute === 'function') Howler.mute(!!_0x33e366);
+        if (_0x33e366 && typeof Howler !== 'undefined' && typeof Howler.volume === 'function') Howler.volume(0);
+        else if (!_0x33e366 && typeof Howler !== 'undefined' && typeof Howler.volume === 'function') Howler.volume(this._volume || 0.75);
+      } catch(e) {}
     }
     ["toggleMuted"]() {
       this.muted = !this.muted;

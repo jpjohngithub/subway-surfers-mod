@@ -59,7 +59,7 @@ function initApp()
     // Sequence the scripts to prevent the startup race that leaves only the blue page background.
     loadScript('./js/dependencies.bundle.js?v=76', function ()
     {
-        loadScript(window.MAIN ? window.MAIN : './js/index.js?v=62', null, function ()
+        loadScript(window.MAIN ? window.MAIN : './js/index.js?v=63', null, function ()
         {
             showStartupError('o código principal do jogo');
         });

@@ -164,6 +164,7 @@
 
     function ensureAudioUnlocked() {
         try {
+            if (window.app && window.app.sound && window.app.sound.muted) return;
             if (window.Howler && window.Howler.ctx && window.Howler.ctx.state === 'suspended') {
                 window.Howler.ctx.resume();
             }
@@ -173,6 +174,28 @@
         window.addEventListener(evt, ensureAudioUnlocked, { passive: true, once: true });
     });
 
+    function hookSoundManagerMute() {
+        try {
+            const snd = window.app && window.app.sound;
+            if (snd && !snd.__swMuteHooked) {
+                snd.__swMuteHooked = true;
+                snd.onMutedChange.add((isMuted) => {
+                    try {
+                        if (typeof Howler !== 'undefined') {
+                            if (typeof Howler.mute === 'function') Howler.mute(!!isMuted);
+                            if (isMuted && typeof Howler.volume === 'function') Howler.volume(0);
+                            else if (!isMuted && typeof Howler.volume === 'function') Howler.volume((GFX_SETTINGS.volume || 75) / 100);
+                        }
+                        if (window.__SW_AUDIO_MGR__) {
+                            window.__SW_AUDIO_MGR__.muted = !!isMuted;
+                            window.__SW_AUDIO_MGR__.volume = isMuted ? 0 : ((GFX_SETTINGS.volume || 75) / 100);
+                        }
+                    } catch(e) {}
+                });
+            }
+        } catch(e) {}
+    }
+
     try {
         document.documentElement.style.setProperty('--game-saturation', GFX_SETTINGS.saturation + '%');
         document.documentElement.style.setProperty('--game-contrast', GFX_SETTINGS.contrast + '%');
@@ -180,10 +203,12 @@
         setTimeout(() => {
             applyTimeOfDay(GFX_SETTINGS.timeOfDay);
             ensureAudioUnlocked();
+            hookSoundManagerMute();
         }, 500);
     } catch(e) {}
 
     function applyMusicVolume(pct) {
+        if (window.app && window.app.sound && window.app.sound.muted) return;
         const clamped = Math.max(0, Math.min(100, parseInt(pct, 10) || 0));
         GFX_SETTINGS.musicVolume = clamped;
         localStorage.setItem('sw_music_volume', String(clamped));
@@ -201,6 +226,7 @@
     }
 
     function applySfxVolume(pct) {
+        if (window.app && window.app.sound && window.app.sound.muted) return;
         const clamped = Math.max(0, Math.min(100, parseInt(pct, 10) || 0));
         GFX_SETTINGS.sfxVolume = clamped;
         localStorage.setItem('sw_sfx_volume', String(clamped));
@@ -218,6 +244,12 @@
     }
 
     function applyGameVolume(pct) {
+        if (window.app && window.app.sound && window.app.sound.muted) {
+            try {
+                if (window.Howler && typeof window.Howler.mute === 'function') window.Howler.mute(true);
+            } catch(e) {}
+            return;
+        }
         const clamped = Math.max(0, Math.min(100, parseInt(pct, 10) || 0));
         GFX_SETTINGS.volume = clamped;
         localStorage.setItem('sw_volume', String(clamped));
@@ -1671,7 +1703,7 @@
             const ref = lib && lib.getMap && (lib.getMap('props-tex') || lib.getMap('trains-tex') || lib.getMap('shadow'));
             const TexCls = ref && ref.constructor;
             if (TexCls && typeof TexCls.from === 'function') {
-                window.__SW_JOHNSURF_LOGO_TEX__ = TexCls.from(new URL('bundles/lasvegas/game-idle/train-start.png?v=johnsurf25', window.location.href).href);
+                window.__SW_JOHNSURF_LOGO_TEX__ = TexCls.from(new URL('bundles/lasvegas/game-idle/train-start@2x.png?v=johnsurf28', window.location.href).href);
                 return window.__SW_JOHNSURF_LOGO_TEX__;
             }
         } catch(e) {}
@@ -1701,6 +1733,10 @@
                                     m.diffuseMap = tex;
                                     if ('map' in m) m.map = tex;
                                     m.color = 0xffffff;
+                                    if (m.diffuseMap) {
+                                        if ('anisotropy' in m.diffuseMap) m.diffuseMap.anisotropy = 16;
+                                        if ('generateMipmaps' in m.diffuseMap) m.diffuseMap.generateMipmaps = true;
+                                    }
                                     try { m.dirty = true; } catch(err) {}
                                 }
                             });
@@ -8073,7 +8109,7 @@
     try {
         _johnSurfLogoImg = new Image();
         _johnSurfLogoImg.crossOrigin = 'anonymous';
-        _johnSurfLogoImg.src = 'bundles/lasvegas/game-idle/train-start.png?v=johnsurf25';
+        _johnSurfLogoImg.src = 'bundles/lasvegas/game-idle/train-start@2x.png?v=johnsurf28';
     } catch(e) {}
 
     const SKIN_THEMES = {
