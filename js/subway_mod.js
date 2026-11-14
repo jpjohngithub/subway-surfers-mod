@@ -4418,21 +4418,33 @@
         const groundY = Number.isFinite(heroBody.ground) ? heroBody.ground : 0;
         const feetY = Number.isFinite(heroBody.bottom) ? heroBody.bottom : heroY;
         const isVentAir = (now < ventLaunchActiveUntil);
+        const isTrampAir = (now < trampolineCameraUntil);
 
-        if (isVentAir) {
-            if (hero.player) {
-                const targetH = Math.max(groundY, ventTargetRoof || 28);
-                hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, targetH);
-            }
+        if (isVentAir || isTrampAir) {
             const currentHeroHeight = Math.max(0, feetY - groundY);
-            const targetExtraY = Math.min(22, currentHeroHeight * 0.45);
-            const targetRotX = Math.max(-0.16, -0.002 * currentHeroHeight);
-            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.65 + targetExtraY * 0.35;
-            window.__flightCameraRotXExtra = (window.__flightCameraRotXExtra || 0) * 0.70 + targetRotX * 0.30;
+            let targetExtraY = 0;
+            let targetRotX = 0;
 
-            const elapsed = now - flightLaunchAt;
+            if (isVentAir) {
+                if (hero.player) {
+                    const targetH = Math.max(groundY, ventTargetRoof || 28);
+                    hero.player.cameraTargetY = Math.max(hero.player.cameraTargetY || 0, targetH);
+                }
+                targetExtraY = Math.min(22, currentHeroHeight * 0.40);
+                targetRotX = Math.max(-0.16, -0.002 * currentHeroHeight);
+            } else {
+                targetExtraY = Math.min(15, currentHeroHeight * 0.25);
+                targetRotX = Math.max(-0.09, -0.0012 * currentHeroHeight);
+            }
+
+            window.__flightCameraYExtra = (window.__flightCameraYExtra || 0) * 0.70 + targetExtraY * 0.30;
+            window.__flightCameraRotXExtra = (window.__flightCameraRotXExtra || 0) * 0.75 + targetRotX * 0.25;
+
+            const launchTime = isVentAir ? flightLaunchAt : trampolineLaunchAt;
+            const elapsed = now - launchTime;
             if (elapsed > 450 && heroBody.landed && Math.abs(feetY - groundY) <= 1.5) {
-                ventLaunchActiveUntil = 0;
+                if (isVentAir) ventLaunchActiveUntil = 0;
+                if (isTrampAir) trampolineCameraUntil = 0;
                 flightLandTime = now;
                 flightLastExtraY = window.__flightCameraYExtra || 0;
             }
@@ -4446,7 +4458,7 @@
                 const factor = Math.max(0, 1 - elapsed / 500);
                 const eased = factor * factor;
                 window.__flightCameraYExtra = flightLastExtraY * eased;
-                window.__flightCameraRotXExtra = -0.04 * eased;
+                window.__flightCameraRotXExtra = -0.03 * eased;
             }
         } else {
             window.__flightCameraYExtra = 0;
