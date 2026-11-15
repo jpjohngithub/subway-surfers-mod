@@ -6852,9 +6852,42 @@
             const hero = window.game && window.game.hero;
             if (!hero || !hero.parent) return null;
 
+            const lib = (window.app && window.app.library) || window.__lib || (window.game && window.game.app && window.game.app.library);
             let char = null;
-            // 1. Primary: Character_Character provides complete 3D rigged humanoid with animations
-            if (typeof window.Character_Character === 'function') {
+
+            // 1. Primary: Direct 3D Rigged Humanoid Scene from Asset Library
+            if (lib && typeof lib.getScene === 'function') {
+                try {
+                    const charName = (tm.charId && tm.charId !== 'stick' ? tm.charId : 'jake');
+                    const sceneName = `${charName}-game`;
+                    const texName = `${charName}-tex`;
+                    char = (lib.hasScene && lib.hasScene(sceneName))
+                        ? lib.getScene(sceneName, { map: texName })
+                        : lib.getScene('jake-game', { map: 'jake-tex' });
+                    if (char) {
+                        char.scale.set(100);
+                        let animCtrl = null;
+                        if (char._components) {
+                            for (const comp of char._components.values()) {
+                                if (comp && (typeof comp.play === 'function' || typeof comp.updateAnimation === 'function')) {
+                                    animCtrl = comp;
+                                    break;
+                                }
+                            }
+                        }
+                        char._animCtrl = animCtrl;
+                        if (animCtrl) {
+                            animCtrl.autoUpdate = true;
+                            try { animCtrl.play('run3', { loop: true, sudden: true }); } catch(e) {}
+                        }
+                    }
+                } catch(e) {
+                    char = null;
+                }
+            }
+
+            // 2. Secondary: Fallback to Character_Character
+            if (!char && typeof window.Character_Character === 'function') {
                 try {
                     char = new window.Character_Character();
                     if (char.anim) {
@@ -6864,56 +6897,15 @@
                         if (typeof char.anim.play === 'function') {
                             char.anim.play('run3', { loop: true, sudden: true });
                         }
-                        if (typeof char.anim.update === 'function') {
-                            char.anim.update({ frameTime: 1.0 });
-                        }
                     }
                     if (char.body) {
                         char.body.sensor = true;
                         char.body.movable = false;
                         char.body.enabled = false;
-                        char.body.width = 0;
-                        char.body.height = 0;
-                        char.body.depth = 0;
                     }
-                    if (char.player) {
-                        char.player.running = false;
-                        char.player.enabled = false;
-                    }
-                    if (char.lane) char.lane.enabled = false;
-                    if (char.jump) char.jump.enabled = false;
-                    if (char.roll) char.roll.enabled = false;
-                    if (char.hoverboard) try { char.hoverboard.hide(); char.hoverboard.turnOff(); char.hoverboard.enabled = false; } catch(e) {}
-                    if (char.pogo) try { char.pogo.hide(); char.pogo.turnOff(); char.pogo.enabled = false; } catch(e) {}
-                    if (char.jetpack) try { char.jetpack.turnOff(); char.jetpack.enabled = false; } catch(e) {}
-                    if (char.sprayCan) {
-                        char.sprayCan.visible = false;
-                        if (char.sprayCan.parent) {
-                            try { char.sprayCan.parent.removeChild(char.sprayCan); } catch(e) {}
-                        }
-                    }
-                    if (char.model) {
-                        char.model.x = 0;
-                        char.model.z = 0;
-                        char.model.ry = Math.PI;
-                        char.model.position.y = 0.5 * -(char.regularHeight || 11) + 1;
-                    }
-                } catch(e) {
-                    char = null;
-                }
-            }
-
-            // 2. Fallback: getScene directly from library with scale 100
-            if (!char && window.__lib && typeof window.__lib.getScene === 'function') {
-                try {
-                    const charName = (tm.charId && tm.charId !== 'stick' ? tm.charId : 'jake');
-                    const sceneName = `${charName}-game`;
-                    const texName = `${charName}-tex`;
-                    char = (window.__lib.hasScene && window.__lib.hasScene(sceneName))
-                        ? window.__lib.getScene(sceneName, { map: texName })
-                        : window.__lib.getScene('jake-game', { map: 'jake-tex' });
-                    if (char) {
-                        char.scale.set(100);
+                    if (char.player) char.player.enabled = false;
+                    if (char.sprayCan && char.sprayCan.parent) {
+                        try { char.sprayCan.parent.removeChild(char.sprayCan); } catch(e) {}
                     }
                 } catch(e) {
                     char = null;
@@ -6974,9 +6966,7 @@
                 cleanupCoopTeammates();
                 return;
             }
-            if (MPX.roundActive) {
-                updateCoopTeammates();
-            }
+            updateCoopTeammates();
             coopRenderRaf = requestAnimationFrame(loop);
         };
         coopRenderRaf = requestAnimationFrame(loop);
@@ -7043,19 +7033,28 @@
                 }
 
                 // Synchronize animations in real time
-                if (tm.mesh.anim && typeof tm.mesh.anim.play === 'function') {
+                const animCtrl = tm.mesh._animCtrl || tm.mesh.anim;
+                if (animCtrl) {
                     const targetAnim = tm.alive ? (tm.anim || 'run3') : 'death_bounce';
-                    if (tm.mesh.anim.currentAnimationClipName !== targetAnim) {
+                    if (tm._currentClip !== targetAnim) {
+                        tm._currentClip = targetAnim;
                         const isLoop = ['run3', 'run2', 'superRun', 'paintIdle', 'Jetpack_forward'].includes(targetAnim);
                         try {
-                            tm.mesh.anim.play(targetAnim, { loop: isLoop, sudden: false });
+                            if (typeof animCtrl.play === 'function') {
+                                animCtrl.play(targetAnim, { loop: isLoop, sudden: false });
+                            }
                         } catch(e) {}
                     }
                     try {
-                        if (typeof tm.mesh.anim.update === 'function') {
-                            const dtFrames = Math.min((Date.now() - (tm._lastAnimTick || Date.now())) / 16.666, 2.5) || 1.0;
-                            tm._lastAnimTick = Date.now();
-                            tm.mesh.anim.update({ frameTime: dtFrames });
+                        const dtFrames = Math.min((Date.now() - (tm._lastAnimTick || Date.now())) / 16.666, 2.5) || 1.0;
+                        tm._lastAnimTick = Date.now();
+                        if (typeof animCtrl.updateAnimation === 'function') {
+                            animCtrl.updateAnimation(dtFrames);
+                        } else if (typeof animCtrl.update === 'function') {
+                            animCtrl.update({ frameTime: dtFrames });
+                        }
+                        if (typeof animCtrl.render === 'function') {
+                            animCtrl.render();
                         }
                     } catch(e) {}
                 }
@@ -7405,19 +7404,39 @@
         showTimeline();
         renderTimeline();
 
+        // Prepare track generation, deterministic seed and 3D scene BEFORE countdown ends
+        try { if (window.app && window.app.user) window.app.user.tutorial = true; } catch (e) {}
+        try { if (window.game && window.game.tutorial) window.game.tutorial.enabled = false; } catch (e) {}
+        if (MPX.worldSeed) setDeterministicRandom(MPX.worldSeed);
+        try {
+            if (window.app && window.app.nav && typeof window.app.nav.toGame === 'function') {
+                window.app.nav.toGame();
+            }
+        } catch (e) {}
+        setTimeout(restoreHeroMesh, 200);
+        startCoopRenderLoop();
+
         const isEliminatedAlready = !!MPX.eliminated[myProfile.id];
 
         const titleText = msg.roundLabel || `RODADA ${MPX.round} / ${MPX.totalRounds}`;
         runCountdown(msg.delay || 3, titleText, () => {
             MPX.roundActive = true;
             MPX.goAt = Date.now();
-            try { if (window.app && window.app.user) window.app.user.tutorial = true; } catch (e) {}
+            runStartTime = performance.now();
+            runElapsedTime = 0;
+            deathFrozen = false;
+            isRunActive = true;
 
-            // Reset immediately before the game creates the first shared track chunks.
-            if (MPX.worldSeed) setDeterministicRandom(MPX.worldSeed);
-            try { window.app.nav.toGame(); } catch (e) {}
-            setTimeout(restoreHeroMesh, 300);
-            startCoopRenderLoop();
+            // Synchronized simultaneous race start at VAI!
+            try {
+                if (window.game) {
+                    if (typeof window.game.runFromIntro === 'function') {
+                        window.game.runFromIntro();
+                    } else if (typeof window.game.run === 'function') {
+                        window.game.run();
+                    }
+                }
+            } catch (e) {}
 
             if (MP.isPartyLeader) hostStartBots();
         });
@@ -7535,7 +7554,7 @@
 
     // Live tick & 3D co-op position sender from active runner
     function sendMultiplayerRunnerSync() {
-        if (!MP.inMatch || !MPX.roundActive) return;
+        if (!MP.inMatch) return;
         const hero = window.game && window.game.hero;
         if (!hero) return;
         const now = performance.now();
