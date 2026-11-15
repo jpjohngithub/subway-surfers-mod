@@ -666,15 +666,7 @@
                 hero.lane.__swSnappyPatched = true;
                 const origLaneChange = hero.lane.change.bind(hero.lane);
                 hero.lane.change = function(step) {
-                    if (this.changing && typeof this.changeEnd === 'function') {
-                        this.changeEnd();
-                    }
                     const res = origLaneChange(step);
-                    if (typeof this.changeDuration === 'number' && this.changeDuration > 0) {
-                        this.changeDuration = Math.min(this.changeDuration * 0.60, 0.090);
-                    }
-                    this.queuedStep = 0;
-                    this.queuedDuration = 0;
                     return res;
                 };
             }
