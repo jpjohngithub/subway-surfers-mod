@@ -667,6 +667,9 @@
                 const origLaneChange = hero.lane.change.bind(hero.lane);
                 hero.lane.change = function(step) {
                     const res = origLaneChange(step);
+                    if (typeof this.changeDuration === 'number' && this.changeDuration > 0) {
+                        this.changeDuration = Math.max(this.changeDuration * 0.82, 0.14);
+                    }
                     return res;
                 };
             }
