@@ -6244,6 +6244,9 @@
         window.__flightCameraRotXExtra = 0;
     };
     window.__onGameReset = function() {
+        if (MP.inMatch && MPX.worldSeed) {
+            setDeterministicRandom(MPX.worldSeed);
+        }
         hideCleanResultsOverlay();
         hideRunTimer();
         cleanupCustomObstacles();
@@ -6672,6 +6675,11 @@
         const heroY = heroBody ? (heroBody.y || 0) : (hero ? hero.y : 0);
         const heroZ = heroBody ? heroBody.z : (hero ? hero.z : 0);
 
+        // In Subway Surfers runner moves towards negative Z. Camera is behind at heroZ + 55.
+        const camZ = heroZ + 55;
+        const relZ = worldZ - camZ;
+        if (relZ >= -2) return null; // Behind camera
+
         const canvas = document.querySelector('#game-canvas') || (window.app && window.app.view) || document.querySelector('canvas');
         const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
 
@@ -6679,19 +6687,18 @@
         if (window.game && window.game.camera && typeof window.game.camera.map2dFrom3d === 'function') {
             try {
                 const outPoint = { x: 0, y: 0 };
-                window.game.camera.map2dFrom3d(outPoint, { x: worldX, y: worldY + 16, z: worldZ });
-                const camObj = window.game.camera.camera;
-                const camZ = (camObj && camObj.position && typeof camObj.position.z === 'number')
-                    ? camObj.position.z
-                    : (heroZ + 58);
-                const relZ = worldZ - camZ;
-                if (relZ >= -4) return null; // Behind camera
-                const depth = -relZ;
-                const cw = window.game.camera.width || (rect.width || 1);
-                const ch = window.game.camera.height || (rect.height || 1);
+                window.game.camera.map2dFrom3d(outPoint, { x: worldX, y: worldY + 14, z: worldZ });
+                const cw = window.game.camera.width || rect.width || 1;
+                const ch = window.game.camera.height || rect.height || 1;
                 const sx = rect.left + (outPoint.x * (rect.width / cw));
                 const sy = rect.top + (outPoint.y * (rect.height / ch));
-                const scale = Math.max(0.45, Math.min(1.2, 55 / depth));
+
+                // If outside screen boundaries, hide tag
+                if (sx < rect.left - 80 || sx > rect.left + rect.width + 80 || sy < rect.top - 80 || sy > rect.top + rect.height + 80) {
+                    return null;
+                }
+                const depth = -relZ;
+                const scale = Math.max(0.60, Math.min(1.15, 60 / depth));
                 return { x: sx, y: sy, depth: depth, scale: scale };
             } catch(e) {}
         }
@@ -6699,20 +6706,17 @@
         // 2. Geometric perspective fallback
         const camX = heroX * 0.4;
         const camY = heroY + 28;
-        const camZ = heroZ + 58;
-
         const relX = worldX - camX;
-        const relY = (worldY + 16) - camY;
-        const relZ = worldZ - camZ;
-
-        if (relZ >= -6) return null; // Behind camera
-
+        const relY = (worldY + 14) - camY;
         const depth = -relZ;
-        const focal = (rect.height * 0.82) / depth;
+        const focal = (rect.height * 0.85) / depth;
         const sx = rect.left + (rect.width * 0.5) + (relX * focal);
         const sy = rect.top + (rect.height * 0.5) - (relY * focal);
 
-        return { x: sx, y: sy, depth: depth, scale: Math.max(0.45, Math.min(1.15, 52 / depth)) };
+        if (sx < rect.left - 80 || sx > rect.left + rect.width + 80 || sy < rect.top - 80 || sy > rect.top + rect.height + 80) {
+            return null;
+        }
+        return { x: sx, y: sy, depth: depth, scale: Math.max(0.60, Math.min(1.15, 60 / depth)) };
     }
 
     function setGhostOpacity(root, opacity = 0.55) {
@@ -6771,59 +6775,55 @@
             const hero = window.game && window.game.hero;
             if (!hero || !hero.parent) return null;
 
-            let charScene = null;
-            const charName = (tm.charId && tm.charId !== 'stick' ? tm.charId : 'jake');
-
-            // 1. Primary: load 3D character scene directly from game library
-            if (window.__lib && typeof window.__lib.getScene === 'function') {
+            let char = null;
+            // 1. Primary: Character_Character provides complete 3D rigged humanoid with animations
+            if (typeof window.Character_Character === 'function') {
                 try {
-                    const sceneName = `${charName}-game`;
-                    const texName = `${charName}-tex`;
-                    if (window.__lib.hasScene && window.__lib.hasScene(sceneName)) {
-                        charScene = window.__lib.getScene(sceneName, { map: texName });
-                    } else if (window.__lib.hasScene && window.__lib.hasScene('jake-game')) {
-                        charScene = window.__lib.getScene('jake-game', { map: 'jake-tex' });
-                    } else {
-                        charScene = window.__lib.getScene('jake-game');
+                    char = new window.Character_Character();
+                    if (char.body) {
+                        char.body.sensor = true;
+                        char.body.movable = false;
+                        char.body.width = 0;
+                        char.body.height = 0;
+                        char.body.depth = 0;
                     }
-                    if (charScene && charScene.components) {
-                        for (const k in charScene.components) {
-                            const c = charScene.components[k];
-                            if (c && typeof c === 'object' && 'autoUpdate' in c) c.autoUpdate = true;
-                        }
+                    if (char.player) {
+                        char.player.running = false;
+                        char.player.enabled = false;
+                    }
+                    if (char.sprayCan && char.sprayCan.parent) {
+                        try { char.sprayCan.parent.removeChild(char.sprayCan); } catch(e) {}
                     }
                 } catch(e) {
-                    console.warn('[Co-op] Library scene load error:', e);
+                    char = null;
                 }
             }
 
-            // 2. Fallback: assemble robust 3D humanoid runner mesh from primitives
-            if (!charScene && window.__lib && typeof window.__lib.getEntity === 'function') {
+            // 2. Fallback: getScene directly from library with scale 100
+            if (!char && window.__lib && typeof window.__lib.getScene === 'function') {
                 try {
-                    const body = window.__lib.getEntity('blocker_jump') || window.__lib.getEntity('currency_coin');
-                    if (body) {
-                        charScene = body;
-                        if (charScene.scale) charScene.scale.set(0.65, 1.45, 0.65);
-                        setEntityHexColor(charScene, 0x00e5ff);
-                        const head = window.__lib.getEntity('currency_coin');
-                        if (head) {
-                            head.y = 8;
-                            if (head.scale) head.scale.set(0.85, 0.85, 0.85);
-                            setEntityHexColor(head, 0xffd166);
-                            try { charScene.addChild(head); } catch(e) {}
-                        }
+                    const charName = (tm.charId && tm.charId !== 'stick' ? tm.charId : 'jake');
+                    const sceneName = `${charName}-game`;
+                    const texName = `${charName}-tex`;
+                    char = (window.__lib.hasScene && window.__lib.hasScene(sceneName))
+                        ? window.__lib.getScene(sceneName, { map: texName })
+                        : window.__lib.getScene('jake-game', { map: 'jake-tex' });
+                    if (char) {
+                        char.scale.set(100);
                     }
-                } catch(e) {}
+                } catch(e) {
+                    char = null;
+                }
             }
 
-            if (charScene) {
-                hero.parent.addChild(charScene);
-                charScene.x = tm.currentX;
-                charScene.y = tm.currentY;
-                charScene.z = tm.currentZ;
-                charScene.ry = Math.PI;
-                setGhostOpacity(charScene, 0.52);
-                return charScene;
+            if (char) {
+                hero.parent.addChild(char);
+                char.x = tm.currentX;
+                char.y = tm.currentY;
+                char.z = tm.currentZ;
+                char.ry = Math.PI;
+                setGhostOpacity(char, 0.50);
+                return char;
             }
         } catch(e) {}
         return null;
@@ -6865,11 +6865,13 @@
     function startCoopRenderLoop() {
         cancelAnimationFrame(coopRenderRaf);
         const loop = () => {
-            if (!MP.inMatch || !MPX.roundActive) {
+            if (!MP.inMatch) {
                 cleanupCoopTeammates();
                 return;
             }
-            updateCoopTeammates();
+            if (MPX.roundActive) {
+                updateCoopTeammates();
+            }
             coopRenderRaf = requestAnimationFrame(loop);
         };
         coopRenderRaf = requestAnimationFrame(loop);
@@ -6880,20 +6882,33 @@
         const heroBody = hero && hero.body;
         const heroZ = heroBody ? heroBody.z : 0;
 
+        // Continuously broadcast local runner coordinates to teammates
+        if (typeof sendMultiplayerRunnerSync === 'function') {
+            sendMultiplayerRunnerSync();
+        }
+
         Object.keys(coopTeammates).forEach(id => {
             const tm = coopTeammates[id];
             if (!tm) return;
-            if (Date.now() - tm.lastSeen > 5000) {
+            if (Date.now() - tm.lastSeen > 6000) {
                 if (tm.mesh && tm.mesh.parent) { try { tm.mesh.parent.removeChild(tm.mesh); } catch(e) {} }
                 removeEl(`coop-tag-${id}`);
                 delete coopTeammates[id];
                 return;
             }
 
-            // Smooth position interpolation
-            tm.currentX += (tm.targetX - tm.currentX) * 0.35;
-            tm.currentY += (tm.targetY - tm.currentY) * 0.35;
-            tm.currentZ += (tm.targetZ - tm.currentZ) * 0.35;
+            // Snap immediately if far (e.g. teleport/respawn), otherwise smooth interpolate
+            const dzSnap = Math.abs(tm.targetZ - tm.currentZ);
+            const dxSnap = Math.abs(tm.targetX - tm.currentX);
+            if (dzSnap > 80 || dxSnap > 40) {
+                tm.currentX = tm.targetX;
+                tm.currentY = tm.targetY;
+                tm.currentZ = tm.targetZ;
+            } else {
+                tm.currentX += (tm.targetX - tm.currentX) * 0.40;
+                tm.currentY += (tm.targetY - tm.currentY) * 0.40;
+                tm.currentZ += (tm.targetZ - tm.currentZ) * 0.40;
+            }
 
             // Spawn or update 3D mesh
             if (!tm.mesh || !tm.mesh.parent) {
@@ -6902,30 +6917,33 @@
             }
             if (tm.mesh) {
                 if (!tm._opacityApplied) {
-                    setGhostOpacity(tm.mesh, 0.48);
+                    setGhostOpacity(tm.mesh, 0.50);
                     tm._opacityApplied = true;
                 }
                 tm.mesh.x = tm.currentX;
                 tm.mesh.y = tm.currentY;
                 tm.mesh.z = tm.currentZ;
+                tm.mesh.ry = Math.PI;
                 if (tm.mesh.model) {
                     tm.mesh.model.x = tm.currentX;
                     tm.mesh.model.y = tm.currentY;
                     tm.mesh.model.z = tm.currentZ;
                 }
 
-                // Synchronize Jake's animations in real time
-                if (tm.mesh.anim) {
+                // Synchronize animations in real time
+                if (tm.mesh.anim && typeof tm.mesh.anim.play === 'function') {
                     const targetAnim = tm.alive ? (tm.anim || 'run3') : 'death_bounce';
                     if (tm.mesh.anim.currentAnimationClipName !== targetAnim) {
-                        const isLoop = ['run3', 'superRun', 'paintIdle', 'Jetpack_forward'].includes(targetAnim);
+                        const isLoop = ['run3', 'run2', 'superRun', 'paintIdle', 'Jetpack_forward'].includes(targetAnim);
                         try {
                             tm.mesh.anim.play(targetAnim, { loop: isLoop, sudden: false });
                         } catch(e) {}
                     }
                     try {
                         if (typeof tm.mesh.anim.update === 'function') {
-                            const dtFrames = Math.min((Date.now() - (tm._lastAnimTick || Date.now())) / 16.666, 2.5) || 1.0; tm._lastAnimTick = Date.now(); tm.mesh.anim.update({ frameTime: dtFrames });
+                            const dtFrames = Math.min((Date.now() - (tm._lastAnimTick || Date.now())) / 16.666, 2.5) || 1.0;
+                            tm._lastAnimTick = Date.now();
+                            tm.mesh.anim.update({ frameTime: dtFrames });
                         }
                     } catch(e) {}
                 }
@@ -6935,7 +6953,6 @@
                     tm.mesh.y = 1;
                 } else {
                     tm.mesh.rx = 0;
-                    tm.mesh.ry = Math.PI;
                 }
             }
 
@@ -6948,14 +6965,15 @@
                     tag.style.transform = `translate(-50%, -100%) translate(${proj.x}px, ${proj.y}px) scale(${proj.scale})`;
                     tag.style.zIndex = String(Math.floor(10000 - proj.depth));
 
-                    const distMeters = Math.round((tm.currentZ - heroZ) * 0.1);
+                    // Runner moves towards -Z, so heroZ - tm.currentZ is positive when teammate is ahead
+                    const distMeters = Math.round((heroZ - tm.currentZ) * 0.1);
                     const distSpan = tag.querySelector('.coop-tag-dist');
                     if (distSpan) {
                         if (!tm.alive) {
                             distSpan.innerHTML = '<b style="color:#ff4d4f;">💥 CAIU!</b>';
-                        } else if (distMeters < -2) {
-                            distSpan.innerHTML = `<span style="color:#00ffc2;">▲ ${Math.abs(distMeters)}m à frente</span>`;
                         } else if (distMeters > 2) {
+                            distSpan.innerHTML = `<span style="color:#00ffc2;">▲ ${Math.abs(distMeters)}m à frente</span>`;
+                        } else if (distMeters < -2) {
                             distSpan.innerHTML = `<span style="color:#4dabf7;">▼ ${Math.abs(distMeters)}m atrás</span>`;
                         } else {
                             distSpan.innerHTML = '<span style="color:#ffd43b;">★ LADO A LADO</span>';
@@ -7405,15 +7423,15 @@
 
     // Live tick & 3D co-op position sender from active runner
     function sendMultiplayerRunnerSync() {
-        if (!MP.inMatch || !MPX.roundActive || !isRunActive) return;
+        if (!MP.inMatch || !MPX.roundActive) return;
+        const hero = window.game && window.game.hero;
+        if (!hero) return;
         const now = performance.now();
         const minInterval = 45;
         if (now - (MPX.lastTickSent || 0) < minInterval) return;
         MPX.lastTickSent = now;
         if (MPX.dead[myProfile.id] !== undefined) return;
         MPX.live[myProfile.id] = runElapsedTime;
-
-        const hero = window.game && window.game.hero;
         const heroBody = hero && hero.body;
         const hx = heroBody ? heroBody.x : (hero ? hero.x : 0);
         const hy = heroBody ? (heroBody.y || 0) : (hero ? hero.y : 0);
