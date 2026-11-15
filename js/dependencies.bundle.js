@@ -34696,6 +34696,7 @@
     constructor(t) {
       super(t), l(this, "keyboard", void 0), l(this, "view", void 0), l(this, "vertical", 0), l(this, "horizontal", 0), l(this, "action", 0), l(this, "pressing", !1), l(this, "pressStartX", 0), l(this, "pressStartY", 0), l(this, "tapCount", 0), l(this, "tapTimeout", void 0), l(this, "onSwipeHorizontal", void 0), l(this, "onSwipeVertical", void 0), l(this, "onDoubleTap", void 0), this.keyboard = new a.a(), this.keyboard.bindKeyDown("left", this.pressLeft.bind(this)), this.keyboard.bindKeyDown("up", this.pressUp.bind(this)), this.keyboard.bindKeyDown("right", this.pressRight.bind(this)), this.keyboard.bindKeyDown("down", this.pressDown.bind(this)), this.keyboard.bindKeyDown("a", this.pressLeft.bind(this)), this.keyboard.bindKeyDown("w", this.pressUp.bind(this)), this.keyboard.bindKeyDown("d", this.pressRight.bind(this)), this.keyboard.bindKeyDown("s", this.pressDown.bind(this)), this.keyboard.bindKeyDown("space", this.pressAction.bind(this)), this.keyboard.enabled = !1, this.view = r.Sprite.from(r.Texture.WHITE), this.view.alpha = 0, this.view.width = this.view.height = 9999, this.view.on("pointerdown", this.onPointerDown, this), this.view.on("pointermove", this.onPointerMove, this), this.view.on("pointerup", this.onPointerUp, this);
       window.game = this.game;
+      window.__controllerSystem = this;
       if (window.__onGameInit) window.__onGameInit(this.game);
       this.game.onRun.add({
         run: () => {

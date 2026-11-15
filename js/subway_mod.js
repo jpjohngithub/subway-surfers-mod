@@ -3169,6 +3169,28 @@
     }
 
     // Game lifecycle hooks from patched dependencies.bundle.js
+    // Zero-latency direct keyboard event capture (bypasses ticker lag & browser buffer queue)
+    if (!window.__fastInputBound) {
+        window.__fastInputBound = true;
+        window.addEventListener('keydown', function(e) {
+            const cs = window.__controllerSystem;
+            if (!cs || !window.game || window.game.state !== 1) return;
+            if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+            const k = e.key;
+            if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
+                cs.pressLeft(e);
+            } else if (k === 'ArrowRight' || k === 'd' || k === 'D') {
+                cs.pressRight(e);
+            } else if (k === 'ArrowUp' || k === 'w' || k === 'W') {
+                cs.pressUp(e);
+            } else if (k === 'ArrowDown' || k === 's' || k === 'S') {
+                cs.pressDown(e);
+            } else if (k === ' ' || k === 'Spacebar') {
+                cs.pressAction(e);
+            }
+        }, { capture: true, passive: false });
+    }
+
     window.__onGameRun = function() {
         hookGameOverScreen();
         startRunTimer();
@@ -6623,7 +6645,7 @@
     }
 
     function handleCoopPos(msg) {
-        if (!MP.inMatch || !msg.sender || msg.sender.id === myProfile.id) return;
+        if (!MP.inMatch || !msg.sender || msg.sender.id === myProfile.id || isBot(msg.sender.id)) return;
         const id = msg.sender.id;
         const incomingSeq = Number(msg.seq) || 0;
         if (incomingSeq && coopTeammates[id] && incomingSeq <= (coopTeammates[id].lastSeq || 0)) return;
@@ -6771,6 +6793,7 @@
     }
 
     function spawnTeammateMesh(tm) {
+        if (!tm || isBot(tm.id)) return null;
         try {
             const hero = window.game && window.game.hero;
             if (!hero || !hero.parent) return null;
@@ -6780,9 +6803,21 @@
             if (typeof window.Character_Character === 'function') {
                 try {
                     char = new window.Character_Character();
+                    if (char.anim) {
+                        if (char.gameScene && typeof char.anim.swapScene === 'function') {
+                            char.anim.swapScene(char.gameScene);
+                        }
+                        if (typeof char.anim.play === 'function') {
+                            char.anim.play('run3', { loop: true, sudden: true });
+                        }
+                        if (typeof char.anim.update === 'function') {
+                            char.anim.update({ frameTime: 1.0 });
+                        }
+                    }
                     if (char.body) {
                         char.body.sensor = true;
                         char.body.movable = false;
+                        char.body.enabled = false;
                         char.body.width = 0;
                         char.body.height = 0;
                         char.body.depth = 0;
@@ -6791,8 +6826,23 @@
                         char.player.running = false;
                         char.player.enabled = false;
                     }
-                    if (char.sprayCan && char.sprayCan.parent) {
-                        try { char.sprayCan.parent.removeChild(char.sprayCan); } catch(e) {}
+                    if (char.lane) char.lane.enabled = false;
+                    if (char.jump) char.jump.enabled = false;
+                    if (char.roll) char.roll.enabled = false;
+                    if (char.hoverboard) try { char.hoverboard.hide(); char.hoverboard.turnOff(); char.hoverboard.enabled = false; } catch(e) {}
+                    if (char.pogo) try { char.pogo.hide(); char.pogo.turnOff(); char.pogo.enabled = false; } catch(e) {}
+                    if (char.jetpack) try { char.jetpack.turnOff(); char.jetpack.enabled = false; } catch(e) {}
+                    if (char.sprayCan) {
+                        char.sprayCan.visible = false;
+                        if (char.sprayCan.parent) {
+                            try { char.sprayCan.parent.removeChild(char.sprayCan); } catch(e) {}
+                        }
+                    }
+                    if (char.model) {
+                        char.model.x = 0;
+                        char.model.z = 0;
+                        char.model.ry = Math.PI;
+                        char.model.position.y = 0.5 * -(char.regularHeight || 11) + 1;
                     }
                 } catch(e) {
                     char = null;
@@ -6821,7 +6871,7 @@
                 char.x = tm.currentX;
                 char.y = tm.currentY;
                 char.z = tm.currentZ;
-                char.ry = Math.PI;
+                char.ry = char.model ? 0 : Math.PI;
                 setGhostOpacity(char, 0.50);
                 return char;
             }
@@ -6830,6 +6880,7 @@
     }
 
     function getOrCreateNametagEl(tm) {
+        if (!tm || isBot(tm.id)) return null;
 
         let tag = document.getElementById(`coop-tag-${tm.id}`);
         if (!tag) {
@@ -6888,6 +6939,13 @@
         }
 
         Object.keys(coopTeammates).forEach(id => {
+            if (isBot(id)) {
+                const tm = coopTeammates[id];
+                if (tm && tm.mesh && tm.mesh.parent) { try { tm.mesh.parent.removeChild(tm.mesh); } catch(e) {} }
+                removeEl(`coop-tag-${id}`);
+                delete coopTeammates[id];
+                return;
+            }
             const tm = coopTeammates[id];
             if (!tm) return;
             if (Date.now() - tm.lastSeen > 6000) {
@@ -6923,11 +6981,11 @@
                 tm.mesh.x = tm.currentX;
                 tm.mesh.y = tm.currentY;
                 tm.mesh.z = tm.currentZ;
-                tm.mesh.ry = Math.PI;
-                if (tm.mesh.model) {
-                    tm.mesh.model.x = tm.currentX;
-                    tm.mesh.model.y = tm.currentY;
-                    tm.mesh.model.z = tm.currentZ;
+                tm.mesh.ry = tm.mesh.model ? 0 : Math.PI;
+                if (tm.mesh.body) {
+                    tm.mesh.body.x = tm.currentX;
+                    tm.mesh.body.y = tm.currentY;
+                    tm.mesh.body.z = tm.currentZ;
                 }
 
                 // Synchronize animations in real time
