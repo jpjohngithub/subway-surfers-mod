@@ -666,16 +666,15 @@
                 hero.lane.__swSnappyPatched = true;
                 const origLaneChange = hero.lane.change.bind(hero.lane);
                 hero.lane.change = function(step) {
-                    // Holding prevention: never auto-queue chained lane changes, each requires a distinct click
-                    if (this.changing) {
-                        this.queuedStep = 0;
-                        this.queuedDuration = 0;
-                        return;
+                    if (this.changing && typeof this.changeEnd === 'function') {
+                        this.changeEnd();
                     }
                     const res = origLaneChange(step);
                     if (typeof this.changeDuration === 'number' && this.changeDuration > 0) {
-                        this.changeDuration = Math.max(this.changeDuration * 0.86, 0.125);
+                        this.changeDuration = Math.min(this.changeDuration * 0.60, 0.090);
                     }
+                    this.queuedStep = 0;
+                    this.queuedDuration = 0;
                     return res;
                 };
             }
@@ -3175,10 +3174,24 @@
     }
 
     // Game lifecycle hooks from patched dependencies.bundle.js
-    // Zero-latency direct keyboard event capture (bypasses ticker lag & browser buffer queue)
+    // Zero-latency direct keyboard event capture with controlled holding repeat delay
     if (!window.__fastInputBound) {
         window.__fastInputBound = true;
         const keyHoldMap = {};
+        const holdTimers = {};
+        const HOLD_INITIAL_DELAY = 280; // ms antes de trocar pro próximo trilho ao segurar
+        const HOLD_REPEAT_RATE = 240;   // ms entre repetições contínuas
+
+        function triggerAction(actionId) {
+            const cs = window.__controllerSystem;
+            if (!cs || !window.game || window.game.state !== 1) return;
+            if (actionId === 'left') cs.pressLeft();
+            else if (actionId === 'right') cs.pressRight();
+            else if (actionId === 'up') cs.pressUp();
+            else if (actionId === 'down') cs.pressDown();
+            else if (actionId === 'action') cs.pressAction();
+        }
+
         window.addEventListener('keydown', function(e) {
             const k = e.key;
             const code = e.code;
@@ -3190,39 +3203,50 @@
 
             if (isLeft || isRight || isUp || isDown || isAction) {
                 if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
-                const actionId = isLeft ? 'left' : (isRight ? 'right' : (isUp ? 'up' : (isDown ? 'down' : 'action')));
-                if (keyHoldMap[actionId] || e.repeat) {
-                    e.preventDefault();
-                    e.stopImmediatePropagation();
-                    return;
-                }
-                keyHoldMap[actionId] = true;
-
-                const cs = window.__controllerSystem;
-                if (cs && window.game && window.game.state === 1) {
-                    if (isLeft) cs.pressLeft(e);
-                    else if (isRight) cs.pressRight(e);
-                    else if (isUp) cs.pressUp(e);
-                    else if (isDown) cs.pressDown(e);
-                    else if (isAction) cs.pressAction(e);
-                }
                 e.preventDefault();
                 e.stopImmediatePropagation();
+
+                const actionId = isLeft ? 'left' : (isRight ? 'right' : (isUp ? 'up' : (isDown ? 'down' : 'action')));
+                if (e.repeat) return;
+
+                if (!keyHoldMap[actionId]) {
+                    keyHoldMap[actionId] = true;
+                    triggerAction(actionId);
+
+                    clearTimeout(holdTimers[actionId]);
+                    const scheduleNext = (delay) => {
+                        holdTimers[actionId] = setTimeout(() => {
+                            if (!keyHoldMap[actionId]) return;
+                            triggerAction(actionId);
+                            scheduleNext(HOLD_REPEAT_RATE);
+                        }, delay);
+                    };
+                    scheduleNext(HOLD_INITIAL_DELAY);
+                }
             }
         }, { capture: true, passive: false });
 
         window.addEventListener('keyup', function(e) {
             const k = e.key;
             const code = e.code;
-            if (k === 'ArrowLeft' || code === 'ArrowLeft' || k === 'a' || k === 'A' || code === 'KeyA') keyHoldMap['left'] = false;
-            if (k === 'ArrowRight' || code === 'ArrowRight' || k === 'd' || k === 'D' || code === 'KeyD') keyHoldMap['right'] = false;
-            if (k === 'ArrowUp' || code === 'ArrowUp' || k === 'w' || k === 'W' || code === 'KeyW') keyHoldMap['up'] = false;
-            if (k === 'ArrowDown' || code === 'ArrowDown' || k === 's' || k === 'S' || code === 'KeyS') keyHoldMap['down'] = false;
-            if (k === ' ' || k === 'Spacebar' || code === 'Space') keyHoldMap['action'] = false;
+            const isLeft = (k === 'ArrowLeft' || code === 'ArrowLeft' || k === 'a' || k === 'A' || code === 'KeyA');
+            const isRight = (k === 'ArrowRight' || code === 'ArrowRight' || k === 'd' || k === 'D' || code === 'KeyD');
+            const isUp = (k === 'ArrowUp' || code === 'ArrowUp' || k === 'w' || k === 'W' || code === 'KeyW');
+            const isDown = (k === 'ArrowDown' || code === 'ArrowDown' || k === 's' || k === 'S' || code === 'KeyS');
+            const isAction = (k === ' ' || k === 'Spacebar' || code === 'Space');
+
+            const actionId = isLeft ? 'left' : (isRight ? 'right' : (isUp ? 'up' : (isDown ? 'down' : (isAction ? 'action' : null))));
+            if (actionId) {
+                keyHoldMap[actionId] = false;
+                clearTimeout(holdTimers[actionId]);
+            }
         }, { capture: true, passive: true });
 
         window.addEventListener('blur', function() {
-            for (const k in keyHoldMap) keyHoldMap[k] = false;
+            for (const k in keyHoldMap) {
+                keyHoldMap[k] = false;
+                clearTimeout(holdTimers[k]);
+            }
         });
     }
 

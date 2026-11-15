@@ -34754,20 +34754,16 @@
       this.pressing = !1;
     }
     pressUp(t) {
-      if (t && t.repeat) return;
-      t.preventDefault(), this.game.state === o.a.RUNNING ? this.onSwipeVertical.dispatch(1) : this.vertical = 1;
+      t && t.preventDefault && t.preventDefault(), this.game.state === o.a.RUNNING ? this.onSwipeVertical.dispatch(1) : this.vertical = 1;
     }
     pressDown(t) {
-      if (t && t.repeat) return;
-      t.preventDefault(), this.game.state === o.a.RUNNING ? this.onSwipeVertical.dispatch(-1) : this.vertical = -1;
+      t && t.preventDefault && t.preventDefault(), this.game.state === o.a.RUNNING ? this.onSwipeVertical.dispatch(-1) : this.vertical = -1;
     }
     pressLeft(t) {
-      if (t && t.repeat) return;
-      t.preventDefault(), this.game.state === o.a.RUNNING ? this.onSwipeHorizontal.dispatch(-1) : this.horizontal = -1;
+      t && t.preventDefault && t.preventDefault(), this.game.state === o.a.RUNNING ? this.onSwipeHorizontal.dispatch(-1) : this.horizontal = -1;
     }
     pressRight(t) {
-      if (t && t.repeat) return;
-      t.preventDefault(), this.game.state === o.a.RUNNING ? this.onSwipeHorizontal.dispatch(1) : this.horizontal = 1;
+      t && t.preventDefault && t.preventDefault(), this.game.state === o.a.RUNNING ? this.onSwipeHorizontal.dispatch(1) : this.horizontal = 1;
     }
     pressAction(t) {
       this.game.state === o.a.RUNNING && (t.preventDefault(), this.onDoubleTap.dispatch());
