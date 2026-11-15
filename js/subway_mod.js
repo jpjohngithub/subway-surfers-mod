@@ -666,6 +666,12 @@
                 hero.lane.__swSnappyPatched = true;
                 const origLaneChange = hero.lane.change.bind(hero.lane);
                 hero.lane.change = function(step) {
+                    // Holding prevention: never auto-queue chained lane changes, each requires a distinct click
+                    if (this.changing) {
+                        this.queuedStep = 0;
+                        this.queuedDuration = 0;
+                        return;
+                    }
                     const res = origLaneChange(step);
                     if (typeof this.changeDuration === 'number' && this.changeDuration > 0) {
                         this.changeDuration = Math.max(this.changeDuration * 0.86, 0.125);
@@ -3172,37 +3178,51 @@
     // Zero-latency direct keyboard event capture (bypasses ticker lag & browser buffer queue)
     if (!window.__fastInputBound) {
         window.__fastInputBound = true;
-        const activePressedKeys = {};
+        const keyHoldMap = {};
         window.addEventListener('keydown', function(e) {
-            if (e.repeat) return;
-            const kCode = e.code || e.key;
-            if (activePressedKeys[kCode]) return;
-            activePressedKeys[kCode] = true;
-
-            const cs = window.__controllerSystem;
-            if (!cs || !window.game || window.game.state !== 1) return;
-            if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
             const k = e.key;
-            if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
-                cs.pressLeft(e);
-            } else if (k === 'ArrowRight' || k === 'd' || k === 'D') {
-                cs.pressRight(e);
-            } else if (k === 'ArrowUp' || k === 'w' || k === 'W') {
-                cs.pressUp(e);
-            } else if (k === 'ArrowDown' || k === 's' || k === 'S') {
-                cs.pressDown(e);
-            } else if (k === ' ' || k === 'Spacebar') {
-                cs.pressAction(e);
+            const code = e.code;
+            const isLeft = (k === 'ArrowLeft' || code === 'ArrowLeft' || k === 'a' || k === 'A' || code === 'KeyA');
+            const isRight = (k === 'ArrowRight' || code === 'ArrowRight' || k === 'd' || k === 'D' || code === 'KeyD');
+            const isUp = (k === 'ArrowUp' || code === 'ArrowUp' || k === 'w' || k === 'W' || code === 'KeyW');
+            const isDown = (k === 'ArrowDown' || code === 'ArrowDown' || k === 's' || k === 'S' || code === 'KeyS');
+            const isAction = (k === ' ' || k === 'Spacebar' || code === 'Space');
+
+            if (isLeft || isRight || isUp || isDown || isAction) {
+                if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+                const actionId = isLeft ? 'left' : (isRight ? 'right' : (isUp ? 'up' : (isDown ? 'down' : 'action')));
+                if (keyHoldMap[actionId] || e.repeat) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    return;
+                }
+                keyHoldMap[actionId] = true;
+
+                const cs = window.__controllerSystem;
+                if (cs && window.game && window.game.state === 1) {
+                    if (isLeft) cs.pressLeft(e);
+                    else if (isRight) cs.pressRight(e);
+                    else if (isUp) cs.pressUp(e);
+                    else if (isDown) cs.pressDown(e);
+                    else if (isAction) cs.pressAction(e);
+                }
+                e.preventDefault();
+                e.stopImmediatePropagation();
             }
         }, { capture: true, passive: false });
 
         window.addEventListener('keyup', function(e) {
-            const kCode = e.code || e.key;
-            delete activePressedKeys[kCode];
+            const k = e.key;
+            const code = e.code;
+            if (k === 'ArrowLeft' || code === 'ArrowLeft' || k === 'a' || k === 'A' || code === 'KeyA') keyHoldMap['left'] = false;
+            if (k === 'ArrowRight' || code === 'ArrowRight' || k === 'd' || k === 'D' || code === 'KeyD') keyHoldMap['right'] = false;
+            if (k === 'ArrowUp' || code === 'ArrowUp' || k === 'w' || k === 'W' || code === 'KeyW') keyHoldMap['up'] = false;
+            if (k === 'ArrowDown' || code === 'ArrowDown' || k === 's' || k === 'S' || code === 'KeyS') keyHoldMap['down'] = false;
+            if (k === ' ' || k === 'Spacebar' || code === 'Space') keyHoldMap['action'] = false;
         }, { capture: true, passive: true });
 
         window.addEventListener('blur', function() {
-            for (const k in activePressedKeys) delete activePressedKeys[k];
+            for (const k in keyHoldMap) keyHoldMap[k] = false;
         });
     }
 
