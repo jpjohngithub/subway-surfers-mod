@@ -3172,7 +3172,13 @@
     // Zero-latency direct keyboard event capture (bypasses ticker lag & browser buffer queue)
     if (!window.__fastInputBound) {
         window.__fastInputBound = true;
+        const activePressedKeys = {};
         window.addEventListener('keydown', function(e) {
+            if (e.repeat) return;
+            const kCode = e.code || e.key;
+            if (activePressedKeys[kCode]) return;
+            activePressedKeys[kCode] = true;
+
             const cs = window.__controllerSystem;
             if (!cs || !window.game || window.game.state !== 1) return;
             if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
@@ -3189,6 +3195,15 @@
                 cs.pressAction(e);
             }
         }, { capture: true, passive: false });
+
+        window.addEventListener('keyup', function(e) {
+            const kCode = e.code || e.key;
+            delete activePressedKeys[kCode];
+        }, { capture: true, passive: true });
+
+        window.addEventListener('blur', function() {
+            for (const k in activePressedKeys) delete activePressedKeys[k];
+        });
     }
 
     window.__onGameRun = function() {
