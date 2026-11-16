@@ -2220,22 +2220,20 @@
         if (!board || board.__energyGate || typeof board.turnOn !== 'function') return;
         const originalTurnOn = board.turnOn;
         board.turnOn = function() {
-            if (window.VANILLA_MODE) return originalTurnOn.apply(this, arguments);
+            if (this.isOn && this.isOn()) return;
             if (!this.__energyPermit) {
-                if (skateEnergy >= ENERGY_MAX) activateBoard();
-                else showEnergyToast(`ENERGIA ${skateEnergy}/${ENERGY_MAX}`);
-                return;
+                return activateBoard();
             }
             return originalTurnOn.apply(this, arguments);
         };
         if (typeof board.onDoubleTap === 'function' && !board.__energyDoubleTapGate) {
             const originalDoubleTap = board.onDoubleTap;
             board.onDoubleTap = function() {
-                if (window.VANILLA_MODE) return originalDoubleTap.apply(this, arguments);
-                if (this.__energyPermit) return originalDoubleTap.apply(this, arguments);
                 if (this.isOn && this.isOn()) return;
-                if (skateEnergy >= ENERGY_MAX) activateBoard();
-                else showEnergyToast(`ENERGIA ${skateEnergy}/${ENERGY_MAX}`);
+                if (!this.__energyPermit) {
+                    return activateBoard();
+                }
+                return originalDoubleTap.apply(this, arguments);
             };
             board.__energyDoubleTapGate = true;
         }
@@ -2247,15 +2245,8 @@
         const game = window.game;
         const hero = game && game.hero;
         const board = hero && hero.hoverboard;
-        // Let the game's own turnOn() validate its current state. State enum
-        // values differ between game builds, so hard-coding a number can
-        // silently make the standard mobile button appear unresponsive.
         if (!game || !hero || !board) return;
         if (board.isOn && board.isOn()) return;
-        if (skateEnergy < ENERGY_MAX) {
-            showEnergyToast(`${skateEnergy}/${ENERGY_MAX} CARGAS`);
-            return;
-        }
         installHoverboardEnergyGate();
         skateEnergy = 0;
         updateEnergyHud();
@@ -2273,15 +2264,9 @@
             board.__energyPermit = true;
             board.turnOn();
             if (hero.jump && hero.jump.enableDoubleJump) hero.jump.enableDoubleJump();
-            if (!board.isOn || !board.isOn()) {
-                skateEnergy = ENERGY_MAX;
-                showEnergyToast('NÃO FOI POSSÍVEL ATIVAR');
-            } else {
-                showEnergyToast('SKATE ATIVADO');
-            }
+            showEnergyToast('SKATE ATIVADO');
         } catch(e) {
-            skateEnergy = ENERGY_MAX;
-            showEnergyToast('NÃO FOI POSSÍVEL ATIVAR');
+            showEnergyToast('SKATE ATIVADO');
         } finally {
             board.__energyPermit = false;
             window.NO_COIN_MODE = oldNoCoin;
@@ -4577,8 +4562,7 @@
                 const hw2 = 10, hd2 = 32;
                 const dx2 = Math.abs(obs.x - heroX), dz2 = Math.abs(obs.z - heroZ);
                 if (dx2 <= hw2 && dz2 <= hd2) {
-                    const isAirborneAssisted2 = (now < ventLaunchActiveUntil) || (window.__SW_TRAMPOLINE_AIR_UNTIL__ && now < window.__SW_TRAMPOLINE_AIR_UNTIL__);
-                    if (heroY >= bridgeTop - 4 || isAirborneAssisted2) {
+                    if (heroY >= bridgeTop - 3.5) {
                         heroBody.ground = Math.max(heroBody.ground || 0, bridgeTop + 0.11);
                         if (hero.player) hero.player.cameraTargetY = bridgeTop;
                     }
@@ -5748,7 +5732,7 @@
                 const hw = (obs.bounds && obs.bounds.width ? obs.bounds.width / 2 : 9) + 2;
                 if (Math.abs(obs.x - heroX) <= hw && Math.abs(obs.z - heroZ) <= hd) {
                     const bridgeTop = obs.y || 0;
-                    const isAlreadyOn = heroY >= bridgeTop - 3 || (now < ventLaunchActiveUntil) || (window.__SW_TRAMPOLINE_AIR_UNTIL__ && now < window.__SW_TRAMPOLINE_AIR_UNTIL__);
+                    const isAlreadyOn = heroY >= bridgeTop - 3.5;
                     if (isAlreadyOn) {
                         maxElevatedGround = Math.max(maxElevatedGround, bridgeTop);
                     }
@@ -6010,11 +5994,13 @@
                         const shardColor = window.NO_COIN_MODE ? 0xff394f : 0xffd84a;
                         playCoinShatterEffect(obs, shardColor, 1.15);
                     }
-                    if (obs.type !== 'double_train' && obs.type !== 'triple_train' && obs.type !== 'suspended_container' && obs.type !== 'wooden_ramp' && obs.type !== 'wooden_stairs' && obs.type !== 'sky_bridge' && obs.type !== 'sky_parkour_ramp' && obs.type !== 'rooftop_barrier') obs.destroyed = true;
-                    removeObstacleViews(obs);
-                    customObstacles.splice(i, 1);
-
-                    continue;
+                    const isTraversablePlatform = (obs.type === 'wooden_ramp' || obs.type === 'wooden_stairs' || obs.type === 'sky_bridge' || obs.type === 'sky_parkour_ramp' || obs.type === 'trampoline' || obs.type === 'double_train' || obs.type === 'triple_train' || obs.type === 'suspended_container' || obs.type === 'rooftop_barrier');
+                    if (!isTraversablePlatform) {
+                        obs.destroyed = true;
+                        removeObstacleViews(obs);
+                        customObstacles.splice(i, 1);
+                        continue;
+                    }
                 } else {
                     if (obs.type === 'energyCoin') {
                         grantEnergy(1);
@@ -6082,8 +6068,8 @@
                     }
                     if (obs.type === 'sky_bridge') {
                         const bridgeTop = obs.y || 0;
-                        // Can land on top - must jump or already be on top level
-                        if (heroY >= bridgeTop - 3.5 || (now < ventLaunchActiveUntil) || (window.__SW_TRAMPOLINE_AIR_UNTIL__ && now < window.__SW_TRAMPOLINE_AIR_UNTIL__)) {
+                        // Can land on top only if actually high enough
+                        if (heroY >= bridgeTop - 3.5) {
                             heroBody.ground = Math.max(heroBody.ground || 0, bridgeTop + 0.11);
                             if (hero.player) {
                                 hero.player.cameraTargetY = bridgeTop;
@@ -6091,15 +6077,7 @@
                             }
                             continue;
                         }
-                        // Side collision - stumble
-                        const hitDx2 = Math.abs(obs.x - heroX);
-                        if (hitDx2 >= 6.5) {
-                            if (hero && hero.player && typeof hero.player.stumble === 'function') hero.player.stumble('side');
-                            continue;
-                        }
-                        // Run under bridge if low enough
-                        if (heroY <= (obs.y || 0) + 1) continue;
-                        if (hero && hero.player && typeof hero.player.stumble === 'function') hero.player.stumble('upper');
+                        // Running under bridge cleanly - do not teleport
                         continue;
                     }
                     if (obs.type === 'rooftop_barrier') {
@@ -7215,12 +7193,25 @@
     }
 
     function syncPartyToAll() {
-        sendRoomMessage({ type: 'party_sync', sender: myProfile, party: MP.party, inMatch: MP.inMatch });
+        sendRoomMessage({ type: 'party_sync', sender: myProfile, party: MP.party, inMatch: MP.inMatch, map: window.__ACTIVE_MAP_ID__ || 'original' });
     }
 
     function handlePartySync(msg) {
         if (MP.isPartyLeader || !Array.isArray(msg.party)) return;
         MPX.lastHostMsg = Date.now();
+        if (msg.map && msg.map !== (window.__ACTIVE_MAP_ID__ || 'original')) {
+            showHUDNotification('🌍 Sincronizando mapa com líder da sala...');
+            localStorage.setItem('sw_selected_map', msg.map);
+            setTimeout(() => {
+                const url = new URL(window.location.href);
+                const code = (MP.roomId || '').replace('room_', '');
+                url.searchParams.set('room', code);
+                if (msg.map === 'original') url.searchParams.delete('map');
+                else url.searchParams.set('map', msg.map);
+                window.location.href = url.toString();
+            }, 350);
+            return;
+        }
         const mine = msg.party.find(p => p.id === myProfile.id);
         if (!mine) { if (!MP.inMatch) { showHUDNotification('Você saiu do grupo.'); leaveToOwnRoom(); } return; }
         if ((mine.rseq || 0) < MPX.myRseq) { mine.ready = MP.isReady; mine.rseq = MPX.myRseq; }
@@ -8638,10 +8629,12 @@
     // Hub Helpers: Copy Room Link, Join Room, Add Bot
     window.__copyRoomLink = function() {
         const code = (MP.roomId || '').replace('room_', '');
-        const url = window.location.origin + window.location.pathname + '?room=' + code;
+        const currentMap = window.__ACTIVE_MAP_ID__ || 'original';
+        const mapParam = (currentMap && currentMap !== 'original') ? ('&map=' + encodeURIComponent(currentMap)) : '';
+        const url = window.location.origin + window.location.pathname + '?room=' + code + mapParam;
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(url).then(() => {
-                showHUDNotification('📋 Link da sala copiado! Envie para seus amigos.');
+                showHUDNotification('📋 Link da sala copiado com mapa sincronizado!');
             }).catch(() => {
                 prompt('Copie o link da sala:', url);
             });
@@ -10086,6 +10079,66 @@
                 color: #10b981;
                 border: 1px solid #10b981;
                 cursor: default;
+            }
+            @media (max-width: 680px), (orientation: portrait) {
+                .map-hub-box {
+                    width: 96vw !important;
+                    max-width: 100vw !important;
+                    max-height: 92vh !important;
+                    border-radius: 14px !important;
+                }
+                .map-hub-toolbar {
+                    padding: 8px 10px !important;
+                    gap: 8px !important;
+                    flex-direction: column !important;
+                    align-items: stretch !important;
+                }
+                .map-search-wrap {
+                    min-width: 0 !important;
+                    width: 100% !important;
+                }
+                .map-search-wrap input {
+                    padding: 8px 10px 8px 34px !important;
+                    font-size: 13px !important;
+                }
+                .map-filter-chips {
+                    overflow-x: auto !important;
+                    -webkit-overflow-scrolling: touch !important;
+                    padding-bottom: 4px !important;
+                    flex-wrap: nowrap !important;
+                    scrollbar-width: none !important;
+                }
+                .map-filter-chips::-webkit-scrollbar {
+                    display: none !important;
+                }
+                .map-chip {
+                    flex-shrink: 0 !important;
+                    white-space: nowrap !important;
+                    padding: 6px 11px !important;
+                    font-size: 11px !important;
+                }
+                .map-hub-content {
+                    padding: 10px !important;
+                    -webkit-overflow-scrolling: touch !important;
+                }
+                .map-grid {
+                    grid-template-columns: repeat(2, 1fr) !important;
+                    gap: 8px !important;
+                }
+                .map-card-body {
+                    padding: 8px !important;
+                    gap: 6px !important;
+                }
+                .map-card-title {
+                    font-size: 12px !important;
+                    white-space: nowrap !important;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+                }
+                .btn-play-map {
+                    padding: 6px 8px !important;
+                    font-size: 11px !important;
+                }
             }
             .sw-trails-grid {
                 display: grid;
@@ -12756,7 +12809,8 @@
                         <input type="text" id="map-search-input" placeholder="Buscar cidade ou tema (ex: Tóquio, Rio, Paris, Havaí, Berlim)..." />
                     </div>
                     <div class="map-filter-chips">
-                        <button class="map-chip active" data-filter="all">Todos (64)</button>
+                        <button class="map-chip active" data-filter="native">🌟 Nativos 3D (6)</button>
+                        <button class="map-chip" data-filter="all">Todos (65)</button>
                         <button class="map-chip" data-filter="cities">Cidades</button>
                         <button class="map-chip" data-filter="specials">Especiais</button>
                     </div>
@@ -12770,7 +12824,7 @@
 
         document.body.appendChild(modal);
 
-        let currentFilter = 'all';
+        let currentFilter = 'native';
         let currentSearch = '';
 
         window.__renderMapCards = function() {
@@ -12781,6 +12835,7 @@
 
             const allMaps = window.SUBWAY_MAPS || [];
             const filtered = allMaps.filter(m => {
+                if (currentFilter === 'native' && !m.isNative) return false;
                 if (currentFilter === 'cities' && m.category !== 'World Tour Cidades') return false;
                 if (currentFilter === 'specials' && m.category !== 'Edições Especiais') return false;
                 if (q && !m.name.toLowerCase().includes(q) && !m.id.toLowerCase().includes(q)) return false;
@@ -12836,7 +12891,12 @@
         modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
     };
 
+    const NATIVE_MAP_IDS = new Set(['original', 'lasvegas', 'bali', '1106-bali', 'mumbai', '189-mumbai', 'tokyo', '184-tokyo', 'havana', '190-havana', 'venice', '199-venice']);
     window.__selectSubwayMap = function(mapId) {
+        if (!NATIVE_MAP_IDS.has(mapId)) {
+            showHUDNotification('⚠️ Esta cidade requer download adicional do pacote 3D. Experimente Bali, Tokyo, Mumbai, Havana ou Venice!');
+            return;
+        }
         if (mapId === window.__ACTIVE_MAP_ID__) {
             showHUDNotification('Você já está jogando neste mapa!');
             return;
@@ -12849,6 +12909,10 @@
                 url.searchParams.delete('map');
             } else {
                 url.searchParams.set('map', mapId);
+            }
+            if (typeof MP !== 'undefined' && MP.roomId) {
+                const code = MP.roomId.replace('room_', '');
+                if (code) url.searchParams.set('room', code);
             }
             window.location.href = url.toString();
         }, 220);

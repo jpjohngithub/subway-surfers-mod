@@ -114,11 +114,12 @@
             else if (m === 'venice' || m === '199-venice') thm = '199-venice';
             else if (m === 'tokyo' || m === '184-tokyo') thm = '184-tokyo';
             else if (m && m !== 'original' && m !== 'lasvegas') {
-                if (/hawaii|aloha|rio|miami|buenos|cancun/i.test(m)) thm = '190-havana';
-                else if (/tokyo|beijing|seoul|singapore|bangkok/i.test(m)) thm = '184-tokyo';
-                else if (/paris|berlin|london|venice|amsterdam|rome|madrid/i.test(m)) thm = '199-venice';
-                else if (/mumbai|cairo|marrakesh|india/i.test(m)) thm = '189-mumbai';
-                else thm = '1106-bali';
+                if (m.includes('bali')) thm = '1106-bali';
+                else if (m.includes('mumbai')) thm = '189-mumbai';
+                else if (m.includes('havana')) thm = '190-havana';
+                else if (m.includes('venice')) thm = '199-venice';
+                else if (m.includes('tokyo')) thm = '184-tokyo';
+                else thm = 'lasvegas';
             }
             window.__RESOLVED_THEME__ = thm;
             window.GAME_CONFIG = {
@@ -143,11 +144,11 @@
         <h1>Loading</h1>
         <h1 class="dot one">.</h1><h1 class="dot two">.</h1><h1 class="dot three">.</h1>
     </div>
-    <script src="js/maps_data.js?v=2"></script>
+    <script src="js/maps_data.js?v=3"></script>
     <script src="patch/js/peerjs.min.js"></script>
     <script src="patch/js/mqtt.min.js"></script>
-    <script src="js/subway_mod.js?v=212"></script>
+    <script src="js/subway_mod.js?v=213"></script>
     <script src="js/loading.js?v=15"></script>
-    <script src="js/boot.js?v=80"></script>
+    <script src="js/boot.js?v=81"></script>
 </body>
 </html>

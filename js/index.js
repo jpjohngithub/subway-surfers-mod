@@ -8554,7 +8554,7 @@
       return true;
     }
     ['hasWagons']() {
-      return true;
+      return !_0x1c08b6 || !_0x1c08b6.a || _0x1c08b6.a.theme === "lasvegas";
     }
     ["longPillarMids"]() {
       return true;
@@ -8607,7 +8607,7 @@
       }
     }
     ["hideTubeFloors"]() {
-      return true;
+      return !_0x1c08b6 || !_0x1c08b6.a || _0x1c08b6.a.theme === "lasvegas";
     }
     ["applyBlendMode"](_0x26ff8d, _0x1a5f28) {
       if (_0x26ff8d.view3d) {
@@ -8645,11 +8645,12 @@
           else if (_m === 'venice' || _m === '199-venice') _thm = "199-venice";
           else if (_m === 'tokyo' || _m === '184-tokyo') _thm = "184-tokyo";
           else if (_m && _m !== 'original' && _m !== 'lasvegas') {
-            if (/hawaii|aloha|rio|miami|buenos|cancun/i.test(_m)) _thm = "190-havana";
-            else if (/tokyo|beijing|seoul|singapore|bangkok/i.test(_m)) _thm = "184-tokyo";
-            else if (/paris|berlin|london|venice|amsterdam|rome|madrid/i.test(_m)) _thm = "199-venice";
-            else if (/mumbai|cairo|marrakesh|india/i.test(_m)) _thm = "189-mumbai";
-            else _thm = "1106-bali";
+            if (_m.includes('bali')) _thm = "1106-bali";
+            else if (_m.includes('mumbai')) _thm = "189-mumbai";
+            else if (_m.includes('havana')) _thm = "190-havana";
+            else if (_m.includes('venice')) _thm = "199-venice";
+            else if (_m.includes('tokyo')) _thm = "184-tokyo";
+            else _thm = "lasvegas";
           }
         } catch(e) {}
       }

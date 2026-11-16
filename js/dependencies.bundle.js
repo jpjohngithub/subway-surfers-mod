@@ -23181,7 +23181,7 @@
           }(i);
         t = (0 === n ? -1 : this.modelIndex) >= 0 ? b(i, this.modelIndex % n) : this.wagonModelName;
       }
-      this.model && this.removeChild(this.model), a.a.library.hasGeometry(t) && (this.model = a.a.library.getEntity(t), this.model.y = .5 * -this.body.height, this.model.ry = Math.PI, this.body.deco = !1, this.addChild(this.model));
+      this.model && this.removeChild(this.model), (!a.a.library.hasGeometry(t) && a.a.library.hasGeometry(this.locomotiveModelName) && (t = this.locomotiveModelName)), a.a.library.hasGeometry(t) && (this.model = a.a.library.getEntity(t), this.model.y = .5 * -this.body.height, this.model.ry = Math.PI, this.body.deco = !1, this.addChild(this.model));
     }
     awake() {
       this.build();
@@ -37581,11 +37581,9 @@
       return !!this.count && !this.paused;
     }
     onDoubleTap() {
-      if (window.NO_COIN_MODE) return;
       this.turnOn();
     }
     turnOn() {
-      if (window.NO_COIN_MODE) return;
       var t, e, i, n, o, a, s, h, l, u, c, d, f, m;
       if (!this.isOn() && this.entity.game.state === p.a.RUNNING && !(null !== (t = this.entity.pogo) && void 0 !== t && t.isOn() || null !== (e = this.entity.jetpack) && void 0 !== e && e.isOn() || this.locked)) {
         if (!this.hasHoverboards()) return r.a.game.pause(), r.a.game.hud.paused.close(), r.a.buyBoards.open(), void (r.a.buyBoards.onExit = () => r.a.game.resume(3));
