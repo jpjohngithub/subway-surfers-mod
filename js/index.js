@@ -8551,18 +8551,19 @@
     }
     ["handleSkyline"](_0x36c528) {}
     ["addEpicFloor"]() {
-      return true;
+      return !_0x1c08b6 || !_0x1c08b6.a || _0x1c08b6.a.theme === "lasvegas";
     }
     ['hasWagons']() {
       return !_0x1c08b6 || !_0x1c08b6.a || _0x1c08b6.a.theme === "lasvegas";
     }
     ["longPillarMids"]() {
-      return true;
+      return !_0x1c08b6 || !_0x1c08b6.a || _0x1c08b6.a.theme === "lasvegas";
     }
     ["handleEpicStart"](_0x4b6c62) {}
     ["handleEpicMid"](_0x586bed) {}
     ["handleEpicEnd"](_0x27995f) {}
     ["handleThemeMaterial"](_0x208608, _0x2ec561, _0x2429be) {
+      if (_0x1c08b6 && _0x1c08b6.a && _0x1c08b6.a.theme !== "lasvegas") return;
       if ("fire01" === _0x2ec561) {
         const _0x31ba49 = [];
         for (let _0x18149c = 1; _0x18149c <= 23; ++_0x18149c) {

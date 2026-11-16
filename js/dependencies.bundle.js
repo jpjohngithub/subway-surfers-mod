@@ -23181,7 +23181,15 @@
           }(i);
         t = (0 === n ? -1 : this.modelIndex) >= 0 ? b(i, this.modelIndex % n) : this.wagonModelName;
       }
-      this.model && this.removeChild(this.model), (!a.a.library.hasGeometry(t) && a.a.library.hasGeometry(this.locomotiveModelName) && (t = this.locomotiveModelName)), a.a.library.hasGeometry(t) && (this.model = a.a.library.getEntity(t), this.model.y = .5 * -this.body.height, this.model.ry = Math.PI, this.body.deco = !1, this.addChild(this.model));
+      this.model && this.removeChild(this.model);
+      if (!a.a.library.hasGeometry(t)) {
+        if (a.a.library.hasGeometry(this.wagonModelName)) t = this.wagonModelName;
+        else if (a.a.library.hasGeometry(this.locomotiveModelName)) t = this.locomotiveModelName;
+        else if (a.a.library.hasGeometry("train_standard")) t = "train_standard";
+        else if (a.a.library.hasGeometry("train_cargo")) t = "train_cargo";
+        else if (a.a.library.hasGeometry("train_sub")) t = "train_sub";
+      }
+      a.a.library.hasGeometry(t) && (this.model = a.a.library.getEntity(t), this.model.y = .5 * -this.body.height, this.model.ry = Math.PI, this.body.deco = !1, this.addChild(this.model));
     }
     awake() {
       this.build();
@@ -23305,17 +23313,17 @@
   };
   class TrainStandard extends Train {
     constructor() {
-      super(), this.locomotiveModelName = "train_standard", this.wagonModelName = "train_standardwagon";
+      super(), this.locomotiveModelName = "train_standard", this.wagonModelName = (a.a.library && a.a.library.hasGeometry("train_standardwagon")) ? "train_standardwagon" : "train_standard";
     }
   }
   class TrainCargo extends Train {
     constructor() {
-      super(), this.locomotiveModelName = "freighttrain_cargo", this.wagonModelName = "train_cargo";
+      super(), this.locomotiveModelName = (a.a.library && a.a.library.hasGeometry("freighttrain_cargo")) ? "freighttrain_cargo" : "train_cargo", this.wagonModelName = "train_cargo";
     }
   }
   class TrainSub extends Train {
     constructor() {
-      super(), this.locomotiveModelName = "train_sub", this.wagonModelName = "train_subwagon";
+      super(), this.locomotiveModelName = "train_sub", this.wagonModelName = (a.a.library && a.a.library.hasGeometry("train_subwagon")) ? "train_subwagon" : "train_sub";
     }
   }
   class TrainHalf extends Train {

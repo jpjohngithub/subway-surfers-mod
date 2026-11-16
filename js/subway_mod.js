@@ -8724,7 +8724,6 @@
                 <div class="unified-tabs">
                     <button class="tab-btn" data-tab="modes" id="tab-btn-modes">MODOS</button>
                     <button class="tab-btn" data-tab="skins" id="tab-btn-skins">SKINS</button>
-                    <button class="tab-btn" data-tab="maps" id="tab-btn-maps" onclick="window.openMapHubModal()" style="color:#38bdf8;">MAPAS 🌍</button>
                     <button class="tab-btn" data-tab="graphics" id="tab-btn-graphics">CONFIGURAÇÕES</button>
                     <button class="tab-btn" data-tab="multiplayer" id="tab-btn-multiplayer">MULTIPLAYER</button>
                     <button class="tab-btn" data-tab="records" id="tab-btn-records">RECORDES</button>
