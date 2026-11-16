@@ -130,7 +130,7 @@
             return s !== null ? Math.max(50, Math.min(300, parseInt(s, 10) || 150)) : 150;
         })(),
         contrast: 100, // 100% original
-        aspectRatio: localStorage.getItem('sw_aspect_ratio') || 'native', // 'native' | 'stretched_4_3' | 'stretched_16_10' | 'square_1_1'
+        aspectRatio: localStorage.getItem('sw_aspect_ratio') || 'native', // 'native' | 'stretched_16_10' | 'stretched_4_3' | 'stretched_5_4' | 'stretched_ultra' | 'square_1_1'
         coinOutline: (() => {
             const p = localStorage.getItem('sw_coin_outline_pct');
             if (p !== null) return Math.max(0, Math.min(100, parseInt(p, 10) || 0));
@@ -936,6 +936,8 @@
     };
 
     function getAspectRatioLabel(val) {
+        if (val === 'stretched_ultra') return 'Ultra Esticada (Extrema)';
+        if (val === 'stretched_5_4') return '5:4 Ultra Esticada';
         if (val === 'stretched_4_3') return '4:3 Esticada (Pro)';
         if (val === 'stretched_16_10') return '16:10 Esticada';
         if (val === 'square_1_1') return '1:1 Quadrado';
@@ -945,7 +947,9 @@
     function applyScreenAspectRatio(val) {
         try {
             let mult = 1.0;
-            if (val === 'stretched_4_3') mult = 0.75;
+            if (val === 'stretched_ultra') mult = 0.50;
+            else if (val === 'stretched_5_4') mult = 0.625;
+            else if (val === 'stretched_4_3') mult = 0.75;
             else if (val === 'stretched_16_10') mult = 0.847;
             else if (val === 'square_1_1') mult = 1.333;
             window.__SW_ASPECT_MULT__ = mult;
@@ -965,6 +969,9 @@
             if (window.game && window.game.camera && typeof window.game.camera.updateProjection === 'function') {
                 window.game.camera.updateProjection(w, h);
             }
+            if (window.game && window.game.camera && window.game.camera.camera && typeof window.game.camera.camera.updateProjection === 'function') {
+                window.game.camera.camera.updateProjection(w, h);
+            }
             if (window.game && window.game.scene && window.game.scene.camera && typeof window.game.scene.camera.updateProjection === 'function') {
                 window.game.scene.camera.updateProjection(w, h);
             }
@@ -972,7 +979,7 @@
     }
 
     window.__cycleAspectRatio = function() {
-        const seq = ['native', 'stretched_4_3', 'stretched_16_10', 'square_1_1'];
+        const seq = ['native', 'stretched_16_10', 'stretched_4_3', 'stretched_5_4', 'stretched_ultra', 'square_1_1'];
         const idx = seq.indexOf(String(GFX_SETTINGS.aspectRatio));
         GFX_SETTINGS.aspectRatio = seq[(idx + 1) % seq.length];
         localStorage.setItem('sw_aspect_ratio', GFX_SETTINGS.aspectRatio);
@@ -3174,8 +3181,8 @@
         window.__fastInputBound = true;
         const keyHoldMap = {};
         const holdTimers = {};
-        const HOLD_INITIAL_DELAY = 280; // ms antes de trocar pro próximo trilho ao segurar
-        const HOLD_REPEAT_RATE = 240;   // ms entre repetições contínuas
+        const HOLD_INITIAL_DELAY = 420; // ms antes de trocar pro próximo trilho ao segurar (evita pular 2 trilhos em toque rápido)
+        const HOLD_REPEAT_RATE = 260;   // ms entre repetições contínuas
 
         function triggerAction(actionId) {
             const cs = window.__controllerSystem;
@@ -8772,10 +8779,10 @@
                         </div>
 
                         <!-- Proporção da Tela (Tela Esticada) Setting -->
-                        <div class="subway-setting-row" onclick="window.__cycleAspectRatio()" title="Mude a proporção da tela para tela esticada (4:3, 16:10)">
+                        <div class="subway-setting-row" onclick="window.__cycleAspectRatio()" title="Mude a proporção da tela para tela esticada (16:10, 4:3, 5:4, Ultra Esticada)">
                             <div class="setting-text-col">
                                 <span class="setting-title">Proporção da Tela (Esticada)</span>
-                                <span class="setting-desc">4:3 Esticada (Pro / FPS), 16:10 ou Nativa</span>
+                                <span class="setting-desc">16:10, 4:3, 5:4, Ultra Esticada (Extrema) ou Nativa</span>
                             </div>
                             <span class="setting-pill" id="val-gfx-aspectratio">${getAspectRatioLabel(GFX_SETTINGS.aspectRatio)}</span>
                         </div>
