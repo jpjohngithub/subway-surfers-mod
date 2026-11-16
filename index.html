@@ -102,11 +102,32 @@
 <body>
     <script>
         window.NOSW = true;
-        window.GAME_CONFIG = {
-            pokiSdkDebug: false,
-            leaderboard: 'mockup',
-            bundlesPath: './bundles',
-        }
+        (function() {
+            var m = '';
+            try {
+                m = new URLSearchParams(window.location.search).get('map') || localStorage.getItem('sw_selected_map');
+            } catch(e) {}
+            var thm = 'lasvegas';
+            if (m === 'bali' || m === '1106-bali') thm = '1106-bali';
+            else if (m === 'mumbai' || m === '189-mumbai') thm = '189-mumbai';
+            else if (m === 'havana' || m === '190-havana') thm = '190-havana';
+            else if (m === 'venice' || m === '199-venice') thm = '199-venice';
+            else if (m === 'tokyo' || m === '184-tokyo') thm = '184-tokyo';
+            else if (m && m !== 'original' && m !== 'lasvegas') {
+                if (/hawaii|aloha|rio|miami|buenos|cancun/i.test(m)) thm = '190-havana';
+                else if (/tokyo|beijing|seoul|singapore|bangkok/i.test(m)) thm = '184-tokyo';
+                else if (/paris|berlin|london|venice|amsterdam|rome|madrid/i.test(m)) thm = '199-venice';
+                else if (/mumbai|cairo|marrakesh|india/i.test(m)) thm = '189-mumbai';
+                else thm = '1106-bali';
+            }
+            window.__RESOLVED_THEME__ = thm;
+            window.GAME_CONFIG = {
+                pokiSdkDebug: false,
+                leaderboard: 'mockup',
+                bundlesPath: './bundles',
+                theme: thm
+            };
+        })();
         // https://github.com/pixijs/pixijs/issues/9414
         delete Array.prototype.group;
         // Performance: cap render resolution on high-DPR phones (big fill-rate saving)
@@ -122,11 +143,11 @@
         <h1>Loading</h1>
         <h1 class="dot one">.</h1><h1 class="dot two">.</h1><h1 class="dot three">.</h1>
     </div>
-    <script src="js/maps_data.js"></script>
+    <script src="js/maps_data.js?v=2"></script>
     <script src="patch/js/peerjs.min.js"></script>
     <script src="patch/js/mqtt.min.js"></script>
-    <script src="js/subway_mod.js?v=211"></script>
+    <script src="js/subway_mod.js?v=212"></script>
     <script src="js/loading.js?v=15"></script>
-    <script src="js/boot.js?v=79"></script>
+    <script src="js/boot.js?v=80"></script>
 </body>
 </html>
