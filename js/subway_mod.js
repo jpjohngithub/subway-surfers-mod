@@ -8715,7 +8715,7 @@
                     <div class="modal-header-branding">
                         <span class="modal-brand-title">SUBWAY SURFERS</span>
                         <span class="modal-brand-sep"></span>
-                        <span class="modal-brand-sub">v0.90 beta</span>
+                        <span class="modal-brand-sub">v0.91 beta</span>
                     </div>
                     <button class="btn-modal-close" id="btn-close-unified" title="Fechar">✕</button>
                 </div>
