@@ -8635,7 +8635,14 @@
       })), "fountain" == _0x2a82a0 && (_0x58721f.color = _0x2074be(16766858));
     }
     ["overrideGameConfig"]() {
-      _0x1c08b6.a.theme = "lasvegas", _0x1c08b6.a.backgroundUpperGradient = _0x479cf8.backgroundUpperGradient, _0x1c08b6.a.backgroundLowerGradient = _0x479cf8.backgroundLowerGradient, _0x1c08b6.a.trainLightColor = _0x479cf8.trainLightColor, _0x1c08b6.a.trainLights = 1, _0x1c08b6.a.trainXOffset = 0, _0x1c08b6.a.trainYOffset = -15, _0x1c08b6.a.trainZOffset = 0, _0x1c08b6.a.subLightColor = _0x479cf8.subLightColor, _0x1c08b6.a.subLights = 1, _0x1c08b6.a.subXOffset = 0, _0x1c08b6.a.subYOffset = -15, _0x1c08b6.a.subZOffset = 0, _0x1c08b6.a.trainLightTexture = 'trains-tex', _0x1c08b6.a.trainLightModelName = ["train_light_standard", "train_light_sub", "train_light_freight"], _0x1c08b6.a.trainSideLightModelName = [], _0x1c08b6.a.trainSideLightModelName[3] = "train_standard_windows", _0x1c08b6.a.trainSideLightModelName[5] = "train_standard_windows2", _0x1c08b6.a.trainLightScale = 1;
+      let _thm = "lasvegas";
+      try {
+        const _m = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('map')) || (typeof localStorage !== 'undefined' && localStorage.getItem('sw_selected_map'));
+        if (_m === 'bali' || _m === '1106-bali') _thm = "1106-bali";
+        else if (_m === 'mumbai' || _m === '189-mumbai') _thm = "189-mumbai";
+        else if (_m && _m !== 'original' && _m !== 'lasvegas') _thm = _m;
+      } catch(e) {}
+      _0x1c08b6.a.theme = _thm, _0x1c08b6.a.backgroundUpperGradient = _0x479cf8.backgroundUpperGradient, _0x1c08b6.a.backgroundLowerGradient = _0x479cf8.backgroundLowerGradient, _0x1c08b6.a.trainLightColor = _0x479cf8.trainLightColor, _0x1c08b6.a.trainLights = 1, _0x1c08b6.a.trainXOffset = 0, _0x1c08b6.a.trainYOffset = -15, _0x1c08b6.a.trainZOffset = 0, _0x1c08b6.a.subLightColor = _0x479cf8.subLightColor, _0x1c08b6.a.subLights = 1, _0x1c08b6.a.subXOffset = 0, _0x1c08b6.a.subYOffset = -15, _0x1c08b6.a.subZOffset = 0, _0x1c08b6.a.trainLightTexture = 'trains-tex', _0x1c08b6.a.trainLightModelName = ["train_light_standard", "train_light_sub", "train_light_freight"], _0x1c08b6.a.trainSideLightModelName = [], _0x1c08b6.a.trainSideLightModelName[3] = "train_standard_windows", _0x1c08b6.a.trainSideLightModelName[5] = "train_standard_windows2", _0x1c08b6.a.trainLightScale = 1;
     }
     ["fillerConfig"]() {
       return _0x46b328;

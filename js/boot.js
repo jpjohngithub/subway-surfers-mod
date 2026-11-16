@@ -49,12 +49,6 @@ function initPokiSDK(onComplete)
 /** Init app */
 function initApp()
 {
-    if (window.__IS_CUSTOM_MAP__)
-    {
-        console.log('[MapHub] Custom world tour map active, bypassing native Las Vegas bundle load.');
-        return;
-    }
-
     // Set SDK debug mode
     if (window.PokiSDK && window.GAME_CONFIG && window.GAME_CONFIG.pokiSdkDebug !== undefined)
     {
@@ -65,7 +59,7 @@ function initApp()
     // Sequence the scripts to prevent the startup race that leaves only the blue page background.
     loadScript('./js/dependencies.bundle.js?v=81', function ()
     {
-        loadScript(window.MAIN ? window.MAIN : './js/index.js?v=63', null, function ()
+        loadScript(window.MAIN ? window.MAIN : './js/index.js?v=64', null, function ()
         {
             showStartupError('o código principal do jogo');
         });

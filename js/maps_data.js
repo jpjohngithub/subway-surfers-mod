@@ -9,6 +9,22 @@ window.SUBWAY_MAPS = [
     "category": "World Tour Cidades"
   },
   {
+    "id": "bali",
+    "name": "Bali (World Tour 3D)",
+    "isNative": true,
+    "cover": "https://subwaysurfers-ubg.github.io/assets/images/editions/bali.png",
+    "src": "https://unblockedgames67.gitlab.io/subway-surfers-bali/",
+    "category": "World Tour Cidades"
+  },
+  {
+    "id": "mumbai",
+    "name": "Mumbai (World Tour 3D)",
+    "isNative": true,
+    "cover": "https://subwaysurfers-ubg.github.io/assets/images/editions/mumbai.png",
+    "src": "https://unblockedgames67.gitlab.io/subway-surfers-mumbai/",
+    "category": "World Tour Cidades"
+  },
+  {
     "id": "aloha-hawaii",
     "name": "Aloha Hawaii",
     "isNative": false,
@@ -22,14 +38,6 @@ window.SUBWAY_MAPS = [
     "isNative": false,
     "cover": "https://subwaysurfers-ubg.github.io/assets/images/editions/atlanta.png",
     "src": "https://g2.igroutka.ru/games/164/QW3R1LvKFEw4DdoG/subway_surfers_atlanta/",
-    "category": "World Tour Cidades"
-  },
-  {
-    "id": "bali",
-    "name": "Bali",
-    "isNative": false,
-    "cover": "https://subwaysurfers-ubg.github.io/assets/images/editions/bali.png",
-    "src": "https://unblockedgames67.gitlab.io/subway-surfers-bali/",
     "category": "World Tour Cidades"
   },
   {
@@ -262,14 +270,6 @@ window.SUBWAY_MAPS = [
     "isNative": false,
     "cover": "https://subwaysurfers-ubg.github.io/assets/images/editions/monaco.png",
     "src": "https://m.igroutka.ru/g-1/46/SubwaySurfersMonaco/",
-    "category": "World Tour Cidades"
-  },
-  {
-    "id": "mumbai",
-    "name": "Mumbai",
-    "isNative": false,
-    "cover": "https://subwaysurfers-ubg.github.io/assets/images/editions/mumbai.png",
-    "src": "https://unblockedgames67.gitlab.io/subway-surfers-mumbai/",
     "category": "World Tour Cidades"
   },
   {
