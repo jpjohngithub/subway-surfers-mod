@@ -961,6 +961,15 @@
                 canvas.style.height = '100vh';
                 canvas.style.margin = '0';
             }
+            const mapContainer = document.getElementById('sw-map-container');
+            if (mapContainer) {
+                if (val === 'stretched_ultra') mapContainer.style.transform = 'scaleX(1.45)';
+                else if (val === 'stretched_5_4') mapContainer.style.transform = 'scaleX(1.30)';
+                else if (val === 'stretched_4_3') mapContainer.style.transform = 'scaleX(1.20)';
+                else if (val === 'stretched_16_10') mapContainer.style.transform = 'scaleX(1.10)';
+                else mapContainer.style.transform = 'none';
+                mapContainer.style.transformOrigin = 'center center';
+            }
             const st = document.getElementById('sw-aspect-style');
             if (st) st.remove();
 
@@ -8322,6 +8331,17 @@
             document.body.appendChild(menuBtn);
         }
 
+        // Dedicated World Tour Map Hub Button (Separated from Settings Button)
+        if (!document.getElementById('btn-subway-map-hub')) {
+            const mapBtn = document.createElement('button');
+            mapBtn.id = 'btn-subway-map-hub';
+            mapBtn.className = 'btn-subway-map-hub';
+            mapBtn.title = 'Hub de Mapas — Escolha entre 64 cidades do World Tour';
+            mapBtn.innerHTML = `<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>`;
+            mapBtn.onclick = () => window.openMapHubModal();
+            document.body.appendChild(mapBtn);
+        }
+
         initProSkinHub();
     }
 
@@ -8711,6 +8731,7 @@
                 <div class="unified-tabs">
                     <button class="tab-btn" data-tab="modes" id="tab-btn-modes">MODOS</button>
                     <button class="tab-btn" data-tab="skins" id="tab-btn-skins">SKINS</button>
+                    <button class="tab-btn" data-tab="maps" id="tab-btn-maps" onclick="window.openMapHubModal()" style="color:#38bdf8;">MAPAS 🌍</button>
                     <button class="tab-btn" data-tab="graphics" id="tab-btn-graphics">CONFIGURAÇÕES</button>
                     <button class="tab-btn" data-tab="multiplayer" id="tab-btn-multiplayer">MULTIPLAYER</button>
                     <button class="tab-btn" data-tab="records" id="tab-btn-records">RECORDES</button>
@@ -9858,6 +9879,213 @@
                 cursor: pointer;
                 box-shadow: 0 6px 18px rgba(0, 0, 0, 0.42);
                 transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+            }
+            body.sw-in-run #btn-subway-map-hub { display: none !important; }
+            .btn-subway-map-hub {
+                position: fixed;
+                top: auto;
+                bottom: max(18px, env(safe-area-inset-bottom, 18px));
+                left: calc(16px + clamp(34px, 5.5vw, 64px) + 10px);
+                z-index: 99998;
+                width: clamp(34px, 5.5vw, 64px);
+                height: clamp(34px, 5.5vw, 64px);
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #0f172a;
+                color: #38bdf8;
+                border: 1.5px solid rgba(56, 189, 248, 0.4);
+                border-radius: 12px;
+                cursor: pointer;
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), 0 0 12px rgba(56, 189, 248, 0.2);
+                transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+            }
+            .btn-subway-map-hub:hover {
+                background: #1e293b;
+                border-color: #38bdf8;
+                transform: scale(1.06);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 18px rgba(56, 189, 248, 0.4);
+            }
+            .btn-subway-map-hub svg {
+                width: 58%;
+                height: 58%;
+            }
+            .sw-map-container {
+                position: fixed;
+                inset: 0;
+                width: 100vw;
+                height: 100vh;
+                z-index: 1;
+                background: #0b316b;
+                overflow: hidden;
+                margin: 0;
+                padding: 0;
+            }
+            .map-hub-box {
+                max-width: 940px !important;
+                width: 95vw !important;
+                max-height: 88vh !important;
+                display: flex;
+                flex-direction: column;
+            }
+            .map-hub-toolbar {
+                display: flex;
+                gap: 12px;
+                padding: 12px 18px;
+                background: rgba(15, 23, 42, 0.6);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            .map-search-wrap {
+                flex: 1;
+                min-width: 220px;
+                position: relative;
+                display: flex;
+                align-items: center;
+            }
+            .map-search-wrap svg {
+                position: absolute;
+                left: 12px;
+                color: #94a3b8;
+                pointer-events: none;
+            }
+            .map-search-wrap input {
+                width: 100%;
+                padding: 9px 12px 9px 38px;
+                background: rgba(30, 41, 59, 0.85);
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 8px;
+                color: #f8fafc;
+                font-size: 13px;
+                outline: none;
+                transition: border-color 0.15s ease;
+            }
+            .map-search-wrap input:focus {
+                border-color: #38bdf8;
+            }
+            .map-filter-chips {
+                display: flex;
+                gap: 6px;
+            }
+            .map-chip {
+                padding: 7px 14px;
+                background: rgba(30, 41, 59, 0.6);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 20px;
+                color: #cbd5e1;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.15s ease;
+            }
+            .map-chip.active, .map-chip:hover {
+                background: #0284c7;
+                color: #fff;
+                border-color: #38bdf8;
+            }
+            .map-hub-content {
+                flex: 1;
+                overflow-y: auto;
+                padding: 16px;
+            }
+            .map-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 14px;
+            }
+            .map-card {
+                background: #1e293b;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 12px;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+            }
+            .map-card:hover {
+                transform: translateY(-3px);
+                border-color: rgba(56, 189, 248, 0.5);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            }
+            .map-card.card-active {
+                border: 2px solid #10b981;
+                box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+            }
+            .map-card-img-wrap {
+                position: relative;
+                width: 100%;
+                aspect-ratio: 16 / 9;
+                background: #0f172a;
+                overflow: hidden;
+            }
+            .map-card-img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+            }
+            .map-card-cat {
+                position: absolute;
+                top: 8px;
+                left: 8px;
+                background: rgba(0, 0, 0, 0.7);
+                backdrop-filter: blur(4px);
+                padding: 3px 8px;
+                border-radius: 6px;
+                font-size: 10px;
+                font-weight: 700;
+                color: #38bdf8;
+                text-transform: uppercase;
+            }
+            .map-badge-active {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                background: #10b981;
+                color: #fff;
+                padding: 3px 8px;
+                border-radius: 6px;
+                font-size: 10px;
+                font-weight: 800;
+                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+            }
+            .map-card-body {
+                padding: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                flex: 1;
+                justify-content: space-between;
+            }
+            .map-card-title {
+                font-size: 14px;
+                font-weight: 700;
+                color: #f8fafc;
+                line-height: 1.25;
+            }
+            .btn-play-map {
+                width: 100%;
+                padding: 8px 12px;
+                background: linear-gradient(135deg, #0284c7, #2563eb);
+                color: #fff;
+                border: 0;
+                border-radius: 8px;
+                font-size: 12px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.15s ease;
+            }
+            .btn-play-map:hover {
+                background: linear-gradient(135deg, #0369a1, #1d4ed8);
+                transform: scale(1.02);
+            }
+            .btn-play-map.btn-active-map {
+                background: rgba(16, 185, 129, 0.2);
+                color: #10b981;
+                border: 1px solid #10b981;
+                cursor: default;
             }
             .sw-trails-grid {
                 display: grid;
@@ -12483,7 +12711,178 @@
         }
     }, 300);
 
+    function initMapSystem() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const mapParam = urlParams.get('map');
+        const savedMap = localStorage.getItem('sw_selected_map');
+        const activeId = mapParam || savedMap || 'original';
+        window.__ACTIVE_MAP_ID__ = activeId;
+
+        if (activeId !== 'original') {
+            window.__IS_CUSTOM_MAP__ = true;
+            const maps = window.SUBWAY_MAPS || [];
+            const mapObj = maps.find(m => m.id === activeId);
+            if (mapObj && mapObj.src) {
+                const msg = document.getElementById('message');
+                if (msg) msg.style.display = 'none';
+
+                let container = document.getElementById('sw-map-container');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.id = 'sw-map-container';
+                    container.className = 'sw-map-container';
+                    container.innerHTML = `
+                        <iframe id="sw-map-frame" 
+                                src="${mapObj.src}" 
+                                allow="autoplay; fullscreen; gamepad" 
+                                style="position: absolute; inset: 0; width: 100%; height: 100%; border: 0;">
+                        </iframe>
+                    `;
+                    document.body.appendChild(container);
+
+                    window.addEventListener('keydown', function(e) {
+                        const frame = document.getElementById('sw-map-frame');
+                        if (frame && document.activeElement !== frame) {
+                            try { frame.focus(); } catch(err) {}
+                        }
+                    }, { capture: true, passive: true });
+                }
+                setTimeout(() => {
+                    showHUDNotification('🌍 Mapa Ativo: ' + mapObj.name);
+                }, 800);
+            }
+        }
+    }
+
+    window.openMapHubModal = function() {
+        let modal = document.getElementById('modal-map-hub');
+        if (modal) {
+            modal.style.display = 'flex';
+            if (typeof window.__renderMapCards === 'function') window.__renderMapCards();
+            return;
+        }
+
+        modal = document.createElement('div');
+        modal.className = 'subway-modal-backdrop';
+        modal.id = 'modal-map-hub';
+
+        modal.innerHTML = `
+            <div class="subway-modal-box map-hub-box">
+                <div class="modal-header">
+                    <div class="modal-header-branding">
+                        <span class="modal-brand-title">HUB DE MAPAS</span>
+                        <span class="modal-brand-sep"></span>
+                        <span class="modal-brand-sub">World Tour (64 Cidades & Edições)</span>
+                    </div>
+                    <button class="btn-modal-close" id="btn-close-map-hub" title="Fechar">✕</button>
+                </div>
+
+                <div class="map-hub-toolbar">
+                    <div class="map-search-wrap">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        <input type="text" id="map-search-input" placeholder="Buscar cidade ou tema (ex: Tóquio, Rio, Paris, Havaí, Berlim)..." />
+                    </div>
+                    <div class="map-filter-chips">
+                        <button class="map-chip active" data-filter="all">Todos (64)</button>
+                        <button class="map-chip" data-filter="cities">Cidades</button>
+                        <button class="map-chip" data-filter="specials">Especiais</button>
+                    </div>
+                </div>
+
+                <div class="map-hub-content" id="map-hub-content">
+                    <div class="map-grid" id="map-cards-grid"></div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        let currentFilter = 'all';
+        let currentSearch = '';
+
+        window.__renderMapCards = function() {
+            const grid = document.getElementById('map-cards-grid');
+            if (!grid) return;
+            const currentMapId = window.__ACTIVE_MAP_ID__ || 'original';
+            const q = (currentSearch || '').toLowerCase().trim();
+
+            const allMaps = window.SUBWAY_MAPS || [];
+            const filtered = allMaps.filter(m => {
+                if (currentFilter === 'cities' && m.category !== 'World Tour Cidades') return false;
+                if (currentFilter === 'specials' && m.category !== 'Edições Especiais') return false;
+                if (q && !m.name.toLowerCase().includes(q) && !m.id.toLowerCase().includes(q)) return false;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #94a3b8; padding: 40px 10px; font-size: 14px;">Nenhum mapa encontrado para "<strong>${currentSearch}</strong>"</div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(m => {
+                const isActive = m.id === currentMapId;
+                return `
+                    <div class="map-card ${isActive ? 'card-active' : ''}">
+                        <div class="map-card-img-wrap">
+                            <img class="map-card-img" src="${m.cover}" alt="${m.name}" loading="lazy" onerror="this.src='bundles/lasvegas/game-idle/train-start@2x.png'" />
+                            <span class="map-card-cat">${m.isNative ? 'Nativo Mod' : (m.category === 'Edições Especiais' ? 'Especial' : 'World Tour')}</span>
+                            ${isActive ? `<span class="map-badge-active">✔ EM JOGO</span>` : ''}
+                        </div>
+                        <div class="map-card-body">
+                            <div class="map-card-title">${m.name}</div>
+                            <button class="btn-play-map ${isActive ? 'btn-active-map' : ''}" onclick="window.__selectSubwayMap('${m.id}')">
+                                ${isActive ? 'JOGANDO AGORA' : 'JOGAR MAPA ➔'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.__renderMapCards();
+
+        const sInput = modal.querySelector('#map-search-input');
+        if (sInput) {
+            sInput.oninput = (e) => {
+                currentSearch = e.target.value;
+                window.__renderMapCards();
+            };
+        }
+
+        modal.querySelectorAll('.map-chip').forEach(chip => {
+            chip.onclick = () => {
+                modal.querySelectorAll('.map-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                currentFilter = chip.dataset.filter;
+                window.__renderMapCards();
+            };
+        });
+
+        const closeBtn = modal.querySelector('#btn-close-map-hub');
+        if (closeBtn) closeBtn.onclick = () => { modal.style.display = 'none'; };
+        modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+    };
+
+    window.__selectSubwayMap = function(mapId) {
+        if (mapId === window.__ACTIVE_MAP_ID__) {
+            showHUDNotification('Você já está jogando neste mapa!');
+            return;
+        }
+        localStorage.setItem('sw_selected_map', mapId);
+        showHUDNotification('Carregando mapa... Reiniciando jogo!');
+        setTimeout(() => {
+            const url = new URL(window.location.href);
+            if (mapId === 'original') {
+                url.searchParams.delete('map');
+            } else {
+                url.searchParams.set('map', mapId);
+            }
+            window.location.href = url.toString();
+        }, 220);
+    };
+
     function init() {
+        initMapSystem();
         try {
             const urlRoom = new URLSearchParams(window.location.search).get('room');
             if (urlRoom) {

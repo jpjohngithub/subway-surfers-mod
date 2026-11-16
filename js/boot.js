@@ -49,6 +49,12 @@ function initPokiSDK(onComplete)
 /** Init app */
 function initApp()
 {
+    if (window.__IS_CUSTOM_MAP__)
+    {
+        console.log('[MapHub] Custom world tour map active, bypassing native Las Vegas bundle load.');
+        return;
+    }
+
     // Set SDK debug mode
     if (window.PokiSDK && window.GAME_CONFIG && window.GAME_CONFIG.pokiSdkDebug !== undefined)
     {
