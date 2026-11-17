@@ -16,8 +16,8 @@
     <link rel="dns-prefetch" href="https://broker.emqx.io">
     <link rel="preconnect" href="https://broker.emqx.io">
     
-    <link rel="preload" href="js/dependencies.bundle.js?v=83" as="script">
-    <link rel="preload" href="js/index.js?v=67" as="script">
+    <link rel="preload" href="js/dependencies.bundle.js?v=84" as="script">
+    <link rel="preload" href="js/index.js?v=68" as="script">
     <link rel="manifest" href="subwaysurfers.webmanifest">
     <link rel="icon" href="assets/images/app-icon-16.png" type="image/png">
     <link rel="apple-touch-icon-precomposed" sizes="114x114" href="assets/images/app-icon-114.png">
@@ -108,18 +108,19 @@
                 m = new URLSearchParams(window.location.search).get('map') || localStorage.getItem('sw_selected_map');
             } catch(e) {}
             var thm = 'lasvegas';
-            if (m === 'bali' || m === '1106-bali') thm = '1106-bali';
-            else if (m === 'mumbai' || m === '189-mumbai') thm = '189-mumbai';
-            else if (m === 'havana' || m === '190-havana') thm = '190-havana';
-            else if (m === 'venice' || m === '199-venice') thm = '199-venice';
-            else if (m === 'tokyo' || m === '184-tokyo') thm = '184-tokyo';
-            else if (m && m !== 'original' && m !== 'lasvegas') {
-                if (m.includes('bali')) thm = '1106-bali';
-                else if (m.includes('mumbai')) thm = '189-mumbai';
-                else if (m.includes('havana')) thm = '190-havana';
-                else if (m.includes('venice')) thm = '199-venice';
-                else if (m.includes('tokyo')) thm = '184-tokyo';
-                else thm = 'lasvegas';
+            var s = (m || '').toLowerCase();
+            if (s === 'bali' || s === '1106-bali' || s.includes('bali') || s.includes('hawaii') || s.includes('madagascar') || s.includes('sydney')) {
+                thm = '1106-bali';
+            } else if (s === 'mumbai' || s === '189-mumbai' || s.includes('mumbai') || s.includes('cairo') || s.includes('dubai') || s.includes('marrakesh') || s.includes('arabia') || s.includes('india')) {
+                thm = '189-mumbai';
+            } else if (s === 'havana' || s === '190-havana' || s.includes('havana') || s.includes('rio') || s.includes('buenos') || s.includes('mexico') || s.includes('peru') || s.includes('sao') || s.includes('miami') || s.includes('cancun')) {
+                thm = '190-havana';
+            } else if (s === 'venice' || s === '199-venice' || s.includes('venice') || s.includes('paris') || s.includes('rome') || s.includes('london') || s.includes('amsterdam') || s.includes('berlin') || s.includes('zurich') || s.includes('monaco') || s.includes('barcelona') || s.includes('madrid') || s.includes('prague') || s.includes('moscow') || s.includes('greece') || s.includes('edin') || s.includes('petersburg') || s.includes('copenhagen')) {
+                thm = '199-venice';
+            } else if (s === 'tokyo' || s === '184-tokyo' || s.includes('tokyo') || s.includes('beijing') || s.includes('seoul') || s.includes('bangkok') || s.includes('singapore') || s.includes('shanghai') || s.includes('hong') || s.includes('kyoto') || s.includes('cyber') || s.includes('space') || s.includes('future')) {
+                thm = '184-tokyo';
+            } else {
+                thm = 'lasvegas';
             }
             window.__RESOLVED_THEME__ = thm;
             window.GAME_CONFIG = {
@@ -144,11 +145,11 @@
         <h1>Loading</h1>
         <h1 class="dot one">.</h1><h1 class="dot two">.</h1><h1 class="dot three">.</h1>
     </div>
-    <script src="js/maps_data.js?v=3"></script>
+    <script src="js/maps_data.js?v=4"></script>
     <script src="patch/js/peerjs.min.js"></script>
     <script src="patch/js/mqtt.min.js"></script>
-    <script src="js/subway_mod.js?v=215"></script>
+    <script src="js/subway_mod.js?v=216"></script>
     <script src="js/loading.js?v=15"></script>
-    <script src="js/boot.js?v=83"></script>
+    <script src="js/boot.js?v=84"></script>
 </body>
 </html>

@@ -34361,7 +34361,7 @@
     constructor() {
       if (super(), h(this, "ramp", !0), this.add(a.a, {
         boxColor: 5570560
-      }), this.body.width = 18, this.body.height = 29, this.body.depth = 70, this.removableOnCrash = !0, this.model = r.a.library.getEntity("train_ramp"), this.model.position.y = .5 * -this.body.height, this.model.rotation.y = Math.PI, this.model.z = -8, this.addChild(this.model), "buenosaires" === n.a.theme) {
+      }), this.body.width = 18, this.body.height = 29, this.body.depth = 70, this.removableOnCrash = !0, this.model = r.a.library.getEntity((r.a.library && r.a.library.hasGeometry("train_ramp")) ? "train_ramp" : ((r.a.library && r.a.library.hasGeometry("train_ramp_low")) ? "train_ramp_low" : "train_ramp")), this.model.position.y = .5 * -this.body.height, this.model.rotation.y = Math.PI, this.model.z = -8, this.addChild(this.model), "buenosaires" === n.a.theme) {
         const t = Object(o.a)(this.model, "trains", !0);
         t && (t.view3d.material.diffuseMap = r.a.library.getMap("environment-tex"), t.active = !1);
       }

@@ -12890,12 +12890,8 @@
         modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
     };
 
-    const NATIVE_MAP_IDS = new Set(['original', 'lasvegas', 'bali', '1106-bali', 'mumbai', '189-mumbai', 'tokyo', '184-tokyo', 'havana', '190-havana', 'venice', '199-venice']);
     window.__selectSubwayMap = function(mapId) {
-        if (!NATIVE_MAP_IDS.has(mapId)) {
-            showHUDNotification('⚠️ Esta cidade requer download adicional do pacote 3D. Experimente Bali, Tokyo, Mumbai, Havana ou Venice!');
-            return;
-        }
+        if (!mapId) return;
         if (mapId === window.__ACTIVE_MAP_ID__) {
             showHUDNotification('Você já está jogando neste mapa!');
             return;

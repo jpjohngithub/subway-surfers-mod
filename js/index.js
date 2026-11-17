@@ -7494,7 +7494,35 @@
         }
       }
       var _0x21c244;
+      this.ensureModelAliases && this.ensureModelAliases();
       this.ensureHalfWagonModels && this.ensureHalfWagonModels();
+    }
+    ["ensureModelAliases"]() {
+      try {
+        const aliases = {
+          'train_sub': ['train_sub', 'train_sub_low', 'train_standard', 'train_cargo'],
+          'train_subwagon': ['train_subwagon', 'train_subwagon_low', 'train_sub', 'train_sub_low', 'train_standardwagon', 'train_standard', 'train_cargo'],
+          'train_subwagon_low': ['train_subwagon_low', 'train_sub_low', 'train_standard_low', 'train_cargo_low'],
+          'train_standardwagon': ['train_standardwagon', 'train_standardwagon_low', 'train_standard', 'train_standard_low', 'train_cargo'],
+          'train_standardwagon_low': ['train_standardwagon_low', 'train_standard_low', 'train_cargo_low'],
+          'freighttrain_cargo': ['freighttrain_cargo', 'train_cargo', 'train_cargo_low', 'train_standard'],
+          'train_ramp': ['train_ramp', 'train_ramp_low'],
+          'train_start': ['train_start', 'train_standard', 'train_cargo', 'train_sub', 'train_sub_low'],
+          'blocker_jump': ['blocker_jump'],
+          'blocker_roll': ['blocker_roll', 'blocker_jump'],
+          'blocker_standard': ['blocker_standard', 'blocker_jump']
+        };
+        for (const [target, fallbacks] of Object.entries(aliases)) {
+          if (!this.geometries[target] || !this.geometryGroups[target]) {
+            const found = fallbacks.find(k => this.geometries[k] && this.geometryGroups[k] && this.geometryGroups[k].length);
+            if (found) {
+              this.geometries[target] = this.geometries[found];
+              this.geometryGroups[target] = this.geometryGroups[found];
+              this.geometrySceneNames[target] = this.geometrySceneNames[found];
+            }
+          }
+        }
+      } catch (e) {}
     }
     ["ensureHalfWagonModels"]() {
       try {
@@ -7667,7 +7695,26 @@
     }
     ['getEntity'](_0x502888, _0x5b566e) {
       let _0x182d15;
-      return void 0 === _0x5b566e && (_0x5b566e = {}), this.geometryGroups[_0x502888] || ("epic_mid" === _0x502888 && (_0x502888 = "epic_start"), "epic_end" === _0x502888 && (_0x502888 = "epic_start")), _0x182d15 = 1 === this.geometryGroups[_0x502888].length ? this.getEntityFromGeometry(_0x502888, this.geometryGroups[_0x502888][0], _0x5b566e) : this.mountEntity(new _0x18a9c6.a(), _0x502888, _0x5b566e), _0x182d15.groupName = _0x502888, _0x182d15;
+      void 0 === _0x5b566e && (_0x5b566e = {});
+      if (!this.geometryGroups[_0x502888]) {
+        const lower = typeof _0x502888 === 'string' ? _0x502888.toLowerCase() : '';
+        if (this.geometryGroups[lower]) {
+          _0x502888 = lower;
+        } else if ("epic_mid" === _0x502888 || "epic_end" === _0x502888) {
+          _0x502888 = "epic_start";
+        } else if (lower.includes("wagon") || lower.includes("train")) {
+          _0x502888 = this.geometryGroups["train_standard"] ? "train_standard" : (this.geometryGroups["train_cargo"] ? "train_cargo" : (this.geometryGroups["train_sub_low"] ? "train_sub_low" : "train_standard"));
+        } else if (lower.includes("ramp") && this.geometryGroups["train_ramp_low"]) {
+          _0x502888 = "train_ramp_low";
+        }
+      }
+      if (!this.geometryGroups[_0x502888] || !this.geometryGroups[_0x502888].length) {
+        const fallbackKey = Object.keys(this.geometryGroups)[0];
+        if (fallbackKey) _0x502888 = fallbackKey;
+      }
+      _0x182d15 = (this.geometryGroups[_0x502888] && 1 === this.geometryGroups[_0x502888].length) ? this.getEntityFromGeometry(_0x502888, this.geometryGroups[_0x502888][0], _0x5b566e) : this.mountEntity(new _0x18a9c6.a(), _0x502888, _0x5b566e);
+      _0x182d15.groupName = _0x502888;
+      return _0x182d15;
     }
     ["getEntityPromise"](_0x5729af, _0x122880) {
       return void 0 === _0x122880 && (_0x122880 = {}), new Promise(_0x4744fa => {
@@ -7734,10 +7781,28 @@
       return this.maps[_0x196315];
     }
     ["hasGeometry"](_0x20ffc2) {
-      return !!this.geometries[_0x20ffc2];
+      if (this.geometries[_0x20ffc2]) return true;
+      const lower = typeof _0x20ffc2 === 'string' ? _0x20ffc2.toLowerCase() : '';
+      if (this.geometries[lower]) return true;
+      if (lower.includes('wagon') || lower.includes('train')) {
+        return !!(this.geometries['train_standard'] || this.geometries['train_cargo'] || this.geometries['train_sub'] || this.geometries['train_sub_low']);
+      }
+      if (lower.includes('ramp')) {
+        return !!(this.geometries['train_ramp'] || this.geometries['train_ramp_low']);
+      }
+      return false;
     }
     ['hasGroup'](_0x14c261) {
-      return !!this.geometryGroups[_0x14c261];
+      if (this.geometryGroups[_0x14c261] && this.geometryGroups[_0x14c261].length) return true;
+      const lower = typeof _0x14c261 === 'string' ? _0x14c261.toLowerCase() : '';
+      if (this.geometryGroups[lower] && this.geometryGroups[lower].length) return true;
+      if (lower.includes('wagon') || lower.includes('train')) {
+        return !!(this.geometryGroups['train_standard'] || this.geometryGroups['train_cargo'] || this.geometryGroups['train_sub'] || this.geometryGroups['train_sub_low']);
+      }
+      if (lower.includes('ramp')) {
+        return !!(this.geometryGroups['train_ramp'] || this.geometryGroups['train_ramp_low']);
+      }
+      return false;
     }
     ["hasMap"](_0x254c4e) {
       return !!this.maps[_0x254c4e];
