@@ -7684,7 +7684,7 @@
           });
         if (_0x4aa00b.view3d) {
           if (_0x4aa00b.view3d.material) {
-            const _0x481e56 = _0x4aa00b.view3d.geometry.attributes;
+            const _0x481e56 = _0x4aa00b.view3d.geometry ? _0x4aa00b.view3d.geometry.attributes : null;
             _0x481e56 && _0x481e56.aBoneWeights ? _0x4aa00b.view3d.material instanceof _0x55480c ? _0x4aa00b.view3d.material.diffuseMap = _0x401ca9 : _0x4aa00b.view3d.material = _0x11d9cc : _0x4aa00b.view3d.material = _0x1fdc25;
           } else _0x4aa00b.view3d.material = _0x1fdc25;
         }
@@ -7888,7 +7888,24 @@
       this.resetUi(), this.idleGame(), _0x483390.showLoadingMessage(), await _0x483390.loader.loadAllIdleCharacters(), _0x483390.hideLoadingMessage(), _0x483390.mePanel.open(), _0x483390.mePanel.setSection("awards"), this.opened = _0x483390.mePanel;
     }
     async ["toGame"]() {
-      this.resetUi(), _0x483390.showLoadingMessage(), await _0x483390.loader.loadSelectedFullCharacter(), _0x483390.hideLoadingMessage(), this.firstRun || (await _0x5aae70.a.SDK.commercialBreak(true)), _0x483390.resources.manager.areManifestsLoaded(["game-basic"]) ? this.runGame() : _0x483390.resources.loading ? _0x483390.resources.manager.onLoadComplete.connect(this.runGame) : this.runGame(), this.firstRun = false;
+      try { this.resetUi(); } catch(e) {}
+      try {
+        await Promise.race([
+          _0x483390.loader.loadSelectedFullCharacter(),
+          new Promise(r => setTimeout(r, 1200))
+        ]);
+      } catch(e) {}
+      try { _0x483390.hideLoadingMessage(); } catch(e) {}
+      try {
+        if (!this.firstRun) {
+          await Promise.race([
+            _0x5aae70.a.SDK.commercialBreak(true),
+            new Promise(r => setTimeout(r, 300))
+          ]);
+        }
+      } catch(e) {}
+      this.firstRun = false;
+      try { this.runGame(); } catch(e) { console.error("[runGame] error:", e); }
     }
     ["toPrizeScreen"](_0x1cdee0) {
       void 0 === _0x1cdee0 && (_0x1cdee0 = "mystery-box");
@@ -8628,49 +8645,56 @@
     ["handleEpicMid"](_0x586bed) {}
     ["handleEpicEnd"](_0x27995f) {}
     ["handleThemeMaterial"](_0x208608, _0x2ec561, _0x2429be) {
-      if (_0x1c08b6 && _0x1c08b6.a && _0x1c08b6.a.theme !== "lasvegas") return;
-      if ("fire01" === _0x2ec561) {
-        const _0x31ba49 = [];
-        for (let _0x18149c = 1; _0x18149c <= 23; ++_0x18149c) {
-          const _0x18261f = _0x18149c < 10 ? '0' + _0x18149c : _0x18149c;
-          _0x31ba49.push(_0x6491ca.a.library.geometries['fire' + _0x18261f]);
-        }
-        _0x208608.addComponent(_0x2689d1.a, {
-          minDuration: 0.52,
-          maxDuration: 0.6,
-          meshes: _0x31ba49
-        }), this.applyMap(_0x208608, "effects-tex");
-      } else {
-        if ('Shark_01' === _0x2ec561 || "fish01" === _0x2ec561 || "fish02" === _0x2ec561) {
-          const _0x5438bc = _0x208608.view3d,
-            _0x3b9394 = _0x5438bc.material;
-          _0x5438bc.material = new _0x270fe3({
-            map: _0x3b9394.diffuseMap,
-            frequency: 0.1,
-            speed: 8,
-            speedScales: new _0x26c12a.a(1, 1, 1),
-            offsetScale: 1,
-            waveDirection: new _0x26c12a.a(1, 1, 1),
-            wavePlaneNormal: new _0x26c12a.a(0.5, 0.1, 0),
-            waveHeight: 3,
-            vertexColorWeight: 1
-          }), _0x208608.addComponent(_0x5d038a.a);
+      try {
+        if (_0x1c08b6 && _0x1c08b6.a && _0x1c08b6.a.theme !== "lasvegas") return;
+        if ("fire01" === _0x2ec561) {
+          const _0x31ba49 = [];
+          for (let _0x18149c = 1; _0x18149c <= 23; ++_0x18149c) {
+            const _0x18261f = _0x18149c < 10 ? '0' + _0x18149c : _0x18149c;
+            const geom = _0x6491ca.a && _0x6491ca.a.library && _0x6491ca.a.library.geometries && _0x6491ca.a.library.geometries['fire' + _0x18261f];
+            if (geom) _0x31ba49.push(geom);
+          }
+          if (_0x31ba49.length) {
+            _0x208608.addComponent(_0x2689d1.a, {
+              minDuration: 0.52,
+              maxDuration: 0.6,
+              meshes: _0x31ba49
+            }), this.applyMap(_0x208608, "effects-tex");
+          }
         } else {
-          if (_0x2ec561.includes("caustic2")) this.applyMap(_0x208608, "caustic", [18, -6], false, false), this.applyBlendMode(_0x208608, _0x4e342a.BLEND_MODES.ADD);else {
-            if (_0x2ec561.includes("caustic")) this.applyMap(_0x208608, "caustic", [18, -6], true, false), this.applyBlendMode(_0x208608, _0x4e342a.BLEND_MODES.ADD);else {
-              if ("Plane002" === _0x2ec561) this.applyMap(_0x208608, "fountain", [0, 20], true, false), this.applyBlendMode(_0x208608, _0x4e342a.BLEND_MODES.SCREEN), _0x6491ca.a.library.getMap('fountain').baseTexture.scaleMode = _0x4e342a.SCALE_MODES.NEAREST;else {
-                if (_0x2ec561.includes("tube_mid")) {
-                  const _0x59132d = _0x208608;
-                  if (_0x59132d.eventItem && (_0x59132d.eventItem.destroy(), _0x59132d.eventItem = null), !_0x59132d.eventItem && Math.random() > 0.33) {
-                    const _0xa24143 = _0x5c9364.a.unityParticle(_0x1e26b0, "bubble", _0x4e342a.BLEND_MODES.ADD_NPM);
-                    Math.random() > 0.5 ? (_0xa24143.x = 54.5, _0xa24143.y = 2.9, _0xa24143.z = 96.1) : (_0xa24143.x = -58.2, _0xa24143.y = 3, _0xa24143.z = 43.5), _0xa24143.rx = -Math.PI / 2, _0x59132d.addChild(_0xa24143), _0x59132d.eventItem = _0xa24143;
+          if ('Shark_01' === _0x2ec561 || "fish01" === _0x2ec561 || "fish02" === _0x2ec561) {
+            const _0x5438bc = _0x208608.view3d,
+              _0x3b9394 = _0x5438bc && _0x5438bc.material;
+            if (_0x5438bc && _0x3b9394) {
+              _0x5438bc.material = new _0x270fe3({
+                map: _0x3b9394.diffuseMap,
+                frequency: 0.1,
+                speed: 8,
+                speedScales: new _0x26c12a.a(1, 1, 1),
+                offsetScale: 1,
+                waveDirection: new _0x26c12a.a(1, 1, 1),
+                wavePlaneNormal: new _0x26c12a.a(0.5, 0.1, 0),
+                waveHeight: 3,
+                vertexColorWeight: 1
+              }), _0x208608.addComponent(_0x5d038a.a);
+            }
+          } else {
+            if (_0x2ec561.includes("caustic2")) this.applyMap(_0x208608, "caustic", [18, -6], false, false), this.applyBlendMode(_0x208608, _0x4e342a.BLEND_MODES.ADD);else {
+              if (_0x2ec561.includes("caustic")) this.applyMap(_0x208608, "caustic", [18, -6], true, false), this.applyBlendMode(_0x208608, _0x4e342a.BLEND_MODES.ADD);else {
+                if ("Plane002" === _0x2ec561) this.applyMap(_0x208608, "fountain", [0, 20], true, false), this.applyBlendMode(_0x208608, _0x4e342a.BLEND_MODES.SCREEN), _0x6491ca.a.library.getMap('fountain').baseTexture.scaleMode = _0x4e342a.SCALE_MODES.NEAREST;else {
+                  if (_0x2ec561.includes("tube_mid")) {
+                    const _0x59132d = _0x208608;
+                    if (_0x59132d.eventItem && (_0x59132d.eventItem.destroy(), _0x59132d.eventItem = null), !_0x59132d.eventItem && Math.random() > 0.33) {
+                      const _0xa24143 = _0x5c9364.a.unityParticle(_0x1e26b0, "bubble", _0x4e342a.BLEND_MODES.ADD_NPM);
+                      Math.random() > 0.5 ? (_0xa24143.x = 54.5, _0xa24143.y = 2.9, _0xa24143.z = 96.1) : (_0xa24143.x = -58.2, _0xa24143.y = 3, _0xa24143.z = 43.5), _0xa24143.rx = -Math.PI / 2, _0x59132d.addChild(_0xa24143), _0x59132d.eventItem = _0xa24143;
+                    }
                   }
                 }
               }
             }
           }
         }
-      }
+      } catch(e) {}
     }
     ["hideTubeFloors"]() {
       return !_0x1c08b6 || !_0x1c08b6.a || _0x1c08b6.a.theme === "lasvegas";
@@ -9964,13 +9988,43 @@
     }
     async ["runWithIntro"]() {
       var _0x5d2ff7, _0x216300;
-      if (this.reseted = false, this.idle(), _0x283660.a.prepopulate(), _0x4ed78c.a.refreshCache(), _0x3f69f8.a.SDK.gameplayStart(), _0x3f69f8.a.sendCustomMessage("game", 'roundStart', {}), this.playTheme(), this.level.currentChunk) {
-        for (const _0x28356d of this.level.currentChunk.fillerList) _0x28356d.build();
+      try {
+        if (this.reseted = false, this.idle(), _0x283660.a.prepopulate(), _0x4ed78c.a.refreshCache(), _0x3f69f8.a.SDK.gameplayStart(), _0x3f69f8.a.sendCustomMessage("game", 'roundStart', {}), this.playTheme(), this.level.currentChunk) {
+          for (const _0x28356d of this.level.currentChunk.fillerList) _0x28356d.build();
+        }
+        null === (_0x5d2ff7 = this.guard) || void 0 === _0x5d2ff7 || _0x5d2ff7.scale.set(0.01);
+        try { this.hero.playIntro(); } catch(e) {}
+        try { if (this.guard) this.guard.playIntro(); } catch(e) {}
+        try { if (this.intro) this.intro.play(); } catch(e) {}
+        null === (_0x216300 = this.guard) || void 0 === _0x216300 || _0x216300.scale.set(1);
+        try {
+          this.tutorial.enabled ? this.level.queueTutorial() : (this.level.queueChunk(), this.level.queueChunk(), this.level.queueChunk());
+        } catch(e) { console.warn("[queueChunk] error:", e); }
+      } catch(e) {
+        console.error("[runWithIntro] error:", e);
       }
-      null === (_0x5d2ff7 = this.guard) || void 0 === _0x5d2ff7 || _0x5d2ff7.scale.set(0.01), this.hero.playIntro(), this.guard && this.guard.playIntro(), this.intro.play(), null === (_0x216300 = this.guard) || void 0 === _0x216300 || _0x216300.scale.set(1), this.tutorial.enabled ? this.level.queueTutorial() : (this.level.queueChunk(), this.level.queueChunk(), this.level.queueChunk());
+      setTimeout(() => {
+        if (this.state !== _0xc92f56.RUNNING && this.state !== _0xc92f56.PAUSED && this.state !== _0xc92f56.GAMEOVER) {
+          this.runFromIntro();
+        }
+      }, 1200);
     }
     ["runFromIntro"]() {
-      this.reseted = false, this.hud && this.hud.build(), this.guard && this.guard.run(), this.hero.run(), this.camera.run(), this.onRun.run(), this.state = _0xc92f56.RUNNING;
+      try {
+        if (this.intro) this.intro.playing = false;
+      } catch(e) {}
+      try {
+        if (this.camera && typeof this.camera.releaseControl === 'function') {
+          this.camera.releaseControl();
+        }
+      } catch(e) {}
+      this.reseted = false;
+      try { if (this.hud) this.hud.build(); } catch(e) {}
+      try { if (this.guard) this.guard.run(); } catch(e) {}
+      try { if (this.hero) this.hero.run(); } catch(e) {}
+      try { if (this.camera) this.camera.run(); } catch(e) {}
+      try { if (this.onRun) this.onRun.run(); } catch(e) {}
+      this.state = _0xc92f56.RUNNING;
     }
     ["pause"]() {
       this.state === _0xc92f56.RUNNING && (this.state = _0xc92f56.PAUSED, this.onPause.run(), _0x3f69f8.a.SDK.gameplayStop());

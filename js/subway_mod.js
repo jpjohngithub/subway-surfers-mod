@@ -2219,6 +2219,7 @@
         const board = window.game && window.game.hero && window.game.hero.hoverboard;
         if (!board || board.__energyGate || typeof board.turnOn !== 'function') return;
         const originalTurnOn = board.turnOn;
+        board.__origTurnOn = originalTurnOn;
         board.turnOn = function() {
             if (this.isOn && this.isOn()) return;
             if (!this.__energyPermit) {
@@ -2228,6 +2229,7 @@
         };
         if (typeof board.onDoubleTap === 'function' && !board.__energyDoubleTapGate) {
             const originalDoubleTap = board.onDoubleTap;
+            board.__origDoubleTap = originalDoubleTap;
             board.onDoubleTap = function() {
                 if (this.isOn && this.isOn()) return;
                 if (!this.__energyPermit) {
@@ -2241,38 +2243,53 @@
         energyGateInstalled = true;
     }
 
+    let isActivatingBoard = false;
     function activateBoard() {
-        const game = window.game;
-        const hero = game && game.hero;
-        const board = hero && hero.hoverboard;
-        if (!game || !hero || !board) return;
-        if (board.isOn && board.isOn()) return;
-        installHoverboardEnergyGate();
-        skateEnergy = 0;
-        updateEnergyHud();
-        const oldNoCoin = window.NO_COIN_MODE;
-        const oldLocked = board.locked;
-        const oldHas = board.hasHoverboards;
-        const oldSpend = board.spendHoverboard;
-        const oldPlayerLock = hero.player && hero.player.hoverboardLocked;
+        if (isActivatingBoard) return;
+        isActivatingBoard = true;
         try {
-            window.NO_COIN_MODE = false;
-            board.locked = false;
-            if (hero.player) hero.player.hoverboardLocked = false;
-            board.hasHoverboards = () => true;
-            board.spendHoverboard = () => {};
-            board.__energyPermit = true;
-            board.turnOn();
-            if (hero.jump && hero.jump.enableDoubleJump) hero.jump.enableDoubleJump();
-            showEnergyToast('SKATE ATIVADO');
-        } catch(e) {
-            showEnergyToast('SKATE ATIVADO');
+            const game = window.game;
+            const hero = game && game.hero;
+            const board = hero && hero.hoverboard;
+            if (!game || !hero || !board) return;
+            if (board.isOn && board.isOn()) return;
+            installHoverboardEnergyGate();
+            skateEnergy = 0;
+            updateEnergyHud();
+            const oldNoCoin = window.NO_COIN_MODE;
+            const oldLocked = board.locked;
+            const oldHas = board.hasHoverboards;
+            const oldSpend = board.spendHoverboard;
+            const oldPlayerLock = hero.player && hero.player.hoverboardLocked;
+            try {
+                window.NO_COIN_MODE = false;
+                board.locked = false;
+                if (hero.player) hero.player.hoverboardLocked = false;
+                board.hasHoverboards = () => true;
+                board.spendHoverboard = () => {};
+                board.__energyPermit = true;
+                if (board.__origTurnOn) {
+                    board.__origTurnOn.call(board);
+                } else if (typeof board.turnOn === 'function') {
+                    board.turnOn();
+                }
+                if (hero.jump && hero.jump.enableDoubleJump) hero.jump.enableDoubleJump();
+                showEnergyToast('SKATE ATIVADO');
+            } catch(e) {
+                showEnergyToast('SKATE ATIVADO');
+            } finally {
+                board.__energyPermit = false;
+                window.NO_COIN_MODE = oldNoCoin;
+                board.locked = oldLocked;
+                if (hero.player) hero.player.hoverboardLocked = oldPlayerLock;
+                if (oldHas) board.hasHoverboards = oldHas; else delete board.hasHoverboards;
+                if (oldSpend) board.spendHoverboard = oldSpend; else delete board.spendHoverboard;
+                updateEnergyHud();
+            }
         } finally {
-            board.__energyPermit = false;
-            window.NO_COIN_MODE = oldNoCoin;
-            board.locked = oldLocked;
-            if (hero.player) hero.player.hoverboardLocked = oldPlayerLock;
-            if (oldHas) board.hasHoverboards = oldHas; else delete board.hasHoverboards;
+            isActivatingBoard = false;
+        }
+    }
             if (oldSpend) board.spendHoverboard = oldSpend; else delete board.spendHoverboard;
             updateEnergyHud();
         }
@@ -3247,9 +3264,9 @@
     }
 
     window.__onGameRun = function() {
-        hookGameOverScreen();
-        startRunTimer();
-        applyGraphicsSettings();
+        try { hookGameOverScreen(); } catch(e) {}
+        try { startRunTimer(); } catch(e) {}
+        try { applyGraphicsSettings(); } catch(e) {}
     };
     window.__onHeroDeath = function() {
         try {

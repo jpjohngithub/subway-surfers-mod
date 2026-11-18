@@ -64,8 +64,29 @@ function LoadingBar()
         resize();
     }
 
+    var stallTimer = null;
+    var maxTimer = setTimeout(function() {
+        if (showing) {
+            setProgress(1.0);
+            setTimeout(hide, 200);
+        }
+    }, 3500);
+
+    var safetyCheck = setInterval(function() {
+        if (!showing) {
+            clearInterval(safetyCheck);
+            return;
+        }
+        if ((window.game && (window.game.state === 0 || window.game.state === 1)) || (window.app && window.app.titleScreen)) {
+            hide();
+            clearInterval(safetyCheck);
+        }
+    }, 200);
+
     function hide()
     {
+        if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
+        if (maxTimer) { clearTimeout(maxTimer); maxTimer = null; }
         if (!showing) return;
         showing = false;
         container.remove();
